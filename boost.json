@@ -1,0 +1,16 @@
+{
+    "agents": [
+        "claude_code",
+        "gemini",
+        "copilot",
+        "cursor",
+        "opencode"
+    ],
+    "guidelines": true,
+    "herd_mcp": false,
+    "mcp": true,
+    "sail": false,
+    "skills": [
+        "pest-testing"
+    ]
+}
