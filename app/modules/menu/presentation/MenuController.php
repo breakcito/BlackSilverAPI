@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Modules\Sistema\Presentation\Controllers;
+namespace App\Modules\Menu\Presentation\Controllers;
 
-use App\Modules\Sistema\Application\Usecases\ListarModulosUseCase;
-use App\Modules\Sistema\Application\Usecases\ObtenerMenuUsuarioUseCase;
+use App\Modules\Menu\Application\Usecases\ListarModulosUseCase;
+use App\Modules\Menu\Application\Usecases\ObtenerMenuUsuarioUseCase;
 use App\Modules\Usuarios\Infraestructure\Models\Usuario;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
@@ -11,7 +11,7 @@ use Illuminate\Routing\Controller;
 /**
  * Controlador para el sistema de módulos y menú.
  */
-class SistemaController extends Controller
+class MenuController extends Controller
 {
     public function __construct(
         private ListarModulosUseCase $listarModulosUseCase,
@@ -19,23 +19,11 @@ class SistemaController extends Controller
     ) {}
 
     /**
-     * Listar módulos con submódulos y secciones.
+     * Obtener menu de navegacion en base al rol del usuario autenticado.
      */
-    public function modulos(): JsonResponse
+    public function get_menu_navegacion(): JsonResponse
     {
-        $modulos = $this->listarModulosUseCase->execute();
-
-        return response()->json($modulos);
-    }
-
-    /**
-     * Obtener menú de navegación del usuario autenticado.
-     */
-    public function menu(): JsonResponse
-    {
-        /** @var Usuario $usuario */
-        $usuario = auth('api')->user();
-        $menu = $this->obtenerMenuUsuarioUseCase->execute($usuario);
+        $menu = $this->obtenerMenuUsuarioUseCase->execute();
 
         return response()->json($menu);
     }

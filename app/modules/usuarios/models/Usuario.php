@@ -2,7 +2,7 @@
 
 namespace App\Modules\Usuarios\Infraestructure\Models;
 
-use App\Modules\Empleados\Infraestructure\Models\Empleado;
+use App\Modules\Empresa\Infraestructure\Models\Empleado;
 use App\Modules\Empresa\Infraestructure\Models\Empresa;
 use App\Modules\Roles\Infraestructure\Models\Rol;
 use Illuminate\Auth\Authenticatable;
@@ -129,5 +129,38 @@ class Usuario extends Model implements AuthenticatableContract, JWTSubject
     public function usuarioEmpresas(): HasMany
     {
         return $this->hasMany(UsuarioEmpresa::class, 'id_usuario');
+    }
+
+    /**
+     * Buscar usuario por ID.
+     */
+    public static function buscarPorId(int $id): ?Usuario
+    {
+        return self::find($id);
+    }
+
+    /**
+     * Buscar usuario por username.
+     */
+    public static function buscarPorUsername(string $username): ?Usuario
+    {
+        return self::where('username', $username)->first();
+    }
+
+    /**
+     * Crear un nuevo usuario.
+     */
+    public static function crearUsuario(
+        int $idRol,
+        int $idEmpleado,
+        string $username,
+        string $password
+    ): ?Usuario {
+        return self::create([
+            'id_rol' => $idRol,
+            'id_empleado' => $idEmpleado,
+            'username' => $username,
+            'password' => $password,
+        ]);
     }
 }

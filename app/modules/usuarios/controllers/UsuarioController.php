@@ -2,13 +2,11 @@
 
 namespace App\Modules\Usuarios\Presentation\Controllers;
 
-use App\Modules\Usuarios\Application\Dtos\CrearUsuarioRequest;
-use App\Modules\Usuarios\Application\Usecases\ActualizarPasswordUseCase;
-use App\Modules\Usuarios\Application\Usecases\CrearUsuarioUseCase;
-use App\Modules\Usuarios\Application\Usecases\ListarUsuariosUseCase;
-use App\Modules\Usuarios\Infraestructure\Models\Usuario;
+use App\Modules\Usuarios\Presentation\Requests\LoginRequest;
+use App\Modules\Usuarios\Presentation\Requests\StoreUsuarioRequest;
+use App\Modules\Usuarios\Services\UsuarioService;
+use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 /**
@@ -17,69 +15,64 @@ use Illuminate\Routing\Controller;
 class UsuarioController extends Controller
 {
     public function __construct(
-        private ListarUsuariosUseCase $listarUsuariosUseCase,
-        private CrearUsuarioUseCase $crearUsuarioUseCase,
-        private ActualizarPasswordUseCase $actualizarPasswordUseCase,
+        private UsuarioService $usuarioService
     ) {}
 
     /**
      * Listar usuarios.
      */
-    public function index(Request $request): JsonResponse
+    public function index(): JsonResponse
     {
-        $idEmpresa = $request->query('id_empresa');
-        $usuarios = $this->listarUsuariosUseCase->execute(
-            $idEmpresa ? (int) $idEmpresa : null
+        $result = $this->usuarioService->obtenerUsuarios();
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message']);
+        }
+
+        return ApiResponse::success($result['data']);
+    }
+
+    /**
+     * Registrar un nuevo usuario con su empleado.
+     */
+    public function store(StoreUsuarioRequest $request): JsonResponse
+    {
+        $result = $this->usuarioService->registrarUsuario(
+            $request->validated('id_cargo_empresa'),
+            $request->validated('id_rol'),
+            $request->validated('nombre'),
+            $request->validated('apellido'),
+            $request->validated('dni'),
+            $request->validated('ruc'),
+            $request->validated('carnet_extranjeria'),
+            $request->validated('pasaporte'),
+            $request->validated('fecha_nacimiento'),
+            $request->validated('username'),
+            $request->validated('password'),
+            $request->file('foto')
         );
 
-        return response()->json($usuarios);
+        if (! $result['success']) {
+            return ApiResponse::error($result['message']);
+        }
+
+        return ApiResponse::created($result['data'], $result['message']);
     }
 
     /**
-     * Crear un nuevo usuario.
+     * Iniciar sesión.
      */
-    public function store(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $request->validate([
-            'id_rol' => 'required|integer|exists:rol,id',
-            'id_empleado' => 'required|integer|exists:empleado,id',
-            'username' => 'required|string|max:64|unique:usuario,username',
-            'password' => 'required|string|min:8',
-        ]);
+        $result = $this->usuarioService->login(
+            $request->validated('username'),
+            $request->validated('password')
+        );
 
-        try {
-            $dto = CrearUsuarioRequest::fromArray($request->all());
-            $usuario = $this->crearUsuarioUseCase->execute($dto);
-
-            return response()->json($usuario->load(['rol', 'empleado']), 201);
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+        if (! $result['success']) {
+            return ApiResponse::unauthorized($result['message']);
         }
-    }
 
-    /**
-     * Actualizar contraseña del usuario autenticado.
-     */
-    public function actualizarPassword(Request $request): JsonResponse
-    {
-        $request->validate([
-            'password_actual' => 'required|string',
-            'password_nuevo' => 'required|string|min:8|confirmed',
-        ]);
-
-        /** @var Usuario $usuario */
-        $usuario = auth('api')->user();
-
-        try {
-            $this->actualizarPasswordUseCase->execute(
-                $usuario,
-                $request->input('password_actual'),
-                $request->input('password_nuevo')
-            );
-
-            return response()->json(['message' => 'Contraseña actualizada correctamente']);
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
-        }
+        return ApiResponse::success($result['data'], $result['message']);
     }
 }

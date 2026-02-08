@@ -1,6 +1,6 @@
 <?php
 
-use App\Modules\Sistema\Presentation\Controllers\SistemaController;
+use App\Modules\Menu\Presentation\Controllers\MenuController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -11,8 +11,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:api')->group(function () {
     // Estructura del sistema (listado completo para administración)
-    Route::get('/sistema/modulos', [SistemaController::class, 'modulos'])->name('sistema.modulos');
+    Route::get('/sistema/modulos', [MenuController::class, 'modulos'])->name('sistema.modulos');
 
     // Menú de navegación del usuario autenticado
-    Route::get('/sistema/menu', [SistemaController::class, 'menu'])->name('sistema.menu');
+    Route::get('/sistema/menu', [MenuController::class, 'menu'])->name('sistema.menu');
 });

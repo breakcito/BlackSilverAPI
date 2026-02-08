@@ -1,0 +1,23 @@
+{
+    "Configuracion": {
+        "Empresas": [
+            "Empresas",
+            "Areas",
+            "Almacenes",
+            "Concesiones",
+            "Labores"
+        ],
+        "Personal": ["Cargos", "Trabajadores"],
+        "Usuarios": ["Roles", "Cuentas"]
+    },
+    "Logistica": {
+        "Inventario": [
+            "Categorias",
+            "Familias",
+            "Productos",
+            "Lotes",
+            "Kardex"
+        ],
+        "Solicitudes de Almacen": ["Solicitudes", "Atenciones", "Entregas"]
+    }
+}

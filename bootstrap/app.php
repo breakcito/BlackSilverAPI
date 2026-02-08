@@ -11,16 +11,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         then: function () {
             Route::middleware('api')->prefix('api')->group(function () {
-                require base_path('app/modules/usuarios/presentation/routes.php');
-                require base_path('app/modules/sistema/presentation/routes.php');
-                require base_path('app/modules/empresa/presentation/routes.php');
-                require base_path('app/modules/roles/presentation/routes.php');
-                require base_path('app/modules/empleados/presentation/routes.php');
+                require base_path('app/modules/usuarios/controllers/_routes.php');
+                require base_path('app/modules/empresa/controllers/_routes.php');
             });
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'jwt.auth' => \App\Http\Middleware\JwtAuthMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
