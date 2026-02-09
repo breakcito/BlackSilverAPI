@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Menu\Presentation\Controllers;
+namespace App\Modules\Menu\Presentation;
 
 use App\Modules\Menu\Services\MenuService;
 use App\Shared\Responses\ApiResponse;
@@ -8,32 +8,22 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
-/**
- * Controlador para el sistema de módulos y menú.
- */
 class MenuController extends Controller
 {
     public function __construct(
         private MenuService $menuService
     ) {}
 
-    /**
-     * Obtener menu de navegacion en base al rol del usuario autenticado.
-     */
-    public function get_menu_navegacion(Request $request): JsonResponse
+    public function get_menu_navegacion_by_rol(Request $request): JsonResponse
     {
-        $authUser = $request->input('auth_user');
+        $authUser = $request->attributes->get('auth_user');
 
-        if (! $authUser || ! isset($authUser->id_rol)) {
-            return ApiResponse::unauthorized('No autorizado');
+        if (!$authUser || !isset($authUser->id_rol)) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
-        $result = $this->menuService->obtenerMenuPorRol($authUser->id_rol);
+        $result = $this->menuService->get_menu_navegacion_by_rol($authUser->id_rol);
 
-        if (! $result['success']) {
-            return ApiResponse::error($result['message']);
-        }
-
-        return ApiResponse::success($result['data']);
+        return response()->json($result);
     }
 }

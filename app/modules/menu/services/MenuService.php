@@ -10,10 +10,7 @@ use App\Shared\Responses\ApiResponse;
  */
 class MenuService
 {
-    /**
-     * Obtener el menú de navegación completo para un rol.
-     */
-    public function obtenerMenuPorRol(int $idRol): array
+    public function get_menu_navegacion_by_rol(int $idRol): array
     {
         $modulos = Menu::get_modulos_by_rol($idRol);
 
@@ -47,6 +44,6 @@ class MenuService
             ];
         }
 
-        return ApiResponse::array(true, $menu);
+        return ApiResponse::success($menu);
     }
 }

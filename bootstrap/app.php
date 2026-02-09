@@ -13,12 +13,13 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware('api')->prefix('api')->group(function () {
                 require base_path('app/modules/usuarios/controllers/_routes.php');
                 require base_path('app/modules/empresa/controllers/_routes.php');
+                require base_path('app/modules/menu/presentation/_routes.php');
             });
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'jwt.auth' => \App\Http\Middleware\JwtAuthMiddleware::class,
+            'auth.jwt.custom' => \App\Http\Middleware\JwtAuthMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

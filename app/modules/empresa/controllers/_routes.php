@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('jwt.auth')->group(function () {
+Route::middleware('auth.jwt.custom')->group(function () {
     // Áreas
     Route::get('/areas', [AreaController::class, 'index'])->name('areas.index');
     Route::post('/areas', [CargoController::class, 'storeArea'])->name('areas.store');
