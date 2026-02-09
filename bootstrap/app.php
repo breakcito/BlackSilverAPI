@@ -12,8 +12,8 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function () {
             Route::middleware('api')->prefix('api')->group(function () {
                 require base_path('app/modules/usuarios/controllers/_routes.php');
-                require base_path('app/modules/empresa/controllers/_routes.php');
-                require base_path('app/modules/menu/presentation/_routes.php');
+                require base_path('app/modules/empresas/controllers/_routes.php');
+                require base_path('app/modules/menu/controllers/_routes.php');
             });
         },
     )

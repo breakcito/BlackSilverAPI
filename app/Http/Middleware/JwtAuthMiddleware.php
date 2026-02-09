@@ -9,9 +9,6 @@ use Illuminate\Http\Request;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Middleware para autenticación JWT.
- */
 class JwtAuthMiddleware
 {
     public function __construct(

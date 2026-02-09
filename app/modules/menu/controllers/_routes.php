@@ -1,6 +1,6 @@
 <?php
 
-use App\Modules\Menu\Presentation\MenuController;
+use App\Modules\Menu\Controllers\MenuController;
 use Illuminate\Support\Facades\Route;
 
 

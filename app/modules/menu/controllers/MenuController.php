@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Menu\Presentation;
+namespace App\Modules\Menu\Controllers;
 
 use App\Modules\Menu\Services\MenuService;
 use App\Shared\Responses\ApiResponse;
