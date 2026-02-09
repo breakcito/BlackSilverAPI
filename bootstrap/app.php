@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/modules/usuarios/controllers/_routes.php');
                 require base_path('app/modules/empresas/controllers/_routes.php');
                 require base_path('app/modules/menu/controllers/_routes.php');
+                require base_path('app/modules/inventario/controllers/_routes.php');
             });
         },
     )

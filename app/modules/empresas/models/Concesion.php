@@ -83,4 +83,41 @@ class Concesion extends Model
 
         return $result->count > 0;
     }
+    // actualizar una concesion
+    public static function update_concesion(int $id, string $nombre)
+    {
+        return DB::table('concesion')
+            ->where('id', $id)
+            ->update([
+                'nombre' => $nombre
+            ]);
+    }
+
+    // eliminar (desactivar) una concesion
+    public static function delete_concesion(int $id)
+    {
+        return DB::table('concesion')
+            ->where('id', $id)
+            ->update([
+                'estado' => EstadoBase::Inactivo->value
+            ]);
+    }
+
+    // obtener concesion por id
+    public static function get_concesion_by_id(int $id)
+    {
+        $sql = '
+        SELECT
+            cn.id AS id_concesion,
+            cn.id_empresa,
+            cn.nombre,
+            cn.estado
+        FROM
+            concesion cn
+        WHERE
+            cn.id = :id
+        ';
+
+        return DB::selectOne($sql, ['id' => $id]);
+    }
 }

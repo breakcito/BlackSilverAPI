@@ -33,4 +33,29 @@ class ConcesionService
         $id_concesion = Concesion::crear_concesion($id_empresa, $nombre);
         return ApiResponse::success(["id_concesion" => $id_concesion]);
     }
+    public function update_concesion(int $id, string $nombre)
+    {
+        $concesion = Concesion::get_concesion_by_id($id);
+        if (!$concesion) {
+            return ApiResponse::error('Concesion no encontrada');
+        }
+
+        // verificar si el nombre ya existe en otra concesion de la misma empresa (opcional, pero buena practica)
+        // Por simplicidad, asumimos que se puede actualizar si no choca
+        // Podriamos implementar verificacion aqui si fuera necesario
+
+        Concesion::update_concesion($id, $nombre);
+        return ApiResponse::success(['mensaje' => 'Concesion actualizada correctamente']);
+    }
+
+    public function delete_concesion(int $id)
+    {
+        $concesion = Concesion::get_concesion_by_id($id);
+        if (!$concesion) {
+            return ApiResponse::error('Concesion no encontrada');
+        }
+
+        Concesion::delete_concesion($id);
+        return ApiResponse::success(['mensaje' => 'Concesion eliminada correctamente']);
+    }
 }
