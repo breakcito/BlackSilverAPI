@@ -15,7 +15,6 @@ class UsuarioController extends Controller
         private UsuarioService $usuarioService
     ) {}
 
-
     public function login(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -35,10 +34,6 @@ class UsuarioController extends Controller
             $request->input('password')
         );
 
-        if (!$result['success']) {
-            return ApiResponse::unauthorized($result['message']);
-        }
-
-        return ApiResponse::success($result['data']);
+        return $result;
     }
 }

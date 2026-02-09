@@ -26,27 +26,27 @@ class JwtAuthMiddleware
         try {
             $token = JWTAuth::parseToken();
             $payload = $token->getPayload();
-            $userId = $payload->get('sub');
+            $id_usuario = $payload->get('sub');
 
-            if (!$userId) {
-                return ApiResponse::unauthorized('Token inválido');
+            if (!$id_usuario) {
+                return response()->json(ApiResponse::error('Token inválido'));
             }
 
-            $result = $this->usuarioService->validarUsuarioActivo($userId);
+            $result = $this->usuarioService->validarUsuarioJWT($id_usuario);
 
-            if (! $result['success']) {
-                return ApiResponse::unauthorized($result['message']);
+            if (!$result['success']) {
+                return response()->json($result);
             }
 
             $request->merge(['auth_user' => $result['data']]);
 
             return $next($request);
         } catch (\PHPOpenSourceSaver\JWTAuth\Exceptions\TokenExpiredException $e) {
-            return ApiResponse::unauthorized('Token expirado');
+            return response()->json(ApiResponse::error('Token expirado'));
         } catch (\PHPOpenSourceSaver\JWTAuth\Exceptions\TokenInvalidException $e) {
-            return ApiResponse::unauthorized('Token inválido');
+            return response()->json(ApiResponse::error('Token inválido'));
         } catch (\PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException $e) {
-            return ApiResponse::unauthorized('Token no proporcionado');
+            return response()->json(ApiResponse::error('Token no proporcionado'));
         }
     }
 }

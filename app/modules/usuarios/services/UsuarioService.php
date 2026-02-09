@@ -3,6 +3,7 @@
 namespace App\Modules\Usuarios\Services;
 
 use App\Modules\Usuarios\Models\Usuario;
+use App\Shared\Enums\EstadoBase;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Support\Facades\Hash;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
@@ -11,7 +12,7 @@ use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 class UsuarioService
 {
     // Autenticar usuario y generar token JWT.
-    public function login(string $usuario, string $password)
+    public function login(string $usuario, string $password): array
     {
         $user = Usuario::getByUsername($usuario);
 
@@ -36,9 +37,24 @@ class UsuarioService
             'id_empleado' => $infoUsuario->id_empleado,
         ]);
 
-        return ApiResponse::array(true, [
+        return ApiResponse::success([
             'token' => $token,
-            $infoUsuario
+            'usuario' => $infoUsuario
         ]);
+    }
+
+    public function validarUsuarioJWT(int $id_usuario): array
+    {
+        $usuario = Usuario::getInfoUsuarioById($id_usuario);
+
+        if (!$usuario) {
+            return ApiResponse::error('Usuario no encontrado');
+        }
+
+        if ($usuario->estado != EstadoBase::Activo->value) {
+            return ApiResponse::error('Usuario inactivo');
+        }
+
+        return ApiResponse::success($usuario);
     }
 }

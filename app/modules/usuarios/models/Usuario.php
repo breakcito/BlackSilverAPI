@@ -43,13 +43,13 @@ class Usuario extends Model implements AuthenticatableContract, JWTSubject
         FROM
             usuario usu
         WHERE
-            usu.usuario = :usuario AND
+            usu.username = :username AND
             usu.estado = :estado
         LIMIT 1
         ';
 
         $result = DB::select($sql, [
-            'usuario' => $username,
+            'username' => $username,
             'estado' => EstadoBase::Activo->value
         ]);
 
@@ -57,7 +57,7 @@ class Usuario extends Model implements AuthenticatableContract, JWTSubject
     }
 
     // Obtener información del usuario
-    public static function getInfoUsuarioById(int $id)
+    public static function getInfoUsuarioById(int $id_usuario)
     {
         $sql = '
         SELECT
@@ -71,16 +71,17 @@ class Usuario extends Model implements AuthenticatableContract, JWTSubject
             emp.carnet_extranjeria,
             emp.pasaporte,
             emp.fecha_nacimiento,
-            emp.path_foto
+            emp.path_foto,
+            usu.estado
         FROM
             usuario usu
         INNER JOIN empleado emp on emp.id = usu.id_empleado
         WHERE
-            usu.id = :id
+            usu.id = :id_usuario
         ';
 
         $result = DB::select($sql, [
-            'id' => $id
+            'id_usuario' => $id_usuario
         ]);
 
         return $result[0] ?? null;
