@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Modules\Sistema\Infraestructure\Models;
+namespace App\Modules\Menu\Models;
 
-use App\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 

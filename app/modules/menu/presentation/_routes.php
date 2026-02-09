@@ -9,10 +9,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth:api')->group(function () {
-    // Estructura del sistema (listado completo para administración)
-    Route::get('/sistema/modulos', [MenuController::class, 'modulos'])->name('sistema.modulos');
-
+Route::middleware('jwt.auth')->group(function () {
     // Menú de navegación del usuario autenticado
-    Route::get('/sistema/menu', [MenuController::class, 'menu'])->name('sistema.menu');
+    Route::get('/sistema/menu', [MenuController::class, 'get_menu_navegacion'])->name('sistema.menu');
 });

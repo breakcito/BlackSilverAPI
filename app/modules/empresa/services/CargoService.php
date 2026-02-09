@@ -16,8 +16,6 @@ class CargoService
 {
     /**
      * Registrar una nueva área.
-     *
-     * @return array{success: bool, data: mixed, message: string|null}
      */
     public function registrarArea(string $nombre): array
     {
@@ -36,8 +34,6 @@ class CargoService
 
     /**
      * Registrar un nuevo cargo.
-     *
-     * @return array{success: bool, data: mixed, message: string|null}
      */
     public function registrarCargo(int $idArea, string $nombre): array
     {
@@ -62,8 +58,6 @@ class CargoService
 
     /**
      * Registrar una asociación área-empresa.
-     *
-     * @return array{success: bool, data: mixed, message: string|null}
      */
     public function registrarAreaEmpresa(int $idArea, int $idEmpresa): array
     {
@@ -100,8 +94,6 @@ class CargoService
 
     /**
      * Registrar una asociación cargo-empresa.
-     *
-     * @return array{success: bool, data: mixed, message: string|null}
      */
     public function registrarCargoEmpresa(int $idAreaEmpresa, int $idCargo): array
     {

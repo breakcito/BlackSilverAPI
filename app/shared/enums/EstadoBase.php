@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Enums;
+namespace App\Shared\Enums;
 
 /**
  * Enum base para estados base de registros en el sistema.

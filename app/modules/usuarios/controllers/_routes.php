@@ -1,6 +1,6 @@
 <?php
 
-use App\Modules\Usuarios\Presentation\Controllers\UsuarioController;
+use App\Modules\Usuarios\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -10,14 +10,14 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Login (sin autenticación)
-Route::post('/login', [UsuarioController::class, 'login'])->name('usuarios.login');
+Route::post('/login', [UsuarioController::class, 'login']);
 
 /*
 |--------------------------------------------------------------------------
-| Usuarios CRUD Routes (requieren autenticación JWT)
+| Usuarios (requieren autenticación JWT)
 |--------------------------------------------------------------------------
 */
 Route::middleware('jwt.auth')->group(function () {
-    Route::get('/usuarios', [UsuarioController::class, 'index'])->name('usuarios.index');
-    Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
+    Route::get('/usuarios', [UsuarioController::class, 'index']);
+    Route::post('/usuarios', [UsuarioController::class, 'store']);
 });

@@ -1,38 +1,42 @@
 <?php
 
-namespace App\Modules\Empresa\Infraestructure\Models;
+namespace App\Modules\Empresa\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Modelo para la tabla empresa.
- *
- * @property int $id
- * @property string $ruc
- * @property string $razon_social
- * @property string $nombre_comercial
- * @property string $abreviatura
- * @property string $path_logo
  */
 class Empresa extends Model
 {
-    protected $table = 'empresa';
-
-    public $timestamps = false;
-
-    protected $fillable = [
-        'ruc',
-        'razon_social',
-        'nombre_comercial',
-        'abreviatura',
-        'path_logo',
-    ];
-
     /**
      * Buscar empresa por ID.
      */
-    public static function buscarPorId(int $id): ?Empresa
+    public static function get_empresas_by_usuario(int $id_usuario)
     {
-        return self::find($id);
+        $sql = '
+        /*
+        Obtener las empresas por usuario
+        */
+        SELECT DISTINCT
+            md.id AS id_modulo,
+            md.nombre
+        FROM
+            modulo md
+        INNER JOIN submodulo sb ON
+            sb.id_modulo = md.id
+        INNER JOIN seccion sc ON
+            sc.id_submodulo = sb.id
+        INNER JOIN seccion_rol scr ON
+            scr.id_seccion = sc.id
+        WHERE
+            scr.id_rol = ?
+        ORDER BY md.nombre;
+        ';
+
+        return DB::select($sql, [
+            $id_usuario,
+        ]);
     }
 }

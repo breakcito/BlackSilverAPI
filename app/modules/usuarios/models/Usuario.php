@@ -1,166 +1,88 @@
 <?php
 
-namespace App\Modules\Usuarios\Infraestructure\Models;
+namespace App\Modules\Usuarios\Models;
 
-use App\Modules\Empresa\Infraestructure\Models\Empleado;
-use App\Modules\Empresa\Infraestructure\Models\Empresa;
-use App\Modules\Roles\Infraestructure\Models\Rol;
+use App\Shared\Enums\EstadoBase;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
-/**
- * Modelo para la tabla usuario.
- *
- * Implementa JWT para autenticación API.
- *
- * @property int $id
- * @property int $id_rol
- * @property int $id_empleado
- * @property string $username
- * @property string $password
- * @property \Carbon\Carbon $created_at
- */
 class Usuario extends Model implements AuthenticatableContract, JWTSubject
 {
+    #region setup
     use Authenticatable;
 
-    /**
-     * Nombre de la tabla asociada.
-     */
     protected $table = 'usuario';
 
-    /**
-     * Indica si el modelo debe tener updated_at.
-     */
-    public const UPDATED_AT = null;
+    protected $hidden = ['password'];
 
-    /**
-     * Atributos asignables masivamente.
-     *
-     * @var list<string>
-     */
-    protected $fillable = [
-        'id_rol',
-        'id_empleado',
-        'username',
-        'password',
-    ];
+    public $timestamps = false;
+    #endregion
 
-    /**
-     * Atributos ocultos para serialización.
-     *
-     * @var list<string>
-     */
-    protected $hidden = [
-        'password',
-    ];
-
-    /**
-     * Casting de atributos.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'password' => 'hashed',
-            'created_at' => 'datetime',
-        ];
-    }
-
-    /**
-     * Obtener el identificador para JWT.
-     */
+    // Obtener el identificador para JWT.
     public function getJWTIdentifier(): mixed
     {
         return $this->getKey();
     }
 
-    /**
-     * Claims personalizados para JWT.
-     *
-     * @return array<string, mixed>
-     */
+    // Array con los valores personalizados para el JWT.
     public function getJWTCustomClaims(): array
     {
-        return [
-            'username' => $this->username,
-            'id_rol' => $this->id_rol,
-        ];
+        return [];
     }
 
-    /**
-     * Relación con el rol.
-     */
-    public function rol(): BelongsTo
+    // Buscar usuario por nombre de usuario.
+    public static function getByUsername(string $username)
     {
-        return $this->belongsTo(Rol::class, 'id_rol');
-    }
+        $sql = '
+        SELECT
+            usu.id as id_usuario,
+            usu.password
+        FROM
+            usuario usu
+        WHERE
+            usu.usuario = :usuario AND
+            usu.estado = :estado
+        LIMIT 1
+        ';
 
-    /**
-     * Relación con el empleado.
-     */
-    public function empleado(): BelongsTo
-    {
-        return $this->belongsTo(Empleado::class, 'id_empleado');
-    }
-
-    /**
-     * Relación con empresas a través de la tabla pivote.
-     */
-    public function empresas(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            Empresa::class,
-            'usuario_empresa',
-            'id_usuario',
-            'id_empresa'
-        );
-    }
-
-    /**
-     * Relación directa con la tabla pivote.
-     */
-    public function usuarioEmpresas(): HasMany
-    {
-        return $this->hasMany(UsuarioEmpresa::class, 'id_usuario');
-    }
-
-    /**
-     * Buscar usuario por ID.
-     */
-    public static function buscarPorId(int $id): ?Usuario
-    {
-        return self::find($id);
-    }
-
-    /**
-     * Buscar usuario por username.
-     */
-    public static function buscarPorUsername(string $username): ?Usuario
-    {
-        return self::where('username', $username)->first();
-    }
-
-    /**
-     * Crear un nuevo usuario.
-     */
-    public static function crearUsuario(
-        int $idRol,
-        int $idEmpleado,
-        string $username,
-        string $password
-    ): ?Usuario {
-        return self::create([
-            'id_rol' => $idRol,
-            'id_empleado' => $idEmpleado,
-            'username' => $username,
-            'password' => $password,
+        $result = DB::select($sql, [
+            'usuario' => $username,
+            'estado' => EstadoBase::Activo->value
         ]);
+
+        return $result[0] ?? null;
+    }
+
+    // Obtener información del usuario
+    public static function getInfoUsuarioById(int $id)
+    {
+        $sql = '
+        SELECT
+            usu.id as id_usuario,
+            usu.id_rol,
+            usu.id_empleado,
+            emp.nombre,
+            emp.apellido,
+            emp.dni,
+            emp.ruc,
+            emp.carnet_extranjeria,
+            emp.pasaporte,
+            emp.fecha_nacimiento,
+            emp.path_foto
+        FROM
+            usuario usu
+        INNER JOIN empleado emp on emp.id = usu.id_empleado
+        WHERE
+            usu.id = :id
+        ';
+
+        $result = DB::select($sql, [
+            'id' => $id
+        ]);
+
+        return $result[0] ?? null;
     }
 }

@@ -1,8 +1,8 @@
 <?php
 
-use App\Modules\Empresa\Presentation\Controllers\AreaController;
-use App\Modules\Empresa\Presentation\Controllers\CargoController;
-use App\Modules\Empresa\Presentation\Controllers\EmpresaController;
+use App\Modules\Empresa\Controllers\AreaController;
+use App\Modules\Empresa\Controllers\CargoController;
+use App\Modules\Empresa\Controllers\EmpresaController;
 use Illuminate\Support\Facades\Route;
 
 /*

@@ -2,10 +2,10 @@
 
 namespace App\Modules\Menu\Presentation\Controllers;
 
-use App\Modules\Menu\Application\Usecases\ListarModulosUseCase;
-use App\Modules\Menu\Application\Usecases\ObtenerMenuUsuarioUseCase;
-use App\Modules\Usuarios\Infraestructure\Models\Usuario;
+use App\Modules\Menu\Services\MenuService;
+use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 /**
@@ -14,17 +14,26 @@ use Illuminate\Routing\Controller;
 class MenuController extends Controller
 {
     public function __construct(
-        private ListarModulosUseCase $listarModulosUseCase,
-        private ObtenerMenuUsuarioUseCase $obtenerMenuUsuarioUseCase,
+        private MenuService $menuService
     ) {}
 
     /**
      * Obtener menu de navegacion en base al rol del usuario autenticado.
      */
-    public function get_menu_navegacion(): JsonResponse
+    public function get_menu_navegacion(Request $request): JsonResponse
     {
-        $menu = $this->obtenerMenuUsuarioUseCase->execute();
+        $authUser = $request->input('auth_user');
 
-        return response()->json($menu);
+        if (! $authUser || ! isset($authUser->id_rol)) {
+            return ApiResponse::unauthorized('No autorizado');
+        }
+
+        $result = $this->menuService->obtenerMenuPorRol($authUser->id_rol);
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message']);
+        }
+
+        return ApiResponse::success($result['data']);
     }
 }
