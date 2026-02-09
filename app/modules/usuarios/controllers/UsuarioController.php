@@ -26,7 +26,7 @@ class UsuarioController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error($validator->errors()->first());
+            return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
         $result = $this->usuarioService->login(
@@ -34,6 +34,6 @@ class UsuarioController extends Controller
             $request->input('password')
         );
 
-        return $result;
+        return response()->json($result);
     }
 }
