@@ -1,7 +1,6 @@
 <?php
 
-use App\Modules\Empresas\Controllers\AreaController;
-use App\Modules\Empresas\Controllers\EmpresaController;
+use App\Modules\Empresas\Controllers\ConcesionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -11,9 +10,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware('auth.jwt.custom')->group(function () {
-    // Áreas
-    Route::get('/areas', [AreaController::class, 'index'])->name('areas.index');
-
-    // Empresas
-    Route::get('/empresas', [EmpresaController::class, 'index'])->name('empresas.index');
+    // Concesiones
+    Route::get('/concesiones', [ConcesionController::class, 'get_concesiones']);
+    Route::post('/concesiones', [ConcesionController::class, 'crear_concesion']);
 });

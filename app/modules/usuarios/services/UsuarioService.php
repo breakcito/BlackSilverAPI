@@ -15,17 +15,17 @@ class UsuarioService
     {
         $user = Usuario::getByUsername($usuario);
 
-        if (! $user) {
+        if (!$user) {
             return ApiResponse::error('Credenciales inválidas');
         }
 
-        if (! Hash::check($password, $user->password)) {
+        if (!Hash::check($password, $user->password)) {
             return ApiResponse::error('Credenciales inválidas');
         }
 
         $infoUsuario = Usuario::getInfoUsuarioById($user->id_usuario);
 
-        if (! $infoUsuario) {
+        if (!$infoUsuario) {
             return ApiResponse::error('Error al obtener información del usuario');
         }
 

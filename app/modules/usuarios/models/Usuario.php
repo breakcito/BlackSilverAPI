@@ -14,12 +14,19 @@ class Usuario extends Model implements AuthenticatableContract, JWTSubject
     #region setup
     use Authenticatable;
 
-    protected $table = 'usuario';
+    protected $table = 'usuario'; // nombre de la tabla
+    // atributos
+    protected $fillable = [
+        'id_rol',
+        'id_empleado',
+        'username',
+        'password',
+        'estado',
+    ];
 
     protected $hidden = ['password'];
 
     public $timestamps = false;
-    #endregion
 
     // Obtener el identificador para JWT.
     public function getJWTIdentifier(): mixed
@@ -32,6 +39,7 @@ class Usuario extends Model implements AuthenticatableContract, JWTSubject
     {
         return [];
     }
+    #endregion
 
     // Buscar usuario por nombre de usuario.
     public static function getByUsername(string $username)
