@@ -27,9 +27,11 @@ class Concesion extends Model
             concesion cn
         INNER JOIN empresa emp ON
             emp.id = cn.id_empresa
+        WHERE
+            cn.estado = :estado
         ';
 
-        return DB::select($sql);
+        return DB::select($sql, ['estado' => EstadoBase::Activo->value]);
     }
 
     // obtener las concesiones de una empresa
@@ -46,11 +48,13 @@ class Concesion extends Model
         FROM
             concesion cn
         WHERE
-            cn.id_empresa = :id_empresa
+            cn.id_empresa = :id_empresa AND
+            cn.estado = :estado
         ';
 
         return DB::select($sql, [
-            'id_empresa' => $id_empresa
+            'id_empresa' => $id_empresa,
+            'estado' => EstadoBase::Activo->value
         ]);
     }
 
@@ -115,9 +119,13 @@ class Concesion extends Model
         FROM
             concesion cn
         WHERE
-            cn.id = :id
+            cn.id = :id AND
+            cn.estado = :estado
         ';
 
-        return DB::selectOne($sql, ['id' => $id]);
+        return DB::selectOne($sql, [
+            'id' => $id,
+            'estado' => EstadoBase::Activo->value
+        ]);
     }
 }
