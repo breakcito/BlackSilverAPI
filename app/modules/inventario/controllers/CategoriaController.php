@@ -38,12 +38,7 @@ class CategoriaController extends Controller
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'tipo_requerimiento' => ['required', new Enum(TipoRequerimiento::class)],
-            'clasificacion_bien' => [
-                'nullable', 
-                Rule::requiredIf(fn() => $request->tipo_requerimiento === TipoRequerimiento::Bien->value),
-                Rule::prohibitedIf(fn() => $request->tipo_requerimiento === TipoRequerimiento::Servicio->value),
-                new Enum(ClasificacionBien::class)
-            ],
+            'clasificacion_bien' => ['nullable', new Enum(ClasificacionBien::class)],
         ], [
             'nombre.required' => 'El nombre es requerido',
             'tipo_requerimiento.required' => 'El tipo de requerimiento es requerido',
@@ -65,12 +60,7 @@ class CategoriaController extends Controller
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'tipo_requerimiento' => ['required', new Enum(TipoRequerimiento::class)],
-            'clasificacion_bien' => [
-                'nullable', 
-                Rule::requiredIf(fn() => $request->tipo_requerimiento === TipoRequerimiento::Bien->value),
-                Rule::prohibitedIf(fn() => $request->tipo_requerimiento === TipoRequerimiento::Servicio->value),
-                new Enum(ClasificacionBien::class)
-            ],
+            'clasificacion_bien' => ['nullable', new Enum(ClasificacionBien::class)],
         ]);
 
         if ($validator->fails()) {
