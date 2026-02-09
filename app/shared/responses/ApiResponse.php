@@ -8,21 +8,21 @@ namespace App\Shared\Responses;
  */
 class ApiResponse
 {
-    public static function success($data = null, ?string $message = null)
+    public static function success($data = null, ?string $error = null)
     {
         return [
             'success' => true,
             'data' => $data,
-            'message' => $message,
+            'error' => $error,
         ];
     }
 
-    public static function error($message = null)
+    public static function error($error = null)
     {
         return [
             'success' => false,
             'data' => null,
-            'message' => $message,
+            'error' => $error,
         ];
     }
 }
