@@ -21,6 +21,16 @@ class ConcesionController extends Controller
         return response()->json($result);
     }
 
+    public function get_concesiones_by_empresa(Request $request): JsonResponse
+    {
+        $id_empresa = $request->query('id_empresa');
+        if (!$id_empresa) {
+            return response()->json(ApiResponse::error('El id_empresa es requerido'), 400);
+        }
+        $result = $this->concesionService->get_concesiones_by_empresa((int)$id_empresa);
+        return response()->json($result);
+    }
+
     public function crear_concesion(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -34,9 +44,11 @@ class ConcesionController extends Controller
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
-        $result = $this->concesionService->crear_concesion($request->id_empresa, $request->nombre);
+        $data = $validator->validated();
+        $result = $this->concesionService->crear_concesion($data['id_empresa'], $data['nombre']);
         return response()->json($result);
     }
+
     public function update_concesion(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -51,7 +63,8 @@ class ConcesionController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->concesionService->update_concesion($request->id_concesion, $request->nombre);
+        $data = $validator->validated();
+        $result = $this->concesionService->update_concesion($request->id_concesion, $data['nombre']);
         return response()->json($result);
     }
 

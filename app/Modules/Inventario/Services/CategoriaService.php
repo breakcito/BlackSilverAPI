@@ -22,18 +22,18 @@ class CategoriaService
         return ApiResponse::success($categoria);
     }
 
-    public function crear_categoria(array $data)
+    public function crear_categoria(string $nombre, ?string $descripcion, string $tipo_requerimiento, ?string $clasificacion_bien)
     {
         $id_categoria = Categoria::crear_categoria(
-            $data['nombre'],
-            $data['descripcion'] ?? null,
-            $data['tipo_requerimiento'],
-            $data['clasificacion_bien'] ?? null
+            $nombre,
+            $descripcion,
+            $tipo_requerimiento,
+            $clasificacion_bien
         );
         return ApiResponse::success(['id_categoria' => $id_categoria, 'mensaje' => 'Categoria creada correctamente']);
     }
 
-    public function update_categoria(int $id, array $data)
+    public function update_categoria(int $id, string $nombre, ?string $descripcion, string $tipo_requerimiento, ?string $clasificacion_bien)
     {
         $categoria = Categoria::get_categoria_by_id($id);
         if (!$categoria) {
@@ -42,10 +42,10 @@ class CategoriaService
 
         Categoria::update_categoria(
             $id,
-            $data['nombre'],
-            $data['descripcion'] ?? null,
-            $data['tipo_requerimiento'],
-            $data['clasificacion_bien'] ?? null
+            $nombre,
+            $descripcion,
+            $tipo_requerimiento,
+            $clasificacion_bien
         );
 
         return ApiResponse::success(['mensaje' => 'Categoria actualizada correctamente']);

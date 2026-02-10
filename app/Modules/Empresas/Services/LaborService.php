@@ -22,19 +22,19 @@ class LaborService
         return ApiResponse::success($labor);
     }
 
-    public function crear_labor(array $data)
+    public function crear_labor(int $id_concesion, string $nombre, ?string $descripcion, string $tipo_labor, string $tipo_sostenimiento)
     {
         $id_labor = Labor::crear_labor(
-            $data['id_concesion'],
-            $data['nombre'],
-            $data['descripcion'] ?? null,
-            $data['tipo_labor'],
-            $data['tipo_sostenimiento']
+            $id_concesion,
+            $nombre,
+            $descripcion,
+            $tipo_labor,
+            $tipo_sostenimiento
         );
         return ApiResponse::success(['id_labor' => $id_labor, 'mensaje' => 'Labor creada correctamente']);
     }
 
-    public function update_labor(int $id, array $data)
+    public function update_labor(int $id, int $id_concesion, string $nombre, ?string $descripcion, string $tipo_labor, string $tipo_sostenimiento)
     {
         $labor = Labor::get_labor_by_id($id);
         if (!$labor) {
@@ -43,11 +43,11 @@ class LaborService
 
         Labor::update_labor(
             $id,
-            $data['id_concesion'],
-            $data['nombre'],
-            $data['descripcion'] ?? null,
-            $data['tipo_labor'],
-            $data['tipo_sostenimiento']
+            $id_concesion,
+            $nombre,
+            $descripcion,
+            $tipo_labor,
+            $tipo_sostenimiento
         );
 
         return ApiResponse::success(['mensaje' => 'Labor actualizada correctamente']);

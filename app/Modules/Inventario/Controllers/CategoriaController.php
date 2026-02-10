@@ -54,7 +54,14 @@ class CategoriaController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->categoriaService->crear_categoria($validator->validated());
+        $data = $validator->validated();
+
+        $result = $this->categoriaService->crear_categoria(
+            $data['nombre'],
+            $data['descripcion'] ?? null,
+            $data['tipo_requerimiento'],
+            $data['clasificacion_bien'] ?? null
+        );
         return response()->json($result);
     }
 
@@ -76,7 +83,15 @@ class CategoriaController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->categoriaService->update_categoria($request->id, $validator->validated());
+        $data = $validator->validated();
+
+        $result = $this->categoriaService->update_categoria(
+            $request->id,
+            $data['nombre'],
+            $data['descripcion'] ?? null,
+            $data['tipo_requerimiento'],
+            $data['clasificacion_bien'] ?? null
+        );
         return response()->json($result);
     }
 

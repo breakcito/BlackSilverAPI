@@ -57,7 +57,15 @@ class LaborController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->laborService->crear_labor($validator->validated());
+        $data = $validator->validated();
+
+        $result = $this->laborService->crear_labor(
+            $data['id_concesion'],
+            $data['nombre'],
+            $data['descripcion'] ?? null,
+            $data['tipo_labor'],
+            $data['tipo_sostenimiento']
+        );
         return response()->json($result);
     }
 
@@ -80,7 +88,16 @@ class LaborController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->laborService->update_labor($request->id, $validator->validated());
+        $data = $validator->validated();
+
+        $result = $this->laborService->update_labor(
+            $request->id,
+            $data['id_concesion'],
+            $data['nombre'],
+            $data['descripcion'] ?? null,
+            $data['tipo_labor'],
+            $data['tipo_sostenimiento']
+        );
         return response()->json($result);
     }
 
