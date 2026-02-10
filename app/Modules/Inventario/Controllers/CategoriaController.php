@@ -26,9 +26,13 @@ class CategoriaController extends Controller
         return response()->json($result);
     }
 
-    public function get_categoria_by_id(int $id): JsonResponse
+    public function get_categoria_by_id(Request $request): JsonResponse
     {
-        $result = $this->categoriaService->get_categoria_by_id($id);
+        $id = $request->query('id');
+        if (!$id) {
+            return response()->json(ApiResponse::error('El id es requerido'), 400);
+        }
+        $result = $this->categoriaService->get_categoria_by_id((int)$id);
         return response()->json($result);
     }
 
@@ -54,26 +58,35 @@ class CategoriaController extends Controller
         return response()->json($result);
     }
 
-    public function update_categoria(Request $request, int $id): JsonResponse
+    public function update_categoria(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:categoria,id',
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'tipo_requerimiento' => ['required', new Enum(TipoRequerimiento::class)],
             'clasificacion_bien' => ['nullable', new Enum(ClasificacionBien::class)],
+        ], [
+            'id.required' => 'El id es requerido',
+            'id.exists' => 'La categoría no existe',
+            // ...
         ]);
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->categoriaService->update_categoria($id, $validator->validated());
+        $result = $this->categoriaService->update_categoria($request->id, $validator->validated());
         return response()->json($result);
     }
 
-    public function delete_categoria(int $id): JsonResponse
+    public function delete_categoria(Request $request): JsonResponse
     {
-        $result = $this->categoriaService->delete_categoria($id);
+        $id = $request->input('id');
+        if (!$id) {
+            return response()->json(ApiResponse::error('El id es requerido'), 400);
+        }
+        $result = $this->categoriaService->delete_categoria((int)$id);
         return response()->json($result);
     }
 }

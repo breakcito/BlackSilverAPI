@@ -25,9 +25,13 @@ class LaborController extends Controller
         return response()->json($result);
     }
 
-    public function get_labor_by_id(int $id): JsonResponse
+    public function get_labor_by_id(Request $request): JsonResponse
     {
-        $result = $this->laborService->get_labor_by_id($id);
+        $id = $request->query('id');
+        if (!$id) {
+            return response()->json(ApiResponse::error('El id es requerido'), 400);
+        }
+        $result = $this->laborService->get_labor_by_id((int)$id);
         return response()->json($result);
     }
 
@@ -57,27 +61,36 @@ class LaborController extends Controller
         return response()->json($result);
     }
 
-    public function update_labor(Request $request, int $id): JsonResponse
+    public function update_labor(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:labor,id',
             'id_concesion' => 'required|integer|exists:concesion,id',
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'tipo_labor' => ['required', new Enum(TipoLabor::class)],
             'tipo_sostenimiento' => ['required', new Enum(TipoSostenimiento::class)],
+        ], [
+            'id.required' => 'El id es requerido',
+            'id.exists' => 'La labor no existe',
+            // ... existing messages
         ]);
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->laborService->update_labor($id, $validator->validated());
+        $result = $this->laborService->update_labor($request->id, $validator->validated());
         return response()->json($result);
     }
 
-    public function delete_labor(int $id): JsonResponse
+    public function delete_labor(Request $request): JsonResponse
     {
-        $result = $this->laborService->delete_labor($id);
+        $id = $request->input('id');
+        if (!$id) {
+            return response()->json(ApiResponse::error('El id es requerido'), 400);
+        }
+        $result = $this->laborService->delete_labor((int)$id);
         return response()->json($result);
     }
 }

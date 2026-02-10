@@ -61,11 +61,13 @@ class Concesion extends Model
     // crear una concesion
     public static function crear_concesion(int $id_empresa, string $nombre)
     {
-        return DB::table('concesion')->insertGetId([
+        $new_id = DB::table('concesion')->insertGetId([
             'id_empresa' => $id_empresa,
             'nombre'     => $nombre,
             'estado'     => EstadoBase::Activo->value
         ]);
+
+        return self::get_concesion_by_id($new_id);
     }
 
     // verificar que no exista una concesion con el mismo nombre y empresa
@@ -114,6 +116,8 @@ class Concesion extends Model
         SELECT
             cn.id AS id_concesion,
             cn.id_empresa,
+            emp.nombre_comercial as empresa,
+            emp.path_logo as logo_empresa,
             cn.nombre,
             cn.estado
         FROM

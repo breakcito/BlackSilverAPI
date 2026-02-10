@@ -12,7 +12,7 @@ class Categoria extends Model
     {
         $sql = '
         SELECT
-            c.id,
+            c.id as id_categoria,
             c.nombre,
             c.descripcion,
             c.tipo_requerimiento,
@@ -38,7 +38,7 @@ class Categoria extends Model
     {
         $sql = '
         SELECT
-            c.id,
+            c.id as id_categoria,
             c.nombre,
             c.descripcion,
             c.tipo_requerimiento,

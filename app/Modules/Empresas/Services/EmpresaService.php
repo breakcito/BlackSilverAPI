@@ -12,4 +12,10 @@ class EmpresaService
         $empresas = Empresa::get_empresas();
         return ApiResponse::success($empresas);
     }
+
+    public function get_empresas_by_usuario(int $id_usuario)
+    {
+        $empresas = Empresa::get_empresas_by_usuario($id_usuario);
+        return ApiResponse::success($empresas);
+    }
 }

@@ -17,7 +17,7 @@ class Empresa extends Model
     {
         $sql = '
         SELECT
-            e.id,
+            e.id as id_empresa,
             e.ruc,
             e.razon_social,
             e.nombre_comercial,
@@ -29,5 +29,31 @@ class Empresa extends Model
         ';
 
         return DB::select($sql);
+    }
+
+    /**
+     * Buscar empresas asociadas a un usuario
+     */
+    public static function get_empresas_by_usuario(int $id_usuario)
+    {
+        $sql = '
+        SELECT
+            emp.id AS id_empresa,
+            emp.ruc,
+            emp.razon_social,
+            emp.nombre_comercial,
+            emp.abreviatura,
+            emp.path_logo
+        FROM
+            empresa emp
+        INNER JOIN usuario_empresa uem ON
+            uem.id_empresa = emp.id
+        WHERE
+            uem.id_usuario = :id_usuario
+        ';
+
+        return DB::select($sql, [
+            'id_usuario' => $id_usuario,
+        ]);
     }
 }

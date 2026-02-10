@@ -14,9 +14,16 @@ class EmpresaController extends Controller
         private EmpresaService $empresaService
     ) {}
 
-    public function index(): JsonResponse
+    public function get_empresas_by_session(Request $request): JsonResponse
     {
-        $result = $this->empresaService->get_empresas();
+        $authUser = $request->attributes->get('auth_user');
+
+        if (!$authUser || !isset($authUser->id_rol)) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
+        }
+
+        $result = $this->empresaService->get_empresas_by_usuario($authUser->id_usuario);
+
         return response()->json($result);
     }
 }
