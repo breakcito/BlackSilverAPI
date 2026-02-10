@@ -19,20 +19,20 @@ class CategoriaController extends Controller
         private CategoriaService $categoriaService
     ) {}
 
-    public function index(Request $request): JsonResponse
+    public function get_categorias(Request $request): JsonResponse
     {
         $tipo_requerimiento = $request->query('tipo_requerimiento');
         $result = $this->categoriaService->get_categorias($tipo_requerimiento);
         return response()->json($result);
     }
 
-    public function show(int $id): JsonResponse
+    public function get_categoria_by_id(int $id): JsonResponse
     {
         $result = $this->categoriaService->get_categoria_by_id($id);
         return response()->json($result);
     }
 
-    public function store(Request $request): JsonResponse
+    public function crear_categoria(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:255',
@@ -50,11 +50,11 @@ class CategoriaController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->categoriaService->crear_categoria($request->all());
+        $result = $this->categoriaService->crear_categoria($validator->validated());
         return response()->json($result);
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function update_categoria(Request $request, int $id): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:255',
@@ -67,11 +67,11 @@ class CategoriaController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->categoriaService->update_categoria($id, $request->all());
+        $result = $this->categoriaService->update_categoria($id, $validator->validated());
         return response()->json($result);
     }
 
-    public function destroy(int $id): JsonResponse
+    public function delete_categoria(int $id): JsonResponse
     {
         $result = $this->categoriaService->delete_categoria($id);
         return response()->json($result);

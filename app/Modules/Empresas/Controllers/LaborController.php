@@ -18,20 +18,20 @@ class LaborController extends Controller
         private LaborService $laborService
     ) {}
 
-    public function index(Request $request): JsonResponse
+    public function get_labores(Request $request): JsonResponse
     {
         $id_concesion = $request->query('id_concesion');
         $result = $this->laborService->get_labores($id_concesion);
         return response()->json($result);
     }
 
-    public function show(int $id): JsonResponse
+    public function get_labor_by_id(int $id): JsonResponse
     {
         $result = $this->laborService->get_labor_by_id($id);
         return response()->json($result);
     }
 
-    public function store(Request $request): JsonResponse
+    public function crear_labor(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'id_concesion' => 'required|integer|exists:concesion,id',
@@ -53,11 +53,11 @@ class LaborController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->laborService->crear_labor($request->all());
+        $result = $this->laborService->crear_labor($validator->validated());
         return response()->json($result);
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function update_labor(Request $request, int $id): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'id_concesion' => 'required|integer|exists:concesion,id',
@@ -71,11 +71,11 @@ class LaborController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->laborService->update_labor($id, $request->all());
+        $result = $this->laborService->update_labor($id, $validator->validated());
         return response()->json($result);
     }
 
-    public function destroy(int $id): JsonResponse
+    public function delete_labor(int $id): JsonResponse
     {
         $result = $this->laborService->delete_labor($id);
         return response()->json($result);

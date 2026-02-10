@@ -21,9 +21,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::delete('/concesiones/{id}', [ConcesionController::class, 'delete_concesion']);
 
     // Labores
-    Route::get('/labores', [LaborController::class, 'index']);
-    Route::post('/labores', [LaborController::class, 'store']);
-    Route::get('/labores/{id}', [LaborController::class, 'show']);
-    Route::put('/labores/{id}', [LaborController::class, 'update']);
-    Route::delete('/labores/{id}', [LaborController::class, 'destroy']);
+    Route::get('/labores', [LaborController::class, 'get_labores']);
+    Route::post('/labores', [LaborController::class, 'crear_labor']);
+    Route::get('/labores/{id}', [LaborController::class, 'get_labor_by_id']);
+    Route::put('/labores/{id}', [LaborController::class, 'update_labor']);
+    Route::delete('/labores/{id}', [LaborController::class, 'delete_labor']);
 });
