@@ -31,7 +31,7 @@ class ConcesionService
         }
 
         $id_concesion = Concesion::crear_concesion($id_empresa, $nombre);
-        return ApiResponse::success(["id_concesion" => $id_concesion]);
+        return ApiResponse::success(Concesion::get_concesion_by_id($id_concesion));
     }
     public function update_concesion(int $id, string $nombre)
     {
