@@ -44,6 +44,7 @@ class Labor extends Model
         SELECT
             l.id as id_labor,
             l.id_concesion,
+            c.nombre as concesion,
             l.nombre,
             l.descripcion,
             l.tipo_labor,
@@ -51,6 +52,7 @@ class Labor extends Model
             l.estado
         FROM
             labor l
+        INNER JOIN concesion c ON c.id = l.id_concesion
         WHERE
             l.id = :id
         ';

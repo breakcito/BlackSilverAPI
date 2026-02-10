@@ -31,7 +31,7 @@ class LaborService
             $tipo_labor,
             $tipo_sostenimiento
         );
-        return ApiResponse::success(['id_labor' => $id_labor, 'mensaje' => 'Labor creada correctamente']);
+        return ApiResponse::success(Labor::get_labor_by_id($id_labor));
     }
 
     public function update_labor(int $id, int $id_concesion, string $nombre, ?string $descripcion, string $tipo_labor, string $tipo_sostenimiento)

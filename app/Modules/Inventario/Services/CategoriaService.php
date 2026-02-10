@@ -24,13 +24,18 @@ class CategoriaService
 
     public function crear_categoria(string $nombre, ?string $descripcion, string $tipo_requerimiento, ?string $clasificacion_bien)
     {
+        // Validar nombre duplicado
+        if (Categoria::verificar_categoria_existente($nombre)) {
+            return ApiResponse::error('Ya existe una categoría con ese nombre');
+        }
+
         $id_categoria = Categoria::crear_categoria(
             $nombre,
             $descripcion,
             $tipo_requerimiento,
             $clasificacion_bien
         );
-        return ApiResponse::success(['id_categoria' => $id_categoria, 'mensaje' => 'Categoria creada correctamente']);
+        return ApiResponse::success(Categoria::get_categoria_by_id($id_categoria));
     }
 
     public function update_categoria(int $id, string $nombre, ?string $descripcion, string $tipo_requerimiento, ?string $clasificacion_bien)
@@ -38,6 +43,11 @@ class CategoriaService
         $categoria = Categoria::get_categoria_by_id($id);
         if (!$categoria) {
             return ApiResponse::error('Categoria no encontrada');
+        }
+
+        // Validar nombre duplicado excluyendo la categoría actual
+        if (Categoria::verificar_categoria_existente($nombre, $id)) {
+            return ApiResponse::error('Ya existe otra categoría con ese nombre');
         }
 
         Categoria::update_categoria(

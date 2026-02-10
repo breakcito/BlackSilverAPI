@@ -84,4 +84,17 @@ class Categoria extends Model
                 'estado' => EstadoBase::Inactivo->value
             ]);
     }
+
+    public static function verificar_categoria_existente(string $nombre, ?int $id_excluir = null)
+    {
+        $query = DB::table('categoria')
+            ->whereRaw('LOWER(nombre) = LOWER(?)', [$nombre])
+            ->where('estado', EstadoBase::Activo->value);
+
+        if ($id_excluir) {
+            $query->where('id', '!=', $id_excluir);
+        }
+
+        return $query->exists();
+    }
 }
