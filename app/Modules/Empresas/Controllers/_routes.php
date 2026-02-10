@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Empresas\Controllers\ConcesionController;
+use App\Modules\Empresas\Controllers\LaborController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -20,9 +21,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::delete('/concesiones/{id}', [ConcesionController::class, 'delete_concesion']);
 
     // Labores
-    Route::get('/labores', [\App\Modules\Empresas\Controllers\LaborController::class, 'index']);
-    Route::post('/labores', [\App\Modules\Empresas\Controllers\LaborController::class, 'store']);
-    Route::get('/labores/{id}', [\App\Modules\Empresas\Controllers\LaborController::class, 'show']);
-    Route::put('/labores/{id}', [\App\Modules\Empresas\Controllers\LaborController::class, 'update']);
-    Route::delete('/labores/{id}', [\App\Modules\Empresas\Controllers\LaborController::class, 'destroy']);
+    Route::get('/labores', [LaborController::class, 'index']);
+    Route::post('/labores', [LaborController::class, 'store']);
+    Route::get('/labores/{id}', [LaborController::class, 'show']);
+    Route::put('/labores/{id}', [LaborController::class, 'update']);
+    Route::delete('/labores/{id}', [LaborController::class, 'destroy']);
 });

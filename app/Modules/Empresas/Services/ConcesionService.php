@@ -40,9 +40,11 @@ class ConcesionService
             return ApiResponse::error('Concesion no encontrada');
         }
 
-        // verificar si el nombre ya existe en otra concesion de la misma empresa (opcional, pero buena practica)
-        // Por simplicidad, asumimos que se puede actualizar si no choca
-        // Podriamos implementar verificacion aqui si fuera necesario
+        // verificar si el nombre ya existe en otra concesion de la misma empresa
+        $existe = Concesion::verificar_concesion_existente($concesion->id_empresa, $nombre);
+        if ($existe) {
+            return ApiResponse::error('Ya existe una concesion con el mismo nombre');
+        }
 
         Concesion::update_concesion($id, $nombre);
         return ApiResponse::success(['mensaje' => 'Concesion actualizada correctamente']);

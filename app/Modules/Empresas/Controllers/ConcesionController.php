@@ -37,11 +37,13 @@ class ConcesionController extends Controller
         $result = $this->concesionService->crear_concesion($request->id_empresa, $request->nombre);
         return response()->json($result);
     }
-    public function update_concesion(Request $request, int $id): JsonResponse
+    public function update_concesion(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
+            'id_concesion' => 'required|integer',
             'nombre' => 'required|string',
         ], [
+            'id_concesion.required' => 'La concesion es requerida',
             'nombre.required' => 'El nombre es requerido',
         ]);
 
@@ -49,13 +51,23 @@ class ConcesionController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->concesionService->update_concesion($id, $request->nombre);
+        $result = $this->concesionService->update_concesion($request->id_concesion, $request->nombre);
         return response()->json($result);
     }
 
-    public function delete_concesion(int $id): JsonResponse
+    public function delete_concesion(Request $request): JsonResponse
     {
-        $result = $this->concesionService->delete_concesion($id);
+        $validator = Validator::make($request->all(), [
+            'id_concesion' => 'required|integer',
+        ], [
+            'id_concesion.required' => 'La concesion es requerida',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $result = $this->concesionService->delete_concesion($request->id_concesion);
         return response()->json($result);
     }
 }
