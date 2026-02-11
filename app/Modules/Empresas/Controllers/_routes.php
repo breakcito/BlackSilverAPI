@@ -16,7 +16,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
     // Concesiones
     Route::get('/concesiones', [ConcesionController::class, 'get_concesiones']);
-    Route::get('/concesiones/by-empresa', [ConcesionController::class, 'get_concesiones_by_empresa']);
+    Route::post('/concesiones/by-empresa', [ConcesionController::class, 'get_concesiones_by_empresa']);
     Route::post('/concesiones', [ConcesionController::class, 'crear_concesion']);
     Route::put('/concesion', [ConcesionController::class, 'update_concesion']);
     Route::delete('/concesion', [ConcesionController::class, 'delete_concesion']);

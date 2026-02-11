@@ -23,11 +23,17 @@ class ConcesionController extends Controller
 
     public function get_concesiones_by_empresa(Request $request): JsonResponse
     {
-        $id_empresa = $request->query('id_empresa');
-        if (!$id_empresa) {
-            return response()->json(ApiResponse::error('El id_empresa es requerido'), 400);
+        $validator = Validator::make($request->all(), [
+            'id_empresa' => 'required|integer',
+        ], [
+            'id_empresa.required' => 'La empresa es requerida',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
         }
-        $result = $this->concesionService->get_concesiones_by_empresa((int)$id_empresa);
+
+        $data = $validator->validated();
+        $result = $this->concesionService->get_concesiones_by_empresa($data['id_empresa']);
         return response()->json($result);
     }
 
@@ -44,6 +50,7 @@ class ConcesionController extends Controller
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
+
         $data = $validator->validated();
         $result = $this->concesionService->crear_concesion($data['id_empresa'], $data['nombre']);
         return response()->json($result);
@@ -64,7 +71,7 @@ class ConcesionController extends Controller
         }
 
         $data = $validator->validated();
-        $result = $this->concesionService->update_concesion($request->id_concesion, $data['nombre']);
+        $result = $this->concesionService->update_concesion($data['id_concesion'], $data['nombre']);
         return response()->json($result);
     }
 
@@ -80,7 +87,8 @@ class ConcesionController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->concesionService->delete_concesion($request->id_concesion);
+        $data = $validator->validated();
+        $result = $this->concesionService->delete_concesion($data['id_concesion']);
         return response()->json($result);
     }
 }
