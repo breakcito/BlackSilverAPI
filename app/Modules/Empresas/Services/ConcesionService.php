@@ -22,16 +22,40 @@ class ConcesionService
         return ApiResponse::success($concesiones);
     }
 
-    public function crear_concesion(int $id_empresa, string $nombre)
+    public function crear_concesion(string $nombre, ?string $codigo_concesion, ?string $codigo_reinfo, ?string $ubigeo, ?string $tipo_mineral)
     {
-        // verificar que no exista una concesion con el mismo nombre y empresa
-        $existe = Concesion::verificar_concesion_existente($id_empresa, $nombre);
-        if ($existe) {
-            return ApiResponse::error('Ya existe una concesion con el mismo nombre');
+        // 1. Verificar nombre duplicado
+        if (Concesion::verificar_concesion_existente($nombre)) {
+            return ApiResponse::error('Ya existe una concesión con este nombre.');
         }
 
-        $id_concesion = Concesion::crear_concesion($id_empresa, $nombre);
-        return ApiResponse::success(Concesion::get_concesion_by_id($id_concesion));
+        // 2. Crear
+        $id = Concesion::crear_concesion($nombre, $codigo_concesion, $codigo_reinfo, $ubigeo, $tipo_mineral);
+
+        return ApiResponse::success(Concesion::get_concesion_by_id($id), 'Concesión creada correctamente');
+    }
+
+    public function get_empresas_asignadas(int $id_concesion)
+    {
+        $asignaciones = Concesion::get_empresas_asignadas($id_concesion);
+        return ApiResponse::success($asignaciones);
+    }
+
+    public function asignar_empresa(int $id_concesion, int $id_empresa, string $fecha_inicio, ?string $fecha_fin)
+    {
+        // Validar si ya está asignada (simple: si está activa)
+        if (Concesion::verificar_asignacion_activa($id_concesion, $id_empresa)) {
+            return ApiResponse::error('Esta empresa ya está asignada a la concesión actualmente.');
+        }
+
+        $id = Concesion::asignar_empresa($id_concesion, $id_empresa, $fecha_inicio, $fecha_fin);
+        return ApiResponse::success(['id_asignacion' => $id], 'Empresa asignada correctamente');
+    }
+
+    public function desasignar_empresa(int $id_asignacion)
+    {
+        Concesion::desasignar_empresa($id_asignacion);
+        return ApiResponse::success(null, 'Asignación eliminada correctamente');
     }
     public function update_concesion(int $id, string $nombre)
     {
@@ -40,8 +64,8 @@ class ConcesionService
             return ApiResponse::error('Concesion no encontrada');
         }
 
-        // verificar si el nombre ya existe en otra concesion de la misma empresa
-        $existe = Concesion::verificar_concesion_existente($concesion->id_empresa, $nombre);
+        // verificar si el nombre ya existe en otra concesion (global)
+        $existe = Concesion::verificar_concesion_existente($nombre, $id);
         if ($existe) {
             return ApiResponse::error('Ya existe una concesion con el mismo nombre');
         }

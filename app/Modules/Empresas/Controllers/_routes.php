@@ -20,6 +20,11 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::post('/concesiones', [ConcesionController::class, 'crear_concesion']);
     Route::put('/concesion', [ConcesionController::class, 'update_concesion']);
     Route::delete('/concesion', [ConcesionController::class, 'delete_concesion']);
+    
+    // Asignacion de empresas
+    Route::post('/concesiones/asignaciones', [ConcesionController::class, 'get_empresas_asignadas']);
+    Route::post('/concesiones/asignar', [ConcesionController::class, 'asignar_empresa']);
+    Route::post('/concesiones/desasignar', [ConcesionController::class, 'desasignar_empresa']);
 
     // Labores
     Route::get('/labores', [LaborController::class, 'get_labores']);

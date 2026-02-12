@@ -40,10 +40,12 @@ class ConcesionController extends Controller
     public function crear_concesion(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'id_empresa' => 'required|integer',
-            'nombre' => 'required|string',
+            'nombre'           => 'required|string|max:64',
+            'codigo_concesion' => 'nullable|string|max:64',
+            'codigo_reinfo'    => 'nullable|string|max:64',
+            'ubigeo'           => 'nullable|string|max:128',
+            'tipo_mineral'     => 'nullable|string|max:64',
         ], [
-            'id_empresa.required' => 'La empresa es requerida',
             'nombre.required' => 'El nombre es requerido',
         ]);
 
@@ -52,7 +54,70 @@ class ConcesionController extends Controller
         }
 
         $data = $validator->validated();
-        $result = $this->concesionService->crear_concesion($data['id_empresa'], $data['nombre']);
+        $result = $this->concesionService->crear_concesion(
+            $data['nombre'],
+            $data['codigo_concesion'] ?? null,
+            $data['codigo_reinfo'] ?? null,
+            $data['ubigeo'] ?? null,
+            $data['tipo_mineral'] ?? null
+        );
+        return response()->json($result);
+    }
+
+    public function get_empresas_asignadas(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_concesion' => 'required|integer',
+        ], [
+            'id_concesion.required' => 'La concesión es requerida',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $result = $this->concesionService->get_empresas_asignadas($request->id_concesion);
+        return response()->json($result);
+    }
+
+    public function asignar_empresa(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_concesion' => 'required|integer',
+            'id_empresa'   => 'required|integer',
+            'fecha_inicio' => 'required|date',
+            'fecha_fin'    => 'nullable|date|after_or_equal:fecha_inicio',
+        ], [
+            'id_concesion.required' => 'La concesión es requerida',
+            'id_empresa.required'   => 'La empresa es requerida',
+            'fecha_inicio.required' => 'La fecha de inicio es requerida',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $data = $validator->validated();
+        $result = $this->concesionService->asignar_empresa(
+            $data['id_concesion'],
+            $data['id_empresa'],
+            $data['fecha_inicio'],
+            $data['fecha_fin'] ?? null
+        );
+        return response()->json($result);
+    }
+
+    public function desasignar_empresa(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_asignacion' => 'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $result = $this->concesionService->desasignar_empresa($request->id_asignacion);
         return response()->json($result);
     }
 
