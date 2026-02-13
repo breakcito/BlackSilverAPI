@@ -8,14 +8,15 @@ use Illuminate\Support\Facades\DB;
 
 class Labor extends Model
 {
-    // obtener labores, opcionalmente filtrar por concesion
-    public static function get_labores(?int $id_concesion = null)
+    // obtener labores, opcionalmente filtrar por empresa_concesion (asignacion)
+    public static function get_labores(?int $id_empresa_concesion = null)
     {
         $sql = '
         SELECT
             l.id as id_labor,
-            l.id_concesion,
-            c.nombre as concesion,
+            l.id_empresa_concesion,
+            cn.nombre as concesion,
+            e.nombre_comercial as empresa,
             l.nombre,
             l.descripcion,
             l.tipo_labor,
@@ -23,16 +24,18 @@ class Labor extends Model
             l.estado
         FROM
             labor l
-        INNER JOIN concesion c ON c.id = l.id_concesion
+        INNER JOIN empresa_concesion ec ON ec.id = l.id_empresa_concesion
+        INNER JOIN concesion cn ON cn.id = ec.id_concesion
+        INNER JOIN empresa e ON e.id = ec.id_empresa
         WHERE
             l.estado = :estado
         ';
         
         $params = ['estado' => EstadoBase::Activo->value];
 
-        if ($id_concesion) {
-            $sql .= ' AND l.id_concesion = :id_concesion';
-            $params['id_concesion'] = $id_concesion;
+        if ($id_empresa_concesion) {
+            $sql .= ' AND l.id_empresa_concesion = :id_empresa_concesion';
+            $params['id_empresa_concesion'] = $id_empresa_concesion;
         }
 
         return DB::select($sql, $params);
@@ -43,8 +46,9 @@ class Labor extends Model
         $sql = '
         SELECT
             l.id as id_labor,
-            l.id_concesion,
-            c.nombre as concesion,
+            l.id_empresa_concesion,
+            cn.nombre as concesion,
+            e.nombre_comercial as empresa,
             l.nombre,
             l.descripcion,
             l.tipo_labor,
@@ -52,7 +56,9 @@ class Labor extends Model
             l.estado
         FROM
             labor l
-        INNER JOIN concesion c ON c.id = l.id_concesion
+        INNER JOIN empresa_concesion ec ON ec.id = l.id_empresa_concesion
+        INNER JOIN concesion cn ON cn.id = ec.id_concesion
+        INNER JOIN empresa e ON e.id = ec.id_empresa
         WHERE
             l.id = :id
         ';
@@ -60,10 +66,10 @@ class Labor extends Model
         return DB::selectOne($sql, ['id' => $id]);
     }
 
-    public static function crear_labor(int $id_concesion, string $nombre, ?string $descripcion, string $tipo_labor, string $tipo_sostenimiento)
+    public static function crear_labor(int $id_empresa_concesion, string $nombre, ?string $descripcion, string $tipo_labor, string $tipo_sostenimiento)
     {
         return DB::table('labor')->insertGetId([
-            'id_concesion' => $id_concesion,
+            'id_empresa_concesion' => $id_empresa_concesion,
             'nombre' => $nombre,
             'descripcion' => $descripcion,
             'tipo_labor' => $tipo_labor,
@@ -72,12 +78,12 @@ class Labor extends Model
         ]);
     }
 
-    public static function update_labor(int $id, int $id_concesion, string $nombre, ?string $descripcion, string $tipo_labor, string $tipo_sostenimiento)
+    public static function update_labor(int $id, int $id_empresa_concesion, string $nombre, ?string $descripcion, string $tipo_labor, string $tipo_sostenimiento)
     {
         return DB::table('labor')
             ->where('id', $id)
             ->update([
-                'id_concesion' => $id_concesion,
+                'id_empresa_concesion' => $id_empresa_concesion,
                 'nombre' => $nombre,
                 'descripcion' => $descripcion,
                 'tipo_labor' => $tipo_labor,

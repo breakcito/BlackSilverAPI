@@ -20,8 +20,8 @@ class LaborController extends Controller
 
     public function get_labores(Request $request): JsonResponse
     {
-        $id_concesion = $request->query('id_concesion');
-        $result = $this->laborService->get_labores($id_concesion);
+        $id_empresa_concesion = $request->query('id_empresa_concesion');
+        $result = $this->laborService->get_labores($id_empresa_concesion);
         return response()->json($result);
     }
 
@@ -38,14 +38,14 @@ class LaborController extends Controller
     public function crear_labor(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'id_concesion' => 'required|integer|exists:concesion,id',
+            'id_empresa_concesion' => 'required|integer|exists:empresa_concesion,id',
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'tipo_labor' => ['required', new Enum(TipoLabor::class)],
             'tipo_sostenimiento' => ['required', new Enum(TipoSostenimiento::class)],
         ], [
-            'id_concesion.required' => 'La concesión es requerida',
-            'id_concesion.exists' => 'La concesión no existe',
+            'id_empresa_concesion.required' => 'La asignación de empresa-concesión es requerida',
+            'id_empresa_concesion.exists' => 'La asignación de empresa-concesión no existe',
             'nombre.required' => 'El nombre es requerido',
             'tipo_labor.required' => 'El tipo de labor es requerido',
             'tipo_labor.Illuminate\Validation\Rules\Enum' => 'El tipo de labor no es válido',
@@ -60,7 +60,7 @@ class LaborController extends Controller
         $data = $validator->validated();
 
         $result = $this->laborService->crear_labor(
-            $data['id_concesion'],
+            $data['id_empresa_concesion'],
             $data['nombre'],
             $data['descripcion'] ?? null,
             $data['tipo_labor'],
@@ -73,7 +73,7 @@ class LaborController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id' => 'required|integer|exists:labor,id',
-            'id_concesion' => 'required|integer|exists:concesion,id',
+            'id_empresa_concesion' => 'required|integer|exists:empresa_concesion,id',
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'tipo_labor' => ['required', new Enum(TipoLabor::class)],
@@ -81,6 +81,8 @@ class LaborController extends Controller
         ], [
             'id.required' => 'El id es requerido',
             'id.exists' => 'La labor no existe',
+            'id_empresa_concesion.required' => 'La asignación de empresa-concesión es requerida',
+            'id_empresa_concesion.exists' => 'La asignación de empresa-concesión no existe',
             // ... existing messages
         ]);
 
@@ -92,7 +94,7 @@ class LaborController extends Controller
 
         $result = $this->laborService->update_labor(
             $request->id,
-            $data['id_concesion'],
+            $data['id_empresa_concesion'],
             $data['nombre'],
             $data['descripcion'] ?? null,
             $data['tipo_labor'],

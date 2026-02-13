@@ -22,6 +22,12 @@ class ConcesionService
         return ApiResponse::success($concesiones);
     }
 
+    public function get_concesiones_by_usuario(int $id_usuario)
+    {
+        $concesiones = Concesion::get_concesiones_by_usuario($id_usuario);
+        return ApiResponse::success($concesiones);
+    }
+
     public function crear_concesion(string $nombre, ?string $codigo_concesion, ?string $codigo_reinfo, ?string $ubigeo, ?string $tipo_mineral)
     {
         // 1. Verificar nombre duplicado

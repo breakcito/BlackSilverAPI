@@ -21,6 +21,18 @@ class ConcesionController extends Controller
         return response()->json($result);
     }
 
+    public function get_concesiones_by_session(Request $request): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+
+        if (!$authUser || !isset($authUser->id_rol)) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
+        }
+
+        $result = $this->concesionService->get_concesiones_by_usuario($authUser->id_usuario);
+        return response()->json($result);
+    }
+
     public function get_concesiones_by_empresa(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [

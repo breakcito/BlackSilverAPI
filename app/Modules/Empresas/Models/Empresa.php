@@ -56,4 +56,57 @@ class Empresa extends Model
             'id_usuario' => $id_usuario,
         ]);
     }
+
+    /**
+     * Obtener una empresa por ID
+     */
+    public static function get_empresa_by_id(int $id)
+    {
+        $sql = '
+        SELECT
+            e.id as id_empresa,
+            e.ruc,
+            e.razon_social,
+            e.nombre_comercial,
+            e.abreviatura,
+            e.path_logo
+        FROM
+            empresa e
+        WHERE
+            e.id = :id
+        ';
+
+        return DB::selectOne($sql, [
+            'id' => $id,
+        ]);
+    }
+
+    /**
+     * Verificar si existe una empresa por RUC (para evitar duplicados al crear)
+     */
+    public static function verificar_empresa_existente(string $ruc, ?int $id_excluir = null)
+    {
+        $query = DB::table('empresa')
+            ->where('ruc', $ruc);
+
+        if ($id_excluir) {
+            $query->where('id', '!=', $id_excluir);
+        }
+
+        return $query->exists();
+    }
+
+    /**
+     * Crear una nueva empresa
+     */
+    public static function crear_empresa(string $ruc, string $razon_social, string $nombre_comercial, string $abreviatura, string $path_logo)
+    {
+        return DB::table('empresa')->insertGetId([
+            'ruc'              => $ruc,
+            'razon_social'     => $razon_social,
+            'nombre_comercial' => $nombre_comercial,
+            'abreviatura'      => $abreviatura,
+            'path_logo'        => $path_logo,
+        ]);
+    }
 }

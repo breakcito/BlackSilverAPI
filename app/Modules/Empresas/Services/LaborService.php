@@ -7,9 +7,9 @@ use App\Shared\Responses\ApiResponse;
 
 class LaborService
 {
-    public function get_labores(?int $id_concesion = null)
+    public function get_labores(?int $id_empresa_concesion = null)
     {
-        $labores = Labor::get_labores($id_concesion);
+        $labores = Labor::get_labores($id_empresa_concesion);
         return ApiResponse::success($labores);
     }
 
@@ -22,10 +22,10 @@ class LaborService
         return ApiResponse::success($labor);
     }
 
-    public function crear_labor(int $id_concesion, string $nombre, ?string $descripcion, string $tipo_labor, string $tipo_sostenimiento)
+    public function crear_labor(int $id_empresa_concesion, string $nombre, ?string $descripcion, string $tipo_labor, string $tipo_sostenimiento)
     {
         $id_labor = Labor::crear_labor(
-            $id_concesion,
+            $id_empresa_concesion,
             $nombre,
             $descripcion,
             $tipo_labor,
@@ -34,7 +34,7 @@ class LaborService
         return ApiResponse::success(Labor::get_labor_by_id($id_labor));
     }
 
-    public function update_labor(int $id, int $id_concesion, string $nombre, ?string $descripcion, string $tipo_labor, string $tipo_sostenimiento)
+    public function update_labor(int $id, int $id_empresa_concesion, string $nombre, ?string $descripcion, string $tipo_labor, string $tipo_sostenimiento)
     {
         $labor = Labor::get_labor_by_id($id);
         if (!$labor) {
@@ -43,7 +43,7 @@ class LaborService
 
         Labor::update_labor(
             $id,
-            $id_concesion,
+            $id_empresa_concesion,
             $nombre,
             $descripcion,
             $tipo_labor,

@@ -64,6 +64,35 @@ class Concesion extends Model
         ]);
     }
 
+    // obtener las concesiones donde trabaja un usuario (a través de empresa asignada)
+    public static function get_concesiones_by_usuario(int $id_usuario)
+    {
+        $sql = '
+        SELECT DISTINCT
+            cn.id AS id_concesion,
+            cn.nombre,
+            cn.codigo_concesion,
+            cn.codigo_reinfo,
+            cn.ubigeo,
+            cn.tipo_mineral,
+            cn.estado
+        FROM
+            concesion cn
+        INNER JOIN empresa_concesion ec ON ec.id_concesion = cn.id
+        INNER JOIN usuario_empresa ue ON ue.id_empresa = ec.id_empresa
+        WHERE
+            ue.id_usuario = :id_usuario AND
+            cn.estado = :estado AND
+            ec.estado = :estado
+        ORDER BY cn.nombre ASC
+        ';
+
+        return DB::select($sql, [
+            'id_usuario' => $id_usuario,
+            'estado' => EstadoBase::Activo->value
+        ]);
+    }
+
     // crear una concesion (Campos actualizados)
     public static function crear_concesion(string $nombre, ?string $codigo_concesion, ?string $codigo_reinfo, ?string $ubigeo, ?string $tipo_mineral)
     {

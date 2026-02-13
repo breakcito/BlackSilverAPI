@@ -4,6 +4,8 @@ use App\Modules\Empresas\Controllers\ConcesionController;
 use App\Modules\Empresas\Controllers\LaborController;
 use Illuminate\Support\Facades\Route;
 
+use App\Modules\Empresas\Controllers\EmpresaController;
+
 /*
 |--------------------------------------------------------------------------
 | Módulo Empresa - Rutas
@@ -12,11 +14,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.jwt.custom')->group(function () {
     // Empresas
-    Route::get('/empresas/by-session', [\App\Modules\Empresas\Controllers\EmpresaController::class, 'get_empresas_by_session']);
+    Route::get('/empresas', [EmpresaController::class, 'get_empresas']);
+    Route::post('/empresas', [EmpresaController::class, 'crear_empresa']);
+    Route::get('/empresas/by-session', [EmpresaController::class, 'get_empresas_by_session']);
 
     // Concesiones
     Route::get('/concesiones', [ConcesionController::class, 'get_concesiones']);
     Route::post('/concesiones/by-empresa', [ConcesionController::class, 'get_concesiones_by_empresa']);
+    Route::get('/concesiones/by-session', [ConcesionController::class, 'get_concesiones_by_session']);
     Route::post('/concesiones', [ConcesionController::class, 'crear_concesion']);
     Route::put('/concesion', [ConcesionController::class, 'update_concesion']);
     Route::delete('/concesion', [ConcesionController::class, 'delete_concesion']);
