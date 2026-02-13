@@ -17,6 +17,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::get('/empresas', [EmpresaController::class, 'get_empresas']);
     Route::post('/empresas', [EmpresaController::class, 'crear_empresa']);
     Route::get('/empresas/by-session', [EmpresaController::class, 'get_empresas_by_session']);
+    Route::get('/empresas/usuarios', [EmpresaController::class, 'get_usuarios_por_empresa']);
 
     // Concesiones
     Route::get('/concesiones', [ConcesionController::class, 'get_concesiones']);

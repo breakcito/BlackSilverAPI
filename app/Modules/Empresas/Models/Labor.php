@@ -15,6 +15,8 @@ class Labor extends Model
         SELECT
             l.id as id_labor,
             l.id_empresa_concesion,
+            cn.id as id_concesion,
+            e.id as id_empresa,
             cn.nombre as concesion,
             e.nombre_comercial as empresa,
             l.nombre,
@@ -44,6 +46,8 @@ class Labor extends Model
         SELECT
             l.id as id_labor,
             l.id_empresa_concesion,
+            cn.id as id_concesion,
+            e.id as id_empresa,
             cn.nombre as concesion,
             e.nombre_comercial as empresa,
             l.nombre,

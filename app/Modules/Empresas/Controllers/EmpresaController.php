@@ -66,4 +66,15 @@ class EmpresaController extends Controller
 
         return response()->json($result);
     }
+
+    public function get_usuarios_por_empresa(Request $request): JsonResponse
+    {
+        $id_empresa = $request->query('id_empresa');
+        if (!$id_empresa) {
+            return response()->json(ApiResponse::error('El id_empresa es requerido'), 400);
+        }
+
+        $result = $this->empresaService->get_usuarios_por_empresa((int)$id_empresa);
+        return response()->json($result);
+    }
 }

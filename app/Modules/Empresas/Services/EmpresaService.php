@@ -34,4 +34,11 @@ class EmpresaService
         
         return ApiResponse::success(Empresa::get_empresa_by_id($id), 'Empresa creada correctamente');
     }
+
+    public function get_usuarios_por_empresa(int $id_empresa)
+    {
+        // Validar si existe la empresa sería ideal, pero por eficiencia vamos directo.
+        $usuarios = Empresa::get_usuarios_por_empresa($id_empresa);
+        return ApiResponse::success($usuarios);
+    }
 }
