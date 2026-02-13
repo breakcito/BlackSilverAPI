@@ -112,4 +112,46 @@ class LaborController extends Controller
         $result = $this->laborService->delete_labor((int)$id);
         return response()->json($result);
     }
+
+    // --- RESPONSABLES DE LABOR ---
+
+    public function asignar_responsable(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_labor' => 'required|integer|exists:labor,id',
+            'id_usuario_empresa' => 'required|integer|exists:usuario_empresa,id',
+            'fecha_inicio' => 'required|date',
+            'observacion' => 'nullable|string',
+        ], [
+            'id_labor.required' => 'La labor es requerida',
+            'id_labor.exists' => 'La labor no existe',
+            'id_usuario_empresa.required' => 'El usuario responsable es requerido',
+            'fecha_inicio.required' => 'La fecha de inicio es requerida',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $data = $validator->validated();
+
+        $result = $this->laborService->asignar_responsable(
+            $data['id_labor'],
+            $data['id_usuario_empresa'],
+            $data['fecha_inicio'],
+            $data['observacion'] ?? null
+        );
+        return response()->json($result);
+    }
+
+    public function get_responsables(Request $request): JsonResponse
+    {
+        $id_labor = $request->input('id_labor'); // Se pasa en el body por POST (o query si prefieres, pero seguiste POST en las otras listas filtradas)
+        if (!$id_labor) {
+            return response()->json(ApiResponse::error('El id_labor es requerido'), 400);
+        }
+
+        $result = $this->laborService->get_responsables((int)$id_labor);
+        return response()->json($result);
+    }
 }

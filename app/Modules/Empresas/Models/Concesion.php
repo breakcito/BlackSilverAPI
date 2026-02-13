@@ -47,6 +47,7 @@ class Concesion extends Model
             cn.ubigeo,
             cn.tipo_mineral,
             cn.estado,
+            ec.id AS id_asignacion,
             ec.fecha_inicio,
             ec.fecha_fin
         FROM
@@ -54,8 +55,8 @@ class Concesion extends Model
         INNER JOIN empresa_concesion ec ON ec.id_concesion = cn.id
         WHERE
             ec.id_empresa = :id_empresa AND
-            cn.estado = :estado AND
-            ec.estado = :estado
+            cn.estado = :estado
+            -- AND UPPER(ec.estado) = UPPER(:estado)
         ';
 
         return DB::select($sql, [
