@@ -27,6 +27,7 @@ class MenuService
                 $submodulosData[] = [
                     'id_submodulo' => $submodulo->id_submodulo,
                     'nombre' => $submodulo->nombre,
+                    'path' => $submodulo->path,
                     'secciones' => array_map(function ($seccion) use ($modulo, $submodulo) {
                         return [
                             'id_seccion' => $seccion->id_seccion,
@@ -40,6 +41,7 @@ class MenuService
             $menu[] = [
                 'id_modulo' => $modulo->id_modulo,
                 'nombre' => $modulo->nombre,
+                'path' => $modulo->path,
                 'submodulos' => $submodulosData,
             ];
         }
