@@ -27,11 +27,11 @@ class MenuService
                 $submodulosData[] = [
                     'id_submodulo' => $submodulo->id_submodulo,
                     'nombre' => $submodulo->nombre,
-                    'secciones' => array_map(function ($seccion) {
+                    'secciones' => array_map(function ($seccion) use ($modulo, $submodulo) {
                         return [
                             'id_seccion' => $seccion->id_seccion,
                             'nombre' => $seccion->nombre,
-                            'url' => $seccion->url,
+                            'url' => '/' . $modulo->path . '/' . $submodulo->path . '/' . $seccion->path,
                         ];
                     }, $secciones),
                 ];
