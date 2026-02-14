@@ -207,6 +207,32 @@ class Concesion extends Model
         ]);
     }
 
+    // Obtener historial de empresas asignadas a una concesion (Todas: Activas e Inactivas)
+    public static function get_empresas_historial(int $id_concesion)
+    {
+        $sql = '
+        SELECT
+            ec.id AS id_asignacion,
+            ec.id_empresa,
+            e.nombre_comercial,
+            e.ruc,
+            e.path_logo,
+            ec.fecha_inicio,
+            ec.fecha_fin,
+            ec.estado
+        FROM
+            empresa_concesion ec
+        INNER JOIN empresa e ON e.id = ec.id_empresa
+        WHERE
+            ec.id_concesion = :id_concesion
+        ORDER BY ec.estado ASC, ec.fecha_inicio DESC
+        ';
+
+        return DB::select($sql, [
+            'id_concesion' => $id_concesion
+        ]);
+    }
+
     // Verificar si una empresa ya tiene una asignación activa en el rango de fechas (simple check de solapamiento)
     public static function verificar_asignacion_activa(int $id_concesion, int $id_empresa)
     {

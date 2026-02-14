@@ -41,9 +41,9 @@ class ConcesionService
         return ApiResponse::success(Concesion::get_concesion_by_id($id), 'Concesión creada correctamente');
     }
 
-    public function get_empresas_asignadas(int $id_concesion)
+    public function get_empresas_historial(int $id_concesion)
     {
-        $asignaciones = Concesion::get_empresas_asignadas($id_concesion);
+        $asignaciones = Concesion::get_empresas_historial($id_concesion);
         return ApiResponse::success($asignaciones);
     }
 

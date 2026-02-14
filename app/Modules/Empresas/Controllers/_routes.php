@@ -28,7 +28,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::delete('/concesion', [ConcesionController::class, 'delete_concesion']);
     
     // Asignacion de empresas
-    Route::post('/concesiones/asignaciones', [ConcesionController::class, 'get_empresas_asignadas']);
+    Route::post('/concesiones/asignaciones', [ConcesionController::class, 'get_empresas_historial']);
     Route::post('/concesiones/asignar', [ConcesionController::class, 'asignar_empresa']);
     Route::post('/concesiones/desasignar', [ConcesionController::class, 'desasignar_empresa']);
 

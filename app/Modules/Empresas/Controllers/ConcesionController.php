@@ -76,7 +76,7 @@ class ConcesionController extends Controller
         return response()->json($result);
     }
 
-    public function get_empresas_asignadas(Request $request): JsonResponse
+    public function get_empresas_historial(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'id_concesion' => 'required|integer',
@@ -88,7 +88,7 @@ class ConcesionController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->concesionService->get_empresas_asignadas($request->id_concesion);
+        $result = $this->concesionService->get_empresas_historial($request->id_concesion);
         return response()->json($result);
     }
 
