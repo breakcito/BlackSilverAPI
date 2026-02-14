@@ -22,7 +22,16 @@ class Labor extends Model
             l.nombre,
             l.descripcion,
             l.tipo_labor,
-            l.tipo_sostenimiento
+            l.tipo_sostenimiento,
+            (
+                SELECT CONCAT(emp.nombre, \' \', emp.apellido)
+                FROM labor_usuario lu
+                INNER JOIN usuario_empresa ue ON ue.id = lu.id_usuario_empresa
+                INNER JOIN usuario u ON u.id = ue.id_usuario
+                INNER JOIN empleado emp ON emp.id = u.id_empleado
+                WHERE lu.id_labor = l.id AND lu.estado = :estado_activo
+                LIMIT 1
+            ) as responsable_actual
         FROM
             labor l
         INNER JOIN empresa_concesion ec ON ec.id = l.id_empresa_concesion
@@ -30,7 +39,7 @@ class Labor extends Model
         INNER JOIN empresa e ON e.id = ec.id_empresa
         ';
         
-        $params = [];
+        $params = ['estado_activo' => EstadoBase::Activo->value];
 
         if ($id_empresa_concesion) {
             $sql .= ' WHERE l.id_empresa_concesion = :id_empresa_concesion';
@@ -129,13 +138,14 @@ class Labor extends Model
         SELECT
             lu.id as id_asignacion,
             lu.id_usuario_empresa,
-            u.nombres,
-            u.apellidos,
+            emp.nombre as nombres,
+            emp.apellido as apellidos,
             lu.fecha_inicio
         FROM
             labor_usuario lu
         INNER JOIN usuario_empresa ue ON ue.id = lu.id_usuario_empresa
         INNER JOIN usuario u ON u.id = ue.id_usuario
+        INNER JOIN empleado emp ON emp.id = u.id_empleado
         WHERE
             lu.id_labor = :id_labor AND
             lu.estado = :estado
@@ -165,8 +175,8 @@ class Labor extends Model
         SELECT
             lu.id as id_asignacion,
             lu.id_usuario_empresa,
-            u.nombres,
-            u.apellidos,
+            emp.nombre as nombres,
+            emp.apellido as apellidos,
             lu.fecha_inicio,
             lu.fecha_fin,
             lu.estado
@@ -174,6 +184,7 @@ class Labor extends Model
             labor_usuario lu
         INNER JOIN usuario_empresa ue ON ue.id = lu.id_usuario_empresa
         INNER JOIN usuario u ON u.id = ue.id_usuario
+        INNER JOIN empleado emp ON emp.id = u.id_empleado
         WHERE
             lu.id_labor = :id_labor
         ORDER BY lu.fecha_inicio DESC
