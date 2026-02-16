@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Inventario\Controllers\CategoriaController;
+use App\Modules\Inventario\Controllers\ProductoController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,4 +17,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::get('/categoria', [CategoriaController::class, 'get_categoria_by_id']);
     Route::put('/categoria', [CategoriaController::class, 'update_categoria']);
     Route::delete('/categoria', [CategoriaController::class, 'delete_categoria']);
+
+    // Productos (Catálogo)
+    Route::get('/productos', [ProductoController::class, 'get_productos']);
+    Route::post('/productos', [ProductoController::class, 'crear_producto']);
 });
