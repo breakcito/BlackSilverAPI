@@ -5,6 +5,7 @@ use App\Modules\Empresas\Controllers\LaborController;
 use Illuminate\Support\Facades\Route;
 
 use App\Modules\Empresas\Controllers\EmpresaController;
+use App\Modules\Empresas\Controllers\AlmacenController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,4 +41,16 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::delete('/labor', [LaborController::class, 'delete_labor']);
     Route::post('/labor/responsables', [LaborController::class, 'get_responsables']); // POST para seguir patrón de "by ID en body"
     Route::post('/labor/asignar-responsable', [LaborController::class, 'asignar_responsable']);
+
+    // Almacenes
+    Route::get('/almacenes', [AlmacenController::class, 'get_almacenes']);
+    Route::post('/almacenes', [AlmacenController::class, 'crear_almacen']);
+    
+    // Almacenes - Responsables
+    Route::post('/almacenes/asignar-responsable', [AlmacenController::class, 'asignar_responsable']);
+    Route::get('/almacenes/responsables', [AlmacenController::class, 'get_responsables_historial']); // GET estándar
+    
+    // Almacenes - Labores
+    Route::post('/almacenes/asignar-labor', [AlmacenController::class, 'asignar_labor']);
+    Route::get('/almacenes/labores', [AlmacenController::class, 'get_labores_asignadas']); // GET estándar
 });
