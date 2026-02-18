@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 
 class Almacen extends Model
 {
+    protected $table = 'almacen';
+
     /**
      * Listar almacenes de una empresa.
      * Incluye información del responsable actual y conteo de labores asignadas.

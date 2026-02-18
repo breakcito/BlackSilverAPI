@@ -1,6 +1,8 @@
 <?php
 
 use App\Modules\Inventario\Controllers\CategoriaController;
+use App\Modules\Inventario\Controllers\KardexController;
+use App\Modules\Inventario\Controllers\LoteController;
 use App\Modules\Inventario\Controllers\ProductoController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,4 +23,13 @@ Route::middleware('auth.jwt.custom')->group(function () {
     // Productos (Catálogo)
     Route::get('/productos', [ProductoController::class, 'get_productos']);
     Route::post('/productos', [ProductoController::class, 'crear_producto']);
+
+    // Lotes y Stock
+    Route::get('/lotes-almacen', [LoteController::class, 'get_lotes_by_almacen']); // ?id_almacen=X
+    Route::post('/lotes', [LoteController::class, 'crear_lote']);
+    Route::get('/lotes/productos-disponibles', [LoteController::class, 'get_productos_para_lote']); // Para el select de nuevo lote
+    Route::get('/unidades-medida', [LoteController::class, 'get_unidades_medida']); // Para el select de unidad
+
+    // Kardex
+    Route::get('/kardex', [KardexController::class, 'get_movimientos']); // ?id_lote=X
 });
