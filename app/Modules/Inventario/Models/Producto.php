@@ -16,7 +16,7 @@ class Producto extends Model
     {
         $sql = '
         SELECT
-            p.id,
+            p.id AS id_producto,
             p.id_categoria,
             c.nombre as categoria,
             p.nombre,

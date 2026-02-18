@@ -17,7 +17,7 @@ class KardexProducto extends Model
     {
         $sql = '
         SELECT
-            k.id,
+            k.id AS id_kardex,
             k.id_lote_producto,
             k.id_cabecera,
             k.codigo_movimiento,

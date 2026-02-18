@@ -14,7 +14,7 @@ class UnidadMedida extends Model
     {
         $sql = '
         SELECT
-            id,
+            id AS id_unidad_medida,
             nombre,
             abreviatura,
             estado

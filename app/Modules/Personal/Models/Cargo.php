@@ -15,7 +15,7 @@ class Cargo extends Model
     {
         $sql = '
         SELECT
-            c.id,
+            c.id AS id_cargo,
             c.nombre,
             c.estado
         FROM
