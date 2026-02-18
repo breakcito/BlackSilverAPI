@@ -22,12 +22,12 @@ class KardexController extends Controller
 
     public function get_movimientos(Request $request): JsonResponse
     {
-        $id_lote = $request->query('id_lote');
-        if (!$id_lote) {
-            return response()->json(ApiResponse::error('El id_lote es requerido'), 400);
+        $id_almacen = $request->query('id_almacen');
+        if (!$id_almacen) {
+            return response()->json(ApiResponse::error('El id_almacen es requerido'), 400);
         }
 
-        $result = $this->kardexService->get_movimientos((int)$id_lote);
+        $result = $this->kardexService->get_movimientos((int)$id_almacen);
         return response()->json($result);
     }
 }

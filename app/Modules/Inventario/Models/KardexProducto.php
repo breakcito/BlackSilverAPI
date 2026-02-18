@@ -11,15 +11,17 @@ class KardexProducto extends Model
     protected $table = 'kardex_producto';
 
     /**
-     * Listar movimientos de kardex por lote.
+     * Listar movimientos de kardex por almacén.
      */
-    public static function get_kardex_by_lote(int $id_lote_producto)
+    public static function get_kardex_by_almacen(int $id_almacen)
     {
         $sql = '
         SELECT
             k.id AS id_kardex,
             k.id_lote_producto,
-            k.id_cabecera,
+            lp.id_producto,
+            p.nombre AS producto,
+            CONCAT(lp.correlativo, \'-\', LPAD(lp.numero_correlativo, 3, \'0\')) AS codigo_lote,
             k.codigo_movimiento,
             k.tipo_movimiento,
             k.cantidad_anterior,
@@ -30,12 +32,14 @@ class KardexProducto extends Model
             k.estado
         FROM
             kardex_producto k
+        INNER JOIN lote_producto lp ON lp.id = k.id_lote_producto
+        INNER JOIN producto p ON p.id = lp.id_producto
         WHERE
-            k.id_lote_producto = :id_lote
+            lp.id_almacen = :id_almacen
         ORDER BY k.created_at DESC
         ';
 
-        return DB::select($sql, ['id_lote' => $id_lote_producto]);
+        return DB::select($sql, ['id_almacen' => $id_almacen]);
     }
 
     /**
