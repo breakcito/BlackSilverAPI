@@ -37,6 +37,15 @@ class ProductoService
         // 2. Crear producto
         $id = Producto::crear_producto($id_categoria, $nombre, $es_fiscalizado, $es_perecible);
 
-        return ApiResponse::success(['id_producto' => $id], 'Producto registrado correctamente');
+        // 3. Obtener el objeto completo para devolverlo al Front (evita recarga total)
+        $producto = Producto::get_producto_by_id($id);
+        
+        // Formatear booleans consistente con get_productos
+        if ($producto) {
+            $producto->es_fiscalizado = (bool) $producto->es_fiscalizado;
+            $producto->es_perecible   = (bool) $producto->es_perecible;
+        }
+
+        return ApiResponse::success($producto, 'Producto registrado correctamente');
     }
 }

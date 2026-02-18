@@ -35,6 +35,31 @@ class Producto extends Model
     }
 
     /**
+     * Obtener producto por ID (con nombre de categoria).
+     * USADO DESPUÉS DE LA CREACIÓN PARA DEVOLVER EL OBJETO COMPLETO AL FRONT.
+     */
+    public static function get_producto_by_id(int $id)
+    {
+        $sql = '
+        SELECT
+            p.id AS id_producto,
+            p.id_categoria,
+            c.nombre as categoria,
+            p.nombre,
+            p.es_fiscalizado,
+            p.es_perecible,
+            p.estado
+        FROM
+            producto p
+        INNER JOIN categoria c ON c.id = p.id_categoria
+        WHERE
+            p.id = :id
+        ';
+
+        return DB::selectOne($sql, ['id' => $id]);
+    }
+
+    /**
      * Verificar nombre único de producto.
      */
     public static function verificar_producto_existente(string $nombre, ?int $id_excluir = null)

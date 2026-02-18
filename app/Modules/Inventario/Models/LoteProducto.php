@@ -47,6 +47,38 @@ class LoteProducto extends Model
         ]);
     }
 
+    /**
+     * Obtener lote por ID (para retorno post-creación).
+     */
+    public static function get_lote_by_id(int $id)
+    {
+        $sql = '
+        SELECT
+            lp.id AS id_lote,
+            lp.id_producto,
+            p.nombre AS producto,
+            c.nombre AS categoria,
+            lp.id_unidad_medida,
+            um.abreviatura AS unidad_medida,
+            lp.id_almacen,
+            lp.descripcion,
+            CONCAT(lp.correlativo, \'-\', LPAD(lp.numero_correlativo, 3, \'0\')) AS codigo_lote,
+            lp.stock_actual,
+            lp.fecha_ingreso,
+            lp.fecha_vencimiento,
+            lp.estado
+        FROM
+            lote_producto lp
+        INNER JOIN producto p ON p.id = lp.id_producto
+        INNER JOIN categoria c ON c.id = p.id_categoria
+        INNER JOIN unidad_medida um ON um.id = lp.id_unidad_medida
+        WHERE
+            lp.id = :id
+        ';
+
+        return DB::selectOne($sql, ['id' => $id]);
+    }
+
     public static function get_ultimo_correlativo()
     {
         return DB::table('lote_producto')->max('numero_correlativo') ?? 0;
@@ -80,13 +112,12 @@ class LoteProducto extends Model
 
     /**
      * Obtener productos disponibles para sugerir.
-     * REMOVIDO FILTRO DE SERVICIO TEMPORALMENTE PARA EVITAR ERROR 500
      */
     public static function get_productos_para_lote()
     {
         $sql = '
         SELECT
-            p.id,
+            p.id AS id_producto,
             p.nombre,
             c.nombre as categoria,
             p.es_perecible

@@ -35,7 +35,7 @@ class AlmacenService
 
         $id = Almacen::crear_almacen($id_empresa, $correlativo, $nuevo_numero, $nombre, $descripcion, $es_principal);
 
-        return ApiResponse::success(['id_almacen' => $id], 'Almacén creado correctamente');
+        return ApiResponse::success(Almacen::get_almacen_by_id($id), 'Almacén creado correctamente');
     }
 
     /**

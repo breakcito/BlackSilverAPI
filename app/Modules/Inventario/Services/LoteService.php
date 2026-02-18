@@ -99,7 +99,7 @@ class LoteService
                 );
             }
 
-            return ApiResponse::success(['id_lote' => $id_lote], 'Lote registrado correctamente');
+            return ApiResponse::success(LoteProducto::get_lote_by_id($id_lote), 'Lote registrado correctamente');
         });
     }
 }

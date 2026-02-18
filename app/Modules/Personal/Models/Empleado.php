@@ -40,6 +40,38 @@ class Empleado extends Model
     }
 
     /**
+     * Obtener empleado por ID (para retorno post-creación).
+     */
+    public static function get_empleado_by_id(int $id)
+    {
+        $sql = '
+        SELECT
+            e.id as id_empleado,
+            e.id_cargo,
+            c.nombre as cargo,
+            e.id_empresa,
+            em.nombre_comercial as empresa,
+            e.nombre,
+            e.apellido,
+            e.dni,
+            e.ruc,
+            e.carnet_extranjeria,
+            e.pasaporte,
+            e.fecha_nacimiento,
+            e.path_foto,
+            e.estado
+        FROM
+            empleado e
+        INNER JOIN cargo c ON c.id = e.id_cargo
+        INNER JOIN empresa em ON em.id = e.id_empresa
+        WHERE
+            e.id = :id
+        ';
+
+        return DB::selectOne($sql, ['id' => $id]);
+    }
+
+    /**
      * Verificar DNI existente.
      */
     public static function verificar_documento_existente(string $columna, string $valor, ?int $id_excluir = null)

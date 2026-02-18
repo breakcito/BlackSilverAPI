@@ -55,6 +55,6 @@ class EmpleadoService
             $path_foto
         );
 
-        return ApiResponse::success(['id' => $id], 'Empleado registrado correctamente');
+        return ApiResponse::success(Empleado::get_empleado_by_id($id), 'Empleado registrado correctamente');
     }
 }
