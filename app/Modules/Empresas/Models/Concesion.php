@@ -21,7 +21,7 @@ class Concesion extends Model
             cn.ubigeo,
             cn.tipo_mineral,
             cn.estado,
-            (SELECT COUNT(*) FROM empresa_concesion ec WHERE ec.id_concesion = cn.id AND ec.estado = :estado_activo) as empresas_asignadas
+            (SELECT COUNT(*) FROM contrato_concesion cc WHERE cc.id_concesion = cn.id AND cc.estado = :estado_activo) as empresas_asignadas
         FROM
             concesion cn
         WHERE
@@ -35,7 +35,7 @@ class Concesion extends Model
         ]);
     }
 
-    // obtener las concesiones donde trabaja una empresa (a través de la tabla intermedia)
+    // obtener las concesiones donde trabaja una empresa (a través de contrato)
     public static function get_concesiones_by_empresa(int $id_empresa)
     {
         $sql = '
@@ -47,16 +47,15 @@ class Concesion extends Model
             cn.ubigeo,
             cn.tipo_mineral,
             cn.estado,
-            ec.id AS id_asignacion,
-            ec.fecha_inicio,
-            ec.fecha_fin
+            cc.id AS id_contrato,
+            cc.fecha_inicio,
+            cc.fecha_fin
         FROM
             concesion cn
-        INNER JOIN empresa_concesion ec ON ec.id_concesion = cn.id
+        INNER JOIN contrato_concesion cc ON cc.id_concesion = cn.id
         WHERE
-            ec.id_empresa = :id_empresa AND
+            cc.id_empresa = :id_empresa AND
             cn.estado = :estado
-            -- AND UPPER(ec.estado) = UPPER(:estado)
         ';
 
         return DB::select($sql, [
@@ -79,12 +78,12 @@ class Concesion extends Model
             cn.estado
         FROM
             concesion cn
-        INNER JOIN empresa_concesion ec ON ec.id_concesion = cn.id
-        INNER JOIN usuario_empresa ue ON ue.id_empresa = ec.id_empresa
+        INNER JOIN contrato_concesion cc ON cc.id_concesion = cn.id
+        INNER JOIN usuario_empresa ue ON ue.id_empresa = cc.id_empresa
         WHERE
             ue.id_usuario = :id_usuario AND
             cn.estado = :estado AND
-            ec.estado = :estado
+            cc.estado = :estado
         ORDER BY cn.nombre ASC
         ';
 
@@ -167,10 +166,10 @@ class Concesion extends Model
 
     // --- MÉTODOS PARA ASIGNACIÓN DE EMPRESAS (N:M) ---
 
-    // Asignar una empresa a una concesion
+    // Asignar una empresa a una concesion (Crear contrato)
     public static function asignar_empresa(int $id_concesion, int $id_empresa, string $fecha_inicio, ?string $fecha_fin)
     {
-        return DB::table('empresa_concesion')->insertGetId([
+        return DB::table('contrato_concesion')->insertGetId([
             'id_concesion' => $id_concesion,
             'id_empresa'   => $id_empresa,
             'fecha_inicio' => $fecha_inicio,
@@ -179,26 +178,26 @@ class Concesion extends Model
         ]);
     }
 
-    // Obtener empresas asignadas a una concesion
+    // Obtener empresas asignadas a una concesion (Contratos activos)
     public static function get_empresas_asignadas(int $id_concesion)
     {
         $sql = '
         SELECT
-            ec.id AS id_asignacion,
-            ec.id_empresa,
+            cc.id AS id_contrato,
+            cc.id_empresa,
             e.nombre_comercial,
             e.ruc,
             e.path_logo,
-            ec.fecha_inicio,
-            ec.fecha_fin,
-            ec.estado
+            cc.fecha_inicio,
+            cc.fecha_fin,
+            cc.estado
         FROM
-            empresa_concesion ec
-        INNER JOIN empresa e ON e.id = ec.id_empresa
+            contrato_concesion cc
+        INNER JOIN empresa e ON e.id = cc.id_empresa
         WHERE
-            ec.id_concesion = :id_concesion AND
-            ec.estado = :estado
-        ORDER BY ec.fecha_inicio DESC
+            cc.id_concesion = :id_concesion AND
+            cc.estado = :estado
+        ORDER BY cc.fecha_inicio DESC
         ';
 
         return DB::select($sql, [
@@ -212,20 +211,20 @@ class Concesion extends Model
     {
         $sql = '
         SELECT
-            ec.id AS id_asignacion,
-            ec.id_empresa,
+            cc.id AS id_contrato,
+            cc.id_empresa,
             e.nombre_comercial,
             e.ruc,
             e.path_logo,
-            ec.fecha_inicio,
-            ec.fecha_fin,
-            ec.estado
+            cc.fecha_inicio,
+            cc.fecha_fin,
+            cc.estado
         FROM
-            empresa_concesion ec
-        INNER JOIN empresa e ON e.id = ec.id_empresa
+            contrato_concesion cc
+        INNER JOIN empresa e ON e.id = cc.id_empresa
         WHERE
-            ec.id_concesion = :id_concesion
-        ORDER BY ec.estado ASC, ec.fecha_inicio DESC
+            cc.id_concesion = :id_concesion
+        ORDER BY cc.estado ASC, cc.fecha_inicio DESC
         ';
 
         return DB::select($sql, [
@@ -236,7 +235,7 @@ class Concesion extends Model
     // Verificar si una empresa ya tiene una asignación activa en el rango de fechas (simple check de solapamiento)
     public static function verificar_asignacion_activa(int $id_concesion, int $id_empresa)
     {
-        return DB::table('empresa_concesion')
+        return DB::table('contrato_concesion')
             ->where('id_concesion', $id_concesion)
             ->where('id_empresa', $id_empresa)
             ->where('estado', EstadoBase::Activo->value)
@@ -244,10 +243,10 @@ class Concesion extends Model
     }
 
     // Desasignar (eliminación lógica)
-    public static function desasignar_empresa(int $id_asignacion)
+    public static function desasignar_empresa(int $id_contrato)
     {
-        return DB::table('empresa_concesion')
-            ->where('id', $id_asignacion)
+        return DB::table('contrato_concesion')
+            ->where('id', $id_contrato)
             ->update(['estado' => EstadoBase::Inactivo->value]);
     }
 }
