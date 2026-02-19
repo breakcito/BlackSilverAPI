@@ -48,7 +48,6 @@ class LaborController extends Controller
             'id_mina'            => 'required|integer',
             'id_empresa'         => 'required|integer',
             'id_tipo_labor'      => 'required|integer',
-            'codigo_correlativo' => 'required|string|max:32',
             'nombre'             => 'required|string|max:128',
             'descripcion'        => 'nullable|string',
             'tipo_sostenimiento' => ['required', new Enum(TipoSostenimiento::class)]
@@ -62,7 +61,6 @@ class LaborController extends Controller
             $request->id_empresa,
             $request->id_mina,
             $request->id_tipo_labor,
-            $request->codigo_correlativo,
             $request->nombre,
             $request->descripcion,
             $request->tipo_sostenimiento
@@ -77,7 +75,6 @@ class LaborController extends Controller
             'id_mina'            => 'required|integer',
             'id_empresa'         => 'required|integer',
             'id_tipo_labor'      => 'required|integer',
-            'codigo_correlativo' => 'required|string|max:32',
             'nombre'             => 'required|string|max:128',
             'descripcion'        => 'nullable|string',
             'tipo_sostenimiento' => ['required', new Enum(TipoSostenimiento::class)]
@@ -92,7 +89,6 @@ class LaborController extends Controller
             $request->id_empresa,
             $request->id_mina,
             $request->id_tipo_labor,
-            $request->codigo_correlativo,
             $request->nombre,
             $request->descripcion,
             $request->tipo_sostenimiento

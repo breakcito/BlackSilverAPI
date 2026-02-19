@@ -3,6 +3,8 @@
 namespace App\Modules\Empresas\Services;
 
 use App\Modules\Empresas\Models\Labor;
+use App\Modules\Empresas\Models\TipoLabor;
+use App\Shared\Helpers\CorrelativoHelper;
 use App\Shared\Responses\ApiResponse;
 
 class LaborService
@@ -22,12 +24,21 @@ class LaborService
         return ApiResponse::success($labor);
     }
 
-    public function crear_labor(int $id_empresa, int $id_mina, int $id_tipo_labor, string $codigo_correlativo, string $nombre, ?string $descripcion, string $tipo_sostenimiento)
+    public function crear_labor(int $id_empresa, int $id_mina, int $id_tipo_labor, string $nombre, ?string $descripcion, string $tipo_sostenimiento)
     {
         // 1. Verificar nombre duplicado en la misma mina
         if (Labor::verificar_labor_existente($id_mina, $nombre)) {
             return ApiResponse::error('Ya existe una labor con ese nombre en esta mina');
         }
+
+        // 2. Obtener prefijo de tipo de labor
+        $tipoLabor = TipoLabor::get_tipo_labor_by_id($id_tipo_labor);
+        if (!$tipoLabor) {
+            return ApiResponse::error('Tipo de labor no encontrado');
+        }
+        
+        $prefijo = $tipoLabor->codigo;
+        $codigo_correlativo = CorrelativoHelper::generar('labor', 'codigo_correlativo', $prefijo, 4, true);
 
         $id_labor = Labor::crear_labor(
             $id_empresa,
@@ -41,7 +52,7 @@ class LaborService
         return ApiResponse::success(Labor::get_labor_by_id($id_labor));
     }
 
-    public function update_labor(int $id, int $id_empresa, int $id_mina, int $id_tipo_labor, string $codigo_correlativo, string $nombre, ?string $descripcion, string $tipo_sostenimiento)
+    public function update_labor(int $id, int $id_empresa, int $id_mina, int $id_tipo_labor, string $nombre, ?string $descripcion, string $tipo_sostenimiento)
     {
         $labor = Labor::get_labor_by_id($id);
         if (!$labor) {
@@ -58,7 +69,7 @@ class LaborService
             $id_empresa,
             $id_mina,
             $id_tipo_labor,
-            $codigo_correlativo,
+            $labor->codigo_correlativo, // Se mantiene el que tenía originamente
             $nombre,
             $descripcion,
             $tipo_sostenimiento

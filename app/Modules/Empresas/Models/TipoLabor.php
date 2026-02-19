@@ -27,4 +27,9 @@ class TipoLabor extends Model
 
         return DB::select($sql);
     }
+
+    public static function get_tipo_labor_by_id(int $id)
+    {
+        return DB::table('tipo_labor')->where('id', $id)->first();
+    }
 }
