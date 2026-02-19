@@ -46,7 +46,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
     // Labores
     Route::get('/labores', [LaborController::class, 'get_labores']); 
     Route::get('/labores/tipos', [LaborController::class, 'get_tipos_labor']); 
-    Route::get('/labores/tipos-sostenimiento', [LaborController::class, 'get_tipos_sostenimiento']); 
+
     Route::post('/labores', [LaborController::class, 'crear_labor']);
     Route::get('/labor', [LaborController::class, 'get_labor_by_id']);
     Route::put('/labor', [LaborController::class, 'update_labor']);

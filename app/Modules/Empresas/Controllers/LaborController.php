@@ -40,13 +40,7 @@ class LaborController extends Controller
         return response()->json($result);
     }
 
-    public function get_tipos_sostenimiento(Request $request): JsonResponse
-    {
-        $tipos = array_column(TipoSostenimiento::cases(), 'value');
-        // O si quieres clave-valor:
-        // $tipos = collect(TipoSostenimiento::cases())->map(fn($t) => ['value' => $t->value, 'label' => $t->name]);
-        return response()->json(ApiResponse::success($tipos));
-    }
+
 
     public function crear_labor(Request $request): JsonResponse
     {
