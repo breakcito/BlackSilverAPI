@@ -89,30 +89,34 @@ class LaborService
         return ApiResponse::success(['mensaje' => 'Labor eliminada correctamente']);
     }
 
-    public function asignar_responsable_labor(int $id_labor, int $id_usuario, string $fecha_inicio)
+    public function asignar_responsable_labor(int $id_labor, int $id_usuario_front, string $fecha_inicio)
     {
         // 1. Verificar si la labor existe
         $labor = Labor::get_labor_by_id($id_labor);
         if (!$labor) {
             return ApiResponse::error('Labor no encontrada');
         }
-        
-        // 1.1 Obtener la mina para saber la concesion
-        $mina = \App\Modules\Empresas\Models\Mina::get_mina_by_id($labor->id_mina);
-        if (!$mina) {
-             return ApiResponse::error('Mina asociada no encontrada');
-        }
 
-        // 2. VALIDAR USUARIO AUTORIZADO (Contrato vigente en concesión)
-        if (!Labor::check_usuario_autorizado($id_usuario, $mina->id_concesion)) {
-            return ApiResponse::error('El usuario no pertenece a una empresa con contrato vigente en esta concesión.');
+        // El Frontend envía el id de usuario_empresa, buscamos al usuario real
+        $usuarioEmpresaReal = \Illuminate\Support\Facades\DB::table('usuario_empresa')
+            ->where('id', $id_usuario_front)
+            ->first();
+            
+        if (!$usuarioEmpresaReal) {
+            return ApiResponse::error('El usuario de empresa no es válido.');
+        }
+        $id_usuario_real = $usuarioEmpresaReal->id_usuario;
+        
+        // 2. VALIDAR USUARIO AUTORIZADO (Debe pertenecer a la empresa de la labor)
+        if (!Labor::check_usuario_pertenece_empresa($id_usuario_real, $labor->id_empresa)) {
+            return ApiResponse::error('El usuario no pertenece a la empresa encargada de esta labor.');
         }
 
         // 3. Cerrar responsable activo si existe
         Labor::cerrar_responsable_activo($id_labor, $fecha_inicio);
 
         // 4. Crear nuevo responsable
-        Labor::asignar_responsable($id_labor, $id_usuario, $fecha_inicio, null);
+        Labor::asignar_responsable($id_labor, $id_usuario_real, $fecha_inicio, null);
 
         return ApiResponse::success(['mensaje' => 'Responsable asignado correctamente']);
     }

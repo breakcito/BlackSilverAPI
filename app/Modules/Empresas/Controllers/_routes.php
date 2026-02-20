@@ -60,9 +60,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
     
     // Almacenes - Responsables
     Route::post('/almacenes/asignar-responsable', [AlmacenController::class, 'asignar_responsable_almacen']);
-    Route::get('/almacenes/responsables', [AlmacenController::class, 'get_responsables_almacen']); 
+    Route::post('/almacenes/responsables', [AlmacenController::class, 'get_responsables_almacen']); 
     
     // Almacenes - Labores
     Route::post('/almacenes/asignar-labor', [AlmacenController::class, 'asignar_labor_almacen']);
-    Route::get('/almacenes/labores', [AlmacenController::class, 'get_labores_almacen']);
+    Route::post('/almacenes/labores', [AlmacenController::class, 'get_labores_almacen']);
 });

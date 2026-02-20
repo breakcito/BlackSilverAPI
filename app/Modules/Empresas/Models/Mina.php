@@ -23,7 +23,8 @@ class Mina extends Model
             m.nombre,
             m.descripcion,
             m.estado,
-            (SELECT COUNT(*) FROM empresa_mina em WHERE em.id_mina = m.id) AS empresas_count
+            (SELECT COUNT(*) FROM empresa_mina em WHERE em.id_mina = m.id) AS empresas_count,
+            (SELECT COUNT(*) FROM labor l WHERE l.id_mina = m.id AND l.estado != \'Inactivo\') AS labores_count
         FROM
             mina m
         INNER JOIN concesion c ON c.id = m.id_concesion
@@ -55,7 +56,9 @@ class Mina extends Model
             c.nombre AS concesion,
             m.nombre,
             m.descripcion,
-            m.estado
+            m.estado,
+            (SELECT COUNT(*) FROM empresa_mina em WHERE em.id_mina = m.id) AS empresas_count,
+            (SELECT COUNT(*) FROM labor l WHERE l.id_mina = m.id AND l.estado != \'Inactivo\') AS labores_count
         FROM
             mina m
         INNER JOIN concesion c ON c.id = m.id_concesion

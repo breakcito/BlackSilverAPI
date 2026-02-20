@@ -27,15 +27,17 @@ class CorrelativoHelper
         string $prefijo = '', 
         int $longitudCeros = 4,
         bool $incluirYear = true,
-        ?string $columnaNumero = null
+        ?string $columnaNumero = null,
+        ?string $columnaFecha = null
     ): string {
         
         $query = DB::table($tabla);
         $siguienteNumero = 1;
+        $yearStr = date('y');
 
-        // Si incluye año, reiniciamos el contador cada año filtrando los del año actual
-        if ($incluirYear) {
-            $query->whereYear('created_at', date('Y'));
+        // Si incluye año y la tabla tiene columna de fecha, filtramos por el año actual
+        if ($incluirYear && $columnaFecha) {
+            $query->whereYear($columnaFecha, date('Y'));
         }
 
         // LÓGICA 1: Si hay una columna explícita para el número (Como en LoteProducto: 'numero_correlativo')
@@ -45,6 +47,10 @@ class CorrelativoHelper
         } 
         // LÓGICA 2: Si todo el correlativo está en un solo campo VARCHAR (Como en Labor: "CH-26-0001")
         else if ($columna) {
+            // Filtramos únicamente los registros que coinciden con nuestro prefijo y año actual
+            $busqueda = $incluirYear ? "{$prefijo}-{$yearStr}-%" : "{$prefijo}-%";
+            $query->where($columna, 'like', $busqueda);
+
             $ultimoRegistro = $query->orderBy('id', 'desc')->first();
 
             if ($ultimoRegistro && isset($ultimoRegistro->$columna)) {
@@ -61,7 +67,6 @@ class CorrelativoHelper
 
         // Armamos el string final concatenando
         if ($incluirYear) {
-            $yearStr = date('y'); // Año en 2 dígitos (ej: "26")
             return "{$prefijo}-{$yearStr}-{$numeroConCeros}";
         }
 
@@ -72,11 +77,11 @@ class CorrelativoHelper
     /**
      * Solo retorna el INT siguiente (Útil para LoteProducto donde necesitan almacenar el número aparte)
      */
-    public static function getNuevoNumero(string $tabla, string $columnaNumero, bool $reiniciarPorAnio = true): int
+    public static function getNuevoNumero(string $tabla, string $columnaNumero, bool $reiniciarPorAnio = true, ?string $columnaFecha = 'created_at'): int
     {
         $query = DB::table($tabla);
-        if ($reiniciarPorAnio) {
-            $query->whereYear('created_at', date('Y'));
+        if ($reiniciarPorAnio && $columnaFecha) {
+            $query->whereYear($columnaFecha, date('Y'));
         }
         $maximoActual = $query->max($columnaNumero) ?? 0;
         return $maximoActual + 1;

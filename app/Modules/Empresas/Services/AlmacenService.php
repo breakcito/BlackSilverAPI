@@ -38,16 +38,23 @@ class AlmacenService
     /**
      * Asignar responsable (Lógica de reemplazo automático).
      */
-    public function asignar_responsable_almacen(int $id_almacen, int $id_usuario, string $fecha_inicio, ?string $fecha_fin)
+    public function asignar_responsable_almacen(int $id_almacen, int $id_empleado_front, string $fecha_inicio, ?string $fecha_fin)
     {
+        // El Frontend envía el id_empleado genérico, buscamos su usuario real de sistema.
+        $usuarioReal = DB::table('usuario')->where('id_empleado', $id_empleado_front)->first();
+        if (!$usuarioReal) {
+            return ApiResponse::error('El empleado seleccionado no tiene cuenta de usuario en el sistema.');
+        }
+        $id_usuario_real = $usuarioReal->id;
+
         // Simulación de transacción para evitar inconsistencias
         DB::beginTransaction();
         try {
             // Cerrar anteriores activos
             Almacen::cerrar_responsable_activo($id_almacen, $fecha_inicio); 
 
-            // Crear nuevo. Nota: id_usuario es de tabla usuario.
-            $id = Almacen::asignar_responsable($id_almacen, $id_usuario, $fecha_inicio, $fecha_fin);
+            // Crear nuevo usando el id de la tabla usuario
+            $id = Almacen::asignar_responsable($id_almacen, $id_usuario_real, $fecha_inicio, $fecha_fin);
             
             DB::commit();
             return ApiResponse::success(['id_asignacion' => $id], 'Responsable asignado correctamente');

@@ -77,7 +77,7 @@ class AlmacenController extends Controller
 
     public function get_responsables_almacen(Request $request): JsonResponse
     {
-        $id_almacen = $request->query('id_almacen');
+        $id_almacen = $request->input('id_almacen');
         if (!$id_almacen) {
             return response()->json(ApiResponse::error('El id_almacen es requerido'), 400);
         }
@@ -110,7 +110,7 @@ class AlmacenController extends Controller
 
     public function get_labores_almacen(Request $request): JsonResponse
     {
-        $id_almacen = $request->query('id_almacen');
+        $id_almacen = $request->input('id_almacen');
         if (!$id_almacen) {
             return response()->json(ApiResponse::error('El id_almacen es requerido'), 400);
         }

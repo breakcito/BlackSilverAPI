@@ -25,6 +25,7 @@ class Labor extends Model
             l.nombre,
             l.descripcion,
             l.tipo_sostenimiento,
+            l.estado,
             (
                 SELECT CONCAT(emp.nombre, \' \', emp.apellido)
                 FROM responsable_labor rl
@@ -68,7 +69,8 @@ class Labor extends Model
             l.codigo_correlativo,
             l.nombre,
             l.descripcion,
-            l.tipo_sostenimiento
+            l.tipo_sostenimiento,
+            l.estado
         FROM
             labor l
         INNER JOIN mina m ON m.id = l.id_mina
@@ -210,7 +212,17 @@ class Labor extends Model
             ->join('contrato_concesion as cc', 'cc.id_empresa', '=', 'ue.id_empresa')
             ->where('ue.id_usuario', $id_usuario)
             ->where('cc.id_concesion', $id_concesion)
-            ->where('cc.estado', EstadoBase::Activo->value)
+            ->exists();
+    }
+
+    /**
+     * Verificar si el usuario pertenece a la empresa encargada de la labor.
+     */
+    public static function check_usuario_pertenece_empresa(int $id_usuario, int $id_empresa)
+    {
+        return DB::table('usuario_empresa')
+            ->where('id_usuario', $id_usuario)
+            ->where('id_empresa', $id_empresa)
             ->exists();
     }
 }
