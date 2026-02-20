@@ -30,7 +30,12 @@ class Almacen extends Model
                 INNER JOIN empleado emp ON emp.id = u.id_empleado
                 WHERE ra.id_almacen = a.id AND ra.estado = :estado_activo
                 LIMIT 1
-            ) AS responsable_actual
+            ) AS responsable_actual,
+            (
+                SELECT COUNT(*)
+                FROM almacen_labor al
+                WHERE al.id_almacen = a.id
+            ) AS labores_count
         FROM
             almacen a
         WHERE
