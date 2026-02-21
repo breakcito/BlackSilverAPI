@@ -40,8 +40,6 @@ class LaborController extends Controller
         return response()->json($result);
     }
 
-
-
     public function crear_labor(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -50,7 +48,11 @@ class LaborController extends Controller
             'id_tipo_labor'      => 'required|integer',
             'nombre'             => 'required|string|max:128',
             'descripcion'        => 'nullable|string',
-            'tipo_sostenimiento' => ['required', new Enum(TipoSostenimiento::class)]
+            'tipo_sostenimiento' => ['required', new Enum(TipoSostenimiento::class)],
+            'veta'               => 'nullable|string|max:128',
+            'ancho'              => 'nullable|numeric',
+            'alto'               => 'nullable|numeric',
+            'nivel'              => 'nullable|string|max:64',
         ]);
 
         if ($validator->fails()) {
@@ -63,7 +65,11 @@ class LaborController extends Controller
             $request->id_tipo_labor,
             $request->nombre,
             $request->descripcion,
-            $request->tipo_sostenimiento
+            $request->tipo_sostenimiento,
+            $request->veta,
+            $request->ancho,
+            $request->alto,
+            $request->nivel
         );
         return response()->json($result);
     }
@@ -77,7 +83,13 @@ class LaborController extends Controller
             'id_tipo_labor'      => 'required|integer',
             'nombre'             => 'required|string|max:128',
             'descripcion'        => 'nullable|string',
-            'tipo_sostenimiento' => ['required', new Enum(TipoSostenimiento::class)]
+            'tipo_sostenimiento' => ['required', new Enum(TipoSostenimiento::class)],
+            'veta'               => 'nullable|string|max:128',
+            'ancho'              => 'nullable|numeric',
+            'alto'               => 'nullable|numeric',
+            'nivel'              => 'nullable|string|max:64',
+            'fecha_fin'          => 'nullable|date',
+            'estado'             => 'nullable|string'
         ]);
 
         if ($validator->fails()) {
@@ -91,7 +103,13 @@ class LaborController extends Controller
             $request->id_tipo_labor,
             $request->nombre,
             $request->descripcion,
-            $request->tipo_sostenimiento
+            $request->tipo_sostenimiento,
+            $request->veta,
+            $request->ancho,
+            $request->alto,
+            $request->nivel,
+            $request->fecha_fin,
+            $request->estado
         );
 
         return response()->json($result);
@@ -99,46 +117,11 @@ class LaborController extends Controller
 
     public function delete_labor(Request $request): JsonResponse
     {
-        $id = $request->query('id_labor'); // Cambiado a query 'id_labor' para consistencia
+        $id = $request->query('id_labor');
         if (!$id) {
             return response()->json(ApiResponse::error('El id es requerido'), 400);
         }
         $result = $this->laborService->delete_labor((int)$id);
-        return response()->json($result);
-    }
-
-    // --- RESPONSABLES DE LABOR ---
-
-    // --- RESPONSABLES DE LABOR ---
-
-    public function asignar_responsable_labor(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'id_labor'     => 'required|integer',
-            'id_usuario'   => 'required|integer',
-            'fecha_inicio' => 'required|date'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(ApiResponse::error($validator->errors()->first()), 400);
-        }
-
-        $result = $this->laborService->asignar_responsable_labor(
-            $request->id_labor,
-            $request->id_usuario,
-            $request->fecha_inicio
-        );
-        return response()->json($result);
-    }
-
-    public function get_responsables_labor(Request $request): JsonResponse
-    {
-        $id_labor = $request->input('id_labor'); // Se pasa en el body por POST (o query si prefieres, pero seguiste POST en las otras listas filtradas)
-        if (!$id_labor) {
-            return response()->json(ApiResponse::error('El id_labor es requerido'), 400);
-        }
-
-        $result = $this->laborService->get_responsables_labor((int)$id_labor);
         return response()->json($result);
     }
 }

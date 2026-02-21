@@ -4,6 +4,7 @@ namespace App\Modules\Empresas\Services;
 
 use App\Modules\Empresas\Models\Mina;
 use App\Shared\Responses\ApiResponse;
+use Illuminate\Support\Facades\DB;
 
 class MinaService
 {
@@ -96,5 +97,54 @@ class MinaService
     {
         $empresas = Mina::get_empresas_asignadas($id_mina);
         return ApiResponse::success($empresas);
+    }
+
+    // --- RESPONSABLES DE MINA ---
+
+    /**
+     * Asignar responsable a mina.
+     */
+    public function asignar_responsable_mina(int $id_mina, int $id_usuario, string $fecha_inicio)
+    {
+        // 1. Obtener la mina
+        $mina = Mina::get_mina_by_id($id_mina);
+        if (!$mina) {
+            return ApiResponse::error('Mina no encontrada');
+        }
+
+        // 2. Validar si el usuario (vía sus empresas asociadas a esta mina) tiene autorización completa
+        if (!Mina::check_usuario_autorizado_mina($id_usuario, $id_mina)) {
+            return ApiResponse::error('Este usuario no pertenece a ninguna empresa autorizada en esta mina o no tiene contrato vigente.');
+        }
+
+        // 3. Transacción para cerrar anterior y crear nuevo
+        DB::beginTransaction();
+        try {
+            Mina::cerrar_responsable_activo($id_mina, $fecha_inicio);
+            Mina::asignar_responsable($id_mina, $id_usuario, $fecha_inicio, null);
+            DB::commit();
+            return ApiResponse::success(null, 'Responsable asignado correctamente');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return ApiResponse::error('Error al asignar responsable: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtener usuarios autorizados para ser responsables de esta mina (PARA EL DROPDOWN DEL FRONT).
+     */
+    public function get_usuarios_autorizados(int $id_mina)
+    {
+        $usuarios = Mina::get_usuarios_autorizados($id_mina);
+        return ApiResponse::success($usuarios);
+    }
+
+    /**
+     * Obtener historial de responsables.
+     */
+    public function get_responsables_mina(int $id_mina)
+    {
+        $historial = Mina::get_responsables_historial($id_mina);
+        return ApiResponse::success($historial);
     }
 }

@@ -23,6 +23,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
     // Concesiones
     Route::get('/concesiones', [ConcesionController::class, 'get_concesiones']);
+    Route::get('/concesiones/tipos-mineral', [ConcesionController::class, 'get_tipos_mineral']);
     Route::post('/concesiones/by-empresa', [ConcesionController::class, 'get_concesiones_by_empresa']);
     Route::get('/concesiones/by-session', [ConcesionController::class, 'get_concesiones_by_session']);
     Route::post('/concesiones', [ConcesionController::class, 'crear_concesion']);
@@ -42,6 +43,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::post('/minas/asignar-empresa', [MinaController::class, 'asignar_empresa_mina']);
     Route::post('/minas/desasignar-empresa', [MinaController::class, 'desasignar_empresa_mina']);
     Route::get('/minas/empresas', [MinaController::class, 'get_empresas_mina']); 
+    Route::post('/minas/responsables', [MinaController::class, 'get_responsables_mina']);
+    Route::post('/minas/usuarios-autorizados', [MinaController::class, 'get_usuarios_autorizados']);
+    Route::post('/minas/asignar-responsable', [MinaController::class, 'asignar_responsable_mina']);
 
     // Labores
     Route::get('/labores', [LaborController::class, 'get_labores']); 
@@ -51,8 +55,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::get('/labor', [LaborController::class, 'get_labor_by_id']);
     Route::put('/labor', [LaborController::class, 'update_labor']);
     Route::delete('/labor', [LaborController::class, 'delete_labor']);
-    Route::post('/labor/responsables', [LaborController::class, 'get_responsables_labor']); 
-    Route::post('/labor/asignar-responsable', [LaborController::class, 'asignar_responsable_labor']);
 
     // Almacenes
     Route::get('/almacenes', [AlmacenController::class, 'get_almacenes']);
@@ -62,7 +64,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::post('/almacenes/asignar-responsable', [AlmacenController::class, 'asignar_responsable_almacen']);
     Route::post('/almacenes/responsables', [AlmacenController::class, 'get_responsables_almacen']); 
     
-    // Almacenes - Labores
-    Route::post('/almacenes/asignar-labor', [AlmacenController::class, 'asignar_labor_almacen']);
-    Route::post('/almacenes/labores', [AlmacenController::class, 'get_labores_almacen']);
+    // Almacenes - Minas
+    Route::post('/almacenes/asignar-mina', [AlmacenController::class, 'asignar_mina_almacen']);
+    Route::post('/almacenes/minas', [AlmacenController::class, 'get_minas_almacen']);
+    Route::post('/almacenes/desasignar-mina', [AlmacenController::class, 'desasignar_mina_almacen']);
 });

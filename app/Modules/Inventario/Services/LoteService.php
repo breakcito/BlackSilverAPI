@@ -64,8 +64,8 @@ class LoteService
             // 1. Generar Correlativo: LOT-001 (Global o por almacén, usaremos global simplificado por ahora)
             // OJO: Si stock > 0, es un ingreso físico. Si es 0, es solo alta de lote.
             
-            $ultimo_numero = LoteProducto::get_ultimo_correlativo();
-            $nuevo_numero = $ultimo_numero + 1;
+            // 1. Generar Correlativo: LOT-YY-00001 (5 dígitos según requerimiento)
+            $nuevo_numero = \App\Shared\Helpers\CorrelativoHelper::proximoNumero('lote_producto', 'numero_correlativo', true);
             $correlativo = 'LOT';
 
             // 2. Crear Lote

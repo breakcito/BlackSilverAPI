@@ -24,7 +24,15 @@ class Mina extends Model
             m.descripcion,
             m.estado,
             (SELECT COUNT(*) FROM empresa_mina em WHERE em.id_mina = m.id) AS empresas_count,
-            (SELECT COUNT(*) FROM labor l WHERE l.id_mina = m.id AND l.estado != \'Inactivo\') AS labores_count
+            (SELECT COUNT(*) FROM labor l WHERE l.id_mina = m.id AND l.estado != \'Inactivo\') AS labores_count,
+            (
+                SELECT CONCAT(emp.nombre, \' \', emp.apellido)
+                FROM responsable_mina rm
+                INNER JOIN usuario u ON u.id = rm.id_usuario
+                INNER JOIN empleado emp ON emp.id = u.id_empleado
+                WHERE rm.id_mina = m.id AND rm.estado = :estado_activo
+                LIMIT 1
+            ) AS responsable_actual
         FROM
             mina m
         INNER JOIN concesion c ON c.id = m.id_concesion
@@ -32,7 +40,10 @@ class Mina extends Model
             m.estado = :estado
         ';
 
-        $params = ['estado' => EstadoBase::Activo->value];
+        $params = [
+            'estado' => EstadoBase::Activo->value,
+            'estado_activo' => EstadoBase::Activo->value
+        ];
 
         if ($id_concesion) {
             $sql .= ' AND m.id_concesion = :id_concesion';
@@ -58,7 +69,15 @@ class Mina extends Model
             m.descripcion,
             m.estado,
             (SELECT COUNT(*) FROM empresa_mina em WHERE em.id_mina = m.id) AS empresas_count,
-            (SELECT COUNT(*) FROM labor l WHERE l.id_mina = m.id AND l.estado != \'Inactivo\') AS labores_count
+            (SELECT COUNT(*) FROM labor l WHERE l.id_mina = m.id AND l.estado != \'Inactivo\') AS labores_count,
+            (
+                SELECT CONCAT(emp.nombre, \' \', emp.apellido)
+                FROM responsable_mina rm
+                INNER JOIN usuario u ON u.id = rm.id_usuario
+                INNER JOIN empleado emp ON emp.id = u.id_empleado
+                WHERE rm.id_mina = m.id AND rm.estado = :estado_activo
+                LIMIT 1
+            ) AS responsable_actual
         FROM
             mina m
         INNER JOIN concesion c ON c.id = m.id_concesion
@@ -66,7 +85,10 @@ class Mina extends Model
             m.id = :id
         ';
 
-        return DB::selectOne($sql, ['id' => $id]);
+        return DB::selectOne($sql, [
+            'id' => $id,
+            'estado_activo' => EstadoBase::Activo->value
+        ]);
     }
 
     /**
@@ -171,5 +193,109 @@ class Mina extends Model
             ->where('id_empresa', $id_empresa)
             ->where('estado', EstadoBase::Activo->value)
             ->exists();
+    }
+
+    // --- RESPONSABLE DE MINA (responsable_mina) ---
+
+    public static function asignar_responsable(int $id_mina, int $id_usuario, string $fecha_inicio, ?string $fecha_fin)
+    {
+        return DB::table('responsable_mina')->insertGetId([
+            'id_mina'      => $id_mina,
+            'id_usuario'   => $id_usuario,
+            'fecha_inicio' => $fecha_inicio,
+            'fecha_fin'    => $fecha_fin,
+            'estado'       => EstadoBase::Activo->value
+        ]);
+    }
+
+    public static function cerrar_responsable_activo(int $id_mina, string $fecha_cierre)
+    {
+        return DB::table('responsable_mina')
+            ->where('id_mina', $id_mina)
+            ->where('estado', EstadoBase::Activo->value)
+            ->update([
+                'fecha_fin' => $fecha_cierre,
+                'estado'    => EstadoBase::Inactivo->value
+            ]);
+    }
+
+    public static function get_responsables_historial(int $id_mina)
+    {
+        $sql = '
+        SELECT
+            rm.id AS id_asignacion,
+            rm.id_usuario,
+            emp.nombre AS nombres,
+            emp.apellido AS apellidos,
+            rm.fecha_inicio,
+            rm.fecha_fin,
+            rm.estado
+        FROM
+            responsable_mina rm
+        INNER JOIN usuario u ON u.id = rm.id_usuario
+        INNER JOIN empleado emp ON emp.id = u.id_empleado
+        WHERE
+            rm.id_mina = :id_mina
+        ORDER BY rm.fecha_inicio DESC
+        ';
+
+        return DB::select($sql, ['id_mina' => $id_mina]);
+    }
+
+    public static function check_usuario_autorizado_mina(int $id_usuario, int $id_mina)
+    {
+        $mina = DB::table('mina')->where('id', $id_mina)->first();
+        if (!$mina) {
+            return false;
+        }
+
+        return DB::table('usuario_empresa as ue')
+            ->join('empresa_mina as em', 'em.id_empresa', '=', 'ue.id_empresa')
+            ->join('contrato_concesion as cc', 'cc.id_empresa', '=', 'ue.id_empresa')
+            ->where('ue.id_usuario', $id_usuario)
+            ->where('em.id_mina', $id_mina)
+            ->where('cc.id_concesion', $mina->id_concesion)
+            ->where('cc.estado', EstadoBase::Activo->value)
+            ->exists();
+    }
+
+    /**
+     * Obtener lista de usuarios que pueden ser responsables de esta mina.
+     * (Pertenece a empresa vinculada a la mina Y con contrato vigente en la concesión).
+     */
+    public static function get_usuarios_autorizados(int $id_mina)
+    {
+        $mina = DB::table('mina')->where('id', $id_mina)->first();
+        if (!$mina) {
+            return [];
+        }
+
+        $sql = '
+        SELECT
+            ue.id AS id_usuario_empresa,
+            u.id AS id_usuario,
+            emp.nombre,
+            emp.apellido,
+            e.nombre_comercial AS empresa
+        FROM
+            usuario u
+        INNER JOIN empleado emp ON emp.id = u.id_empleado
+        INNER JOIN usuario_empresa ue ON ue.id_usuario = u.id
+        INNER JOIN empresa e ON e.id = ue.id_empresa
+        INNER JOIN empresa_mina em ON em.id_empresa = e.id
+        INNER JOIN contrato_concesion cc ON cc.id_empresa = e.id
+        WHERE
+            em.id_mina = :id_mina
+            AND cc.id_concesion = :id_concesion
+            AND cc.estado = :estado_activo
+            AND emp.estado = :estado_activo
+        ORDER BY emp.nombre ASC, emp.apellido ASC
+        ';
+
+        return DB::select($sql, [
+            'id_mina'      => $id_mina,
+            'id_concesion' => $mina->id_concesion,
+            'estado_activo' => EstadoBase::Activo->value
+        ]);
     }
 }

@@ -86,36 +86,47 @@ class AlmacenController extends Controller
         return response()->json($result);
     }
 
-    public function asignar_labor_almacen(Request $request): JsonResponse
+    public function asignar_mina_almacen(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'id_almacen' => 'required|integer',
-            'id_labor'   => 'required|integer',
+            'id_mina'    => 'required|integer',
         ], [
             'id_almacen.required' => 'El almacén es requerido',
-            'id_labor.required'   => 'La labor es requerida',
+            'id_mina.required'    => 'La mina es requerida',
         ]);
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
         
-        $result = $this->almacenService->asignar_labor_almacen(
+        $result = $this->almacenService->asignar_mina_almacen(
             $request->id_almacen,
-            $request->id_labor
+            $request->id_mina
         );
         
         return response()->json($result);
     }
 
-    public function get_labores_almacen(Request $request): JsonResponse
+    public function get_minas_almacen(Request $request): JsonResponse
     {
         $id_almacen = $request->input('id_almacen');
         if (!$id_almacen) {
             return response()->json(ApiResponse::error('El id_almacen es requerido'), 400);
         }
         
-        $result = $this->almacenService->get_labores_almacen((int)$id_almacen);
+        $result = $this->almacenService->get_minas_almacen((int)$id_almacen);
+        return response()->json($result);
+    }
+
+    public function desasignar_mina_almacen(Request $request): JsonResponse
+    {
+        $id_asignacion = $request->input('id_asignacion');
+        if (!$id_asignacion) {
+            return response()->json(ApiResponse::error('El id_asignacion es requerido'), 400);
+        }
+
+        $result = $this->almacenService->desasignar_mina_almacen((int)$id_asignacion);
         return response()->json($result);
     }
 }

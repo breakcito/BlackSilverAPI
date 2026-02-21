@@ -107,4 +107,35 @@ class MinaController extends Controller
         $result = $this->minaService->get_empresas_mina((int)$id);
         return response()->json($result);
     }
+
+    // --- RESPONSABLES DE MINA ---
+
+    public function asignar_responsable_mina(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_mina'      => 'required|integer',
+            'id_usuario'   => 'required|integer', // Cambiado de id_usuario_empresa a id_usuario
+            'fecha_inicio' => 'required|date'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 400);
+        }
+
+        $result = $this->minaService->asignar_responsable_mina(
+            $request->id_mina,
+            $request->id_usuario, // Volvemos a id_usuario original
+            $request->fecha_inicio
+        );
+        return response()->json($result);
+    }
+
+    public function get_responsables_mina(Request $request): JsonResponse
+    {
+        $id_mina = $request->input('id_mina');
+        if (!$id_mina) return response()->json(ApiResponse::error('ID mina requerido'), 400);
+
+        $result = $this->minaService->get_responsables_mina((int)$id_mina);
+        return response()->json($result);
+    }
 }

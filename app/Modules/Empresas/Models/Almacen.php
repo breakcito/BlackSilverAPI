@@ -33,9 +33,9 @@ class Almacen extends Model
             ) AS responsable_actual,
             (
                 SELECT COUNT(*)
-                FROM almacen_labor al
-                WHERE al.id_almacen = a.id
-            ) AS labores_count
+                FROM almacen_mina am
+                WHERE am.id_almacen = a.id
+            ) AS minas_count
         FROM
             almacen a
         WHERE
@@ -94,44 +94,47 @@ class Almacen extends Model
         ]);
     }
 
-    // --- ALMACÉN - LABOR (NUEVA RELACIÓN PRINCIPAL) ---
+    // --- ALMACÉN - MINA (NUEVA RELACIÓN PRINCIPAL) ---
 
-    public static function asignar_labor(int $id_almacen, int $id_labor)
+    public static function asignar_mina(int $id_almacen, int $id_mina)
     {
-        return DB::table('almacen_labor')->insertGetId([
+        return DB::table('almacen_mina')->insertGetId([
             'id_almacen' => $id_almacen,
-            'id_labor'   => $id_labor
+            'id_mina'   => $id_mina
         ]);
     }
 
-    public static function verificar_labor_asignada(int $id_almacen, int $id_labor)
+    public static function verificar_mina_asignada(int $id_almacen, int $id_mina)
     {
-        return DB::table('almacen_labor')
+        return DB::table('almacen_mina')
             ->where('id_almacen', $id_almacen)
-            ->where('id_labor', $id_labor)
+            ->where('id_mina', $id_mina)
             ->exists();
     }
     
-    // Obtener las labores a las que atiende este almacén
-    public static function get_labores_asignadas(int $id_almacen)
+    // Obtener las minas a las que atiende este almacén
+    public static function get_minas_asignadas(int $id_almacen)
     {
          $sql = '
         SELECT
-            al.id,
-            l.nombre AS labor,
-            tl.nombre AS tipo_labor,
-            m.nombre AS mina
+            am.id,
+            m.nombre AS mina,
+            c.nombre AS concesion
         FROM
-            almacen_labor al
-        INNER JOIN labor l ON l.id = al.id_labor
-        INNER JOIN mina m ON m.id = l.id_mina
-        INNER JOIN tipo_labor tl ON tl.id = l.id_tipo_labor
+            almacen_mina am
+        INNER JOIN mina m ON m.id = am.id_mina
+        INNER JOIN concesion c ON c.id = m.id_concesion
         WHERE
-            al.id_almacen = :id_almacen
-        ORDER BY m.nombre ASC, l.nombre ASC
+            am.id_almacen = :id_almacen
+        ORDER BY m.nombre ASC
         ';
 
         return DB::select($sql, ['id_almacen' => $id_almacen]);
+    }
+
+    public static function desasignar_mina(int $id_asignacion)
+    {
+        return DB::table('almacen_mina')->where('id', $id_asignacion)->delete();
     }
 
     // --- ALMACÉN - RESPONSABLE (responsable_almacen) ---

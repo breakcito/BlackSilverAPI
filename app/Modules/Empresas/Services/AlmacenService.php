@@ -74,24 +74,33 @@ class AlmacenService
     }
     
     /**
-     * Asignar labor a almacén.
+     * Asignar mina a almacén.
      */
-    public function asignar_labor_almacen(int $id_almacen, int $id_labor)
+    public function asignar_mina_almacen(int $id_almacen, int $id_mina)
     {
-        if (Almacen::verificar_labor_asignada($id_almacen, $id_labor)) {
-             return ApiResponse::error('Esta labor ya está asignada al almacén.');
+        if (Almacen::verificar_mina_asignada($id_almacen, $id_mina)) {
+             return ApiResponse::error('Esta mina ya está asignada al almacén.');
         }
         
-        $id = Almacen::asignar_labor($id_almacen, $id_labor);
-        return ApiResponse::success(['id_asignacion' => $id], 'Labor asignada correctamente');
+        $id = Almacen::asignar_mina($id_almacen, $id_mina);
+        return ApiResponse::success(['id_asignacion' => $id], 'Mina asignada correctamente');
     }
     
      /**
-     * Listar labores asignadas.
+     * Listar minas asignadas.
      */
-    public function get_labores_almacen(int $id_almacen)
+    public function get_minas_almacen(int $id_almacen)
     {
-        $labores = Almacen::get_labores_asignadas($id_almacen);
-        return ApiResponse::success($labores);
+        $minas = Almacen::get_minas_asignadas($id_almacen);
+        return ApiResponse::success($minas);
+    }
+
+    /**
+     * Desasignar mina de almacén.
+     */
+    public function desasignar_mina_almacen(int $id_asignacion)
+    {
+        Almacen::desasignar_mina($id_asignacion);
+        return ApiResponse::success(null, 'Mina desvinculada del almacén correctamente');
     }
 }

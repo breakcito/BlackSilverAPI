@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
 
+use App\Shared\Enums\TipoMineral;
+use Illuminate\Validation\Rules\Enum;
+
 class ConcesionController extends Controller
 {
     public function __construct(
@@ -19,6 +22,12 @@ class ConcesionController extends Controller
     {
         $result = $this->concesionService->get_concesiones();
         return response()->json($result);
+    }
+
+    public function get_tipos_mineral(): JsonResponse
+    {
+        $tipos = array_column(TipoMineral::cases(), 'value');
+        return response()->json(ApiResponse::success($tipos));
     }
 
     public function get_concesiones_by_session(Request $request): JsonResponse
@@ -56,9 +65,10 @@ class ConcesionController extends Controller
             'codigo_concesion' => 'nullable|string|max:64',
             'codigo_reinfo'    => 'nullable|string|max:64',
             'ubigeo'           => 'nullable|string|max:128',
-            'tipo_mineral'     => 'nullable|string|max:64',
+            'tipo_mineral'     => ['required', new Enum(TipoMineral::class)],
         ], [
             'nombre.required' => 'El nombre es requerido',
+            'tipo_mineral.required' => 'El tipo de mineral es obligatorio',
         ]);
 
         if ($validator->fails()) {
