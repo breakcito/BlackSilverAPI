@@ -10,7 +10,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Copiamos el código, .dockerignore evitará el .env y vendor
+# Copiamos el código
 COPY . .
 
 # Instalamos dependencias
@@ -20,6 +20,8 @@ RUN composer install --no-interaction --no-plugins --no-scripts --prefer-dist
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache
 
-EXPOSE 8000
+# Usamos el puerto 9095 - para que no choque con otros servicios
+EXPOSE 9095
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# Ejecutamos el servidor en el nuevo puerto
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=9095"]
