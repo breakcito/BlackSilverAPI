@@ -1,0 +1,17 @@
+info:
+  name: Menu de navegacion
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: http://127.0.0.1:9095/api/menu_navegacion
+  auth:
+    type: bearer
+    token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjkwOTUvYXBpL2xvZ2luIiwiaWF0IjoxNzcxNzk1MTc2LCJuYmYiOjE3NzE3OTUxNzYsImp0aSI6IjkzR29kNFh4Z1ZqaVhvT2MiLCJzdWIiOiIxIiwicHJ2IjoiYjk3OWU3NTk4OThiZjI3ZWEzZThiMDFkMjI0NDM3OTAwNDA4NjAxZiJ9.dkSDuZ5CcwhXcsli4YR9aOnRt15HLuXeOs4XPJhZorQ
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
