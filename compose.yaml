@@ -1,0 +1,10 @@
+services:
+  api:
+    build: .
+    container_name: blacksilver_api
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      - .:/var/www/html
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
