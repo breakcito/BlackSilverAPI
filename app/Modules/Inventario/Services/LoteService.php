@@ -61,14 +61,9 @@ class LoteService
             $fecha_ingreso,
             $fecha_vencimiento
         ) {
-            // 1. Generar Correlativo: LOT-001 (Global o por almacén, usaremos global simplificado por ahora)
-            // OJO: Si stock > 0, es un ingreso físico. Si es 0, es solo alta de lote.
-            
-            // 1. Generar Correlativo: LOT-YY-00001 (5 dígitos según requerimiento)
             $nuevo_numero = \App\Shared\Helpers\CorrelativoHelper::proximoNumero('lote_producto', 'numero_correlativo', true);
             $correlativo = 'LOT';
 
-            // 2. Crear Lote
             $id_lote = LoteProducto::crear_lote(
                 $id_producto,
                 $id_unidad_medida,
@@ -81,21 +76,16 @@ class LoteService
                 $fecha_vencimiento
             );
 
-            // 3. Registrar en Kardex si hay stock inicial
             if ($stock_inicial > 0) {
-                // Nuevo Lote => Tipo INGRESO
-                // Codigo movimiento: Nuevo Lote
-                // Cabecera: NULL (porque es carga inicial o directo)
-                
                 KardexProducto::crear_movimiento(
                     $id_lote,
-                    null, // Sin cabecera padre por ahora
-                    CodigoMovimiento::NuevoLote->value, // codigo_movimiento (Enum)
-                    TipoMovimiento::Ingreso->value,    // tipo_movimiento (Enum)
-                    0,            // cantidad_anterior
-                    $stock_inicial, // cantidad_movimiento
-                    $stock_inicial, // cantidad_resultante
-                    'Stock Inicial por Creación de Lote' // glosa
+                    null,
+                    CodigoMovimiento::NuevoLote->value,
+                    TipoMovimiento::Ingreso->value,
+                    0,
+                    $stock_inicial,
+                    $stock_inicial,
+                    'Stock Inicial por Creación de Lote'
                 );
             }
 

@@ -114,8 +114,6 @@ class Empresa extends Model
 
     public static function get_usuarios_por_empresa(int $id_empresa)
     {
-        // Ruta: usuario_empresa -> usuario -> empleado -> cargo
-        
         $sql = '
         SELECT
             ue.id as id_usuario_empresa,

@@ -17,7 +17,6 @@ class AlmacenController extends Controller
 
     public function get_almacenes(Request $request): JsonResponse
     {
-        // Ya no hay filtros de empresa en el listado base
         $result = $this->almacenService->get_almacenes();
         return response()->json($result);
     }

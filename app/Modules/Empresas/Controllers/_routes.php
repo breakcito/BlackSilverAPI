@@ -44,7 +44,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::post('/minas/desasignar-empresa', [MinaController::class, 'desasignar_empresa_mina']);
     Route::get('/minas/empresas', [MinaController::class, 'get_empresas_mina']); 
     Route::post('/minas/responsables', [MinaController::class, 'get_responsables_mina']);
-    Route::post('/minas/usuarios-autorizados', [MinaController::class, 'get_usuarios_autorizados']);
+    // Route::post('/minas/usuarios-autorizados', [MinaController::class, 'get_usuarios_autorizados']); // Método eliminado por requerimiento de negocio
     Route::post('/minas/asignar-responsable', [MinaController::class, 'asignar_responsable_mina']);
 
     // Labores

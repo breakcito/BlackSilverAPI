@@ -34,13 +34,10 @@ class ProductoService
             return ApiResponse::error('Ya existe un producto con este nombre.');
         }
 
-        // 2. Crear producto
         $id = Producto::crear_producto($id_categoria, $nombre, $es_fiscalizado, $es_perecible);
 
-        // 3. Obtener el objeto completo para devolverlo al Front (evita recarga total)
         $producto = Producto::get_producto_by_id($id);
         
-        // Formatear booleans consistente con get_productos
         if ($producto) {
             $producto->es_fiscalizado = (bool) $producto->es_fiscalizado;
             $producto->es_perecible   = (bool) $producto->es_perecible;

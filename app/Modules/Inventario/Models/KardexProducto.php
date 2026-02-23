@@ -21,7 +21,7 @@ class KardexProducto extends Model
             k.id_lote_producto,
             lp.id_producto,
             p.nombre AS producto,
-            CONCAT(lp.correlativo, \'-\', LPAD(lp.numero_correlativo, 3, \'0\')) AS codigo_lote,
+            CONCAT(lp.correlativo, \'-\', DATE_FORMAT(lp.created_at, \'%y\'), \'-\', LPAD(lp.numero_correlativo, 5, \'0\')) AS codigo_lote,
             k.codigo_movimiento,
             k.tipo_movimiento,
             k.cantidad_anterior,

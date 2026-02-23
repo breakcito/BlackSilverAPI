@@ -35,8 +35,6 @@ class Producto extends Model
     }
 
     /**
-     * Obtener producto por ID (con nombre de categoria).
-     * USADO DESPUÉS DE LA CREACIÓN PARA DEVOLVER EL OBJETO COMPLETO AL FRONT.
      */
     public static function get_producto_by_id(int $id)
     {

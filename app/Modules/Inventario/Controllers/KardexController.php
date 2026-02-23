@@ -9,10 +9,7 @@ use Illuminate\Routing\Controller;
 
 class KardexController extends Controller
 {
-    private $kardexService; // Definir service despues
-    
-    // Por simplicidad, usare DB directo temporal si no hay service o lo creo rapido
-    // Ah, ya creé el service. Vamos a usarlo.
+    private $kardexService;
     
     public function __construct(
          \App\Modules\Inventario\Services\KardexService $kardexService

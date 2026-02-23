@@ -36,12 +36,10 @@ class LaborService
         ?float $alto = null,
         ?string $nivel = null
     ) {
-        // 1. Verificar nombre duplicado en la misma mina
         if (Labor::verificar_labor_existente($id_mina, $nombre)) {
             return ApiResponse::error('Ya existe una labor con ese nombre en esta mina');
         }
 
-        // 2. VALIDACIÓN DE CONTRATO: La empresa debe estar autorizada en la concesión de la mina
         $mina = \App\Modules\Empresas\Models\Mina::get_mina_by_id($id_mina);
         if (!$mina) {
             return ApiResponse::error('Mina no encontrada');
@@ -96,12 +94,10 @@ class LaborService
             return ApiResponse::error('Labor no encontrada');
         }
 
-        // 2. Verificar nombre duplicado (excluyendo la actual)
         if (Labor::verificar_labor_existente($id_mina, $nombre, $id)) {
             return ApiResponse::error('Ya existe una labor con ese nombre en esta mina');
         }
 
-        // 3. VALIDACIÓN DE CONTRATO: La empresa debe estar autorizada en la concesión de la mina
         $mina = \App\Modules\Empresas\Models\Mina::get_mina_by_id($id_mina);
         if (!$mina) {
             return ApiResponse::error('Mina no encontrada');
