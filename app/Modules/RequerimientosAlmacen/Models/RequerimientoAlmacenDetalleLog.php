@@ -28,15 +28,15 @@ class RequerimientoAlmacenDetalleLog extends Model
     public static function get_trazabilidad(int $id_requerimiento_almacen_detalle)
     {
         return DB::table('requerimiento_almacen_detalle_log as rl')
-            ->join('usuario as u', 'u.id', '=', 'rl.id_usuario')
-            ->join('empleado as e', 'e.id', '=', u.id_empleado)
+            ->leftJoin('usuario as u', 'u.id', '=', 'rl.id_usuario')
+            ->leftJoin('empleado as e', 'e.id', '=', 'u.id_empleado')
             ->where('rl.id_requerimiento_almacen_detalle', $id_requerimiento_almacen_detalle)
             ->select(
                 'rl.id',
                 'rl.glosa',
                 'rl.estado',
                 'rl.created_at',
-                DB::raw("CONCAT(e.nombre, ' ', e.apellido) as usuario")
+                DB::raw("IFNULL(CONCAT(e.nombre, ' ', e.apellido), 'Usuario Sistema') as usuario")
             )
             ->orderBy('rl.created_at', 'DESC')
             ->get();
