@@ -27,4 +27,29 @@ class RequerimientoAlmacenDetalle extends Model
             'estado'              => EstadoRequerimiento::Pendiente->value
         ]);
     }
+
+    public static function get_detalles_by_requerimiento(int $id_requerimiento)
+    {
+        $sql = '
+        SELECT
+            rad.id AS id_requerimiento_detalle,
+            rad.id_producto,
+            p.nombre AS producto,
+            rad.id_unidad_medida,
+            um.abreviatura AS unidad_medida,
+            rad.cantidad_solicitada,
+            rad.cantidad_atendida,
+            rad.comentario,
+            rad.comentario_rechazo,
+            rad.estado
+        FROM
+            requerimiento_almacen_detalle rad
+        INNER JOIN producto p ON p.id = rad.id_producto
+        INNER JOIN unidad_medida um ON um.id = rad.id_unidad_medida
+        WHERE
+            rad.id_requerimiento = :id_requerimiento
+        ';
+
+        return DB::select($sql, ['id_requerimiento' => $id_requerimiento]);
+    }
 }

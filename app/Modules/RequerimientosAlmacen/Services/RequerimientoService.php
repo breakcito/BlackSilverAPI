@@ -73,7 +73,10 @@ class RequerimientoService
                 );
             }
 
-            return ApiResponse::success(['id_requerimiento' => $id_requerimiento], 'Requerimiento generado correctamente');
+            return ApiResponse::success(
+                RequerimientoAlmacen::get_requerimiento_by_id($id_requerimiento),
+                'Requerimiento generado correctamente'
+            );
         });
     }
 
