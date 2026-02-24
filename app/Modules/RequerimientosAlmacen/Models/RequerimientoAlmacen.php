@@ -24,8 +24,6 @@ class RequerimientoAlmacen extends Model
             CONCAT(emp.nombre, \' \', emp.apellido) AS solicitante,
             ra.id_mina,
             m.nombre AS mina,
-            ra.id_labor,
-            l.nombre AS labor,
             ra.id_almacen_destino,
             alm.nombre AS almacen_destino,
             CONCAT(ra.correlativo, \'-\', DATE_FORMAT(ra.created_at, \'%y\'), \'-\', LPAD(ra.numero_correlativo, 5, \'0\')) AS codigo_requerimiento,
@@ -39,7 +37,6 @@ class RequerimientoAlmacen extends Model
         INNER JOIN empleado emp ON emp.id = u.id_empleado
         INNER JOIN mina m ON m.id = ra.id_mina
         INNER JOIN almacen alm ON alm.id = ra.id_almacen_destino
-        LEFT JOIN labor l ON l.id = ra.id_labor
         WHERE 1=1
         ';
 
@@ -74,7 +71,6 @@ class RequerimientoAlmacen extends Model
     public static function crear_requerimiento(
         int $id_usuario_solicitante,
         int $id_mina,
-        ?int $id_labor,
         int $id_almacen_destino,
         string $correlativo,
         int $numero_correlativo,
@@ -84,7 +80,6 @@ class RequerimientoAlmacen extends Model
         return DB::table('requerimiento_almacen')->insertGetId([
             'id_usuario_solicitante' => $id_usuario_solicitante,
             'id_mina'                => $id_mina,
-            'id_labor'               => $id_labor,
             'id_almacen_destino'     => $id_almacen_destino,
             'correlativo'            => $correlativo,
             'numero_correlativo'     => $numero_correlativo,
@@ -104,8 +99,6 @@ class RequerimientoAlmacen extends Model
             CONCAT(emp.nombre, \' \', emp.apellido) AS solicitante,
             ra.id_mina,
             m.nombre AS mina,
-            ra.id_labor,
-            l.nombre AS labor,
             ra.id_almacen_destino,
             alm.nombre AS almacen_destino,
             CONCAT(ra.correlativo, \'-\', DATE_FORMAT(ra.created_at, \'%y\'), \'-\', LPAD(ra.numero_correlativo, 5, \'0\')) AS codigo_requerimiento,
@@ -119,7 +112,6 @@ class RequerimientoAlmacen extends Model
         INNER JOIN empleado emp ON emp.id = u.id_empleado
         INNER JOIN mina m ON m.id = ra.id_mina
         INNER JOIN almacen alm ON alm.id = ra.id_almacen_destino
-        LEFT JOIN labor l ON l.id = ra.id_labor
         WHERE
             ra.id = :id
         ';
@@ -130,6 +122,7 @@ class RequerimientoAlmacen extends Model
             return null;
         }
 
+        $cabecera->labores = RequerimientoAlmacenLabor::get_labores_por_requerimiento($id);
         $cabecera->detalles = RequerimientoAlmacenDetalle::get_detalles_by_requerimiento($id);
 
         return $cabecera;

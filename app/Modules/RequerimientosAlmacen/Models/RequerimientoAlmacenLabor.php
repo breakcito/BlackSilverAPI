@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Modules\RequerimientosAlmacen\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+
+class RequerimientoAlmacenLabor extends Model
+{
+    protected $table = 'requerimiento_almacen_labor';
+
+    public static function asociar_labores(int $id_requerimiento, array $id_labores)
+    {
+        $data = [];
+        foreach ($id_labores as $id_labor) {
+            $data[] = [
+                'id_requerimiento' => $id_requerimiento,
+                'id_labor'         => $id_labor
+            ];
+        }
+
+        if (!empty($data)) {
+            DB::table('requerimiento_almacen_labor')->insert($data);
+        }
+    }
+
+    public static function get_labores_por_requerimiento(int $id_requerimiento)
+    {
+        return DB::table('requerimiento_almacen_labor as ral')
+            ->join('labor as l', 'l.id', '=', 'ral.id_labor')
+            ->where('ral.id_requerimiento', $id_requerimiento)
+            ->select('l.id', 'l.nombre')
+            ->get();
+    }
+}

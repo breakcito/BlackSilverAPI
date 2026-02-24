@@ -2,6 +2,7 @@
 
 namespace App\Modules\RequerimientosAlmacen\Models;
 
+use App\Shared\Enums\EstadoDetalleRequerimiento;
 use App\Shared\Enums\EstadoRequerimiento;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -17,14 +18,14 @@ class RequerimientoAlmacenDetalle extends Model
         float $cantidad_solicitada,
         ?string $comentario
     ) {
-        return DB::table('requerimiento_almacen_detalle')->insert([
+        return DB::table('requerimiento_almacen_detalle')->insertGetId([
             'id_requerimiento'    => $id_requerimiento,
             'id_producto'         => $id_producto,
             'id_unidad_medida'    => $id_unidad_medida,
             'cantidad_solicitada' => $cantidad_solicitada,
             'cantidad_atendida'   => 0,
             'comentario'          => $comentario,
-            'estado'              => EstadoRequerimiento::Pendiente->value
+            'estado'              => EstadoDetalleRequerimiento::Pendiente->value
         ]);
     }
 
@@ -35,6 +36,8 @@ class RequerimientoAlmacenDetalle extends Model
             rad.id AS id_requerimiento_detalle,
             rad.id_producto,
             p.nombre AS producto,
+            p.es_fiscalizado,
+            p.es_perecible,
             rad.id_unidad_medida,
             um.abreviatura AS unidad_medida,
             rad.cantidad_solicitada,
@@ -50,6 +53,12 @@ class RequerimientoAlmacenDetalle extends Model
             rad.id_requerimiento = :id_requerimiento
         ';
 
-        return DB::select($sql, ['id_requerimiento' => $id_requerimiento]);
+        $detalles = DB::select($sql, ['id_requerimiento' => $id_requerimiento]);
+
+        return array_map(function ($detalle) {
+            $detalle->es_fiscalizado = (bool) $detalle->es_fiscalizado;
+            $detalle->es_perecible = (bool) $detalle->es_perecible;
+            return $detalle;
+        }, $detalles);
     }
 }
