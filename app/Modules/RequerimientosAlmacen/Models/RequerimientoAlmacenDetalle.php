@@ -31,7 +31,7 @@ class RequerimientoAlmacenDetalle extends Model
 
     public static function get_detalles_by_requerimiento(int $id_requerimiento)
     {
-        $sql = '
+        $sql = "
         SELECT
             rad.id AS id_requerimiento_detalle,
             rad.id_producto,
@@ -44,14 +44,21 @@ class RequerimientoAlmacenDetalle extends Model
             rad.cantidad_atendida,
             rad.comentario,
             rad.comentario_rechazo,
-            rad.estado
+            rad.estado,
+            (SELECT IFNULL(SUM(lp.stock_actual), 0) 
+             FROM lote_producto lp 
+             WHERE lp.id_producto = rad.id_producto 
+             AND lp.id_almacen = ra.id_almacen_destino 
+             AND lp.estado = 'Activo'
+            ) as stock_disponible
         FROM
             requerimiento_almacen_detalle rad
+        INNER JOIN requerimiento_almacen ra ON ra.id = rad.id_requerimiento
         INNER JOIN producto p ON p.id = rad.id_producto
         INNER JOIN unidad_medida um ON um.id = rad.id_unidad_medida
         WHERE
             rad.id_requerimiento = :id_requerimiento
-        ';
+        ";
 
         $detalles = DB::select($sql, ['id_requerimiento' => $id_requerimiento]);
 
@@ -60,5 +67,24 @@ class RequerimientoAlmacenDetalle extends Model
             $detalle->es_perecible = (bool) $detalle->es_perecible;
             return $detalle;
         }, $detalles);
+    }
+
+    public static function actualizar_estado(int $id_detalle, string $nuevo_estado, ?string $comentario_rechazo = null)
+    {
+        $data = ['estado' => $nuevo_estado];
+        if ($comentario_rechazo !== null) {
+            $data['comentario_rechazo'] = $comentario_rechazo;
+        }
+
+        return DB::table('requerimiento_almacen_detalle')
+            ->where('id', $id_detalle)
+            ->update($data);
+    }
+
+    public static function actualizar_cantidad_atendida(int $id_detalle, float $cantidad)
+    {
+        return DB::table('requerimiento_almacen_detalle')
+            ->where('id', $id_detalle)
+            ->increment('cantidad_atendida', $cantidad);
     }
 }

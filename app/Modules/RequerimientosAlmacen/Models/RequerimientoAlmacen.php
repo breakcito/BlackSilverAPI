@@ -127,4 +127,10 @@ class RequerimientoAlmacen extends Model
 
         return $cabecera;
     }
+    public static function actualizar_estado(int $id, string $estado)
+    {
+        return DB::table('requerimiento_almacen')
+            ->where('id', $id)
+            ->update(['estado' => $estado]);
+    }
 }
