@@ -36,8 +36,7 @@ class AtencionService
             ra.fecha_entrega_requerida,
             ra.estado,
             ra.created_at,
-            (SELECT COUNT(*) FROM requerimiento_almacen_detalle rad WHERE rad.id_requerimiento = ra.id) as total_items,
-            (SELECT COUNT(*) FROM requerimiento_almacen_detalle rad WHERE rad.id_requerimiento = ra.id AND rad.estado = :estado_pendiente) as items_pendientes
+            (SELECT COUNT(*) FROM requerimiento_almacen_detalle rad WHERE rad.id_requerimiento = ra.id) as total_items
         FROM
             requerimiento_almacen ra
         INNER JOIN usuario u ON u.id = ra.id_usuario_solicitante
@@ -48,8 +47,7 @@ class AtencionService
         ";
 
         $params = [
-            'id_almacen' => $id_almacen,
-            'estado_pendiente' => EstadoDetalleRequerimiento::Pendiente->value
+            'id_almacen' => $id_almacen
         ];
 
         if ($estado) {
@@ -57,7 +55,15 @@ class AtencionService
             $params['estado'] = $estado;
         }
 
-        $sql .= ' ORDER BY ra.created_at DESC';
+        $sql .= " ORDER BY 
+            CASE ra.premura 
+                WHEN 'Emergencia' THEN 1 
+                WHEN 'Urgente' THEN 2 
+                WHEN 'Normal' THEN 3 
+                ELSE 4 
+            END ASC,
+            ra.fecha_entrega_requerida ASC,
+            ra.created_at ASC";
 
         $data = DB::select($sql, $params);
         return ApiResponse::success($data);
@@ -205,13 +211,22 @@ class AtencionService
 
                 RequerimientoAlmacenDetalle::actualizar_estado($id_detalle_req, $nuevo_estado_item->value);
 
-                // 9. Log de Trazabilidad
+                // 9. Log de Trazabilidad de la Entrega
                 RequerimientoAlmacenDetalleLog::registrar_log(
                     $id_detalle_req,
                     $id_usuario,
-                    $nuevo_estado_item,
-                    "Se entregaron " . $cantidad_a_entregar . " unidades."
+                    EstadoDetalleRequerimiento::NuevaEntrega,
+                    (string)$cantidad_a_entregar
                 );
+
+                // 9.1. Si con esta entrega se completó lo solicitado, registrar el log de Completado
+                if ($nuevo_estado_item === EstadoDetalleRequerimiento::Completado && $detalle_req->estado !== EstadoDetalleRequerimiento::Completado->value) {
+                    RequerimientoAlmacenDetalleLog::registrar_log(
+                        $id_detalle_req,
+                        $id_usuario,
+                        EstadoDetalleRequerimiento::Completado
+                    );
+                }
             }
 
             // 10. Verificar si todo el requerimiento está cerrado
@@ -255,79 +270,5 @@ class AtencionService
         $historial = DB::select($sql, ['id_detalle' => $id_detalle]);
 
         return ApiResponse::success($historial);
-    }
-
-    /**
-     * Finaliza manualmente un requerimiento, cerrando todos sus ítems pendientes.
-     */
-    public function finalizar_requerimiento(int $id_usuario, int $id_requerimiento)
-    {
-        return DB::transaction(function () use ($id_usuario, $id_requerimiento) {
-            
-            // 1. Cargar el requerimiento
-            $requerimiento = DB::table('requerimiento_almacen')->where('id', $id_requerimiento)->first();
-            if (!$requerimiento) {
-                return ApiResponse::error('Requerimiento no encontrado', 404);
-            }
-
-            // 2. Cerrar todos los detalles que no estén terminados ni rechazados
-            $detalles = DB::table('requerimiento_almacen_detalle')
-                ->where('id_requerimiento', $id_requerimiento)
-                ->whereNotIn('estado', [
-                    EstadoDetalleRequerimiento::Completado->value,
-                    EstadoDetalleRequerimiento::Cerrado->value,
-                    EstadoDetalleRequerimiento::RechazadoLogistica->value
-                ])
-                ->get();
-
-            foreach ($detalles as $detalle) {
-                RequerimientoAlmacenDetalle::actualizar_estado($detalle->id, EstadoDetalleRequerimiento::Cerrado->value);
-                
-                RequerimientoAlmacenDetalleLog::registrar_log(
-                    $detalle->id,
-                    $id_usuario,
-                    EstadoDetalleRequerimiento::Cerrado
-                );
-            }
-
-            // 3. Cerrar Cabecera
-            RequerimientoAlmacen::actualizar_estado($id_requerimiento, EstadoRequerimiento::Cerrada->value);
-
-            return ApiResponse::success(['mensaje' => 'Requerimiento finalizado correctamente']);
-        });
-    }
-
-    /**
-     * Anula un requerimiento siempre y cuando no se haya tomado ninguna decisión sobre sus ítems.
-     */
-    public function anular_requerimiento(int $id_usuario, int $id_requerimiento)
-    {
-        return DB::transaction(function () use ($id_usuario, $id_requerimiento) {
-            
-            $requerimiento = DB::table('requerimiento_almacen')->where('id', $id_requerimiento)->first();
-            if (!$requerimiento) {
-                return ApiResponse::error('Requerimiento no encontrado', 404);
-            }
-
-            // Verificar si hay alguna "decisión" tomada
-            $conDecision = DB::table('requerimiento_almacen_detalle')
-                ->where('id_requerimiento', $id_requerimiento)
-                ->where('estado', '!=', EstadoDetalleRequerimiento::Pendiente->value)
-                ->exists();
-
-            if ($conDecision) {
-                return ApiResponse::error('No se puede anular el requerimiento porque ya existen ítems con gestión o despacho iniciado.', 400);
-            }
-
-            // Anular cabecera
-            RequerimientoAlmacen::actualizar_estado($id_requerimiento, EstadoRequerimiento::Anulada->value);
-
-            // También mandamos a Anulada los detalles para consistencia
-            DB::table('requerimiento_almacen_detalle')
-                ->where('id_requerimiento', $id_requerimiento)
-                ->update(['estado' => EstadoRequerimiento::Anulada->value]);
-
-            return ApiResponse::success(['mensaje' => 'Requerimiento anulado correctamente']);
-        });
     }
 }
