@@ -200,6 +200,9 @@ class AtencionService
                     $glosa_kardex
                 );
 
+                // 6.5 Obtener estado original antes de incrementar cantidades para saber si es el primer despacho
+                $detalle_original = DB::table('requerimiento_almacen_detalle')->where('id', $id_detalle_req)->first();
+
                 // 7. Actualizar Requerimiento (Cantidad Atendida)
                 RequerimientoAlmacenDetalle::actualizar_cantidad_atendida($id_detalle_req, $cantidad_a_entregar);
 
@@ -210,6 +213,15 @@ class AtencionService
                     : EstadoDetalleRequerimiento::DespachoIniciado;
 
                 RequerimientoAlmacenDetalle::actualizar_estado($id_detalle_req, $nuevo_estado_item->value);
+
+                // 8.5 Registrar el log de 'Despacho Iniciado' si es la primera entrega física (estaba en Aprobación)
+                if ($detalle_original->cantidad_atendida == 0 && $cantidad_a_entregar > 0) {
+                    RequerimientoAlmacenDetalleLog::registrar_log(
+                        $id_detalle_req,
+                        $id_usuario,
+                        EstadoDetalleRequerimiento::DespachoIniciado
+                    );
+                }
 
                 // 9. Log de Trazabilidad de la Entrega
                 RequerimientoAlmacenDetalleLog::registrar_log(

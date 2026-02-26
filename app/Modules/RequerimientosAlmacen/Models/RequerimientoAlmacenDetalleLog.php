@@ -39,6 +39,7 @@ class RequerimientoAlmacenDetalleLog extends Model
                 DB::raw("IFNULL(CONCAT(e.nombre, ' ', e.apellido), 'Usuario Sistema') as usuario")
             )
             ->orderBy('rl.created_at', 'DESC')
+            ->orderBy('rl.id', 'DESC')
             ->get();
     }
 }
