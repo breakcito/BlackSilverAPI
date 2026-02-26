@@ -134,6 +134,18 @@ class AtencionService
     ) {
         return DB::transaction(function () use ($id_usuario, $id_requerimiento, $fecha_entrega, $observacion, $detalles) {
             
+            // 0. Obtener info del requerimiento para Glosa de Kardex
+            $reqInfo = DB::table('requerimiento_almacen as ra')
+                ->join('mina as m', 'm.id', '=', 'ra.id_mina')
+                ->where('ra.id', $id_requerimiento)
+                ->select(
+                    'm.nombre as mina',
+                    DB::raw("CONCAT(ra.correlativo, '-', DATE_FORMAT(ra.created_at, '%y'), '-', LPAD(ra.numero_correlativo, 5, '0')) as codigo")
+                )
+                ->first();
+
+            $glosa_kardex = "Entrega {$reqInfo->codigo} - Mina: {$reqInfo->mina}";
+
             // 1. Generar Correlativo de Entrega
             $prefijo = 'ENTR';
             $nuevo_numero = CorrelativoHelper::proximoNumero('entrega_almacen', 'numero_correlativo');
@@ -179,7 +191,7 @@ class AtencionService
                     (float)$lote->stock_actual,
                     (float)$cantidad_a_entregar,
                     (float)($lote->stock_actual - $cantidad_a_entregar),
-                    "Entrega según requerimiento ID: " . $id_requerimiento
+                    $glosa_kardex
                 );
 
                 // 7. Actualizar Requerimiento (Cantidad Atendida)
@@ -215,6 +227,107 @@ class AtencionService
             }
 
             return ApiResponse::success(['mensaje' => 'Despacho registrado correctamente', 'id_entrega' => $id_entrega]);
+        });
+    }
+    /**
+     * Obtiene el historial de entregas realizadas para un ítem específico de un requerimiento.
+     */
+    public function obtener_historial_entregas_por_item(int $id_detalle)
+    {
+        $sql = "
+        SELECT 
+            ea.id AS id_entrega,
+            CONCAT(ea.correlativo, '-', DATE_FORMAT(ea.created_at, '%y'), '-', LPAD(ea.numero_correlativo, 5, '0')) AS codigo_entrega,
+            ea.fecha_entrega,
+            ead.cantidad,
+            CONCAT(emp.nombre, ' ', emp.apellido) AS usuario_entrega
+        FROM 
+            entrega_almacen_detalle ead
+        INNER JOIN entrega_almacen ea ON ea.id = ead.id_entrega_almacen
+        INNER JOIN usuario u ON u.id = ea.id_usuario_entrega
+        INNER JOIN empleado emp ON emp.id = u.id_empleado
+        WHERE 
+            ead.id_requerimiento_almacen_detalle = :id_detalle
+        ORDER BY 
+            ea.fecha_entrega DESC
+        ";
+
+        $historial = DB::select($sql, ['id_detalle' => $id_detalle]);
+
+        return ApiResponse::success($historial);
+    }
+
+    /**
+     * Finaliza manualmente un requerimiento, cerrando todos sus ítems pendientes.
+     */
+    public function finalizar_requerimiento(int $id_usuario, int $id_requerimiento)
+    {
+        return DB::transaction(function () use ($id_usuario, $id_requerimiento) {
+            
+            // 1. Cargar el requerimiento
+            $requerimiento = DB::table('requerimiento_almacen')->where('id', $id_requerimiento)->first();
+            if (!$requerimiento) {
+                return ApiResponse::error('Requerimiento no encontrado', 404);
+            }
+
+            // 2. Cerrar todos los detalles que no estén terminados ni rechazados
+            $detalles = DB::table('requerimiento_almacen_detalle')
+                ->where('id_requerimiento', $id_requerimiento)
+                ->whereNotIn('estado', [
+                    EstadoDetalleRequerimiento::Completado->value,
+                    EstadoDetalleRequerimiento::Cerrado->value,
+                    EstadoDetalleRequerimiento::RechazadoLogistica->value
+                ])
+                ->get();
+
+            foreach ($detalles as $detalle) {
+                RequerimientoAlmacenDetalle::actualizar_estado($detalle->id, EstadoDetalleRequerimiento::Cerrado->value);
+                
+                RequerimientoAlmacenDetalleLog::registrar_log(
+                    $detalle->id,
+                    $id_usuario,
+                    EstadoDetalleRequerimiento::Cerrado
+                );
+            }
+
+            // 3. Cerrar Cabecera
+            RequerimientoAlmacen::actualizar_estado($id_requerimiento, EstadoRequerimiento::Cerrada->value);
+
+            return ApiResponse::success(['mensaje' => 'Requerimiento finalizado correctamente']);
+        });
+    }
+
+    /**
+     * Anula un requerimiento siempre y cuando no se haya tomado ninguna decisión sobre sus ítems.
+     */
+    public function anular_requerimiento(int $id_usuario, int $id_requerimiento)
+    {
+        return DB::transaction(function () use ($id_usuario, $id_requerimiento) {
+            
+            $requerimiento = DB::table('requerimiento_almacen')->where('id', $id_requerimiento)->first();
+            if (!$requerimiento) {
+                return ApiResponse::error('Requerimiento no encontrado', 404);
+            }
+
+            // Verificar si hay alguna "decisión" tomada
+            $conDecision = DB::table('requerimiento_almacen_detalle')
+                ->where('id_requerimiento', $id_requerimiento)
+                ->where('estado', '!=', EstadoDetalleRequerimiento::Pendiente->value)
+                ->exists();
+
+            if ($conDecision) {
+                return ApiResponse::error('No se puede anular el requerimiento porque ya existen ítems con gestión o despacho iniciado.', 400);
+            }
+
+            // Anular cabecera
+            RequerimientoAlmacen::actualizar_estado($id_requerimiento, EstadoRequerimiento::Anulada->value);
+
+            // También mandamos a Anulada los detalles para consistencia
+            DB::table('requerimiento_almacen_detalle')
+                ->where('id_requerimiento', $id_requerimiento)
+                ->update(['estado' => EstadoRequerimiento::Anulada->value]);
+
+            return ApiResponse::success(['mensaje' => 'Requerimiento anulado correctamente']);
         });
     }
 }

@@ -45,7 +45,11 @@ class AtencionController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()), 400);
         }
 
-        $authUser = auth()->user();
+        $authUser = $request->attributes->get('auth_user');
+        if (!$authUser) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
+        }
+
         $result = $this->atencionService->cambiar_estado_detalle(
             $authUser->id_usuario,
             (int)$request->id_requerimiento_almacen_detalle,
@@ -91,7 +95,11 @@ class AtencionController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()), 400);
         }
 
-        $authUser = auth()->user();
+        $authUser = $request->attributes->get('auth_user');
+        if (!$authUser) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
+        }
+
         $result = $this->atencionService->registrar_entrega(
             $authUser->id_usuario,
             (int)$request->id_requerimiento,
@@ -100,6 +108,58 @@ class AtencionController extends Controller
             $request->detalles
         );
 
+        return response()->json($result);
+    }
+
+    /**
+     * Obtener el historial de entregas realizadas para un ítem específico.
+     */
+    public function obtener_historial_entregas_por_item(Request $request): JsonResponse
+    {
+        $id_detalle = $request->input('id_requerimiento_almacen_detalle');
+        if (!$id_detalle) {
+            return response()->json(ApiResponse::error('El id_requerimiento_almacen_detalle es requerido'), 400);
+        }
+
+        $result = $this->atencionService->obtener_historial_entregas_por_item((int)$id_detalle);
+        return response()->json($result);
+    }
+
+    /**
+     * Finaliza manualmente el proceso de despacho de un requerimiento.
+     */
+    public function finalizar_requerimiento(Request $request): JsonResponse
+    {
+        $id_requerimiento = $request->input('id_requerimiento');
+        if (!$id_requerimiento) {
+            return response()->json(ApiResponse::error('El id_requerimiento es requerido'), 400);
+        }
+
+        $authUser = $request->attributes->get('auth_user');
+        if (!$authUser) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
+        }
+
+        $result = $this->atencionService->finalizar_requerimiento((int)$authUser->id_usuario, (int)$id_requerimiento);
+        return response()->json($result);
+    }
+
+    /**
+     * Anula un requerimiento (solo si no tiene gestión).
+     */
+    public function anular_requerimiento(Request $request): JsonResponse
+    {
+        $id_requerimiento = $request->input('id_requerimiento');
+        if (!$id_requerimiento) {
+            return response()->json(ApiResponse::error('El id_requerimiento es requerido'), 400);
+        }
+
+        $authUser = $request->attributes->get('auth_user');
+        if (!$authUser) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
+        }
+
+        $result = $this->atencionService->anular_requerimiento((int)$authUser->id_usuario, (int)$id_requerimiento);
         return response()->json($result);
     }
 }

@@ -24,4 +24,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::post('/requerimientos/atencion/cambiar-estado-detalle', [\App\Modules\RequerimientosAlmacen\Controllers\AtencionController::class, 'cambiar_estado_detalle']);
     Route::post('/requerimientos/atencion/obtener-lotes-disponibles', [\App\Modules\RequerimientosAlmacen\Controllers\AtencionController::class, 'obtener_lotes_disponibles']);
     Route::post('/requerimientos/atencion/registrar-entrega', [\App\Modules\RequerimientosAlmacen\Controllers\AtencionController::class, 'registrar_entrega']);
+    Route::post('/requerimientos/atencion/obtener-historial-entregas', [\App\Modules\RequerimientosAlmacen\Controllers\AtencionController::class, 'obtener_historial_entregas_por_item']);
+    Route::post('/requerimientos/atencion/finalizar', [\App\Modules\RequerimientosAlmacen\Controllers\AtencionController::class, 'finalizar_requerimiento']);
+    Route::post('/requerimientos/anular', [\App\Modules\RequerimientosAlmacen\Controllers\AtencionController::class, 'anular_requerimiento']);
 });
