@@ -135,4 +135,10 @@ class LoteProducto extends Model
             'tipo_bien' => 'Bien'
         ]);
     }
+    public static function descontar_stock(int $id_lote, float $cantidad)
+    {
+        return DB::table('lote_producto')
+            ->where('id', $id_lote)
+            ->decrement('stock_actual', $cantidad);
+    }
 }
