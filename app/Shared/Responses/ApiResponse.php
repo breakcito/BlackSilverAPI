@@ -2,27 +2,26 @@
 
 namespace App\Shared\Responses;
 
-
 /**
  * Clase para respuestas API estandarizadas.
  */
 class ApiResponse
 {
-    public static function success($data = null, ?string $error = null)
+    public static function success($data = null, ?string $message = null)
     {
         return [
             'success' => true,
             'data' => $data,
-            'error' => $error,
+            'message' => $message,
         ];
     }
 
-    public static function error($error = null)
+    public static function error($message = null)
     {
         return [
             'success' => false,
             'data' => null,
-            'error' => $error,
+            'message' => $message,
         ];
     }
 }
