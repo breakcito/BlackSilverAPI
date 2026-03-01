@@ -101,37 +101,6 @@ class LoteProducto extends Model
         return DB::selectOne($sql, ['id' => $id]);
     }
 
-    public static function get_ultimo_correlativo()
-    {
-        return self::max('numero_correlativo') ?? 0;
-    }
-
-    public static function crear_lote(
-        int $id_producto,
-        int $id_unidad_medida,
-        int $id_almacen,
-        ?string $descripcion,
-        string $correlativo,
-        int $numero_correlativo,
-        float $stock_inicial,
-        string $fecha_ingreso,
-        ?string $fecha_vencimiento
-    ) {
-        return self::insertGetId([
-            'id_producto' => $id_producto,
-            'id_unidad_medida' => $id_unidad_medida,
-            'id_almacen' => $id_almacen,
-            'descripcion' => $descripcion,
-            'correlativo' => $correlativo,
-            'numero_correlativo' => $numero_correlativo,
-            'stock_actual' => $stock_inicial,
-            'fecha_ingreso' => $fecha_ingreso,
-            'fecha_vencimiento' => $fecha_vencimiento,
-            'created_at' => now(),
-            'estado' => EstadoBase::Activo->value,
-        ]);
-    }
-
     /**
      * Obtener productos disponibles para sugerir.
      */
@@ -156,11 +125,5 @@ class LoteProducto extends Model
             'estado' => EstadoBase::Activo->value,
             'tipo_bien' => 'Bien',
         ]);
-    }
-
-    public static function descontar_stock(int $id_lote, float $cantidad)
-    {
-        return self::where('id', $id_lote)
-            ->decrement('stock_actual', $cantidad);
     }
 }

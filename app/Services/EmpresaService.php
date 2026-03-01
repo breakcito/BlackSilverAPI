@@ -27,14 +27,20 @@ class EmpresaService
     public function crear_empresa(string $ruc, string $razon_social, string $nombre_comercial, string $abreviatura, string $path_logo)
     {
         // 1. Verificar si el RUC ya existe
-        if (Empresa::verificar_empresa_existente($ruc)) {
+        if (Empresa::where('ruc', $ruc)->exists()) {
             return ApiResponse::error('Ya existe una empresa con este RUC.');
         }
 
         // 2. Crear
-        $id = Empresa::crear_empresa($ruc, $razon_social, $nombre_comercial, $abreviatura, $path_logo);
+        $empresa = Empresa::create([
+            'ruc' => $ruc,
+            'razon_social' => $razon_social,
+            'nombre_comercial' => $nombre_comercial,
+            'abreviatura' => $abreviatura,
+            'path_logo' => $path_logo,
+        ]);
 
-        return ApiResponse::success(Empresa::get_empresa_by_id($id), 'Empresa creada correctamente');
+        return ApiResponse::success(Empresa::select('id as id_empresa', 'ruc', 'razon_social', 'nombre_comercial', 'abreviatura', 'path_logo')->find($empresa->id), 'Empresa creada correctamente');
     }
 
     public function get_usuarios_por_empresa(int $id_empresa)

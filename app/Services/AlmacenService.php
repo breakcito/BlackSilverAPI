@@ -12,9 +12,6 @@ use Illuminate\Support\Facades\DB;
 class AlmacenService
 {
     /**
-     * Listar almacenes de una empresa.
-     */
-    /**
      * Listar todos los almacenes.
      */
     public function get_almacenes()
@@ -59,10 +56,21 @@ class AlmacenService
         DB::beginTransaction();
         try {
             // Cerrar anteriores activos
-            ResponsableAlmacen::cerrar_responsable_activo($id_almacen, $fecha_inicio);
+            ResponsableAlmacen::where('id_almacen', $id_almacen)
+                ->where('estado', \App\Shared\Enums\EstadoBase::Activo->value)
+                ->update([
+                    'fecha_fin' => $fecha_inicio,
+                    'estado' => \App\Shared\Enums\EstadoBase::Inactivo->value,
+                ]);
 
             // Crear nuevo usando el id de la tabla usuario
-            $id = ResponsableAlmacen::asignar_responsable($id_almacen, $id_usuario_real, $fecha_inicio, $fecha_fin);
+            $id = ResponsableAlmacen::insertGetId([
+                'id_almacen' => $id_almacen,
+                'id_usuario' => $id_usuario_real,
+                'fecha_inicio' => $fecha_inicio,
+                'fecha_fin' => $fecha_fin,
+                'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
+            ]);
 
             DB::commit();
 
@@ -84,18 +92,18 @@ class AlmacenService
         return ApiResponse::success($historial);
     }
 
-    /**
-     * Asignar mina a almacén.
-     */
     public function asignar_mina_almacen(int $id_almacen, int $id_mina)
     {
-        if (AlmacenMina::verificar_mina_asignada($id_almacen, $id_mina)) {
+        if (AlmacenMina::where('id_almacen', $id_almacen)->where('id_mina', $id_mina)->exists()) {
             return ApiResponse::error('Esta mina ya está asignada al almacén.');
         }
 
-        $id = AlmacenMina::asignar_mina($id_almacen, $id_mina);
+        $almacenMina = AlmacenMina::create([
+            'id_almacen' => $id_almacen,
+            'id_mina' => $id_mina,
+        ]);
 
-        return ApiResponse::success(['id_asignacion' => $id], 'Mina asignada correctamente');
+        return ApiResponse::success(['id_asignacion' => $almacenMina->id], 'Mina asignada correctamente');
     }
 
     /**
@@ -108,12 +116,9 @@ class AlmacenService
         return ApiResponse::success($minas);
     }
 
-    /**
-     * Desasignar mina de almacén.
-     */
     public function desasignar_mina_almacen(int $id_asignacion)
     {
-        AlmacenMina::desasignar_mina($id_asignacion);
+        AlmacenMina::where('id', $id_asignacion)->delete();
 
         return ApiResponse::success(null, 'Mina desvinculada del almacén correctamente');
     }

@@ -21,15 +21,13 @@ class CorrelativoHelper
      * Diario:  {PREFIJO}-{DD}-{MM}-{YY}-{NUMERO}  (ej: LOT-24-02-26-00001)
      * Ninguno: {PREFIJO}-{NUMERO}                  (ej: LOT-00001)
      *
-     * @param string $tabla Nombre de la tabla
-     * @param string $prefijo Prefijo del correlativo (ej: 'LOT', 'CH')
-     * @param array<string, mixed> $filtros Filtros adicionales [columna => valor] (ej: ['id_empresa' => 5])
-     * @param int $longitudCeros Padding del número (ej: 5 -> 00001)
-     * @param Periodo $reseteo Periodo de reseteo de la numeración
-     * @param string $columnaFecha Columna de fecha para el filtro de reseteo
-     *
+     * @param  string  $tabla  Nombre de la tabla
+     * @param  string  $prefijo  Prefijo del correlativo (ej: 'LOT', 'CH')
+     * @param  array<string, mixed>  $filtros  Filtros adicionales [columna => valor] (ej: ['id_empresa' => 5])
+     * @param  int  $longitudCeros  Padding del número (ej: 5 -> 00001)
+     * @param  Periodo  $reseteo  Periodo de reseteo de la numeración
+     * @param  string  $columnaFecha  Columna de fecha para el filtro de reseteo
      * @return array{correlativo: string, numero_correlativo: int}
-     *
      */
     public static function generar(
         string $tabla,
@@ -69,9 +67,9 @@ class CorrelativoHelper
 
         // Segmento de fecha según el periodo
         $segmentoFecha = match ($reseteo) {
-            Periodo::Diario => $now->format('d') . '-' . $now->format('m') . '-' . $now->format('y'),
-            Periodo::Semanal => $now->weekOfMonth . '-' . $now->format('m') . '-' . $now->format('y'),
-            Periodo::Mensual => $now->format('m') . '-' . $now->format('y'),
+            Periodo::Diario => $now->format('d').'-'.$now->format('m').'-'.$now->format('y'),
+            Periodo::Semanal => $now->weekOfMonth.'-'.$now->format('m').'-'.$now->format('y'),
+            Periodo::Mensual => $now->format('m').'-'.$now->format('y'),
             Periodo::Anual => $now->format('y'),
             Periodo::Ninguno => null,
         };

@@ -2,28 +2,12 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\EstadoDetallePrestamo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class PrestamoAlmacenDetalleLog extends Model
 {
     protected $table = 'prestamo_almacen_detalle_log';
-
-    public static function registrar_log(
-        int $id_prestamo_detalle,
-        int $id_usuario,
-        EstadoDetallePrestamo $estado,
-        ?string $dinamico = null
-    ) {
-        return self::insert([
-            'id_prestamo_almacen_detalle' => $id_prestamo_detalle,
-            'id_usuario' => $id_usuario,
-            'glosa' => $estado->getGlosa($dinamico),
-            'estado' => $estado->value,
-            'created_at' => now(),
-        ]);
-    }
 
     public static function get_trazabilidad(int $id_prestamo_detalle)
     {

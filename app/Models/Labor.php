@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\DB;
 class Labor extends Model
 {
     protected $table = 'labor';
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_empresa',
         'id_mina',
@@ -106,50 +108,5 @@ class Labor extends Model
         ';
 
         return DB::selectOne($sql, ['id' => $id]);
-    }
-
-    public static function update_labor(
-        int $id,
-        ?string $nombre = null,
-        ?string $descripcion = null,
-        ?string $tipo_sostenimiento = null,
-        ?string $veta = null,
-        ?float $ancho = null,
-        ?float $alto = null,
-        ?string $nivel = null,
-        ?string $fecha_fin = null,
-        ?string $estado = null
-    ) {
-        $datos = [
-            'nombre' => $nombre,
-            'descripcion' => $descripcion,
-            'tipo_sostenimiento' => $tipo_sostenimiento,
-            'veta' => $veta,
-            'ancho' => $ancho,
-            'alto' => $alto,
-            'nivel' => $nivel,
-            'fecha_fin' => $fecha_fin,
-            'estado' => $estado,
-        ];
-
-        // eliminados todos los valores null
-        $update = array_filter($datos, fn ($valor) => ! is_null($valor));
-
-        // solo ejecutamos si hay algo que actualizar
-        if (empty($update)) {
-            return false;
-        }
-
-        return self::where('id', $id)->update($update);
-    }
-
-    /**
-     * Verificar si el usuario pertenece a la empresa encargada de la labor.
-     */
-    public static function check_usuario_pertenece_empresa(int $id_usuario, int $id_empresa)
-    {
-        return self::where('id_usuario', $id_usuario)
-            ->where('id_empresa', $id_empresa)
-            ->exists();
     }
 }

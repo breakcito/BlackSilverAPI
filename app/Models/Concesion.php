@@ -33,7 +33,14 @@ class Concesion extends Model
             cn.ubigeo,
             cn.tipo_mineral,
             cn.estado,
-            (SELECT COUNT(*) FROM contrato_concesion cc WHERE cc.id_concesion = cn.id AND cc.estado = :estado_activo) as empresas_asignadas
+            (
+                SELECT 
+                    COUNT(*) 
+                FROM contrato_concesion cc 
+                WHERE 
+                    cc.id_concesion = cn.id AND 
+                    cc.estado = :estado_activo
+            ) as empresas_asignadas
         FROM
             concesion cn
         WHERE
@@ -103,20 +110,5 @@ class Concesion extends Model
             'id_usuario' => $id_usuario,
             'estado' => EstadoBase::Activo->value,
         ]);
-    }
-
-    // Métodos retirados a ConcesionService.php
-
-    // --- MÉTODOS PARA ASIGNACIÓN DE EMPRESAS (N:M) ---
-
-    /**
-     * Verificar si la empresa tiene contrato vigente en la concesión.
-     */
-    public static function check_contrato_vigente(int $id_concesion, int $id_empresa)
-    {
-        return self::where('id_concesion', $id_concesion)
-            ->where('id_empresa', $id_empresa)
-            ->where('estado', EstadoBase::Activo->value)
-            ->exists();
     }
 }

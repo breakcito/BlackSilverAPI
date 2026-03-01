@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -59,32 +58,5 @@ class KardexProducto extends Model
         ';
 
         return DB::select($sql, ['id_almacen' => $id_almacen]);
-    }
-
-    /**
-     * Registrar movimiento en kardex.
-     */
-    public static function crear_movimiento(
-        int $id_lote_producto,
-        ?int $id_cabecera,
-        string $codigo_movimiento,
-        string $tipo_movimiento,
-        float $cantidad_anterior,
-        float $cantidad_movimiento,
-        float $cantidad_resultante,
-        ?string $glosa
-    ) {
-        return self::insertGetId([
-            'id_lote_producto' => $id_lote_producto,
-            'id_cabecera' => $id_cabecera,
-            'codigo_movimiento' => $codigo_movimiento,
-            'tipo_movimiento' => $tipo_movimiento,
-            'cantidad_anterior' => $cantidad_anterior,
-            'cantidad_movimiento' => $cantidad_movimiento,
-            'cantidad_resultante' => $cantidad_resultante,
-            'glosa' => $glosa,
-            'created_at' => now(),
-            'estado' => EstadoBase::Activo->value,
-        ]);
     }
 }

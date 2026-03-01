@@ -100,57 +100,6 @@ class Mina extends Model
         ]);
     }
 
-    /**
-     * Crear mina.
-     */
-    public static function crear_mina(int $id_concesion, string $nombre, ?string $descripcion)
-    {
-        return self::insertGetId([
-            'id_concesion' => $id_concesion,
-            'nombre' => $nombre,
-            'descripcion' => $descripcion,
-            'estado' => EstadoBase::Activo->value,
-        ]);
-    }
-
-    /**
-     * Actualizar mina.
-     */
-    public static function update_mina(int $id, int $id_concesion, string $nombre, ?string $descripcion)
-    {
-        return self::where('id', $id)
-            ->update([
-                'id_concesion' => $id_concesion,
-                'nombre' => $nombre,
-                'descripcion' => $descripcion,
-            ]);
-    }
-
-    /**
-     * Eliminar mina.
-     */
-    public static function delete_mina(int $id)
-    {
-        return self::where('id', $id)
-            ->update(['estado' => EstadoBase::Inactivo->value]);
-    }
-
-    // --- RELACIÓN EMPRESA_MINA ---
-
-    /**
-     * Verificar si la empresa tiene contrato vigente en la concesión de la mina target.
-     */
-    public static function check_contrato_vigente(int $id_concesion, int $id_empresa)
-    {
-        return \Illuminate\Support\Facades\DB::table('contrato_concesion')
-            ->where('id_concesion', $id_concesion)
-            ->where('id_empresa', $id_empresa)
-            ->where('estado', EstadoBase::Activo->value)
-            ->exists();
-    }
-
-    // --- RESPONSABLE DE MINA (responsable_mina) ---
-
     public static function check_usuario_autorizado_mina(int $id_usuario, int $id_mina)
     {
         $mina = self::where('id', $id_mina)->first();

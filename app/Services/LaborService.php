@@ -50,7 +50,10 @@ class LaborService
         if (! $id_concesion) {
             return ApiResponse::error('Mina no encontrada');
         }
-        if (! Concesion::check_contrato_vigente($id_concesion, $id_empresa)) {
+        if (! \App\Models\ContratoConcesion::where('id_concesion', $id_concesion)
+            ->where('id_empresa', $id_empresa)
+            ->where('estado', \App\Shared\Enums\EstadoBase::Activo->value)
+            ->exists()) {
             return ApiResponse::error('La empresa seleccionada no tiene un contrato vigente en la concesión de esta mina.');
         }
 
@@ -110,26 +113,27 @@ class LaborService
             return ApiResponse::error('Mina no encontrada');
         }
 
-        if (! Mina::check_contrato_vigente($mina->id_concesion, $id_empresa)) {
+        if (! \App\Models\ContratoConcesion::where('id_concesion', $mina->id_concesion)
+            ->where('id_empresa', $id_empresa)
+            ->where('estado', \App\Shared\Enums\EstadoBase::Activo->value)
+            ->exists()) {
             return ApiResponse::error('La empresa seleccionada no tiene un contrato vigente en la concesión de esta mina.');
         }
 
-        Labor::update_labor(
-            $id,
-            $id_empresa,
-            $id_mina,
-            $id_tipo_labor,
-            $labor->codigo_correlativo, // Se mantiene el que tenía originamente
-            $nombre,
-            $descripcion,
-            $tipo_sostenimiento,
-            $veta,
-            $ancho,
-            $alto,
-            $nivel,
-            $fecha_fin,
-            $estado
-        );
+        Labor::where('id', $id)->update([
+            'id_empresa' => $id_empresa,
+            'id_mina' => $id_mina,
+            'id_tipo_labor' => $id_tipo_labor,
+            'nombre' => $nombre,
+            'descripcion' => $descripcion,
+            'tipo_sostenimiento' => $tipo_sostenimiento,
+            'veta' => $veta,
+            'ancho' => $ancho,
+            'alto' => $alto,
+            'nivel' => $nivel,
+            'fecha_fin' => $fecha_fin,
+            'estado' => $estado ?? $labor->estado,
+        ]);
 
         return ApiResponse::success(['mensaje' => 'Labor actualizada correctamente']);
     }

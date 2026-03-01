@@ -31,28 +31,29 @@ class EmpleadoService
         ?string $path_foto
     ) {
         // Validar DNI único
-        if ($dni && Empleado::verificar_documento_existente('dni', $dni)) {
+        if ($dni && Empleado::where('dni', $dni)->exists()) {
             return ApiResponse::error('Ya existe un empleado con este DNI.');
         }
 
         // Validar RUC único
-        if ($ruc && Empleado::verificar_documento_existente('ruc', $ruc)) {
+        if ($ruc && Empleado::where('ruc', $ruc)->exists()) {
             return ApiResponse::error('Ya existe un empleado con este RUC.');
         }
 
-        $id = Empleado::crear_empleado(
-            $id_cargo,
-            $id_empresa,
-            $nombre,
-            $apellido,
-            $dni,
-            $ruc,
-            $carnet_extranjeria,
-            $pasaporte,
-            $fecha_nacimiento,
-            $path_foto
-        );
+        $empleado = Empleado::create([
+            'id_cargo' => $id_cargo,
+            'id_empresa' => $id_empresa,
+            'nombre' => $nombre,
+            'apellido' => $apellido,
+            'dni' => $dni,
+            'ruc' => $ruc,
+            'carnet_extranjeria' => $carnet_extranjeria,
+            'pasaporte' => $pasaporte,
+            'fecha_nacimiento' => $fecha_nacimiento,
+            'path_foto' => $path_foto,
+            'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
+        ]);
 
-        return ApiResponse::success(Empleado::get_empleado_by_id($id), 'Empleado registrado correctamente');
+        return ApiResponse::success(Empleado::get_empleado_by_id($empleado->id), 'Empleado registrado correctamente');
     }
 }

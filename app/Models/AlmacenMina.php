@@ -18,21 +18,6 @@ class AlmacenMina extends Model
         'id_mina',
     ];
 
-    public static function asignar_mina(int $id_almacen, int $id_mina)
-    {
-        return self::insertGetId([
-            'id_almacen' => $id_almacen,
-            'id_mina' => $id_mina,
-        ]);
-    }
-
-    public static function verificar_mina_asignada(int $id_almacen, int $id_mina)
-    {
-        return self::where('id_almacen', $id_almacen)
-            ->where('id_mina', $id_mina)
-            ->exists();
-    }
-
     // Obtener las minas a las que atiende este almacén
     public static function get_minas_asignadas(int $id_almacen)
     {
@@ -51,10 +36,5 @@ class AlmacenMina extends Model
         ';
 
         return \Illuminate\Support\Facades\DB::select($sql, ['id_almacen' => $id_almacen]);
-    }
-
-    public static function desasignar_mina(int $id_asignacion)
-    {
-        return self::where('id', $id_asignacion)->delete();
     }
 }

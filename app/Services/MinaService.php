@@ -26,12 +26,14 @@ class MinaService
     public function crear_mina(int $id_concesion, string $nombre, ?string $descripcion)
     {
         // 1. Crear
-        $id_mina = Mina::crear_mina($id_concesion, $nombre, $descripcion);
+        $mina = Mina::create([
+            'id_concesion' => $id_concesion,
+            'nombre' => $nombre,
+            'descripcion' => $descripcion,
+            'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
+        ]);
 
-        // 2. Retornar objeto completo (Optimistic UI)
-        $mina = Mina::get_mina_by_id($id_mina);
-
-        return ApiResponse::success($mina, 'Mina creada correctamente');
+        return ApiResponse::success(Mina::get_mina_by_id($mina->id), 'Mina creada correctamente');
     }
 
     /**
@@ -39,7 +41,12 @@ class MinaService
      */
     public function update_mina(int $id, int $id_concesion, string $nombre, ?string $descripcion)
     {
-        Mina::update_mina($id, $id_concesion, $nombre, $descripcion);
+        Mina::where('id', $id)
+            ->update([
+                'id_concesion' => $id_concesion,
+                'nombre' => $nombre,
+                'descripcion' => $descripcion,
+            ]);
 
         return ApiResponse::success(['mensaje' => 'Mina actualizada correctamente']);
     }
@@ -49,20 +56,14 @@ class MinaService
      */
     public function delete_mina(int $id)
     {
-        Mina::delete_mina($id);
+        Mina::where('id', $id)
+            ->update(['estado' => \App\Shared\Enums\EstadoBase::Inactivo->value]);
 
         return ApiResponse::success(['mensaje' => 'Mina eliminada correctamente']);
     }
 
     // --- RELACIÓN EMPRESA_MINA ---
 
-    /**
-     * Asignar empresa a mina.
-     */
-    /**
-     * Asignar empresa a mina.
-     * REGLA DE NEGOCIO: La empresa debe tener un CONTRATO VIGENTE en la concesión a la que pertenece la mina.
-     */
     public function asignar_empresa_mina(int $id_mina, int $id_empresa)
     {
         // 1. Obtener la mina para saber su concesion
@@ -72,18 +73,24 @@ class MinaService
         }
 
         // 2. Verificar duplicados
-        if (EmpresaMina::verificar_empresa_asignada($id_mina, $id_empresa)) {
+        if (EmpresaMina::where('id_mina', $id_mina)->where('id_empresa', $id_empresa)->exists()) {
             return ApiResponse::error('La empresa ya está asignada a esta mina.');
         }
 
         // 3. VALIDAR CONTRATO VIGENTE en CONCESIÓN
-        if (! Mina::check_contrato_vigente($mina->id_concesion, $id_empresa)) {
+        if (! \App\Models\ContratoConcesion::where('id_concesion', $mina->id_concesion)
+            ->where('id_empresa', $id_empresa)
+            ->where('estado', \App\Shared\Enums\EstadoBase::Activo->value)
+            ->exists()) {
             return ApiResponse::error('La empresa NO TIENE un contrato vigente en la concesión de esta mina.');
         }
 
-        $id = EmpresaMina::asignar_empresa($id_mina, $id_empresa);
+        $empresaMina = EmpresaMina::create([
+            'id_mina' => $id_mina,
+            'id_empresa' => $id_empresa,
+        ]);
 
-        return ApiResponse::success(['id_asignacion' => $id, 'mensaje' => 'Empresa asignada correctamente']);
+        return ApiResponse::success(['id_asignacion' => $empresaMina->id, 'mensaje' => 'Empresa asignada correctamente']);
     }
 
     /**
@@ -91,7 +98,7 @@ class MinaService
      */
     public function desasignar_empresa_mina(int $id_asignacion)
     {
-        EmpresaMina::desasignar_empresa($id_asignacion);
+        EmpresaMina::where('id', $id_asignacion)->delete();
 
         return ApiResponse::success(null, 'Asignación eliminada correctamente');
     }
@@ -120,15 +127,27 @@ class MinaService
         }
 
         // 2. Validar si el usuario (vía sus empresas asociadas a esta mina) tiene autorización completa
-        if (! Mina::check_usuario_autorizado_mina($id_usuario, $id_mina)) {
+        if (! ResponsableMina::check_usuario_autorizado_mina($id_usuario, $id_mina)) {
             return ApiResponse::error('Este usuario no pertenece a ninguna empresa autorizada en esta mina o no tiene contrato vigente.');
         }
 
         // 3. Transacción para cerrar anterior y crear nuevo
         DB::beginTransaction();
         try {
-            ResponsableMina::cerrar_responsable_activo($id_mina, $fecha_inicio);
-            ResponsableMina::asignar_responsable($id_mina, $id_usuario, $fecha_inicio, null);
+            ResponsableMina::where('id_mina', $id_mina)
+                ->where('estado', \App\Shared\Enums\EstadoBase::Activo->value)
+                ->update([
+                    'fecha_fin' => $fecha_inicio,
+                    'estado' => \App\Shared\Enums\EstadoBase::Inactivo->value,
+                ]);
+
+            ResponsableMina::insertGetId([
+                'id_mina' => $id_mina,
+                'id_usuario' => $id_usuario,
+                'fecha_inicio' => $fecha_inicio,
+                'fecha_fin' => null,
+                'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
+            ]);
             DB::commit();
 
             return ApiResponse::success(null, 'Responsable asignado correctamente');

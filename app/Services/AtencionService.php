@@ -89,17 +89,22 @@ class AtencionService
     {
         return DB::transaction(function () use ($id_usuario, $id_detalle, $nuevo_estado, $comentario_rechazo) {
 
-            RequerimientoAlmacenDetalle::actualizar_estado($id_detalle, $nuevo_estado, $comentario_rechazo);
+            $updateData = ['estado' => $nuevo_estado];
+            if ($comentario_rechazo !== null) {
+                $updateData['comentario_rechazo'] = $comentario_rechazo;
+            }
+            RequerimientoAlmacenDetalle::where('id', $id_detalle)->update($updateData);
 
             // Determinar el Enum para el log
             $estadoEnum = EstadoDetalleRequerimiento::from($nuevo_estado);
 
-            RequerimientoAlmacenDetalleLog::registrar_log(
-                $id_detalle,
-                $id_usuario,
-                $estadoEnum,
-                $comentario_rechazo
-            );
+            RequerimientoAlmacenDetalleLog::insert([
+                'id_requerimiento_almacen_detalle' => $id_detalle,
+                'id_usuario' => $id_usuario,
+                'glosa' => $estadoEnum->getGlosa($comentario_rechazo),
+                'estado' => $estadoEnum->value,
+                'created_at' => now(),
+            ]);
 
             return ApiResponse::success(['mensaje' => 'Estado del producto actualizado correctamente']);
         });
@@ -170,14 +175,17 @@ class AtencionService
             $correlativoData = CorrelativoHelper::generar('requerimiento_almacen_entrega', $prefijo, [], 5, \App\Shared\Enums\Periodo::Anual);
 
             // 2. Crear Cabecera de Entrega
-            $id_entrega = RequerimientoAlmacenEntrega::crear_entrega(
-                $correlativoData['correlativo'],
-                $correlativoData['numero_correlativo'],
-                $id_usuario,
-                $id_requerimiento,
-                $fecha_entrega,
-                $observacion
-            );
+            $id_entrega = RequerimientoAlmacenEntrega::insertGetId([
+                'correlativo' => $correlativoData['correlativo'],
+                'numero_correlativo' => $correlativoData['numero_correlativo'],
+                'id_empleado_entrega' => $id_usuario,
+                'id_requerimiento_almacen' => $id_requerimiento,
+                'fecha_hora_entrega' => $fecha_entrega,
+                'observacion' => $observacion,
+                'evidencias' => null,
+                'created_at' => now(),
+                'estado' => \App\Shared\Enums\EstadoRequerimiento::Generada->value,
+            ]);
 
             foreach ($detalles as $item) {
                 $id_detalle_req = $item['id_requerimiento_almacen_detalle'];
@@ -191,33 +199,33 @@ class AtencionService
                 }
 
                 // 4. Crear Detalle de Entrega
-                RequerimientoAlmacenEntregaDetalle::crear_detalle_entrega(
-                    $id_entrega,
-                    $id_detalle_req,
-                    $id_lote,
-                    $cantidad_a_entregar
-                );
+                RequerimientoAlmacenEntregaDetalle::insert([
+                    'id_requerimiento_almacen_entrega' => $id_entrega,
+                    'id_requerimiento_almacen_detalle' => $id_detalle_req,
+                    'id_lote' => $id_lote,
+                    'cantidad' => $cantidad_a_entregar,
+                ]);
 
-                // 5. Descontar Stock del Lote
-                LoteProducto::descontar_stock($id_lote, $cantidad_a_entregar);
+                LoteProducto::where('id', $id_lote)->decrement('stock_actual', $cantidad_a_entregar);
 
                 // 6. Registrar Kardex (Salida)
-                KardexProducto::crear_movimiento(
-                    $id_lote,
-                    $id_entrega,
-                    CodigoMovimiento::Entrega->value,
-                    TipoMovimiento::Salida->value,
-                    (float) $lote->stock_actual,
-                    (float) $cantidad_a_entregar,
-                    (float) ($lote->stock_actual - $cantidad_a_entregar),
-                    $glosa_kardex
-                );
+                KardexProducto::create([
+                    'id_lote_producto' => $id_lote,
+                    'id_cabecera' => $id_entrega,
+                    'codigo_movimiento' => CodigoMovimiento::Entrega->value,
+                    'tipo_movimiento' => TipoMovimiento::Salida->value,
+                    'cantidad_anterior' => (float) $lote->stock_actual,
+                    'cantidad_movimiento' => (float) $cantidad_a_entregar,
+                    'cantidad_resultante' => (float) ($lote->stock_actual - $cantidad_a_entregar),
+                    'glosa' => $glosa_kardex,
+                    'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
+                ]);
 
                 // 6.5 Obtener estado original antes de incrementar cantidades para saber si es el primer despacho
                 $detalle_original = RequerimientoAlmacenDetalle::where('id', $id_detalle_req)->first();
 
                 // 7. Actualizar Requerimiento (Cantidad Atendida)
-                RequerimientoAlmacenDetalle::actualizar_cantidad_atendida($id_detalle_req, $cantidad_a_entregar);
+                RequerimientoAlmacenDetalle::where('id', $id_detalle_req)->increment('cantidad_atendida', $cantidad_a_entregar);
 
                 // 8. Actualizar Estado del Detalle
                 $detalle_req = RequerimientoAlmacenDetalle::where('id', $id_detalle_req)->first();
@@ -225,32 +233,37 @@ class AtencionService
                     ? EstadoDetalleRequerimiento::Completado
                     : EstadoDetalleRequerimiento::DespachoIniciado;
 
-                RequerimientoAlmacenDetalle::actualizar_estado($id_detalle_req, $nuevo_estado_item->value);
+                RequerimientoAlmacenDetalle::where('id', $id_detalle_req)->update(['estado' => $nuevo_estado_item->value]);
 
                 // 8.5 Registrar el log de 'Despacho Iniciado' si es la primera entrega física (estaba en Aprobación)
                 if ($detalle_original->cantidad_atendida == 0 && $cantidad_a_entregar > 0) {
-                    RequerimientoAlmacenDetalleLog::registrar_log(
-                        $id_detalle_req,
-                        $id_usuario,
-                        EstadoDetalleRequerimiento::DespachoIniciado
-                    );
+                    RequerimientoAlmacenDetalleLog::insert([
+                        'id_requerimiento_almacen_detalle' => $id_detalle_req,
+                        'id_usuario' => $id_usuario,
+                        'glosa' => EstadoDetalleRequerimiento::DespachoIniciado->getGlosa(),
+                        'estado' => EstadoDetalleRequerimiento::DespachoIniciado->value,
+                        'created_at' => now(),
+                    ]);
                 }
 
                 // 9. Log de Trazabilidad de la Entrega
-                RequerimientoAlmacenDetalleLog::registrar_log(
-                    $id_detalle_req,
-                    $id_usuario,
-                    EstadoDetalleRequerimiento::NuevaEntrega,
-                    (string) $cantidad_a_entregar
-                );
+                RequerimientoAlmacenDetalleLog::insert([
+                    'id_requerimiento_almacen_detalle' => $id_detalle_req,
+                    'id_usuario' => $id_usuario,
+                    'glosa' => EstadoDetalleRequerimiento::NuevaEntrega->getGlosa((string) $cantidad_a_entregar),
+                    'estado' => EstadoDetalleRequerimiento::NuevaEntrega->value,
+                    'created_at' => now(),
+                ]);
 
                 // 9.1. Si con esta entrega se completó lo solicitado, registrar el log de Completado
                 if ($nuevo_estado_item === EstadoDetalleRequerimiento::Completado && $detalle_req->estado !== EstadoDetalleRequerimiento::Completado->value) {
-                    RequerimientoAlmacenDetalleLog::registrar_log(
-                        $id_detalle_req,
-                        $id_usuario,
-                        EstadoDetalleRequerimiento::Completado
-                    );
+                    RequerimientoAlmacenDetalleLog::insert([
+                        'id_requerimiento_almacen_detalle' => $id_detalle_req,
+                        'id_usuario' => $id_usuario,
+                        'glosa' => EstadoDetalleRequerimiento::Completado->getGlosa(),
+                        'estado' => EstadoDetalleRequerimiento::Completado->value,
+                        'created_at' => now(),
+                    ]);
                 }
             }
 
@@ -262,7 +275,7 @@ class AtencionService
                 ->count();
 
             if ($pendientes === 0) {
-                RequerimientoAlmacen::actualizar_estado($id_requerimiento, EstadoRequerimiento::Cerrada->value);
+                RequerimientoAlmacen::where('id', $id_requerimiento)->update(['estado' => EstadoRequerimiento::Cerrada->value]);
             }
 
             return ApiResponse::success(['mensaje' => 'Despacho registrado correctamente', 'id_entrega' => $id_entrega]);

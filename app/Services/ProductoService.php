@@ -31,13 +31,19 @@ class ProductoService
     public function crear_producto(int $id_categoria, string $nombre, bool $es_fiscalizado, bool $es_perecible)
     {
         // 1. Validar nombre único
-        if (Producto::verificar_producto_existente($nombre)) {
+        if (Producto::where('nombre', $nombre)->where('estado', '!=', \App\Shared\Enums\EstadoBase::Inactivo->value)->exists()) {
             return ApiResponse::error('Ya existe un producto con este nombre.');
         }
 
-        $id = Producto::crear_producto($id_categoria, $nombre, $es_fiscalizado, $es_perecible);
+        $producto_nuevo = Producto::create([
+            'id_categoria' => $id_categoria,
+            'nombre' => $nombre,
+            'es_fiscalizado' => $es_fiscalizado ? 1 : 0,
+            'es_perecible' => $es_perecible ? 1 : 0,
+            'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
+        ]);
 
-        $producto = Producto::get_producto_by_id($id);
+        $producto = Producto::get_producto_by_id($producto_nuevo->id);
 
         if ($producto) {
             $producto->es_fiscalizado = (bool) $producto->es_fiscalizado;

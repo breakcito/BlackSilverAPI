@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Concesion;
 use App\Models\ContratoConcesion;
+use App\Shared\Enums\EstadoBase;
 use App\Shared\Responses\ApiResponse;
 
 /**
@@ -34,19 +35,19 @@ class ConcesionService
 
     public function crear_concesion(string $nombre, ?string $codigo_concesion, ?string $codigo_reinfo, ?string $ubigeo, ?string $tipo_mineral)
     {
-        // 1. Verificar nombre duplicado
-        if (Concesion::where('nombre', $nombre)->where('estado', \App\Shared\Enums\EstadoBase::Activo->value)->exists()) {
+        // Verificar nombre duplicado
+        if (Concesion::where('nombre', $nombre)->where('estado', EstadoBase::Activo->value)->exists()) {
             return ApiResponse::error('Ya existe una concesión con este nombre.');
         }
 
-        // 2. Crear
+        // Crear
         $concesion = Concesion::create([
             'nombre' => $nombre,
             'codigo_concesion' => $codigo_concesion,
             'codigo_reinfo' => $codigo_reinfo,
             'ubigeo' => $ubigeo,
             'tipo_mineral' => $tipo_mineral,
-            'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
+            'estado' => EstadoBase::Activo->value,
         ]);
 
         return ApiResponse::success($concesion, 'Concesión creada correctamente');
@@ -61,19 +62,30 @@ class ConcesionService
 
     public function asignar_empresa(int $id_concesion, int $id_empresa, string $fecha_inicio, ?string $fecha_fin)
     {
-        // Validar si ya está asignada (simple: si está activa)
-        if (ContratoConcesion::verificar_asignacion_activa($id_concesion, $id_empresa)) {
+        // Validar si ya está asignada
+        if (ContratoConcesion::where('id_concesion', $id_concesion)
+            ->where('id_empresa', $id_empresa)
+            ->where('estado', EstadoBase::Activo->value)
+            ->exists()
+        ) {
             return ApiResponse::error('Esta empresa ya está asignada a la concesión actualmente.');
         }
 
-        $id = ContratoConcesion::asignar_empresa($id_concesion, $id_empresa, $fecha_inicio, $fecha_fin);
+        $id = ContratoConcesion::insertGetId([
+            'id_concesion' => $id_concesion,
+            'id_empresa' => $id_empresa,
+            'fecha_inicio' => $fecha_inicio,
+            'fecha_fin' => $fecha_fin,
+            'estado' => EstadoBase::Activo->value,
+        ]);
 
         return ApiResponse::success(['id_asignacion' => $id], 'Empresa asignada correctamente');
     }
 
     public function desasignar_empresa(int $id_asignacion)
     {
-        ContratoConcesion::desasignar_empresa($id_asignacion);
+        ContratoConcesion::where('id', $id_asignacion)
+            ->update(['estado' => EstadoBase::Inactivo->value]);
 
         return ApiResponse::success(null, 'Asignación eliminada correctamente');
     }
@@ -85,8 +97,8 @@ class ConcesionService
             return ApiResponse::error('Concesion no encontrada');
         }
 
-        // verificar si el nombre ya existe en otra concesion (global)
-        $existe = Concesion::where('nombre', $nombre)->where('estado', \App\Shared\Enums\EstadoBase::Activo->value)->where('id', '!=', $id)->exists();
+        // verificar si el nombre ya existe en otra concesion
+        $existe = Concesion::where('nombre', $nombre)->where('estado', EstadoBase::Activo->value)->where('id', '!=', $id)->exists();
         if ($existe) {
             return ApiResponse::error('Ya existe una concesion con el mismo nombre');
         }
@@ -106,7 +118,7 @@ class ConcesionService
         }
 
         $concesion->update([
-            'estado' => \App\Shared\Enums\EstadoBase::Inactivo->value,
+            'estado' => EstadoBase::Inactivo->value,
         ]);
 
         return ApiResponse::success(['mensaje' => 'Concesion eliminada correctamente']);

@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class SolicitudReabastecimientoDetalle extends Model
 {
     protected $table = 'solicitud_reabastecimiento_detalle';
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_solicitud_reabastecimiento',
         'id_producto',

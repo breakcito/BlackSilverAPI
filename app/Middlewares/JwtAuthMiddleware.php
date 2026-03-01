@@ -21,13 +21,12 @@ class JwtAuthMiddleware
     public function handle(Request $request, Closure $next): Response
     {
 
-
         try {
             // Debug: Capturar el header Authorization completo
             $authHeader = $request->header('Authorization');
 
             // Verificar si el header existe
-            if (!$authHeader) {
+            if (! $authHeader) {
                 return response()->json(ApiResponse::error('Token no proporcionado. Header Authorization faltante.'), 401);
             }
 
@@ -49,13 +48,13 @@ class JwtAuthMiddleware
             $payload = $token->getPayload();
             $id_usuario = $payload->get('sub');
 
-            if (!$id_usuario) {
+            if (! $id_usuario) {
                 return response()->json(ApiResponse::error('Token inválido: falta el identificador de usuario'), 401);
             }
 
             $result = $this->usuarioService->validarUsuarioJWT($id_usuario);
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 return response()->json($result, 401);
             }
 
@@ -66,11 +65,11 @@ class JwtAuthMiddleware
         } catch (\PHPOpenSourceSaver\JWTAuth\Exceptions\TokenExpiredException $e) {
             return response()->json(ApiResponse::error('Token expirado'), 401);
         } catch (\PHPOpenSourceSaver\JWTAuth\Exceptions\TokenInvalidException $e) {
-            return response()->json(ApiResponse::error('Token inválido: ' . $e->getMessage()), 401);
+            return response()->json(ApiResponse::error('Token inválido: '.$e->getMessage()), 401);
         } catch (\PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException $e) {
-            return response()->json(ApiResponse::error('Error JWT: ' . $e->getMessage()), 401);
+            return response()->json(ApiResponse::error('Error JWT: '.$e->getMessage()), 401);
         } catch (\Exception $e) {
-            return response()->json(ApiResponse::error('Error de autenticación: ' . $e->getMessage()), 401);
+            return response()->json(ApiResponse::error('Error de autenticación: '.$e->getMessage()), 401);
         }
     }
 }

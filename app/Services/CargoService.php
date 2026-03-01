@@ -9,6 +9,11 @@ class CargoService
 {
     public function get_cargos()
     {
-        return ApiResponse::success(Cargo::get_cargos());
+        $cargos = Cargo::select('id as id_cargo', 'nombre', 'estado')
+            ->where('estado', \App\Shared\Enums\EstadoBase::Activo->value)
+            ->orderBy('nombre', 'asc')
+            ->get();
+
+        return ApiResponse::success($cargos);
     }
 }

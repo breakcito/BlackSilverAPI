@@ -38,7 +38,9 @@ class LoteService
      */
     public function get_unidades_medida()
     {
-        $unidades = UnidadMedida::get_unidades_medida();
+        $unidades = UnidadMedida::select('id as id_unidad_medida', 'nombre', 'abreviatura')
+            ->orderBy('nombre', 'asc')
+            ->get();
 
         return ApiResponse::success($unidades);
     }
@@ -64,32 +66,36 @@ class LoteService
             $fecha_ingreso,
             $fecha_vencimiento
         ) {
-            $nuevo_numero = \App\Shared\Helpers\CorrelativoHelper::proximoNumero('lote_producto', 'numero_correlativo', true);
-            $correlativo = 'LOT';
+            $prefijo = 'LOT';
+            $correlativoData = \App\Shared\Helpers\CorrelativoHelper::generar('lote_producto', $prefijo, [], 5, \App\Shared\Enums\Periodo::Anual);
 
-            $id_lote = LoteProducto::crear_lote(
-                $id_producto,
-                $id_unidad_medida,
-                $id_almacen,
-                $descripcion,
-                $correlativo,
-                $nuevo_numero,
-                $stock_inicial,
-                $fecha_ingreso,
-                $fecha_vencimiento
-            );
+            $lote = LoteProducto::create([
+                'id_producto' => $id_producto,
+                'id_unidad_medida' => $id_unidad_medida,
+                'id_almacen' => $id_almacen,
+                'descripcion' => $descripcion,
+                'correlativo' => $prefijo,
+                'numero_correlativo' => $correlativoData['numero_correlativo'],
+                'stock_actual' => $stock_inicial,
+                'fecha_ingreso' => $fecha_ingreso,
+                'fecha_vencimiento' => $fecha_vencimiento,
+                'created_at' => now(),
+                'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
+            ]);
+            $id_lote = $lote->id;
 
             if ($stock_inicial > 0) {
-                KardexProducto::crear_movimiento(
-                    $id_lote,
-                    null,
-                    CodigoMovimiento::NuevoLote->value,
-                    TipoMovimiento::Ingreso->value,
-                    0,
-                    $stock_inicial,
-                    $stock_inicial,
-                    'Stock Inicial por Creación de Lote'
-                );
+                KardexProducto::create([
+                    'id_lote_producto' => $id_lote,
+                    'id_cabecera' => null,
+                    'codigo_movimiento' => CodigoMovimiento::NuevoLote->value,
+                    'tipo_movimiento' => TipoMovimiento::Ingreso->value,
+                    'cantidad_anterior' => 0,
+                    'cantidad_movimiento' => $stock_inicial,
+                    'cantidad_resultante' => $stock_inicial,
+                    'glosa' => 'Stock Inicial por Creación de Lote',
+                    'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
+                ]);
             }
 
             return ApiResponse::success(LoteProducto::get_lote_by_id($id_lote), 'Lote registrado correctamente');

@@ -18,17 +18,6 @@ class ContratoConcesion extends Model
         'estado',
     ];
 
-    public static function asignar_empresa(int $id_concesion, int $id_empresa, string $fecha_inicio, ?string $fecha_fin)
-    {
-        return self::insertGetId([
-            'id_concesion' => $id_concesion,
-            'id_empresa' => $id_empresa,
-            'fecha_inicio' => $fecha_inicio,
-            'fecha_fin' => $fecha_fin,
-            'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
-        ]);
-    }
-
     public static function get_empresas_asignadas(int $id_concesion)
     {
         $sql = '
@@ -79,14 +68,6 @@ class ContratoConcesion extends Model
         return \Illuminate\Support\Facades\DB::select($sql, [
             'id_concesion' => $id_concesion,
         ]);
-    }
-
-    public static function verificar_asignacion_activa(int $id_concesion, int $id_empresa)
-    {
-        return self::where('id_concesion', $id_concesion)
-            ->where('id_empresa', $id_empresa)
-            ->where('estado', \App\Shared\Enums\EstadoBase::Activo->value)
-            ->exists();
     }
 
     public static function desasignar_empresa(int $id_contrato)

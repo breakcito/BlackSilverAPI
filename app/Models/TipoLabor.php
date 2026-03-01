@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class TipoLabor extends Model
 {
@@ -16,28 +15,4 @@ class TipoLabor extends Model
         'nombre',
         'es_de_produccion',
     ];
-
-    /**
-     * Listar tipos de labor.
-     */
-    public static function get_tipos_labor()
-    {
-        $sql = '
-        SELECT
-            id AS id_tipo_labor,
-            prefijo,
-            nombre,
-            es_de_produccion
-        FROM
-            tipo_labor
-        ORDER BY nombre ASC
-        ';
-
-        return DB::select($sql);
-    }
-
-    public static function get_tipo_labor_by_id(int $id)
-    {
-        return self::where('id', $id)->first();
-    }
 }

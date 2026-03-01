@@ -70,37 +70,4 @@ class Producto extends Model
 
         return DB::selectOne($sql, ['id' => $id]);
     }
-
-    /**
-     * Verificar nombre único de producto.
-     */
-    public static function verificar_producto_existente(string $nombre, ?int $id_excluir = null)
-    {
-        $query = self::where('nombre', $nombre)
-            ->where('estado', '!=', EstadoBase::Inactivo->value);
-
-        if ($id_excluir) {
-            $query->where('id', '!=', $id_excluir);
-        }
-
-        return $query->exists();
-    }
-
-    /**
-     * Crear un nuevo producto.
-     */
-    public static function crear_producto(
-        int $id_categoria,
-        string $nombre,
-        bool $es_fiscalizado,
-        bool $es_perecible
-    ) {
-        return self::insertGetId([
-            'id_categoria' => $id_categoria,
-            'nombre' => $nombre,
-            'es_fiscalizado' => $es_fiscalizado ? 1 : 0,
-            'es_perecible' => $es_perecible ? 1 : 0,
-            'estado' => EstadoBase::Activo->value,
-        ]);
-    }
 }

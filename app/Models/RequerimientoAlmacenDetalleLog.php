@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\EstadoDetalleRequerimiento;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -23,36 +22,26 @@ class RequerimientoAlmacenDetalleLog extends Model
         'created_at',
     ];
 
-    public static function registrar_log(
-        int $id_requerimiento_almacen_detalle,
-        int $id_usuario,
-        EstadoDetalleRequerimiento $estado,
-        ?string $dinamico = null
-    ) {
-        return self::insert([
-            'id_requerimiento_almacen_detalle' => $id_requerimiento_almacen_detalle,
-            'id_usuario' => $id_usuario,
-            'glosa' => $estado->getGlosa($dinamico),
-            'estado' => $estado->value,
-            'created_at' => now(),
-        ]);
-    }
-
     public static function get_trazabilidad(int $id_requerimiento_almacen_detalle)
     {
-        return DB::table('requerimiento_almacen_detalle_log as rl')
-            ->leftJoin('usuario as u', 'u.id', '=', 'rl.id_usuario')
-            ->leftJoin('empleado as e', 'e.id', '=', 'u.id_empleado')
-            ->where('rl.id_requerimiento_almacen_detalle', $id_requerimiento_almacen_detalle)
-            ->select(
-                'rl.id',
-                'rl.glosa',
-                'rl.estado',
-                'rl.created_at',
-                DB::raw("IFNULL(CONCAT(e.nombre, ' ', e.apellido), 'Usuario Sistema') as usuario")
-            )
-            ->orderBy('rl.created_at', 'DESC')
-            ->orderBy('rl.id', 'DESC')
-            ->get();
+        $sql = "
+        SELECT 
+            rl.id,
+            rl.glosa,
+            rl.estado,
+            rl.created_at,
+            IFNULL(CONCAT(e.nombre, ' ', e.apellido), 'Usuario Sistema') AS usuario
+        FROM 
+            requerimiento_almacen_detalle_log AS rl
+        LEFT JOIN usuario AS u ON u.id = rl.id_usuario
+        LEFT JOIN empleado AS e ON e.id = u.id_empleado
+        WHERE
+            rl.id_requerimiento_almacen_detalle = :id_detalle
+        ORDER BY 
+            rl.created_at DESC, 
+            rl.id DESC
+        ";
+
+        return DB::select($sql, ['id_detalle' => $id_requerimiento_almacen_detalle]);
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\EstadoDetalleRequerimiento;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -27,24 +26,6 @@ class RequerimientoAlmacenDetalle extends Model
         //
         'estado',
     ];
-
-    public static function crear_detalle(
-        int $id_requerimiento,
-        int $id_producto,
-        int $id_unidad_medida,
-        float $cantidad_solicitada,
-        ?string $comentario
-    ) {
-        return self::insertGetId([
-            'id_requerimiento' => $id_requerimiento,
-            'id_producto' => $id_producto,
-            'id_unidad_medida' => $id_unidad_medida,
-            'cantidad_solicitada' => $cantidad_solicitada,
-            'cantidad_atendida' => 0,
-            'comentario' => $comentario,
-            'estado' => EstadoDetalleRequerimiento::Pendiente->value,
-        ]);
-    }
 
     public static function get_detalles_by_requerimiento(int $id_requerimiento)
     {
@@ -85,22 +66,5 @@ class RequerimientoAlmacenDetalle extends Model
 
             return $detalle;
         }, $detalles);
-    }
-
-    public static function actualizar_estado(int $id_detalle, string $nuevo_estado, ?string $comentario_rechazo = null)
-    {
-        $data = ['estado' => $nuevo_estado];
-        if ($comentario_rechazo !== null) {
-            $data['comentario_rechazo'] = $comentario_rechazo;
-        }
-
-        return self::where('id', $id_detalle)
-            ->update($data);
-    }
-
-    public static function actualizar_cantidad_atendida(int $id_detalle, float $cantidad)
-    {
-        return self::where('id', $id_detalle)
-            ->increment('cantidad_atendida', $cantidad);
     }
 }

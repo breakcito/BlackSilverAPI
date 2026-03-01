@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
 
 class ResponsableMina extends Model
@@ -19,25 +18,34 @@ class ResponsableMina extends Model
         'estado',
     ];
 
-    public static function asignar_responsable(int $id_mina, int $id_usuario, string $fecha_inicio, ?string $fecha_fin)
+    public static function check_usuario_autorizado_mina(int $id_usuario, int $id_mina)
     {
-        return self::insertGetId([
-            'id_mina' => $id_mina,
-            'id_usuario' => $id_usuario,
-            'fecha_inicio' => $fecha_inicio,
-            'fecha_fin' => $fecha_fin,
-            'estado' => EstadoBase::Activo->value,
-        ]);
-    }
+        $mina = \App\Models\Mina::where('id', $id_mina)->first();
+        if (! $mina) {
+            return false;
+        }
 
-    public static function cerrar_responsable_activo(int $id_mina, string $fecha_cierre)
-    {
-        return self::where('id_mina', $id_mina)
-            ->where('estado', EstadoBase::Activo->value)
-            ->update([
-                'fecha_fin' => $fecha_cierre,
-                'estado' => EstadoBase::Inactivo->value,
-            ]);
+        $sql = '
+        SELECT EXISTS(
+            SELECT 1
+            FROM usuario_empresa ue
+            INNER JOIN empresa_mina em ON em.id_empresa = ue.id_empresa
+            INNER JOIN contrato_concesion cc ON cc.id_empresa = ue.id_empresa
+            WHERE ue.id_usuario = :id_usuario
+              AND em.id_mina = :id_mina
+              AND cc.id_concesion = :id_concesion
+              AND cc.estado = :estado
+        ) AS autorizado
+        ';
+
+        $result = \Illuminate\Support\Facades\DB::selectOne($sql, [
+            'id_usuario' => $id_usuario,
+            'id_mina' => $id_mina,
+            'id_concesion' => $mina->id_concesion,
+            'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
+        ]);
+
+        return (bool) $result->autorizado;
     }
 
     public static function get_responsables_historial(int $id_mina)

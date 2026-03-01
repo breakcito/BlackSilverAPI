@@ -6,7 +6,6 @@ use App\Models\PrestamoAlmacen;
 use App\Models\PrestamoAlmacenDetalle;
 use App\Models\PrestamoAlmacenDetalleLog;
 use App\Shared\Enums\EstadoDetallePrestamo;
-use App\Shared\Helpers\CorrelativoHelper;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -41,34 +40,41 @@ class PrestamoService
         ) {
             // 1. Generar Correlativo
             $prefijo = 'PRES';
-            $nuevo_numero = CorrelativoHelper::proximoNumero('prestamo_almacen', 'numero_correlativo');
+            $correlativoData = \App\Shared\Helpers\CorrelativoHelper::generar('prestamo_almacen', $prefijo, [], 5, \App\Shared\Enums\Periodo::Anual);
 
             // 2. Crear Cabecera
-            $id_prestamo = PrestamoAlmacen::crear_prestamo(
-                $id_almacen_solicitante,
-                $id_usuario_solicitante,
-                $prefijo,
-                $nuevo_numero,
-                $motivo,
-                $fecha_prestamo
-            );
+            $id_prestamo = PrestamoAlmacen::insertGetId([
+                'id_almacen_solicitante' => $id_almacen_solicitante,
+                'id_usuario_solicitante' => $id_usuario_solicitante,
+                'correlativo' => $prefijo,
+                'numero_correlativo' => $correlativoData['numero_correlativo'],
+                'motivo' => $motivo,
+                'fecha_prestamo' => $fecha_prestamo,
+                'created_at' => now(),
+                'estado' => \App\Shared\Enums\EstadoPrestamo::Generado->value,
+            ]);
 
             // 3. Crear Detalles y Logs Iniciales
             foreach ($detalles as $det) {
-                $id_detalle = PrestamoAlmacenDetalle::crear_detalle(
-                    $id_prestamo,
-                    $det['id_producto'],
-                    $det['id_unidad_medida'],
-                    $det['id_almacen_prestamista'],
-                    (float) $det['cantidad_solicitada'],
-                    $det['comentario'] ?? null
-                );
+                $id_detalle = PrestamoAlmacenDetalle::insertGetId([
+                    'id_prestamo_almacen' => $id_prestamo,
+                    'id_producto' => $det['id_producto'],
+                    'id_unidad_medida' => $det['id_unidad_medida'],
+                    'id_almacen_prestamista' => $det['id_almacen_prestamista'],
+                    'cantidad_solicitada' => (float) $det['cantidad_solicitada'],
+                    'cantidad_atendida' => 0,
+                    'cantidad_devuelta' => 0,
+                    'comentario' => $det['comentario'] ?? null,
+                    'estado' => EstadoDetallePrestamo::Pendiente->value,
+                ]);
 
-                PrestamoAlmacenDetalleLog::registrar_log(
-                    $id_detalle,
-                    $id_usuario_solicitante,
-                    EstadoDetallePrestamo::Pendiente
-                );
+                PrestamoAlmacenDetalleLog::insert([
+                    'id_prestamo_almacen_detalle' => $id_detalle,
+                    'id_usuario' => $id_usuario_solicitante,
+                    'glosa' => EstadoDetallePrestamo::Pendiente->getGlosa(),
+                    'estado' => EstadoDetallePrestamo::Pendiente->value,
+                    'created_at' => now(),
+                ]);
             }
 
             // 4. Retornar el objeto completo para el Front (Evitar recarga)

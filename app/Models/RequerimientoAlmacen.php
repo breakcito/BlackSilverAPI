@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\EstadoRequerimiento;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -84,28 +83,6 @@ class RequerimientoAlmacen extends Model
         return DB::select($sql, $params);
     }
 
-    public static function crear_requerimiento(
-        int $id_usuario_solicitante,
-        int $id_mina,
-        int $id_almacen_destino,
-        string $correlativo,
-        int $numero_correlativo,
-        string $premura,
-        ?string $fecha_entrega_requerida
-    ) {
-        return self::insertGetId([
-            'id_usuario_solicitante' => $id_usuario_solicitante,
-            'id_mina' => $id_mina,
-            'id_almacen_destino' => $id_almacen_destino,
-            'correlativo' => $correlativo,
-            'numero_correlativo' => $numero_correlativo,
-            'premura' => $premura,
-            'fecha_entrega_requerida' => $fecha_entrega_requerida,
-            'created_at' => now(),
-            'estado' => EstadoRequerimiento::Generada->value,
-        ]);
-    }
-
     public static function get_requerimiento_by_id(int $id)
     {
         $sql = '
@@ -142,11 +119,5 @@ class RequerimientoAlmacen extends Model
         $cabecera->detalles = RequerimientoAlmacenDetalle::get_detalles_by_requerimiento($id);
 
         return $cabecera;
-    }
-
-    public static function actualizar_estado(int $id, string $estado)
-    {
-        return self::where('id', $id)
-            ->update(['estado' => $estado]);
     }
 }

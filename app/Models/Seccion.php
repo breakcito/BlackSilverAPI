@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\DB;
 class Seccion extends Model
 {
     protected $table = 'seccion';
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_submodulo',
         'nombre',

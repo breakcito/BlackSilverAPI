@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -87,49 +86,5 @@ class Empleado extends Model
         ';
 
         return DB::selectOne($sql, ['id' => $id]);
-    }
-
-    /**
-     * Verificar DNI existente.
-     */
-    public static function verificar_documento_existente(string $columna, string $valor, ?int $id_excluir = null)
-    {
-        $query = self::where($columna, $valor);
-
-        if ($id_excluir) {
-            $query->where('id', '!=', $id_excluir);
-        }
-
-        return $query->exists();
-    }
-
-    /**
-     * Crear un nuevo empleado.
-     */
-    public static function crear_empleado(
-        int $id_cargo,
-        int $id_empresa,
-        string $nombre,
-        string $apellido,
-        ?string $dni,
-        ?string $ruc,
-        ?string $carnet_extranjeria,
-        ?string $pasaporte,
-        ?string $fecha_nacimiento,
-        ?string $path_foto
-    ) {
-        return self::insertGetId([
-            'id_cargo' => $id_cargo,
-            'id_empresa' => $id_empresa,
-            'nombre' => $nombre,
-            'apellido' => $apellido,
-            'dni' => $dni,
-            'ruc' => $ruc,
-            'carnet_extranjeria' => $carnet_extranjeria,
-            'pasaporte' => $pasaporte,
-            'fecha_nacimiento' => $fecha_nacimiento,
-            'path_foto' => $path_foto,
-            'estado' => EstadoBase::Activo->value,
-        ]);
     }
 }
