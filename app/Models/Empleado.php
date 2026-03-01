@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Personal\Models;
+namespace App\Models;
 
 use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class Empleado extends Model
 {
-    protected $table = "empleado";
+    protected $table = 'empleado';
     public $timestamps = false;
     protected $fillable = [
         'id_cargo',
@@ -127,7 +127,7 @@ class Empleado extends Model
             'pasaporte' => $pasaporte,
             'fecha_nacimiento' => $fecha_nacimiento,
             'path_foto' => $path_foto,
-            'estado' => EstadoBase::Activo->value
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 }

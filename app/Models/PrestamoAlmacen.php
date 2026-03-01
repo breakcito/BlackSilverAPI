@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\PrestamosAlmacen\Models;
+namespace App\Models;
 
 use App\Shared\Enums\EstadoPrestamo;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +9,19 @@ use Illuminate\Support\Facades\DB;
 class PrestamoAlmacen extends Model
 {
     protected $table = 'prestamo_almacen';
+    public $timestamps = false;
+    protected $fillable = [
+        'id_solicitud_reabastecimiento',
+        'id_almacen_prestamista',
+        'id_empleado_registro',
+        //
+        'correlativo',
+        'numero_correlativo',
+        'fecha_hora_prestamo',
+        //
+        'created_at',
+        'estado',
+    ];
 
     public static function get_prestamos(int $id_almacen_solicitante, ?string $estado = null)
     {
@@ -36,11 +49,11 @@ class PrestamoAlmacen extends Model
         $params = ['id_almacen' => $id_almacen_solicitante];
 
         if ($estado) {
-            $sql .= " AND pa.estado = :estado";
+            $sql .= ' AND pa.estado = :estado';
             $params['estado'] = $estado;
         }
 
-        $sql .= " ORDER BY pa.created_at DESC";
+        $sql .= ' ORDER BY pa.created_at DESC';
 
         return DB::select($sql, $params);
     }
@@ -56,12 +69,12 @@ class PrestamoAlmacen extends Model
         return DB::table('prestamo_almacen')->insertGetId([
             'id_almacen_solicitante' => $id_almacen_solicitante,
             'id_usuario_solicitante' => $id_usuario_solicitante,
-            'correlativo'           => $correlativo,
-            'numero_correlativo'    => $numero_correlativo,
-            'motivo'                => $motivo,
-            'fecha_prestamo'        => $fecha_prestamo,
-            'created_at'            => now(),
-            'estado'                => EstadoPrestamo::Generado->value
+            'correlativo' => $correlativo,
+            'numero_correlativo' => $numero_correlativo,
+            'motivo' => $motivo,
+            'fecha_prestamo' => $fecha_prestamo,
+            'created_at' => now(),
+            'estado' => EstadoPrestamo::Generado->value,
         ]);
     }
 
@@ -90,7 +103,7 @@ class PrestamoAlmacen extends Model
 
         $cabecera = DB::selectOne($sql, ['id' => $id]);
 
-        if (!$cabecera) {
+        if (! $cabecera) {
             return null;
         }
 

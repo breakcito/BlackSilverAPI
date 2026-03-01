@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Usuarios\Models;
+namespace App\Models;
 
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
@@ -10,7 +10,7 @@ use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
 class Usuario extends Model implements AuthenticatableContract, JWTSubject
 {
-    #region setup
+    // region setup
     use Authenticatable;
 
     protected $table = 'usuario';
@@ -22,8 +22,8 @@ class Usuario extends Model implements AuthenticatableContract, JWTSubject
         'password',
         'estado',
     ];
-    protected $hidden = ['password'];
 
+    protected $hidden = ['password'];
 
     // Obtener el identificador para JWT.
     public function getJWTIdentifier(): mixed
@@ -36,7 +36,7 @@ class Usuario extends Model implements AuthenticatableContract, JWTSubject
     {
         return [];
     }
-    #endregion
+    // endregion
 
     // Obtener información del usuario
     public static function getInfoUsuarioById(int $id_usuario)
@@ -63,7 +63,7 @@ class Usuario extends Model implements AuthenticatableContract, JWTSubject
         ';
 
         $result = DB::select($sql, [
-            'id_usuario' => $id_usuario
+            'id_usuario' => $id_usuario,
         ]);
 
         return $result[0] ?? null;

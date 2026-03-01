@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Empresas\Models;
+namespace App\Models;
 
 use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +9,15 @@ use Illuminate\Support\Facades\DB;
 class Concesion extends Model
 {
     protected $table = 'concesion';
+    public $timestamps = false;
+    protected $fillable = [
+        'nombre',
+        'codigo_concesion',
+        'codigo_reinfo',
+        'ubigeo', // coordenadas
+        'tipo_mineral', // TipoMineral
+        'estado',
+    ];
 
     // obtener la lista de concesiones con conteo de empresas asignadas
     public static function get_concesiones()
@@ -32,7 +41,7 @@ class Concesion extends Model
 
         return DB::select($sql, [
             'estado' => EstadoBase::Activo->value,
-            'estado_activo' => EstadoBase::Activo->value
+            'estado_activo' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -61,7 +70,7 @@ class Concesion extends Model
 
         return DB::select($sql, [
             'id_empresa' => $id_empresa,
-            'estado' => EstadoBase::Activo->value
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -90,7 +99,7 @@ class Concesion extends Model
 
         return DB::select($sql, [
             'id_usuario' => $id_usuario,
-            'estado' => EstadoBase::Activo->value
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -98,12 +107,12 @@ class Concesion extends Model
     public static function crear_concesion(string $nombre, ?string $codigo_concesion, ?string $codigo_reinfo, ?string $ubigeo, ?string $tipo_mineral)
     {
         return DB::table('concesion')->insertGetId([
-            'nombre'           => $nombre,
+            'nombre' => $nombre,
             'codigo_concesion' => $codigo_concesion,
-            'codigo_reinfo'    => $codigo_reinfo,
-            'ubigeo'           => $ubigeo,
-            'tipo_mineral'     => $tipo_mineral,
-            'estado'           => EstadoBase::Activo->value
+            'codigo_reinfo' => $codigo_reinfo,
+            'ubigeo' => $ubigeo,
+            'tipo_mineral' => $tipo_mineral,
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -120,13 +129,14 @@ class Concesion extends Model
 
         return $query->exists();
     }
+
     // actualizar una concesion
     public static function update_concesion(int $id, string $nombre)
     {
         return DB::table('concesion')
             ->where('id', $id)
             ->update([
-                'nombre' => $nombre
+                'nombre' => $nombre,
             ]);
     }
 
@@ -136,7 +146,7 @@ class Concesion extends Model
         return DB::table('concesion')
             ->where('id', $id)
             ->update([
-                'estado' => EstadoBase::Inactivo->value
+                'estado' => EstadoBase::Inactivo->value,
             ]);
     }
 
@@ -161,7 +171,7 @@ class Concesion extends Model
 
         return DB::selectOne($sql, [
             'id' => $id,
-            'estado' => EstadoBase::Activo->value
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -172,10 +182,10 @@ class Concesion extends Model
     {
         return DB::table('contrato_concesion')->insertGetId([
             'id_concesion' => $id_concesion,
-            'id_empresa'   => $id_empresa,
+            'id_empresa' => $id_empresa,
             'fecha_inicio' => $fecha_inicio,
-            'fecha_fin'    => $fecha_fin,
-            'estado'       => EstadoBase::Activo->value
+            'fecha_fin' => $fecha_fin,
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -203,7 +213,7 @@ class Concesion extends Model
 
         return DB::select($sql, [
             'id_concesion' => $id_concesion,
-            'estado'       => EstadoBase::Activo->value
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -229,7 +239,7 @@ class Concesion extends Model
         ';
 
         return DB::select($sql, [
-            'id_concesion' => $id_concesion
+            'id_concesion' => $id_concesion,
         ]);
     }
 

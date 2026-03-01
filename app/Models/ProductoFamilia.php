@@ -4,13 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Rol extends Model
+class ProductoFamilia extends Model
 {
-    protected $table = 'rol';
+    protected $table = 'producto_familia';
     public $timestamps = false;
     protected $fillable = [
-        'nombre',
-        'descripcion',
-        'estado',
+        'id_producto',
+        'id_familia',
     ];
 }

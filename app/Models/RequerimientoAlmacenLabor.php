@@ -1,13 +1,20 @@
 <?php
 
-namespace App\Modules\RequerimientosAlmacen\Models;
+namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
+// Tabla que precisa qué labores estan involucradas en
+// un requerimiento de almacen
 class RequerimientoAlmacenLabor extends Model
 {
     protected $table = 'requerimiento_almacen_labor';
+    public $timestamps = false;
+    protected $fillable = [
+        'id_requerimiento',
+        'id_labor',
+    ];
 
     public static function asociar_labores(int $id_requerimiento, array $id_labores)
     {
@@ -15,11 +22,11 @@ class RequerimientoAlmacenLabor extends Model
         foreach ($id_labores as $id_labor) {
             $data[] = [
                 'id_requerimiento' => $id_requerimiento,
-                'id_labor'         => $id_labor
+                'id_labor' => $id_labor,
             ];
         }
 
-        if (!empty($data)) {
+        if (! empty($data)) {
             DB::table('requerimiento_almacen_labor')->insert($data);
         }
     }

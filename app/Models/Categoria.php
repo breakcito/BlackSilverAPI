@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Inventario\Models;
+namespace App\Models;
 
 use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
@@ -8,6 +8,16 @@ use Illuminate\Support\Facades\DB;
 
 class Categoria extends Model
 {
+    protected $table = 'categoria';
+    public $timestamps = false;
+    protected $fillable = [
+        'nombre',
+        'descripcion',
+        'tipo_requerimiento',
+        'clasificacion_bien',
+        'estado',
+    ];
+
     public static function get_categorias(?string $tipo_requerimiento = null)
     {
         $sql = '
@@ -23,7 +33,7 @@ class Categoria extends Model
         WHERE
             c.estado = :estado
         ';
-        
+
         $params = ['estado' => EstadoBase::Activo->value];
 
         if ($tipo_requerimiento) {
@@ -60,7 +70,7 @@ class Categoria extends Model
             'descripcion' => $descripcion,
             'tipo_requerimiento' => $tipo_requerimiento,
             'clasificacion_bien' => $clasificacion_bien,
-            'estado' => EstadoBase::Activo->value
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -72,7 +82,7 @@ class Categoria extends Model
                 'nombre' => $nombre,
                 'descripcion' => $descripcion,
                 'tipo_requerimiento' => $tipo_requerimiento,
-                'clasificacion_bien' => $clasificacion_bien
+                'clasificacion_bien' => $clasificacion_bien,
             ]);
     }
 
@@ -81,7 +91,7 @@ class Categoria extends Model
         return DB::table('categoria')
             ->where('id', $id)
             ->update([
-                'estado' => EstadoBase::Inactivo->value
+                'estado' => EstadoBase::Inactivo->value,
             ]);
     }
 

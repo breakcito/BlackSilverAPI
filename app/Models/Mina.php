@@ -1,14 +1,21 @@
 <?php
 
-namespace App\Modules\Empresas\Models;
+namespace App\Models;
 
+use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use App\Shared\Enums\EstadoBase;
 
 class Mina extends Model
 {
     protected $table = 'mina';
+    public $timestamps = false;
+    protected $fillable = [
+        'id_concesion',
+        'nombre',
+        'descripcion',
+        'estado',
+    ];
 
     /**
      * Listar minas (Opcional filtrar por concesión)
@@ -42,7 +49,7 @@ class Mina extends Model
 
         $params = [
             'estado' => EstadoBase::Activo->value,
-            'estado_activo' => EstadoBase::Activo->value
+            'estado_activo' => EstadoBase::Activo->value,
         ];
 
         if ($id_concesion) {
@@ -87,7 +94,7 @@ class Mina extends Model
 
         return DB::selectOne($sql, [
             'id' => $id,
-            'estado_activo' => EstadoBase::Activo->value
+            'estado_activo' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -98,9 +105,9 @@ class Mina extends Model
     {
         return DB::table('mina')->insertGetId([
             'id_concesion' => $id_concesion,
-            'nombre'       => $nombre,
-            'descripcion'  => $descripcion,
-            'estado'       => EstadoBase::Activo->value
+            'nombre' => $nombre,
+            'descripcion' => $descripcion,
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -113,8 +120,8 @@ class Mina extends Model
             ->where('id', $id)
             ->update([
                 'id_concesion' => $id_concesion,
-                'nombre'       => $nombre,
-                'descripcion'  => $descripcion
+                'nombre' => $nombre,
+                'descripcion' => $descripcion,
             ]);
     }
 
@@ -136,8 +143,8 @@ class Mina extends Model
     public static function asignar_empresa(int $id_mina, int $id_empresa)
     {
         return DB::table('empresa_mina')->insertGetId([
-            'id_mina'    => $id_mina,
-            'id_empresa' => $id_empresa
+            'id_mina' => $id_mina,
+            'id_empresa' => $id_empresa,
         ]);
     }
 
@@ -200,11 +207,11 @@ class Mina extends Model
     public static function asignar_responsable(int $id_mina, int $id_usuario, string $fecha_inicio, ?string $fecha_fin)
     {
         return DB::table('responsable_mina')->insertGetId([
-            'id_mina'      => $id_mina,
-            'id_usuario'   => $id_usuario,
+            'id_mina' => $id_mina,
+            'id_usuario' => $id_usuario,
             'fecha_inicio' => $fecha_inicio,
-            'fecha_fin'    => $fecha_fin,
-            'estado'       => EstadoBase::Activo->value
+            'fecha_fin' => $fecha_fin,
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -215,7 +222,7 @@ class Mina extends Model
             ->where('estado', EstadoBase::Activo->value)
             ->update([
                 'fecha_fin' => $fecha_cierre,
-                'estado'    => EstadoBase::Inactivo->value
+                'estado' => EstadoBase::Inactivo->value,
             ]);
     }
 
@@ -245,7 +252,7 @@ class Mina extends Model
     public static function check_usuario_autorizado_mina(int $id_usuario, int $id_mina)
     {
         $mina = DB::table('mina')->where('id', $id_mina)->first();
-        if (!$mina) {
+        if (! $mina) {
             return false;
         }
 
@@ -266,7 +273,7 @@ class Mina extends Model
     public static function get_usuarios_autorizados(int $id_mina)
     {
         $mina = DB::table('mina')->where('id', $id_mina)->first();
-        if (!$mina) {
+        if (! $mina) {
             return [];
         }
 
@@ -293,9 +300,9 @@ class Mina extends Model
         ';
 
         return DB::select($sql, [
-            'id_mina'      => $id_mina,
+            'id_mina' => $id_mina,
             'id_concesion' => $mina->id_concesion,
-            'estado_activo' => EstadoBase::Activo->value
+            'estado_activo' => EstadoBase::Activo->value,
         ]);
     }
 }

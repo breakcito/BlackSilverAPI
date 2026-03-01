@@ -1,15 +1,30 @@
 <?php
 
-namespace App\Modules\RequerimientosAlmacen\Models;
+namespace App\Models;
 
 use App\Shared\Enums\EstadoDetalleRequerimiento;
-use App\Shared\Enums\EstadoRequerimiento;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class RequerimientoAlmacenDetalle extends Model
 {
     protected $table = 'requerimiento_almacen_detalle';
+    public $timestamps = false;
+    protected $fillable = [
+        'id_requerimiento_almacen',
+        'id_producto',
+        'id_unidad_medida_presentacion', // caja
+        'id_empleado_atencion', // quien decide aprobar/rechazar el producto del requerimiento
+        //
+        'cantidad_solicitada', // 3 cajas
+        'cantidad_solicitada_base', // 30kg
+        'cantidad_entregada', // 2 cajas
+        'cantidad_entregada_base', // 20kg
+        'comentario',
+        'comentario_decision', // luego de aprobar/rechazar, podran brindar algun comentario adicional
+        //
+        'estado',
+    ];
 
     public static function crear_detalle(
         int $id_requerimiento,
@@ -19,13 +34,13 @@ class RequerimientoAlmacenDetalle extends Model
         ?string $comentario
     ) {
         return DB::table('requerimiento_almacen_detalle')->insertGetId([
-            'id_requerimiento'    => $id_requerimiento,
-            'id_producto'         => $id_producto,
-            'id_unidad_medida'    => $id_unidad_medida,
+            'id_requerimiento' => $id_requerimiento,
+            'id_producto' => $id_producto,
+            'id_unidad_medida' => $id_unidad_medida,
             'cantidad_solicitada' => $cantidad_solicitada,
-            'cantidad_atendida'   => 0,
-            'comentario'          => $comentario,
-            'estado'              => EstadoDetalleRequerimiento::Pendiente->value
+            'cantidad_atendida' => 0,
+            'comentario' => $comentario,
+            'estado' => EstadoDetalleRequerimiento::Pendiente->value,
         ]);
     }
 
@@ -65,6 +80,7 @@ class RequerimientoAlmacenDetalle extends Model
         return array_map(function ($detalle) {
             $detalle->es_fiscalizado = (bool) $detalle->es_fiscalizado;
             $detalle->es_perecible = (bool) $detalle->es_perecible;
+
             return $detalle;
         }, $detalles);
     }

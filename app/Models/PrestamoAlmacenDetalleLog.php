@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\PrestamosAlmacen\Models;
+namespace App\Models;
 
 use App\Shared\Enums\EstadoDetallePrestamo;
 use Illuminate\Database\Eloquent\Model;
@@ -18,10 +18,10 @@ class PrestamoAlmacenDetalleLog extends Model
     ) {
         return DB::table('prestamo_almacen_detalle_log')->insert([
             'id_prestamo_almacen_detalle' => $id_prestamo_detalle,
-            'id_usuario'                  => $id_usuario,
-            'glosa'                       => $estado->getGlosa($dinamico),
-            'estado'                      => $estado->value,
-            'created_at'                  => now()
+            'id_usuario' => $id_usuario,
+            'glosa' => $estado->getGlosa($dinamico),
+            'estado' => $estado->value,
+            'created_at' => now(),
         ]);
     }
 

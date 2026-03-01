@@ -1,14 +1,25 @@
 <?php
 
-namespace App\Modules\RequerimientosAlmacen\Models;
+namespace App\Models;
 
 use App\Shared\Enums\EstadoDetalleRequerimiento;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
+// Tabla que registra la trazabilidad de cada producto de un requerimiento de almacen
 class RequerimientoAlmacenDetalleLog extends Model
 {
     protected $table = 'requerimiento_almacen_detalle_log';
+    public $timestamps = false;
+    protected $fillable = [
+        'id_requerimiento_almacen_detalle',
+        'id_empleado', // quien provoco el cambio
+        //
+        'tipo_origen', // el "por que" del registro
+        'descripcion', // descripcion del cambio
+        //
+        'created_at',
+    ];
 
     public static function registrar_log(
         int $id_requerimiento_almacen_detalle,
@@ -18,10 +29,10 @@ class RequerimientoAlmacenDetalleLog extends Model
     ) {
         return DB::table('requerimiento_almacen_detalle_log')->insert([
             'id_requerimiento_almacen_detalle' => $id_requerimiento_almacen_detalle,
-            'id_usuario'                       => $id_usuario,
-            'glosa'                             => $estado->getGlosa($dinamico),
-            'estado'                            => $estado->value,
-            'created_at'                        => now()
+            'id_usuario' => $id_usuario,
+            'glosa' => $estado->getGlosa($dinamico),
+            'estado' => $estado->value,
+            'created_at' => now(),
         ]);
     }
 

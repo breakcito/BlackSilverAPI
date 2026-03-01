@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\RequerimientosAlmacen\Models;
+namespace App\Models;
 
 use App\Shared\Enums\EstadoRequerimiento;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +9,20 @@ use Illuminate\Support\Facades\DB;
 class RequerimientoAlmacen extends Model
 {
     protected $table = 'requerimiento_almacen';
+    public $timestamps = false;
+    protected $fillable = [
+        'id_empleado_solicitante',
+        'id_mina', // la mina que necesita los productos
+        'id_almacen_destino', // a que almacen se hace el requerimiento
+        //
+        'correlativo',
+        'numero_correlativo',
+        'premura',
+        'fecha_entrega_requerida',
+        //
+        'created_at',
+        'estado',
+    ];
 
     public static function get_requerimientos(
         ?int $id_mina = null,
@@ -79,14 +93,14 @@ class RequerimientoAlmacen extends Model
     ) {
         return DB::table('requerimiento_almacen')->insertGetId([
             'id_usuario_solicitante' => $id_usuario_solicitante,
-            'id_mina'                => $id_mina,
-            'id_almacen_destino'     => $id_almacen_destino,
-            'correlativo'            => $correlativo,
-            'numero_correlativo'     => $numero_correlativo,
-            'premura'                => $premura,
-            'fecha_entrega_requerida'=> $fecha_entrega_requerida,
-            'created_at'             => now(),
-            'estado'                 => EstadoRequerimiento::Generada->value
+            'id_mina' => $id_mina,
+            'id_almacen_destino' => $id_almacen_destino,
+            'correlativo' => $correlativo,
+            'numero_correlativo' => $numero_correlativo,
+            'premura' => $premura,
+            'fecha_entrega_requerida' => $fecha_entrega_requerida,
+            'created_at' => now(),
+            'estado' => EstadoRequerimiento::Generada->value,
         ]);
     }
 
@@ -118,7 +132,7 @@ class RequerimientoAlmacen extends Model
 
         $cabecera = DB::selectOne($sql, ['id' => $id]);
 
-        if (!$cabecera) {
+        if (! $cabecera) {
             return null;
         }
 
@@ -127,6 +141,7 @@ class RequerimientoAlmacen extends Model
 
         return $cabecera;
     }
+
     public static function actualizar_estado(int $id, string $estado)
     {
         return DB::table('requerimiento_almacen')

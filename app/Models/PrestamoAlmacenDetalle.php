@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\PrestamosAlmacen\Models;
+namespace App\Models;
 
 use App\Shared\Enums\EstadoDetallePrestamo;
 use Illuminate\Database\Eloquent\Model;
@@ -9,10 +9,24 @@ use Illuminate\Support\Facades\DB;
 class PrestamoAlmacenDetalle extends Model
 {
     protected $table = 'prestamo_almacen_detalle';
+    public $timestamps = false;
+    protected $fillable = [
+        'id_prestamo_almacen',
+        'id_solicitud_reabastecimiento_detalle',
+        //
+        'cantidad_solicitada', // lo que debe prestar: 4 cajas
+        'cantidad_solicitada_base', // 8 unidades
+        'cantidad_entregada', // lo que va prestando: 2 cajas
+        'cantidad_entregada_base', // 4 unidades
+        'cantidad_devuelta', // lo que se devolvió: 1 caja
+        'cantidad_devuelta_base', // 2 unidades
+        'comentario',
+        'estado',
+    ];
 
     public static function get_detalles_by_prestamo(int $id_prestamo)
     {
-        $sql = "
+        $sql = '
         SELECT
             pad.id AS id_prestamo_detalle,
             pad.id_prestamo_almacen,
@@ -35,7 +49,7 @@ class PrestamoAlmacenDetalle extends Model
         LEFT JOIN almacen a ON a.id = pad.id_almacen_prestamista
         WHERE
             pad.id_prestamo_almacen = :id_prestamo
-        ";
+        ';
 
         return DB::select($sql, ['id_prestamo' => $id_prestamo]);
     }
@@ -49,15 +63,15 @@ class PrestamoAlmacenDetalle extends Model
         ?string $comentario = null
     ) {
         return DB::table('prestamo_almacen_detalle')->insertGetId([
-            'id_prestamo_almacen'     => $id_prestamo,
-            'id_producto'             => $id_producto,
-            'id_unidad_medida'        => $id_unidad_medida,
-            'id_almacen_prestamista'  => $id_almacen_prestamista,
-            'cantidad_solicitada'     => $cantidad_solicitada,
-            'cantidad_atendida'       => 0,
-            'cantidad_devuelta'       => 0,
-            'comentario'              => $comentario,
-            'estado'                  => EstadoDetallePrestamo::Pendiente->value
+            'id_prestamo_almacen' => $id_prestamo,
+            'id_producto' => $id_producto,
+            'id_unidad_medida' => $id_unidad_medida,
+            'id_almacen_prestamista' => $id_almacen_prestamista,
+            'cantidad_solicitada' => $cantidad_solicitada,
+            'cantidad_atendida' => 0,
+            'cantidad_devuelta' => 0,
+            'comentario' => $comentario,
+            'estado' => EstadoDetallePrestamo::Pendiente->value,
         ]);
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Empresas\Models;
+namespace App\Models;
 
 use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +9,13 @@ use Illuminate\Support\Facades\DB;
 class Almacen extends Model
 {
     protected $table = 'almacen';
+    public $timestamps = false;
+    protected $fillable = [
+        'nombre',
+        'descripcion',
+        'es_principal',
+        'estado',
+    ];
 
     /**
      * Listar todos los almacenes.
@@ -42,10 +49,10 @@ class Almacen extends Model
             a.estado = :estado
         ORDER BY a.es_principal DESC, a.nombre ASC
         ';
-        
+
         return DB::select($sql, [
-            'estado'        => EstadoBase::Activo->value,
-            'estado_activo' => EstadoBase::Activo->value
+            'estado' => EstadoBase::Activo->value,
+            'estado_activo' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -65,10 +72,10 @@ class Almacen extends Model
     public static function crear_almacen(string $nombre, ?string $descripcion, bool $es_principal)
     {
         return DB::table('almacen')->insertGetId([
-            'nombre'             => $nombre,
-            'descripcion'        => $descripcion,
-            'es_principal'       => $es_principal,
-            'estado'             => EstadoBase::Activo->value
+            'nombre' => $nombre,
+            'descripcion' => $descripcion,
+            'es_principal' => $es_principal,
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -89,8 +96,8 @@ class Almacen extends Model
         ';
 
         return DB::selectOne($sql, [
-            'id'     => $id,
-            'estado' => EstadoBase::Activo->value
+            'id' => $id,
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -100,7 +107,7 @@ class Almacen extends Model
     {
         return DB::table('almacen_mina')->insertGetId([
             'id_almacen' => $id_almacen,
-            'id_mina'   => $id_mina
+            'id_mina' => $id_mina,
         ]);
     }
 
@@ -111,11 +118,11 @@ class Almacen extends Model
             ->where('id_mina', $id_mina)
             ->exists();
     }
-    
+
     // Obtener las minas a las que atiende este almacén
     public static function get_minas_asignadas(int $id_almacen)
     {
-         $sql = '
+        $sql = '
         SELECT
             am.id,
             m.nombre AS mina,
@@ -142,11 +149,11 @@ class Almacen extends Model
     public static function asignar_responsable(int $id_almacen, int $id_usuario, string $fecha_inicio, ?string $fecha_fin)
     {
         return DB::table('responsable_almacen')->insertGetId([
-            'id_almacen'         => $id_almacen,
-            'id_usuario'         => $id_usuario,
-            'fecha_inicio'       => $fecha_inicio,
-            'fecha_fin'          => $fecha_fin,
-            'estado'             => EstadoBase::Activo->value
+            'id_almacen' => $id_almacen,
+            'id_usuario' => $id_usuario,
+            'fecha_inicio' => $fecha_inicio,
+            'fecha_fin' => $fecha_fin,
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -157,7 +164,7 @@ class Almacen extends Model
             ->where('estado', EstadoBase::Activo->value)
             ->update([
                 'fecha_fin' => $fecha_cierre,
-                'estado'    => EstadoBase::Inactivo->value
+                'estado' => EstadoBase::Inactivo->value,
             ]);
     }
 

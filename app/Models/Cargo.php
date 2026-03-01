@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Personal\Models;
+namespace App\Models;
 
 use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class Cargo extends Model
 {
-    protected $table = "cargo";
+    protected $table = 'cargo';
     public $timestamps = false;
     protected $fillable = [
         'id_area',

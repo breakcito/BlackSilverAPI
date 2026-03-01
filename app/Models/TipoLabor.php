@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Empresas\Models;
+namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -8,6 +8,12 @@ use Illuminate\Support\Facades\DB;
 class TipoLabor extends Model
 {
     protected $table = 'tipo_labor';
+    public $timestamps = false;
+    protected $fillable = [
+        'prefijo',
+        'nombre',
+        'es_de_produccion',
+    ];
 
     /**
      * Listar tipos de labor.

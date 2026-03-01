@@ -1,14 +1,12 @@
 <?php
 
-namespace App\Modules\Menu\Models;
+namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-
-
 class SeccionRol extends Model
 {
-    protected $table = "seccion_rol";
+    protected $table = 'seccion_rol';
     public $timestamps = false;
     protected $fillable = [
         'id_seccion',

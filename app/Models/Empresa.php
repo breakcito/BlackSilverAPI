@@ -1,17 +1,16 @@
 <?php
 
-namespace App\Modules\Empresas\Models;
+namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-
 
 /**
  * Modelo para la tabla empresa.
  */
 class Empresa extends Model
 {
-    protected $table = "empresa";
+    protected $table = 'empresa';
     public $timestamps = false;
     protected $fillable = [
         'ruc',
@@ -114,11 +113,11 @@ class Empresa extends Model
     public static function crear_empresa(string $ruc, string $razon_social, string $nombre_comercial, string $abreviatura, string $path_logo)
     {
         return DB::table('empresa')->insertGetId([
-            'ruc'              => $ruc,
-            'razon_social'     => $razon_social,
+            'ruc' => $ruc,
+            'razon_social' => $razon_social,
             'nombre_comercial' => $nombre_comercial,
-            'abreviatura'      => $abreviatura,
-            'path_logo'        => $path_logo,
+            'abreviatura' => $abreviatura,
+            'path_logo' => $path_logo,
         ]);
     }
 
@@ -145,7 +144,7 @@ class Empresa extends Model
         ';
 
         return DB::select($sql, [
-            'id_empresa' => $id_empresa
+            'id_empresa' => $id_empresa,
         ]);
     }
 
@@ -164,7 +163,7 @@ class Empresa extends Model
         ';
 
         return DB::selectOne($sql, [
-            'id_empresa' => $id_empresa
+            'id_empresa' => $id_empresa,
         ]);
     }
 }

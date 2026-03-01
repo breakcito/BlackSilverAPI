@@ -4,13 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class UsuarioEmpresa extends Model
+class ResponsableAlmacen extends Model
 {
-    protected $table = 'usuario_empresa';
+    protected $table = 'responsable_almacen';
     public $timestamps = false;
     protected $fillable = [
+        'id_almacen',
         'id_usuario',
-        'id_empresa',
+        'fecha_inicio',
+        'fecha_fin',
         'estado',
     ];
 }

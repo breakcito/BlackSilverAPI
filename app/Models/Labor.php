@@ -1,14 +1,34 @@
 <?php
 
-namespace App\Modules\Empresas\Models;
+namespace App\Models;
 
-use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class Labor extends Model
 {
     protected $table = 'labor';
+    public $timestamps = false;
+    protected $fillable = [
+        'id_empresa',
+        'id_mina',
+        'id_tipo_labor',
+        //
+        'correlativo',
+        'numero_correlativo',
+        'nombre',
+        'descripcion',
+        'tipo_sostenimiento',
+        'veta',
+        'ancho',
+        'alto',
+        'nivel',
+        'fecha_inicio',
+        'fecha_fin',
+        //
+        'created_at',
+        'estado',
+    ];
 
     // obtener labores, opcionalmente filtrar por mina
     public static function get_labores(?int $id_mina = null)
@@ -101,19 +121,19 @@ class Labor extends Model
         ?string $estado = null
     ) {
         $datos = [
-            'nombre'             => $nombre,
-            'descripcion'        => $descripcion,
+            'nombre' => $nombre,
+            'descripcion' => $descripcion,
             'tipo_sostenimiento' => $tipo_sostenimiento,
-            'veta'               => $veta,
-            'ancho'              => $ancho,
-            'alto'               => $alto,
-            'nivel'              => $nivel,
-            'fecha_fin'          => $fecha_fin,
-            'estado'             => $estado
+            'veta' => $veta,
+            'ancho' => $ancho,
+            'alto' => $alto,
+            'nivel' => $nivel,
+            'fecha_fin' => $fecha_fin,
+            'estado' => $estado,
         ];
 
         // eliminados todos los valores null
-        $update = array_filter($datos, fn($valor) => !is_null($valor));
+        $update = array_filter($datos, fn ($valor) => ! is_null($valor));
 
         // solo ejecutamos si hay algo que actualizar
         if (empty($update)) {

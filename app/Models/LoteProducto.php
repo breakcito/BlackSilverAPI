@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Inventario\Models;
+namespace App\Models;
 
 use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +9,26 @@ use Illuminate\Support\Facades\DB;
 class LoteProducto extends Model
 {
     protected $table = 'lote_producto';
+    public $timestamps = false;
+    protected $fillable = [
+        'id_producto',
+        'id_almacen',
+        'id_unidad_medida_presentacion', // en que presentacion ingresa el lote al almacen (ej. caja)
+        //
+        'correlativo',
+        'numero_correlativo',
+        'descripcion',
+        'cantidad_presentacion_inicial', // 2 cajas
+        'cantidad_presentacion_actual', // 1 caja
+        'contenido_por_presentacion', // 10kg por caja
+        'stock_inicial', // 20kg
+        'stock_actual', // 10kg
+        'fecha_hora_ingreso',
+        'fecha_vencimiento',
+        //
+        'created_at',
+        'estado',
+    ];
 
     /**
      * Listar lotes de un almacén.
@@ -43,7 +63,7 @@ class LoteProducto extends Model
 
         return DB::select($sql, [
             'id_almacen' => $id_almacen,
-            'estado'     => EstadoBase::Activo->value
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -96,17 +116,17 @@ class LoteProducto extends Model
         ?string $fecha_vencimiento
     ) {
         return DB::table('lote_producto')->insertGetId([
-            'id_producto'        => $id_producto,
-            'id_unidad_medida'   => $id_unidad_medida,
-            'id_almacen'         => $id_almacen,
-            'descripcion'        => $descripcion,
-            'correlativo'        => $correlativo,
+            'id_producto' => $id_producto,
+            'id_unidad_medida' => $id_unidad_medida,
+            'id_almacen' => $id_almacen,
+            'descripcion' => $descripcion,
+            'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
-            'stock_actual'       => $stock_inicial,
-            'fecha_ingreso'      => $fecha_ingreso,
-            'fecha_vencimiento'  => $fecha_vencimiento,
-            'created_at'         => now(),
-            'estado'             => EstadoBase::Activo->value
+            'stock_actual' => $stock_inicial,
+            'fecha_ingreso' => $fecha_ingreso,
+            'fecha_vencimiento' => $fecha_vencimiento,
+            'created_at' => now(),
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -129,12 +149,13 @@ class LoteProducto extends Model
             c.tipo_requerimiento = :tipo_bien
         ORDER BY p.nombre ASC
         ';
-        
+
         return DB::select($sql, [
-            'estado'    => EstadoBase::Activo->value,
-            'tipo_bien' => 'Bien'
+            'estado' => EstadoBase::Activo->value,
+            'tipo_bien' => 'Bien',
         ]);
     }
+
     public static function descontar_stock(int $id_lote, float $cantidad)
     {
         return DB::table('lote_producto')

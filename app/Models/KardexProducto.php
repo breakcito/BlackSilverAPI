@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Inventario\Models;
+namespace App\Models;
 
 use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +9,23 @@ use Illuminate\Support\Facades\DB;
 class KardexProducto extends Model
 {
     protected $table = 'kardex_producto';
+    public $timestamps = false;
+    protected $fillable = [
+        'id_lote_producto',
+        'id_origen',
+        //
+        'tipo_origen', // codigo_movimiento
+        'tipo_movimiento', // Entrada/Salida
+        'cantidad_anterior', // 3 cajas
+        'cantidad_anterior_base', // 75kg
+        'cantidad_movimiento', // 1 caja
+        'cantidad_movimiento_base', // 25kg
+        'cantidad_resultante', // 2 cajas
+        'cantidad_resultante_base', // 50kg
+        'descripcion',
+        //
+        'created_at',
+    ];
 
     /**
      * Listar movimientos de kardex por almacén.
@@ -56,16 +73,16 @@ class KardexProducto extends Model
         ?string $glosa
     ) {
         return DB::table('kardex_producto')->insertGetId([
-            'id_lote_producto'    => $id_lote_producto,
-            'id_cabecera'         => $id_cabecera,
-            'codigo_movimiento'   => $codigo_movimiento,
-            'tipo_movimiento'     => $tipo_movimiento,
-            'cantidad_anterior'   => $cantidad_anterior,
+            'id_lote_producto' => $id_lote_producto,
+            'id_cabecera' => $id_cabecera,
+            'codigo_movimiento' => $codigo_movimiento,
+            'tipo_movimiento' => $tipo_movimiento,
+            'cantidad_anterior' => $cantidad_anterior,
             'cantidad_movimiento' => $cantidad_movimiento,
             'cantidad_resultante' => $cantidad_resultante,
-            'glosa'               => $glosa,
-            'created_at'          => now(),
-            'estado'              => EstadoBase::Activo->value
+            'glosa' => $glosa,
+            'created_at' => now(),
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 }

@@ -1,14 +1,13 @@
 <?php
 
-namespace App\Modules\Menu\Models;
+namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
-
 class Submodulo extends Model
 {
-    protected $table = "submodulo";
+    protected $table = 'submodulo';
     public $timestamps = false;
     protected $fillable = [
         'id_modulo',

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Inventario\Models;
+namespace App\Models;
 
 use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
@@ -8,6 +8,20 @@ use Illuminate\Support\Facades\DB;
 
 class Producto extends Model
 {
+    protected $table = 'producto';
+    public $timestamps = false;
+    protected $fillable = [
+        'id_categoria',
+        // indica la unidad de medida base que se usa para 
+        // manipular/calcula/estimar en el dia a dia
+        'id_unidad_medida_base',
+        'nombre',
+        'es_fiscalizado',
+        'es_perecible',
+        'stock_minimo',
+        'estado',
+    ];
+
     /**
      * Listar todos los productos del catálogo.
      * Incluye el nombre de la categoría asociada.
@@ -34,8 +48,6 @@ class Producto extends Model
         return DB::select($sql, ['estado_inactivo' => EstadoBase::Inactivo->value]);
     }
 
-    /**
-     */
     public static function get_producto_by_id(int $id)
     {
         $sql = '
@@ -83,11 +95,11 @@ class Producto extends Model
         bool $es_perecible
     ) {
         return DB::table('producto')->insertGetId([
-            'id_categoria'    => $id_categoria,
-            'nombre'          => $nombre,
-            'es_fiscalizado'  => $es_fiscalizado ? 1 : 0,
-            'es_perecible'    => $es_perecible ? 1 : 0,
-            'estado'          => EstadoBase::Activo->value
+            'id_categoria' => $id_categoria,
+            'nombre' => $nombre,
+            'es_fiscalizado' => $es_fiscalizado ? 1 : 0,
+            'es_perecible' => $es_perecible ? 1 : 0,
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 }

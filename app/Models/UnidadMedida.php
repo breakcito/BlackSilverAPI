@@ -1,14 +1,19 @@
 <?php
 
-namespace App\Modules\Inventario\Models;
+namespace App\Models;
 
-use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class UnidadMedida extends Model
 {
     protected $table = 'unidad_medida';
+    public $timestamps = false;
+    protected $fillable = [
+        'nombre',
+        'abreviatura',
+        'tipo', // base | presentacion
+    ];
 
     public static function get_unidades_medida()
     {
@@ -16,15 +21,12 @@ class UnidadMedida extends Model
         SELECT
             id AS id_unidad_medida,
             nombre,
-            abreviatura,
-            estado
+            abreviatura
         FROM
             unidad_medida
-        WHERE
-            estado = :estado
         ORDER BY nombre ASC
         ';
 
-        return DB::select($sql, ['estado' => EstadoBase::Activo->value]);
+        return DB::select($sql);
     }
 }

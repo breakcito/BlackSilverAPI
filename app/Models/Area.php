@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Modules\Empresas\Models;
+namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class Area extends Model
 {
-    protected $table = "area";
+    protected $table = 'area';
     public $timestamps = false;
     protected $fillable = [
         'nombre',
