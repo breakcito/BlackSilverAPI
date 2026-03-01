@@ -52,4 +52,13 @@ class ProductoService
 
         return ApiResponse::success($producto, 'Producto registrado correctamente');
     }
+
+    /**
+     * Listar productos disponibles para sugerir (filtramos servicios).
+     */
+    public function get_productos_para_lote()
+    {
+        $productos = Producto::get_productos_para_lote();
+        return ApiResponse::success($productos);
+    }
 }

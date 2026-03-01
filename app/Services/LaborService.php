@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Concesion;
+use App\Models\ContratoConcesion;
 use App\Models\Labor;
 use App\Models\Mina;
 use App\Models\TipoLabor;
@@ -50,9 +50,9 @@ class LaborService
         if (! $id_concesion) {
             return ApiResponse::error('Mina no encontrada');
         }
-        if (! \App\Models\ContratoConcesion::where('id_concesion', $id_concesion)
+        if (!ContratoConcesion::where('id_concesion', $id_concesion)
             ->where('id_empresa', $id_empresa)
-            ->where('estado', \App\Shared\Enums\EstadoBase::Activo->value)
+            ->where('estado', EstadoBase::Activo->value)
             ->exists()) {
             return ApiResponse::error('La empresa seleccionada no tiene un contrato vigente en la concesión de esta mina.');
         }
@@ -113,9 +113,9 @@ class LaborService
             return ApiResponse::error('Mina no encontrada');
         }
 
-        if (! \App\Models\ContratoConcesion::where('id_concesion', $mina->id_concesion)
+        if (!ContratoConcesion::where('id_concesion', $mina->id_concesion)
             ->where('id_empresa', $id_empresa)
-            ->where('estado', \App\Shared\Enums\EstadoBase::Activo->value)
+            ->where('estado', EstadoBase::Activo->value)
             ->exists()) {
             return ApiResponse::error('La empresa seleccionada no tiene un contrato vigente en la concesión de esta mina.');
         }

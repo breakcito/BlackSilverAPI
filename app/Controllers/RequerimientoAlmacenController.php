@@ -2,7 +2,7 @@
 
 namespace App\Controllers;
 
-use App\Services\RequerimientoService;
+use App\Services\RequerimientoAlmacenService;
 use App\Shared\Enums\Premura;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -11,10 +11,10 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Enum;
 
-class RequerimientoController extends Controller
+class RequerimientoAlmacenController extends Controller
 {
     public function __construct(
-        private RequerimientoService $requerimientoService
+        private RequerimientoAlmacenService $requerimientoService
     ) {}
 
     public function get_requerimientos(Request $request): JsonResponse

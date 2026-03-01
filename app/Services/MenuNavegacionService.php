@@ -10,7 +10,7 @@ use App\Shared\Responses\ApiResponse;
 /**
  * Servicio para lógica de negocio del menú de navegación.
  */
-class MenuService
+class MenuNavegacionService
 {
     public function get_menu_navegacion_by_rol(int $idRol): array
     {

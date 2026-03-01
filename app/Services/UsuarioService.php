@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Usuario;
+use App\Models\UsuarioEmpresa;
 use App\Shared\Enums\EstadoBase;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Support\Facades\Hash;
@@ -57,5 +58,12 @@ class UsuarioService
         }
 
         return ApiResponse::success($usuario);
+    }
+
+    public function get_usuarios_por_empresa(int $id_empresa)
+    {
+        $usuarios = UsuarioEmpresa::get_usuarios_por_empresa($id_empresa);
+
+        return ApiResponse::success($usuarios);
     }
 }

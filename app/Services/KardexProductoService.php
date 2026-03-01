@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\KardexProducto;
 use App\Shared\Responses\ApiResponse;
 
-class KardexService
+class KardexProductoService
 {
     /**
      * Listar movimientos de kardex por almacén.

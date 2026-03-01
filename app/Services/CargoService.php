@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Cargo;
+use App\Shared\Enums\EstadoBase;
 use App\Shared\Responses\ApiResponse;
 
 class CargoService
@@ -10,7 +11,7 @@ class CargoService
     public function get_cargos()
     {
         $cargos = Cargo::select('id as id_cargo', 'nombre', 'estado')
-            ->where('estado', \App\Shared\Enums\EstadoBase::Activo->value)
+            ->where('estado', EstadoBase::Activo->value)
             ->orderBy('nombre', 'asc')
             ->get();
 

@@ -2,16 +2,16 @@
 
 namespace App\Controllers;
 
-use App\Services\AtencionService;
+use App\Services\RequerimientoAlmacenAtencionService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
 
-class AtencionController extends Controller
+class RequerimientoAlmacenAtencionController extends Controller
 {
-    public function __construct(private AtencionService $atencionService) {}
+    public function __construct(private RequerimientoAlmacenAtencionService $atencionService) {}
 
     /**
      * Listado de requerimientos para atención por almacén.

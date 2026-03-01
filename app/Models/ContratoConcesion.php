@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class ContratoConcesion extends Model
 {
@@ -74,5 +76,34 @@ class ContratoConcesion extends Model
     {
         return self::where('id', $id_contrato)
             ->update(['estado' => \App\Shared\Enums\EstadoBase::Inactivo->value]);
+    }
+
+    // obtener las concesiones donde trabaja una empresa (a través de contrato)
+    public static function get_concesiones_by_empresa(int $id_empresa)
+    {
+        $sql = '
+        SELECT
+            cn.id AS id_concesion,
+            cn.nombre,
+            cn.codigo_concesion,
+            cn.codigo_reinfo,
+            cn.ubigeo,
+            cn.tipo_mineral,
+            cn.estado,
+            cc.id AS id_contrato,
+            cc.fecha_inicio,
+            cc.fecha_fin
+        FROM
+            concesion cn
+        INNER JOIN contrato_concesion cc ON cc.id_concesion = cn.id
+        WHERE
+            cc.id_empresa = :id_empresa AND
+            cn.estado = :estado
+        ';
+
+        return DB::select($sql, [
+            'id_empresa' => $id_empresa,
+            'estado' => EstadoBase::Activo->value,
+        ]);
     }
 }

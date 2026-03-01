@@ -70,4 +70,30 @@ class Producto extends Model
 
         return DB::selectOne($sql, ['id' => $id]);
     }
+
+    /**
+     * Obtener productos disponibles para sugerir.
+     */
+    public static function get_productos_para_lote()
+    {
+        $sql = '
+        SELECT
+            p.id AS id_producto,
+            p.nombre,
+            c.nombre as categoria,
+            p.es_perecible
+        FROM
+            producto p
+        INNER JOIN categoria c ON c.id = p.id_categoria
+        WHERE
+            p.estado = :estado AND
+            c.tipo_requerimiento = :tipo_bien
+        ORDER BY p.nombre ASC
+        ';
+
+        return DB::select($sql, [
+            'estado' => EstadoBase::Activo->value,
+            'tipo_bien' => 'Bien',
+        ]);
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Categoria;
+use App\Shared\Enums\EstadoBase;
 use App\Shared\Responses\ApiResponse;
 
 class CategoriaService
@@ -27,7 +28,7 @@ class CategoriaService
     public function crear_categoria(string $nombre, ?string $descripcion, string $tipo_requerimiento, ?string $clasificacion_bien)
     {
         // Validar nombre duplicado
-        if (Categoria::whereRaw('LOWER(nombre) = LOWER(?)', [$nombre])->where('estado', \App\Shared\Enums\EstadoBase::Activo->value)->exists()) {
+        if (Categoria::whereRaw('LOWER(nombre) = LOWER(?)', [$nombre])->where('estado', EstadoBase::Activo->value)->exists()) {
             return ApiResponse::error('Ya existe una categoría con ese nombre');
         }
 
@@ -36,7 +37,7 @@ class CategoriaService
             'descripcion' => $descripcion,
             'tipo_requerimiento' => $tipo_requerimiento,
             'clasificacion_bien' => $clasificacion_bien,
-            'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
+            'estado' => EstadoBase::Activo->value,
         ]);
 
         return ApiResponse::success($categoria);
@@ -50,7 +51,7 @@ class CategoriaService
         }
 
         // Validar nombre duplicado excluyendo la categoría actual
-        if (Categoria::whereRaw('LOWER(nombre) = LOWER(?)', [$nombre])->where('estado', \App\Shared\Enums\EstadoBase::Activo->value)->where('id', '!=', $id)->exists()) {
+        if (Categoria::whereRaw('LOWER(nombre) = LOWER(?)', [$nombre])->where('estado', EstadoBase::Activo->value)->where('id', '!=', $id)->exists()) {
             return ApiResponse::error('Ya existe otra categoría con ese nombre');
         }
 
@@ -71,7 +72,7 @@ class CategoriaService
             return ApiResponse::error('Categoria no encontrada');
         }
 
-        $categoria->update(['estado' => \App\Shared\Enums\EstadoBase::Inactivo->value]);
+        $categoria->update(['estado' => EstadoBase::Inactivo->value]);
 
         return ApiResponse::success(['mensaje' => 'Categoria eliminada correctamente']);
     }

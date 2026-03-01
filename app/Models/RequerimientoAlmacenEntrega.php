@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class RequerimientoAlmacenEntrega extends Model
 {
@@ -24,4 +25,27 @@ class RequerimientoAlmacenEntrega extends Model
         'created_at',
         'estado',
     ];
+
+    public static function get_entregas_by_detalle(int $id_detalle)
+    {
+        $sql = "
+        SELECT 
+            ea.id AS id_entrega,
+            CONCAT(ea.correlativo, '-', DATE_FORMAT(ea.created_at, '%y'), '-', LPAD(ea.numero_correlativo, 5, '0')) AS codigo_entrega,
+            ea.fecha_entrega,
+            ead.cantidad,
+            CONCAT(emp.nombre, ' ', emp.apellido) AS usuario_entrega
+        FROM 
+            entrega_almacen_detalle ead
+        INNER JOIN entrega_almacen ea ON ea.id = ead.id_entrega_almacen
+        INNER JOIN usuario u ON u.id = ea.id_usuario_entrega
+        INNER JOIN empleado emp ON emp.id = u.id_empleado
+        WHERE 
+            ead.id_requerimiento_almacen_detalle = :id_detalle
+        ORDER BY 
+            ea.fecha_entrega DESC
+        ";
+
+        return DB::select($sql, ['id_detalle' => $id_detalle]);
+    }
 }
