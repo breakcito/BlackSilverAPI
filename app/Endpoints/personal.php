@@ -1,7 +1,7 @@
 <?php
 
-use App\Modules\Personal\Controllers\CargoController;
-use App\Modules\Personal\Controllers\EmpleadoController;
+use App\Controllers\CargoController;
+use App\Controllers\EmpleadoController;
 use Illuminate\Support\Facades\Route;
 
 /*

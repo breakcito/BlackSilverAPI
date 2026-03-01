@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Modules\Menu\Services;
+namespace App\Services;
 
-use App\Modules\Menu\Models\Modulo;
-use App\Modules\Menu\Models\Submodulo;
-use App\Modules\Menu\Models\Seccion;
+use App\Models\Modulo;
+use App\Models\Seccion;
+use App\Models\Submodulo;
 use App\Shared\Responses\ApiResponse;
 
 /**
@@ -34,7 +34,7 @@ class MenuService
                         return [
                             'id_seccion' => $seccion->id_seccion,
                             'nombre' => $seccion->nombre,
-                            'url' => '/' . $modulo->path . '/' . $submodulo->path . '/' . $seccion->path,
+                            'url' => '/'.$modulo->path.'/'.$submodulo->path.'/'.$seccion->path,
                         ];
                     }, $secciones),
                 ];

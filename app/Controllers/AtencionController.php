@@ -1,19 +1,17 @@
 <?php
 
-namespace App\Modules\RequerimientosAlmacen\Controllers;
+namespace App\Controllers;
 
-use Illuminate\Routing\Controller;
-use App\Modules\RequerimientosAlmacen\Services\AtencionService;
+use App\Services\AtencionService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
 
 class AtencionController extends Controller
 {
-    public function __construct(private AtencionService $atencionService)
-    {
-    }
+    public function __construct(private AtencionService $atencionService) {}
 
     /**
      * Listado de requerimientos para atención por almacén.
@@ -21,12 +19,13 @@ class AtencionController extends Controller
     public function obtener_requerimientos_atencion(Request $request): JsonResponse
     {
         $id_almacen = $request->input('id_almacen');
-        if (!$id_almacen) {
+        if (! $id_almacen) {
             return response()->json(ApiResponse::error('El id_almacen es requerido'), 400);
         }
 
         $estado = $request->input('estado');
-        $result = $this->atencionService->obtener_requerimientos_atencion((int)$id_almacen, $estado);
+        $result = $this->atencionService->obtener_requerimientos_atencion((int) $id_almacen, $estado);
+
         return response()->json($result);
     }
 
@@ -37,8 +36,8 @@ class AtencionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id_requerimiento_almacen_detalle' => 'required|integer',
-            'nuevo_estado'                     => 'required|string',
-            'comentario_rechazo'               => 'nullable|string'
+            'nuevo_estado' => 'required|string',
+            'comentario_rechazo' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -46,13 +45,13 @@ class AtencionController extends Controller
         }
 
         $authUser = $request->attributes->get('auth_user');
-        if (!$authUser) {
+        if (! $authUser) {
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
         $result = $this->atencionService->cambiar_estado_detalle(
             $authUser->id_usuario,
-            (int)$request->id_requerimiento_almacen_detalle,
+            (int) $request->id_requerimiento_almacen_detalle,
             $request->nuevo_estado,
             $request->comentario_rechazo
         );
@@ -68,11 +67,12 @@ class AtencionController extends Controller
         $id_producto = $request->input('id_producto');
         $id_almacen = $request->input('id_almacen');
 
-        if (!$id_producto || !$id_almacen) {
+        if (! $id_producto || ! $id_almacen) {
             return response()->json(ApiResponse::error('id_producto e id_almacen son requeridos'), 400);
         }
 
-        $result = $this->atencionService->obtener_lotes_disponibles((int)$id_producto, (int)$id_almacen);
+        $result = $this->atencionService->obtener_lotes_disponibles((int) $id_producto, (int) $id_almacen);
+
         return response()->json($result);
     }
 
@@ -83,12 +83,12 @@ class AtencionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id_requerimiento' => 'required|integer',
-            'fecha_entrega'    => 'required|date',
-            'observacion'      => 'nullable|string',
-            'detalles'         => 'required|array|min:1',
+            'fecha_entrega' => 'required|date',
+            'observacion' => 'nullable|string',
+            'detalles' => 'required|array|min:1',
             'detalles.*.id_requerimiento_almacen_detalle' => 'required|integer',
-            'detalles.*.id_lote'                          => 'required|integer',
-            'detalles.*.cantidad'                         => 'required|numeric|min:0.01'
+            'detalles.*.id_lote' => 'required|integer',
+            'detalles.*.cantidad' => 'required|numeric|min:0.01',
         ]);
 
         if ($validator->fails()) {
@@ -96,13 +96,13 @@ class AtencionController extends Controller
         }
 
         $authUser = $request->attributes->get('auth_user');
-        if (!$authUser) {
+        if (! $authUser) {
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
         $result = $this->atencionService->registrar_entrega(
             $authUser->id_usuario,
-            (int)$request->id_requerimiento,
+            (int) $request->id_requerimiento,
             $request->fecha_entrega,
             $request->observacion,
             $request->detalles
@@ -117,11 +117,12 @@ class AtencionController extends Controller
     public function obtener_historial_entregas_por_item(Request $request): JsonResponse
     {
         $id_detalle = $request->input('id_requerimiento_almacen_detalle');
-        if (!$id_detalle) {
+        if (! $id_detalle) {
             return response()->json(ApiResponse::error('El id_requerimiento_almacen_detalle es requerido'), 400);
         }
 
-        $result = $this->atencionService->obtener_historial_entregas_por_item((int)$id_detalle);
+        $result = $this->atencionService->obtener_historial_entregas_por_item((int) $id_detalle);
+
         return response()->json($result);
     }
 }

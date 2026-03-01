@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\DB;
 class RequerimientoAlmacenDetalleLog extends Model
 {
     protected $table = 'requerimiento_almacen_detalle_log';
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_requerimiento_almacen_detalle',
         'id_empleado', // quien provoco el cambio
@@ -27,7 +29,7 @@ class RequerimientoAlmacenDetalleLog extends Model
         EstadoDetalleRequerimiento $estado,
         ?string $dinamico = null
     ) {
-        return DB::table('requerimiento_almacen_detalle_log')->insert([
+        return self::insert([
             'id_requerimiento_almacen_detalle' => $id_requerimiento_almacen_detalle,
             'id_usuario' => $id_usuario,
             'glosa' => $estado->getGlosa($dinamico),

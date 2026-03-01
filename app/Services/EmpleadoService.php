@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Modules\Personal\Services;
+namespace App\Services;
 
-use App\Modules\Personal\Models\Empleado;
+use App\Models\Empleado;
 use App\Shared\Responses\ApiResponse;
-use Illuminate\Support\Facades\DB;
 
 class EmpleadoService
 {
@@ -30,8 +29,7 @@ class EmpleadoService
         ?string $pasaporte,
         ?string $fecha_nacimiento,
         ?string $path_foto
-    )
-    {
+    ) {
         // Validar DNI único
         if ($dni && Empleado::verificar_documento_existente('dni', $dni)) {
             return ApiResponse::error('Ya existe un empleado con este DNI.');

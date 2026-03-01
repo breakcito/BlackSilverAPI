@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Modules\RequerimientosAlmacen\Services;
+namespace App\Services;
 
-use App\Modules\RequerimientosAlmacen\Models\RequerimientoAlmacen;
-use App\Modules\RequerimientosAlmacen\Models\RequerimientoAlmacenDetalle;
-use App\Modules\RequerimientosAlmacen\Models\RequerimientoAlmacenLabor;
-use App\Modules\RequerimientosAlmacen\Models\RequerimientoAlmacenDetalleLog;
+use App\Models\RequerimientoAlmacen;
+use App\Models\RequerimientoAlmacenDetalle;
+use App\Models\RequerimientoAlmacenDetalleLog;
+use App\Models\RequerimientoAlmacenLabor;
 use App\Shared\Helpers\CorrelativoHelper;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Support\Facades\DB;
@@ -49,8 +49,9 @@ class RequerimientoService
             $detalles
         ) {
             // 1. Generar Correlativo
-            $nuevo_numero = CorrelativoHelper::proximoNumero('requerimiento_almacen', 'numero_correlativo', true);
-            $correlativo = 'REQ';
+            $correlativoData = CorrelativoHelper::generar('requerimiento_almacen', 'REQ', [], 5, \App\Shared\Enums\Periodo::Anual);
+            $nuevo_numero = $correlativoData['numero_correlativo'];
+            $correlativo = $correlativoData['correlativo'];
 
             // 2. Crear Cabecera
             $id_requerimiento = RequerimientoAlmacen::crear_requerimiento(
@@ -64,7 +65,7 @@ class RequerimientoService
             );
 
             // 2.1. Asociar Labores (M:N)
-            if (!empty($id_labores)) {
+            if (! empty($id_labores)) {
                 RequerimientoAlmacenLabor::asociar_labores($id_requerimiento, $id_labores);
             }
 
@@ -81,7 +82,7 @@ class RequerimientoService
 
                 // Registrar log inicial (Pendiente)
                 RequerimientoAlmacenDetalleLog::registrar_log(
-                    (int)$id_detalle,
+                    (int) $id_detalle,
                     $id_usuario_solicitante,
                     \App\Shared\Enums\EstadoDetalleRequerimiento::Pendiente
                 );
@@ -109,9 +110,9 @@ class RequerimientoService
     public function get_requerimiento_por_id(int $id)
     {
         $data = RequerimientoAlmacen::get_requerimiento_by_id($id);
-        
-        if (!$data) {
-            return ApiResponse::error('Requerimiento no encontrado', 404);
+
+        if (! $data) {
+            return ApiResponse::error('Requerimiento no encontrado');
         }
 
         return ApiResponse::success($data);
@@ -120,6 +121,7 @@ class RequerimientoService
     public function get_trazabilidad_detalle(int $id_detalle)
     {
         $data = RequerimientoAlmacenDetalleLog::get_trazabilidad($id_detalle);
+
         return ApiResponse::success($data);
     }
 }

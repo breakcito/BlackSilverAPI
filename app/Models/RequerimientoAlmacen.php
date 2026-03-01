@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\DB;
 class RequerimientoAlmacen extends Model
 {
     protected $table = 'requerimiento_almacen';
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_empleado_solicitante',
         'id_mina', // la mina que necesita los productos
@@ -91,7 +93,7 @@ class RequerimientoAlmacen extends Model
         string $premura,
         ?string $fecha_entrega_requerida
     ) {
-        return DB::table('requerimiento_almacen')->insertGetId([
+        return self::insertGetId([
             'id_usuario_solicitante' => $id_usuario_solicitante,
             'id_mina' => $id_mina,
             'id_almacen_destino' => $id_almacen_destino,
@@ -144,8 +146,7 @@ class RequerimientoAlmacen extends Model
 
     public static function actualizar_estado(int $id, string $estado)
     {
-        return DB::table('requerimiento_almacen')
-            ->where('id', $id)
+        return self::where('id', $id)
             ->update(['estado' => $estado]);
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-use App\Modules\PrestamosAlmacen\Controllers\PrestamoController;
+use App\Controllers\PrestamoController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -10,11 +10,11 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware('auth.jwt.custom')->group(function () {
-    
+
     // Rutas para el Almacén que Solicita
     Route::get('/prestamos', [PrestamoController::class, 'get_prestamos']);
     Route::post('/prestamos', [PrestamoController::class, 'crear_prestamo']);
-    
+
     // Búsqueda de stock en otros almacenes (para el carrito)
     Route::post('/prestamos/buscar-stock', [PrestamoController::class, 'buscar_stock_global']);
 
@@ -25,4 +25,3 @@ Route::middleware('auth.jwt.custom')->group(function () {
     // --- Atencion de Prestamos (Se implementará en la siguiente fase) ---
     // Route::post('/prestamos/atencion/obtener-pendientes', [AtencionPrestamoController::class, '...']);
 });
-

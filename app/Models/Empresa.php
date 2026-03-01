@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\DB;
 class Empresa extends Model
 {
     protected $table = 'empresa';
+
     public $timestamps = false;
+
     protected $fillable = [
         'ruc',
         'razon_social',
@@ -97,8 +99,7 @@ class Empresa extends Model
      */
     public static function verificar_empresa_existente(string $ruc, ?int $id_excluir = null)
     {
-        $query = DB::table('empresa')
-            ->where('ruc', $ruc);
+        $query = self::where('ruc', $ruc);
 
         if ($id_excluir) {
             $query->where('id', '!=', $id_excluir);
@@ -112,7 +113,7 @@ class Empresa extends Model
      */
     public static function crear_empresa(string $ruc, string $razon_social, string $nombre_comercial, string $abreviatura, string $path_logo)
     {
-        return DB::table('empresa')->insertGetId([
+        return self::insertGetId([
             'ruc' => $ruc,
             'razon_social' => $razon_social,
             'nombre_comercial' => $nombre_comercial,

@@ -16,7 +16,7 @@ class PrestamoAlmacenDetalleLog extends Model
         EstadoDetallePrestamo $estado,
         ?string $dinamico = null
     ) {
-        return DB::table('prestamo_almacen_detalle_log')->insert([
+        return self::insert([
             'id_prestamo_almacen_detalle' => $id_prestamo_detalle,
             'id_usuario' => $id_usuario,
             'glosa' => $estado->getGlosa($dinamico),

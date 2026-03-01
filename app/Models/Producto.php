@@ -9,10 +9,12 @@ use Illuminate\Support\Facades\DB;
 class Producto extends Model
 {
     protected $table = 'producto';
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_categoria',
-        // indica la unidad de medida base que se usa para 
+        // indica la unidad de medida base que se usa para
         // manipular/calcula/estimar en el dia a dia
         'id_unidad_medida_base',
         'nombre',
@@ -74,8 +76,7 @@ class Producto extends Model
      */
     public static function verificar_producto_existente(string $nombre, ?int $id_excluir = null)
     {
-        $query = DB::table('producto')
-            ->where('nombre', $nombre)
+        $query = self::where('nombre', $nombre)
             ->where('estado', '!=', EstadoBase::Inactivo->value);
 
         if ($id_excluir) {
@@ -94,7 +95,7 @@ class Producto extends Model
         bool $es_fiscalizado,
         bool $es_perecible
     ) {
-        return DB::table('producto')->insertGetId([
+        return self::insertGetId([
             'id_categoria' => $id_categoria,
             'nombre' => $nombre,
             'es_fiscalizado' => $es_fiscalizado ? 1 : 0,

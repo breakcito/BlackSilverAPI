@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\DB;
 class Concesion extends Model
 {
     protected $table = 'concesion';
+
     public $timestamps = false;
+
     protected $fillable = [
         'nombre',
         'codigo_concesion',
@@ -103,163 +105,9 @@ class Concesion extends Model
         ]);
     }
 
-    // crear una concesion (Campos actualizados)
-    public static function crear_concesion(string $nombre, ?string $codigo_concesion, ?string $codigo_reinfo, ?string $ubigeo, ?string $tipo_mineral)
-    {
-        return DB::table('concesion')->insertGetId([
-            'nombre' => $nombre,
-            'codigo_concesion' => $codigo_concesion,
-            'codigo_reinfo' => $codigo_reinfo,
-            'ubigeo' => $ubigeo,
-            'tipo_mineral' => $tipo_mineral,
-            'estado' => EstadoBase::Activo->value,
-        ]);
-    }
-
-    // verificar que no exista una concesion con el mismo nombre (Global, ya no por empresa)
-    public static function verificar_concesion_existente(string $nombre, ?int $id_excluir = null)
-    {
-        $query = DB::table('concesion')
-            ->where('nombre', $nombre)
-            ->where('estado', EstadoBase::Activo->value);
-
-        if ($id_excluir) {
-            $query->where('id', '!=', $id_excluir);
-        }
-
-        return $query->exists();
-    }
-
-    // actualizar una concesion
-    public static function update_concesion(int $id, string $nombre)
-    {
-        return DB::table('concesion')
-            ->where('id', $id)
-            ->update([
-                'nombre' => $nombre,
-            ]);
-    }
-
-    // eliminar (desactivar) una concesion
-    public static function delete_concesion(int $id)
-    {
-        return DB::table('concesion')
-            ->where('id', $id)
-            ->update([
-                'estado' => EstadoBase::Inactivo->value,
-            ]);
-    }
-
-    // obtener concesion por id
-    public static function get_concesion_by_id(int $id)
-    {
-        $sql = '
-        SELECT
-            cn.id AS id_concesion,
-            cn.nombre,
-            cn.codigo_concesion,
-            cn.codigo_reinfo,
-            cn.ubigeo,
-            cn.tipo_mineral,
-            cn.estado
-        FROM
-            concesion cn
-        WHERE
-            cn.id = :id AND
-            cn.estado = :estado
-        ';
-
-        return DB::selectOne($sql, [
-            'id' => $id,
-            'estado' => EstadoBase::Activo->value,
-        ]);
-    }
+    // Métodos retirados a ConcesionService.php
 
     // --- MÉTODOS PARA ASIGNACIÓN DE EMPRESAS (N:M) ---
-
-    // Asignar una empresa a una concesion (Crear contrato)
-    public static function asignar_empresa(int $id_concesion, int $id_empresa, string $fecha_inicio, ?string $fecha_fin)
-    {
-        return DB::table('contrato_concesion')->insertGetId([
-            'id_concesion' => $id_concesion,
-            'id_empresa' => $id_empresa,
-            'fecha_inicio' => $fecha_inicio,
-            'fecha_fin' => $fecha_fin,
-            'estado' => EstadoBase::Activo->value,
-        ]);
-    }
-
-    // Obtener empresas asignadas a una concesion (Contratos activos)
-    public static function get_empresas_asignadas(int $id_concesion)
-    {
-        $sql = '
-        SELECT
-            cc.id AS id_contrato,
-            cc.id_empresa,
-            e.nombre_comercial,
-            e.ruc,
-            e.path_logo,
-            cc.fecha_inicio,
-            cc.fecha_fin,
-            cc.estado
-        FROM
-            contrato_concesion cc
-        INNER JOIN empresa e ON e.id = cc.id_empresa
-        WHERE
-            cc.id_concesion = :id_concesion AND
-            cc.estado = :estado
-        ORDER BY cc.fecha_inicio DESC
-        ';
-
-        return DB::select($sql, [
-            'id_concesion' => $id_concesion,
-            'estado' => EstadoBase::Activo->value,
-        ]);
-    }
-
-    // Obtener historial de empresas asignadas a una concesion (Todas: Activas e Inactivas)
-    public static function get_empresas_historial(int $id_concesion)
-    {
-        $sql = '
-        SELECT
-            cc.id AS id_contrato,
-            cc.id_empresa,
-            e.nombre_comercial,
-            e.ruc,
-            e.path_logo,
-            cc.fecha_inicio,
-            cc.fecha_fin,
-            cc.estado
-        FROM
-            contrato_concesion cc
-        INNER JOIN empresa e ON e.id = cc.id_empresa
-        WHERE
-            cc.id_concesion = :id_concesion
-        ORDER BY cc.estado ASC, cc.fecha_inicio DESC
-        ';
-
-        return DB::select($sql, [
-            'id_concesion' => $id_concesion,
-        ]);
-    }
-
-    // Verificar si una empresa ya tiene una asignación activa en el rango de fechas (simple check de solapamiento)
-    public static function verificar_asignacion_activa(int $id_concesion, int $id_empresa)
-    {
-        return DB::table('contrato_concesion')
-            ->where('id_concesion', $id_concesion)
-            ->where('id_empresa', $id_empresa)
-            ->where('estado', EstadoBase::Activo->value)
-            ->exists();
-    }
-
-    // Desasignar (eliminación lógica)
-    public static function desasignar_empresa(int $id_contrato)
-    {
-        return DB::table('contrato_concesion')
-            ->where('id', $id_contrato)
-            ->update(['estado' => EstadoBase::Inactivo->value]);
-    }
 
     /**
      * Verificar si la empresa tiene contrato vigente en la concesión.

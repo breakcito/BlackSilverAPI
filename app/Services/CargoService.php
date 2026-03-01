@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Modules\Personal\Services;
+namespace App\Services;
 
-use App\Modules\Personal\Models\Cargo;
+use App\Models\Cargo;
 use App\Shared\Responses\ApiResponse;
 
 class CargoService

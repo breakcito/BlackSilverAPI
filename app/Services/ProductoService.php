@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Modules\Inventario\Services;
+namespace App\Services;
 
-use App\Modules\Inventario\Models\Producto;
+use App\Models\Producto;
 use App\Shared\Responses\ApiResponse;
 
 class ProductoService
@@ -13,14 +13,15 @@ class ProductoService
     public function get_productos()
     {
         $productos = Producto::get_productos();
-        
+
         // Formatear booleans para que el front lo reciba limpio
         $productos = array_map(function ($producto) {
             $producto->es_fiscalizado = (bool) $producto->es_fiscalizado;
-            $producto->es_perecible   = (bool) $producto->es_perecible;
+            $producto->es_perecible = (bool) $producto->es_perecible;
+
             return $producto;
         }, $productos);
-        
+
         return ApiResponse::success($productos);
     }
 
@@ -37,10 +38,10 @@ class ProductoService
         $id = Producto::crear_producto($id_categoria, $nombre, $es_fiscalizado, $es_perecible);
 
         $producto = Producto::get_producto_by_id($id);
-        
+
         if ($producto) {
             $producto->es_fiscalizado = (bool) $producto->es_fiscalizado;
-            $producto->es_perecible   = (bool) $producto->es_perecible;
+            $producto->es_perecible = (bool) $producto->es_perecible;
         }
 
         return ApiResponse::success($producto, 'Producto registrado correctamente');

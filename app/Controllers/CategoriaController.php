@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Modules\Inventario\Controllers;
+namespace App\Controllers;
 
-use App\Modules\Inventario\Services\CategoriaService;
+use App\Services\CategoriaService;
 use App\Shared\Enums\ClasificacionBien;
 use App\Shared\Enums\TipoRequerimiento;
 use App\Shared\Responses\ApiResponse;
@@ -11,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Enum;
-use Illuminate\Validation\Rule;
 
 class CategoriaController extends Controller
 {
@@ -23,16 +22,18 @@ class CategoriaController extends Controller
     {
         $tipo_requerimiento = $request->query('tipo_requerimiento');
         $result = $this->categoriaService->get_categorias($tipo_requerimiento);
+
         return response()->json($result);
     }
 
     public function get_categoria_by_id(Request $request): JsonResponse
     {
         $id = $request->query('id');
-        if (!$id) {
+        if (! $id) {
             return response()->json(ApiResponse::error('El id es requerido'), 400);
         }
-        $result = $this->categoriaService->get_categoria_by_id((int)$id);
+        $result = $this->categoriaService->get_categoria_by_id((int) $id);
+
         return response()->json($result);
     }
 
@@ -62,6 +63,7 @@ class CategoriaController extends Controller
             $data['tipo_requerimiento'],
             $data['clasificacion_bien'] ?? null
         );
+
         return response()->json($result);
     }
 
@@ -92,16 +94,18 @@ class CategoriaController extends Controller
             $data['tipo_requerimiento'],
             $data['clasificacion_bien'] ?? null
         );
+
         return response()->json($result);
     }
 
     public function delete_categoria(Request $request): JsonResponse
     {
         $id = $request->input('id');
-        if (!$id) {
+        if (! $id) {
             return response()->json(ApiResponse::error('El id es requerido'), 400);
         }
-        $result = $this->categoriaService->delete_categoria((int)$id);
+        $result = $this->categoriaService->delete_categoria((int) $id);
+
         return response()->json($result);
     }
 }

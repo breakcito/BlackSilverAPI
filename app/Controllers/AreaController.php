@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Empresas\Controllers;
+namespace App\Controllers;
 
 use Illuminate\Routing\Controller;
 

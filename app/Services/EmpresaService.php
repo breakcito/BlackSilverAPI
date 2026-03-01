@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Modules\Empresas\Services;
+namespace App\Services;
 
-use App\Modules\Empresas\Models\Empresa;
+use App\Models\Empresa;
 use App\Shared\Responses\ApiResponse;
 
 class EmpresaService
@@ -10,12 +10,14 @@ class EmpresaService
     public function get_empresas()
     {
         $empresas = Empresa::get_empresas();
+
         return ApiResponse::success($empresas);
     }
 
     public function get_empresas_by_usuario(int $id_usuario)
     {
         $empresas = Empresa::get_empresas_by_usuario($id_usuario);
+
         return ApiResponse::success($empresas);
     }
 
@@ -31,7 +33,7 @@ class EmpresaService
 
         // 2. Crear
         $id = Empresa::crear_empresa($ruc, $razon_social, $nombre_comercial, $abreviatura, $path_logo);
-        
+
         return ApiResponse::success(Empresa::get_empresa_by_id($id), 'Empresa creada correctamente');
     }
 
@@ -39,6 +41,7 @@ class EmpresaService
     {
         // Validar si existe la empresa sería ideal, pero por eficiencia vamos directo.
         $usuarios = Empresa::get_usuarios_por_empresa($id_empresa);
+
         return ApiResponse::success($usuarios);
     }
 }

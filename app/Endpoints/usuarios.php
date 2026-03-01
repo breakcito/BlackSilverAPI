@@ -1,6 +1,6 @@
 <?php
 
-use App\Modules\Usuarios\Controllers\UsuarioController;
+use App\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
 // Login (sin autenticación)

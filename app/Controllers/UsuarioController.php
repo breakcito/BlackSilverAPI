@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Modules\Usuarios\Controllers;
+namespace App\Controllers;
 
-use App\Modules\Usuarios\Services\UsuarioService;
+use App\Services\UsuarioService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

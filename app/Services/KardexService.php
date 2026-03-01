@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Modules\Inventario\Services;
+namespace App\Services;
 
-use App\Modules\Inventario\Models\KardexProducto;
+use App\Models\KardexProducto;
 use App\Shared\Responses\ApiResponse;
 
 class KardexService
@@ -13,6 +13,7 @@ class KardexService
     public function get_movimientos(int $id_almacen)
     {
         $movimientos = KardexProducto::get_kardex_by_almacen($id_almacen);
+
         return ApiResponse::success($movimientos);
     }
 }

@@ -4,12 +4,13 @@ namespace App\Models;
 
 use App\Shared\Enums\EstadoRequerimiento;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class RequerimientoAlmacenEntrega extends Model
 {
     protected $table = 'requerimiento_almacen_entrega'; // entrega_almacen
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_requerimiento_almacen',
         'id_empleado_entrega', // quien entrega los productos
@@ -34,7 +35,7 @@ class RequerimientoAlmacenEntrega extends Model
         ?string $observacion = null,
         ?string $evidencias = null
     ) {
-        return DB::table('entrega_almacen')->insertGetId([
+        return self::insertGetId([
             'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
             'id_usuario_entrega' => $id_usuario_entrega,

@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\DB;
 class KardexProducto extends Model
 {
     protected $table = 'kardex_producto';
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_lote_producto',
         'id_origen',
@@ -72,7 +74,7 @@ class KardexProducto extends Model
         float $cantidad_resultante,
         ?string $glosa
     ) {
-        return DB::table('kardex_producto')->insertGetId([
+        return self::insertGetId([
             'id_lote_producto' => $id_lote_producto,
             'id_cabecera' => $id_cabecera,
             'codigo_movimiento' => $codigo_movimiento,

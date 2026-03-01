@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\DB;
 class PrestamoAlmacen extends Model
 {
     protected $table = 'prestamo_almacen';
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_solicitud_reabastecimiento',
         'id_almacen_prestamista',
@@ -23,7 +25,7 @@ class PrestamoAlmacen extends Model
         'estado',
     ];
 
-    public static function get_prestamos(int $id_almacen_solicitante, ?string $estado = null)
+    public static function get_prestamos(int $id_almacen_solicitante, ?string $estado = null, ?string $mes = null, ?string $anio = null)
     {
         $sql = "
         SELECT
@@ -53,6 +55,18 @@ class PrestamoAlmacen extends Model
             $params['estado'] = $estado;
         }
 
+        if ($mes && $anio) {
+            $sql .= ' AND MONTH(pa.created_at) = :mes AND YEAR(pa.created_at) = :anio';
+            $params['mes'] = $mes;
+            $params['anio'] = $anio;
+        } elseif ($mes) {
+            $sql .= ' AND MONTH(pa.created_at) = :mes';
+            $params['mes'] = $mes;
+        } elseif ($anio) {
+            $sql .= ' AND YEAR(pa.created_at) = :anio';
+            $params['anio'] = $anio;
+        }
+
         $sql .= ' ORDER BY pa.created_at DESC';
 
         return DB::select($sql, $params);
@@ -66,7 +80,7 @@ class PrestamoAlmacen extends Model
         ?string $motivo,
         string $fecha_prestamo
     ) {
-        return DB::table('prestamo_almacen')->insertGetId([
+        return self::insertGetId([
             'id_almacen_solicitante' => $id_almacen_solicitante,
             'id_usuario_solicitante' => $id_usuario_solicitante,
             'correlativo' => $correlativo,

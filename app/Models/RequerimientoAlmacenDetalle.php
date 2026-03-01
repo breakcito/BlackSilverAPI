@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\DB;
 class RequerimientoAlmacenDetalle extends Model
 {
     protected $table = 'requerimiento_almacen_detalle';
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_requerimiento_almacen',
         'id_producto',
@@ -33,7 +35,7 @@ class RequerimientoAlmacenDetalle extends Model
         float $cantidad_solicitada,
         ?string $comentario
     ) {
-        return DB::table('requerimiento_almacen_detalle')->insertGetId([
+        return self::insertGetId([
             'id_requerimiento' => $id_requerimiento,
             'id_producto' => $id_producto,
             'id_unidad_medida' => $id_unidad_medida,
@@ -92,15 +94,13 @@ class RequerimientoAlmacenDetalle extends Model
             $data['comentario_rechazo'] = $comentario_rechazo;
         }
 
-        return DB::table('requerimiento_almacen_detalle')
-            ->where('id', $id_detalle)
+        return self::where('id', $id_detalle)
             ->update($data);
     }
 
     public static function actualizar_cantidad_atendida(int $id_detalle, float $cantidad)
     {
-        return DB::table('requerimiento_almacen_detalle')
-            ->where('id', $id_detalle)
+        return self::where('id', $id_detalle)
             ->increment('cantidad_atendida', $cantidad);
     }
 }

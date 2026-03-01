@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class RequerimientoAlmacenEntregaDetalle extends Model
 {
     protected $table = 'requerimiento_almacen_entrega_detalle'; // entrega_almacen_detalle
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_requerimiento_almacen_entrega',
         'id_requerimiento_almacen_detalle',
@@ -23,7 +24,7 @@ class RequerimientoAlmacenEntregaDetalle extends Model
         int $id_lote,
         float $cantidad
     ) {
-        return DB::table('entrega_almacen_detalle')->insert([
+        return self::insert([
             'id_entrega_almacen' => $id_entrega_almacen,
             'id_requerimiento_almacen_detalle' => $id_requerimiento_almacen_detalle,
             'id_lote' => $id_lote,

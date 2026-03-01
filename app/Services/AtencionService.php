@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Modules\RequerimientosAlmacen\Services;
+namespace App\Services;
 
-use App\Modules\RequerimientosAlmacen\Models\EntregaAlmacen;
-use App\Modules\RequerimientosAlmacen\Models\EntregaAlmacenDetalle;
-use App\Modules\RequerimientosAlmacen\Models\RequerimientoAlmacen;
-use App\Modules\RequerimientosAlmacen\Models\RequerimientoAlmacenDetalle;
-use App\Modules\RequerimientosAlmacen\Models\RequerimientoAlmacenDetalleLog;
-use App\Modules\Inventario\Models\LoteProducto;
-use App\Modules\Inventario\Models\KardexProducto;
+use App\Models\KardexProducto;
+use App\Models\LoteProducto;
+use App\Models\RequerimientoAlmacen;
+use App\Models\RequerimientoAlmacenDetalle;
+use App\Models\RequerimientoAlmacenDetalleLog;
+use App\Models\RequerimientoAlmacenEntrega;
+use App\Models\RequerimientoAlmacenEntregaDetalle;
+use App\Shared\Enums\CodigoMovimiento;
 use App\Shared\Enums\EstadoDetalleRequerimiento;
 use App\Shared\Enums\EstadoRequerimiento;
-use App\Shared\Enums\CodigoMovimiento;
 use App\Shared\Enums\TipoMovimiento;
 use App\Shared\Helpers\CorrelativoHelper;
 use App\Shared\Responses\ApiResponse;
@@ -22,7 +22,7 @@ class AtencionService
     /**
      * Lista requerimientos filtrados por almacén de destino (Atención).
      */
-    public function obtener_requerimientos_atencion(int $id_almacen, ?string $estado = null)
+    public function obtener_requerimientos_atencion(int $id_almacen, ?string $estado = null, ?string $mes = null, ?string $anio = null)
     {
         $sql = "
         SELECT
@@ -47,12 +47,24 @@ class AtencionService
         ";
 
         $params = [
-            'id_almacen' => $id_almacen
+            'id_almacen' => $id_almacen,
         ];
 
         if ($estado) {
             $sql .= ' AND ra.estado = :estado';
             $params['estado'] = $estado;
+        }
+
+        if ($mes && $anio) {
+            $sql .= ' AND MONTH(ra.created_at) = :mes AND YEAR(ra.created_at) = :anio';
+            $params['mes'] = $mes;
+            $params['anio'] = $anio;
+        } elseif ($mes) {
+            $sql .= ' AND MONTH(ra.created_at) = :mes';
+            $params['mes'] = $mes;
+        } elseif ($anio) {
+            $sql .= ' AND YEAR(ra.created_at) = :anio';
+            $params['anio'] = $anio;
         }
 
         $sql .= " ORDER BY 
@@ -66,6 +78,7 @@ class AtencionService
             ra.created_at ASC";
 
         $data = DB::select($sql, $params);
+
         return ApiResponse::success($data);
     }
 
@@ -75,7 +88,7 @@ class AtencionService
     public function cambiar_estado_detalle(int $id_usuario, int $id_detalle, string $nuevo_estado, ?string $comentario_rechazo = null)
     {
         return DB::transaction(function () use ($id_usuario, $id_detalle, $nuevo_estado, $comentario_rechazo) {
-            
+
             RequerimientoAlmacenDetalle::actualizar_estado($id_detalle, $nuevo_estado, $comentario_rechazo);
 
             // Determinar el Enum para el log
@@ -122,7 +135,7 @@ class AtencionService
 
         $data = DB::select($sql, [
             'id_producto' => $id_producto,
-            'id_almacen'  => $id_almacen
+            'id_almacen' => $id_almacen,
         ]);
 
         return ApiResponse::success($data);
@@ -139,9 +152,9 @@ class AtencionService
         array $detalles
     ) {
         return DB::transaction(function () use ($id_usuario, $id_requerimiento, $fecha_entrega, $observacion, $detalles) {
-            
+
             // 0. Obtener info del requerimiento para Glosa de Kardex
-            $reqInfo = DB::table('requerimiento_almacen as ra')
+            $reqInfo = RequerimientoAlmacen::from('requerimiento_almacen as ra')
                 ->join('mina as m', 'm.id', '=', 'ra.id_mina')
                 ->where('ra.id', $id_requerimiento)
                 ->select(
@@ -154,12 +167,12 @@ class AtencionService
 
             // 1. Generar Correlativo de Entrega
             $prefijo = 'ENTR';
-            $nuevo_numero = CorrelativoHelper::proximoNumero('entrega_almacen', 'numero_correlativo');
+            $correlativoData = CorrelativoHelper::generar('requerimiento_almacen_entrega', $prefijo, [], 5, \App\Shared\Enums\Periodo::Anual);
 
             // 2. Crear Cabecera de Entrega
-            $id_entrega = EntregaAlmacen::crear_entrega(
-                $prefijo,
-                $nuevo_numero,
+            $id_entrega = RequerimientoAlmacenEntrega::crear_entrega(
+                $correlativoData['correlativo'],
+                $correlativoData['numero_correlativo'],
                 $id_usuario,
                 $id_requerimiento,
                 $fecha_entrega,
@@ -173,12 +186,12 @@ class AtencionService
 
                 // 3. Obtener Lote para Kardex y Stock
                 $lote = LoteProducto::get_lote_by_id($id_lote);
-                if (!$lote || $lote->stock_actual < $cantidad_a_entregar) {
-                    throw new \Exception("Stock insuficiente en el lote " . ($lote->codigo_lote ?? $id_lote));
+                if (! $lote || $lote->stock_actual < $cantidad_a_entregar) {
+                    throw new \Exception('Stock insuficiente en el lote '.($lote->codigo_lote ?? $id_lote));
                 }
 
                 // 4. Crear Detalle de Entrega
-                EntregaAlmacenDetalle::crear_detalle_entrega(
+                RequerimientoAlmacenEntregaDetalle::crear_detalle_entrega(
                     $id_entrega,
                     $id_detalle_req,
                     $id_lote,
@@ -194,22 +207,22 @@ class AtencionService
                     $id_entrega,
                     CodigoMovimiento::Entrega->value,
                     TipoMovimiento::Salida->value,
-                    (float)$lote->stock_actual,
-                    (float)$cantidad_a_entregar,
-                    (float)($lote->stock_actual - $cantidad_a_entregar),
+                    (float) $lote->stock_actual,
+                    (float) $cantidad_a_entregar,
+                    (float) ($lote->stock_actual - $cantidad_a_entregar),
                     $glosa_kardex
                 );
 
                 // 6.5 Obtener estado original antes de incrementar cantidades para saber si es el primer despacho
-                $detalle_original = DB::table('requerimiento_almacen_detalle')->where('id', $id_detalle_req)->first();
+                $detalle_original = RequerimientoAlmacenDetalle::where('id', $id_detalle_req)->first();
 
                 // 7. Actualizar Requerimiento (Cantidad Atendida)
                 RequerimientoAlmacenDetalle::actualizar_cantidad_atendida($id_detalle_req, $cantidad_a_entregar);
 
                 // 8. Actualizar Estado del Detalle
-                $detalle_req = DB::table('requerimiento_almacen_detalle')->where('id', $id_detalle_req)->first();
-                $nuevo_estado_item = ($detalle_req->cantidad_atendida >= $detalle_req->cantidad_solicitada) 
-                    ? EstadoDetalleRequerimiento::Completado 
+                $detalle_req = RequerimientoAlmacenDetalle::where('id', $id_detalle_req)->first();
+                $nuevo_estado_item = ($detalle_req->cantidad_atendida >= $detalle_req->cantidad_solicitada)
+                    ? EstadoDetalleRequerimiento::Completado
                     : EstadoDetalleRequerimiento::DespachoIniciado;
 
                 RequerimientoAlmacenDetalle::actualizar_estado($id_detalle_req, $nuevo_estado_item->value);
@@ -228,7 +241,7 @@ class AtencionService
                     $id_detalle_req,
                     $id_usuario,
                     EstadoDetalleRequerimiento::NuevaEntrega,
-                    (string)$cantidad_a_entregar
+                    (string) $cantidad_a_entregar
                 );
 
                 // 9.1. Si con esta entrega se completó lo solicitado, registrar el log de Completado
@@ -242,8 +255,7 @@ class AtencionService
             }
 
             // 10. Verificar si todo el requerimiento está cerrado
-            $pendientes = DB::table('requerimiento_almacen_detalle')
-                ->where('id_requerimiento', $id_requerimiento)
+            $pendientes = RequerimientoAlmacenDetalle::where('id_requerimiento', $id_requerimiento)
                 ->where('estado', '!=', EstadoDetalleRequerimiento::Completado->value)
                 ->where('estado', '!=', EstadoDetalleRequerimiento::Cerrado->value)
                 ->where('estado', '!=', EstadoDetalleRequerimiento::RechazadoLogistica->value)
@@ -256,6 +268,7 @@ class AtencionService
             return ApiResponse::success(['mensaje' => 'Despacho registrado correctamente', 'id_entrega' => $id_entrega]);
         });
     }
+
     /**
      * Obtiene el historial de entregas realizadas para un ítem específico de un requerimiento.
      */

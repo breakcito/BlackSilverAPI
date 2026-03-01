@@ -1,12 +1,11 @@
 <?php
 
-use App\Modules\Empresas\Controllers\ConcesionController;
-use App\Modules\Empresas\Controllers\LaborController;
-use App\Modules\Empresas\Controllers\MinaController; // Nuevo
+use App\Controllers\AlmacenController;
+use App\Controllers\ConcesionController;
+use App\Controllers\EmpresaController; // Nuevo
+use App\Controllers\LaborController;
+use App\Controllers\MinaController;
 use Illuminate\Support\Facades\Route;
-
-use App\Modules\Empresas\Controllers\EmpresaController;
-use App\Modules\Empresas\Controllers\AlmacenController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,7 +28,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::post('/concesiones', [ConcesionController::class, 'crear_concesion']);
     Route::put('/concesion', [ConcesionController::class, 'update_concesion']);
     Route::delete('/concesion', [ConcesionController::class, 'delete_concesion']);
-    
+
     // Asignacion de empresas a concesiones
     Route::post('/concesiones/asignaciones', [ConcesionController::class, 'get_empresas_historial']);
     Route::post('/concesiones/asignar', [ConcesionController::class, 'asignar_empresa']);
@@ -42,14 +41,14 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::delete('/mina', [MinaController::class, 'delete_mina']);
     Route::post('/minas/asignar-empresa', [MinaController::class, 'asignar_empresa_mina']);
     Route::post('/minas/desasignar-empresa', [MinaController::class, 'desasignar_empresa_mina']);
-    Route::get('/minas/empresas', [MinaController::class, 'get_empresas_mina']); 
+    Route::get('/minas/empresas', [MinaController::class, 'get_empresas_mina']);
     Route::post('/minas/responsables', [MinaController::class, 'get_responsables_mina']);
     // Route::post('/minas/usuarios-autorizados', [MinaController::class, 'get_usuarios_autorizados']); // Método eliminado por requerimiento de negocio
     Route::post('/minas/asignar-responsable', [MinaController::class, 'asignar_responsable_mina']);
 
     // Labores
-    Route::get('/labores', [LaborController::class, 'get_labores']); 
-    Route::get('/labores/tipos', [LaborController::class, 'get_tipos_labor']); 
+    Route::get('/labores', [LaborController::class, 'get_labores']);
+    Route::get('/labores/tipos', [LaborController::class, 'get_tipos_labor']);
 
     Route::post('/labores', [LaborController::class, 'crear_labor']);
     Route::get('/labor', [LaborController::class, 'get_labor_by_id']);
@@ -59,11 +58,11 @@ Route::middleware('auth.jwt.custom')->group(function () {
     // Almacenes
     Route::get('/almacenes', [AlmacenController::class, 'get_almacenes']);
     Route::post('/almacenes', [AlmacenController::class, 'crear_almacen']);
-    
+
     // Almacenes - Responsables
     Route::post('/almacenes/asignar-responsable', [AlmacenController::class, 'asignar_responsable_almacen']);
-    Route::post('/almacenes/responsables', [AlmacenController::class, 'get_responsables_almacen']); 
-    
+    Route::post('/almacenes/responsables', [AlmacenController::class, 'get_responsables_almacen']);
+
     // Almacenes - Minas
     Route::post('/almacenes/asignar-mina', [AlmacenController::class, 'asignar_mina_almacen']);
     Route::post('/almacenes/minas', [AlmacenController::class, 'get_minas_almacen']);

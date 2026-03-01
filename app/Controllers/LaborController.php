@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Modules\Empresas\Controllers;
+namespace App\Controllers;
 
-use App\Modules\Empresas\Models\Labor;
-use App\Modules\Empresas\Models\TipoLabor;
-use App\Modules\Empresas\Services\LaborService;
+use App\Models\Labor;
+use App\Models\TipoLabor;
+use App\Services\LaborService;
 use App\Shared\Enums\TipoSostenimiento;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -23,39 +23,42 @@ class LaborController extends Controller
     public function get_labores(Request $request): JsonResponse
     {
         $id_mina = $request->query('id_mina');
-        $result = $this->laborService->get_labores($id_mina ? (int)$id_mina : null);
+        $result = $this->laborService->get_labores($id_mina ? (int) $id_mina : null);
+
         return response()->json($result);
     }
 
     public function get_tipos_labor(Request $request): JsonResponse
     {
         $tipos = TipoLabor::get_tipos_labor();
+
         return response()->json(ApiResponse::success($tipos));
     }
 
     public function get_labor_by_id(Request $request): JsonResponse
     {
         $id = $request->query('id');
-        if (!$id) {
+        if (! $id) {
             return response()->json(ApiResponse::error('El id es requerido'), 400);
         }
-        $labor = $this->labor->get_labor_by_id((int)$id);
+        $labor = $this->labor->get_labor_by_id((int) $id);
+
         return response()->json(ApiResponse::success($labor));
     }
 
     public function crear_labor(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'id_mina'            => 'required|integer',
-            'id_empresa'         => 'required|integer',
-            'id_tipo_labor'      => 'required|integer',
-            'nombre'             => 'required|string|max:128',
-            'descripcion'        => 'nullable|string',
+            'id_mina' => 'required|integer',
+            'id_empresa' => 'required|integer',
+            'id_tipo_labor' => 'required|integer',
+            'nombre' => 'required|string|max:128',
+            'descripcion' => 'nullable|string',
             'tipo_sostenimiento' => ['required', new Enum(TipoSostenimiento::class)],
-            'veta'               => 'nullable|string|max:128',
-            'ancho'              => 'nullable|numeric',
-            'alto'               => 'nullable|numeric',
-            'nivel'              => 'nullable|string|max:64',
+            'veta' => 'nullable|string|max:128',
+            'ancho' => 'nullable|numeric',
+            'alto' => 'nullable|numeric',
+            'nivel' => 'nullable|string|max:64',
         ]);
 
         if ($validator->fails()) {
@@ -74,25 +77,26 @@ class LaborController extends Controller
             $request->alto,
             $request->nivel
         );
+
         return response()->json($result);
     }
 
     public function update_labor(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'id_labor'           => 'required|integer',
-            'id_mina'            => 'required|integer',
-            'id_empresa'         => 'required|integer',
-            'id_tipo_labor'      => 'required|integer',
-            'nombre'             => 'required|string|max:128',
-            'descripcion'        => 'nullable|string',
+            'id_labor' => 'required|integer',
+            'id_mina' => 'required|integer',
+            'id_empresa' => 'required|integer',
+            'id_tipo_labor' => 'required|integer',
+            'nombre' => 'required|string|max:128',
+            'descripcion' => 'nullable|string',
             'tipo_sostenimiento' => ['required', new Enum(TipoSostenimiento::class)],
-            'veta'               => 'nullable|string|max:128',
-            'ancho'              => 'nullable|numeric',
-            'alto'               => 'nullable|numeric',
-            'nivel'              => 'nullable|string|max:64',
-            'fecha_fin'          => 'nullable|date',
-            'estado'             => 'nullable|string'
+            'veta' => 'nullable|string|max:128',
+            'ancho' => 'nullable|numeric',
+            'alto' => 'nullable|numeric',
+            'nivel' => 'nullable|string|max:64',
+            'fecha_fin' => 'nullable|date',
+            'estado' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -121,10 +125,11 @@ class LaborController extends Controller
     public function delete_labor(Request $request): JsonResponse
     {
         $id = $request->query('id_labor');
-        if (!$id) {
+        if (! $id) {
             return response()->json(ApiResponse::error('El id es requerido'), 400);
         }
-        $result = $this->laborService->delete_labor((int)$id);
+        $result = $this->laborService->delete_labor((int) $id);
+
         return response()->json($result);
     }
 }

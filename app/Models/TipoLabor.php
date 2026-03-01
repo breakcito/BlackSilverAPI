@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\DB;
 class TipoLabor extends Model
 {
     protected $table = 'tipo_labor';
+
     public $timestamps = false;
+
     protected $fillable = [
         'prefijo',
         'nombre',
@@ -36,6 +38,6 @@ class TipoLabor extends Model
 
     public static function get_tipo_labor_by_id(int $id)
     {
-        return DB::table('tipo_labor')->where('id', $id)->first();
+        return self::where('id', $id)->first();
     }
 }

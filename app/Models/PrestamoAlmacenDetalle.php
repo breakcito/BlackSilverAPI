@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\DB;
 class PrestamoAlmacenDetalle extends Model
 {
     protected $table = 'prestamo_almacen_detalle';
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_prestamo_almacen',
         'id_solicitud_reabastecimiento_detalle',
@@ -62,7 +64,7 @@ class PrestamoAlmacenDetalle extends Model
         float $cantidad_solicitada,
         ?string $comentario = null
     ) {
-        return DB::table('prestamo_almacen_detalle')->insertGetId([
+        return self::insertGetId([
             'id_prestamo_almacen' => $id_prestamo,
             'id_producto' => $id_producto,
             'id_unidad_medida' => $id_unidad_medida,

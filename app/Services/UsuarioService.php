@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Modules\Usuarios\Services;
+namespace App\Services;
 
-use App\Modules\Usuarios\Models\Usuario;
+use App\Models\Usuario;
 use App\Shared\Enums\EstadoBase;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Support\Facades\Hash;
@@ -17,17 +17,17 @@ class UsuarioService
             ->where('estado', EstadoBase::Activo->value)
             ->first(['id', 'password']);
 
-        if (!$user) {
+        if (! $user) {
             return ApiResponse::error('Credenciales inválidas');
         }
 
-        if (!Hash::check($password, $user->password)) {
+        if (! Hash::check($password, $user->password)) {
             return ApiResponse::error('Credenciales inválidas');
         }
 
         $infoUsuario = Usuario::getInfoUsuarioById($user->id_usuario);
 
-        if (!$infoUsuario) {
+        if (! $infoUsuario) {
             return ApiResponse::error('Error al obtener información del usuario');
         }
 

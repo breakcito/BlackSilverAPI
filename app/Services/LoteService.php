@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Modules\Inventario\Services;
+namespace App\Services;
 
-use App\Modules\Inventario\Models\KardexProducto;
-use App\Modules\Inventario\Models\LoteProducto;
-use App\Modules\Inventario\Models\UnidadMedida;
+use App\Models\KardexProducto;
+use App\Models\LoteProducto;
+use App\Models\UnidadMedida;
 use App\Shared\Enums\CodigoMovimiento;
 use App\Shared\Enums\TipoMovimiento;
 use App\Shared\Responses\ApiResponse;
@@ -18,6 +18,7 @@ class LoteService
     public function get_lotes_by_almacen(int $id_almacen)
     {
         $lotes = LoteProducto::get_lotes_by_almacen($id_almacen);
+
         return ApiResponse::success($lotes);
     }
 
@@ -27,6 +28,7 @@ class LoteService
     public function get_productos_para_lote()
     {
         $productos = LoteProducto::get_productos_para_lote();
+
         // Formatear perecible para front si es necesario, aunque ya viene como 1/0
         return ApiResponse::success($productos);
     }
@@ -37,6 +39,7 @@ class LoteService
     public function get_unidades_medida()
     {
         $unidades = UnidadMedida::get_unidades_medida();
+
         return ApiResponse::success($unidades);
     }
 

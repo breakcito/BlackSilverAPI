@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Modules\Personal\Controllers;
+namespace App\Controllers;
 
-use App\Modules\Personal\Services\EmpleadoService;
+use App\Services\EmpleadoService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +18,7 @@ class EmpleadoController extends Controller
     public function get_empleados(Request $request): JsonResponse
     {
         $result = $this->empleadoService->get_empleados();
+
         return response()->json($result);
     }
 

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Modules\Menu\Controllers;
+namespace App\Controllers;
 
-use App\Modules\Menu\Services\MenuService;
+use App\Services\MenuService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +18,7 @@ class MenuController extends Controller
     {
         $authUser = $request->attributes->get('auth_user');
 
-        if (!$authUser || !isset($authUser->id_rol)) {
+        if (! $authUser || ! isset($authUser->id_rol)) {
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 

@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\DB;
 class Empleado extends Model
 {
     protected $table = 'empleado';
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_cargo',
         'id_empresa',
@@ -92,7 +94,7 @@ class Empleado extends Model
      */
     public static function verificar_documento_existente(string $columna, string $valor, ?int $id_excluir = null)
     {
-        $query = DB::table('empleado')->where($columna, $valor);
+        $query = self::where($columna, $valor);
 
         if ($id_excluir) {
             $query->where('id', '!=', $id_excluir);
@@ -116,7 +118,7 @@ class Empleado extends Model
         ?string $fecha_nacimiento,
         ?string $path_foto
     ) {
-        return DB::table('empleado')->insertGetId([
+        return self::insertGetId([
             'id_cargo' => $id_cargo,
             'id_empresa' => $id_empresa,
             'nombre' => $nombre,

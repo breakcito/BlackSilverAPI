@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\DB;
 class RequerimientoAlmacenLabor extends Model
 {
     protected $table = 'requerimiento_almacen_labor';
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_requerimiento',
         'id_labor',
@@ -27,7 +29,7 @@ class RequerimientoAlmacenLabor extends Model
         }
 
         if (! empty($data)) {
-            DB::table('requerimiento_almacen_labor')->insert($data);
+            self::insert($data);
         }
     }
 

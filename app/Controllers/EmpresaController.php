@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Modules\Empresas\Controllers;
+namespace App\Controllers;
 
-use App\Modules\Empresas\Services\EmpresaService;
+use App\Services\EmpresaService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +18,7 @@ class EmpresaController extends Controller
     public function get_empresas(Request $request): JsonResponse
     {
         $result = $this->empresaService->get_empresas();
+
         return response()->json($result);
     }
 
@@ -25,7 +26,7 @@ class EmpresaController extends Controller
     {
         $authUser = $request->attributes->get('auth_user');
 
-        if (!$authUser || !isset($authUser->id_rol)) {
+        if (! $authUser || ! isset($authUser->id_rol)) {
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
@@ -37,18 +38,18 @@ class EmpresaController extends Controller
     public function crear_empresa(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'ruc'              => 'required|string|size:11',
-            'razon_social'     => 'required|string|max:128',
+            'ruc' => 'required|string|size:11',
+            'razon_social' => 'required|string|max:128',
             'nombre_comercial' => 'required|string|max:128',
-            'abreviatura'      => 'required|string|max:24',
-            'path_logo'        => 'required|string|max:256',
+            'abreviatura' => 'required|string|max:24',
+            'path_logo' => 'required|string|max:256',
         ], [
-            'ruc.required'              => 'El RUC es requerido',
-            'ruc.size'                  => 'El RUC debe tener 11 dígitos',
-            'razon_social.required'     => 'La razón social es requerida',
+            'ruc.required' => 'El RUC es requerido',
+            'ruc.size' => 'El RUC debe tener 11 dígitos',
+            'razon_social.required' => 'La razón social es requerida',
             'nombre_comercial.required' => 'El nombre comercial es requerido',
-            'abreviatura.required'      => 'La abreviatura es requerida',
-            'path_logo.required'        => 'El logo es requerido',
+            'abreviatura.required' => 'La abreviatura es requerida',
+            'path_logo.required' => 'El logo es requerido',
         ]);
 
         if ($validator->fails()) {
@@ -70,11 +71,12 @@ class EmpresaController extends Controller
     public function get_usuarios_por_empresa(Request $request): JsonResponse
     {
         $id_empresa = $request->query('id_empresa');
-        if (!$id_empresa) {
+        if (! $id_empresa) {
             return response()->json(ApiResponse::error('El id_empresa es requerido'), 400);
         }
 
-        $result = $this->empresaService->get_usuarios_por_empresa((int)$id_empresa);
+        $result = $this->empresaService->get_usuarios_por_empresa((int) $id_empresa);
+
         return response()->json($result);
     }
 }

@@ -1,15 +1,14 @@
 <?php
 
-namespace App\Modules\Empresas\Controllers;
+namespace App\Controllers;
 
-use App\Modules\Empresas\Services\ConcesionService;
+use App\Services\ConcesionService;
+use App\Shared\Enums\TipoMineral;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
-
-use App\Shared\Enums\TipoMineral;
 use Illuminate\Validation\Rules\Enum;
 
 class ConcesionController extends Controller
@@ -21,12 +20,14 @@ class ConcesionController extends Controller
     public function get_concesiones(Request $request): JsonResponse
     {
         $result = $this->concesionService->get_concesiones();
+
         return response()->json($result);
     }
 
     public function get_tipos_mineral(): JsonResponse
     {
         $tipos = array_column(TipoMineral::cases(), 'value');
+
         return response()->json(ApiResponse::success($tipos));
     }
 
@@ -34,11 +35,12 @@ class ConcesionController extends Controller
     {
         $authUser = $request->attributes->get('auth_user');
 
-        if (!$authUser || !isset($authUser->id_rol)) {
+        if (! $authUser || ! isset($authUser->id_rol)) {
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
         $result = $this->concesionService->get_concesiones_by_usuario($authUser->id_usuario);
+
         return response()->json($result);
     }
 
@@ -55,17 +57,18 @@ class ConcesionController extends Controller
 
         $data = $validator->validated();
         $result = $this->concesionService->get_concesiones_by_empresa($data['id_empresa']);
+
         return response()->json($result);
     }
 
     public function crear_concesion(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'nombre'           => 'required|string|max:64',
+            'nombre' => 'required|string|max:64',
             'codigo_concesion' => 'nullable|string|max:64',
-            'codigo_reinfo'    => 'nullable|string|max:64',
-            'ubigeo'           => 'nullable|string|max:128',
-            'tipo_mineral'     => ['required', new Enum(TipoMineral::class)],
+            'codigo_reinfo' => 'nullable|string|max:64',
+            'ubigeo' => 'nullable|string|max:128',
+            'tipo_mineral' => ['required', new Enum(TipoMineral::class)],
         ], [
             'nombre.required' => 'El nombre es requerido',
             'tipo_mineral.required' => 'El tipo de mineral es obligatorio',
@@ -83,6 +86,7 @@ class ConcesionController extends Controller
             $data['ubigeo'] ?? null,
             $data['tipo_mineral'] ?? null
         );
+
         return response()->json($result);
     }
 
@@ -99,6 +103,7 @@ class ConcesionController extends Controller
         }
 
         $result = $this->concesionService->get_empresas_historial($request->id_concesion);
+
         return response()->json($result);
     }
 
@@ -106,12 +111,12 @@ class ConcesionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id_concesion' => 'required|integer',
-            'id_empresa'   => 'required|integer',
+            'id_empresa' => 'required|integer',
             'fecha_inicio' => 'required|date',
-            'fecha_fin'    => 'nullable|date|after_or_equal:fecha_inicio',
+            'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
         ], [
             'id_concesion.required' => 'La concesión es requerida',
-            'id_empresa.required'   => 'La empresa es requerida',
+            'id_empresa.required' => 'La empresa es requerida',
             'fecha_inicio.required' => 'La fecha de inicio es requerida',
         ]);
 
@@ -126,6 +131,7 @@ class ConcesionController extends Controller
             $data['fecha_inicio'],
             $data['fecha_fin'] ?? null
         );
+
         return response()->json($result);
     }
 
@@ -140,6 +146,7 @@ class ConcesionController extends Controller
         }
 
         $result = $this->concesionService->desasignar_empresa($request->id_asignacion);
+
         return response()->json($result);
     }
 
@@ -159,6 +166,7 @@ class ConcesionController extends Controller
 
         $data = $validator->validated();
         $result = $this->concesionService->update_concesion($data['id_concesion'], $data['nombre']);
+
         return response()->json($result);
     }
 
@@ -176,6 +184,7 @@ class ConcesionController extends Controller
 
         $data = $validator->validated();
         $result = $this->concesionService->delete_concesion($data['id_concesion']);
+
         return response()->json($result);
     }
 }

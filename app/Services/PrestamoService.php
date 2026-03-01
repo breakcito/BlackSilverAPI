@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Modules\PrestamosAlmacen\Services;
+namespace App\Services;
 
-use App\Modules\PrestamosAlmacen\Models\PrestamoAlmacen;
-use App\Modules\PrestamosAlmacen\Models\PrestamoAlmacenDetalle;
-use App\Modules\PrestamosAlmacen\Models\PrestamoAlmacenDetalleLog;
+use App\Models\PrestamoAlmacen;
+use App\Models\PrestamoAlmacenDetalle;
+use App\Models\PrestamoAlmacenDetalleLog;
 use App\Shared\Enums\EstadoDetallePrestamo;
 use App\Shared\Helpers\CorrelativoHelper;
 use App\Shared\Responses\ApiResponse;
@@ -18,6 +18,7 @@ class PrestamoService
     public function obtener_prestamos(int $id_almacen, ?string $estado = null)
     {
         $lista = PrestamoAlmacen::get_prestamos($id_almacen, $estado);
+
         return ApiResponse::success($lista);
     }
 
@@ -59,7 +60,7 @@ class PrestamoService
                     $det['id_producto'],
                     $det['id_unidad_medida'],
                     $det['id_almacen_prestamista'],
-                    (float)$det['cantidad_solicitada'],
+                    (float) $det['cantidad_solicitada'],
                     $det['comentario'] ?? null
                 );
 
@@ -75,7 +76,7 @@ class PrestamoService
 
             return ApiResponse::success([
                 'mensaje' => 'Préstamo solicitado correctamente',
-                'prestamo' => $prestamoCompleto
+                'prestamo' => $prestamoCompleto,
             ]);
         });
     }
@@ -86,8 +87,8 @@ class PrestamoService
     public function obtener_por_id(int $id)
     {
         $prestamo = PrestamoAlmacen::get_prestamo_by_id($id);
-        
-        if (!$prestamo) {
+
+        if (! $prestamo) {
             return ApiResponse::error('El préstamo no existe', 404);
         }
 
@@ -100,6 +101,7 @@ class PrestamoService
     public function obtener_trazabilidad_detalle(int $id_detalle)
     {
         $trazabilidad = PrestamoAlmacenDetalleLog::get_trazabilidad($id_detalle);
+
         return ApiResponse::success($trazabilidad);
     }
 
@@ -135,7 +137,7 @@ class PrestamoService
 
         $stocks = DB::select($sql, [
             'id_producto' => $id_producto,
-            'id_almacen'  => $id_almacen_excluido
+            'id_almacen' => $id_almacen_excluido,
         ]);
 
         return ApiResponse::success($stocks);

@@ -1,9 +1,9 @@
 <?php
 
-use App\Modules\Inventario\Controllers\CategoriaController;
-use App\Modules\Inventario\Controllers\KardexController;
-use App\Modules\Inventario\Controllers\LoteController;
-use App\Modules\Inventario\Controllers\ProductoController;
+use App\Controllers\CategoriaController;
+use App\Controllers\KardexController;
+use App\Controllers\LoteController;
+use App\Controllers\ProductoController;
 use Illuminate\Support\Facades\Route;
 
 /*

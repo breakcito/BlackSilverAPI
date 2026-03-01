@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\DB;
 class LoteProducto extends Model
 {
     protected $table = 'lote_producto';
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_producto',
         'id_almacen',
@@ -101,7 +103,7 @@ class LoteProducto extends Model
 
     public static function get_ultimo_correlativo()
     {
-        return DB::table('lote_producto')->max('numero_correlativo') ?? 0;
+        return self::max('numero_correlativo') ?? 0;
     }
 
     public static function crear_lote(
@@ -115,7 +117,7 @@ class LoteProducto extends Model
         string $fecha_ingreso,
         ?string $fecha_vencimiento
     ) {
-        return DB::table('lote_producto')->insertGetId([
+        return self::insertGetId([
             'id_producto' => $id_producto,
             'id_unidad_medida' => $id_unidad_medida,
             'id_almacen' => $id_almacen,
@@ -158,8 +160,7 @@ class LoteProducto extends Model
 
     public static function descontar_stock(int $id_lote, float $cantidad)
     {
-        return DB::table('lote_producto')
-            ->where('id', $id_lote)
+        return self::where('id', $id_lote)
             ->decrement('stock_actual', $cantidad);
     }
 }
