@@ -13,6 +13,7 @@ class Submodulo extends Model
         'id_modulo',
         'nombre',
         'path',
+        'estado',
     ];
 
     public static function get_submodulos_by_rol_and_modulo(int $id_rol, int $id_modulo): array

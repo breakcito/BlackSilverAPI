@@ -13,6 +13,7 @@ class Seccion extends Model
         'id_submodulo',
         'nombre',
         'path',
+        'estado',
     ];
 
     public static function get_secciones_by_rol_and_submodulo(int $id_rol, int $id_submodulo): array

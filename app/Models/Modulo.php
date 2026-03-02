@@ -14,6 +14,7 @@ class Modulo extends Model
     protected $fillable = [
         'nombre',
         'path',
+        'estado',
     ];
 
     public static function get_modulos_by_rol(int $id_rol)

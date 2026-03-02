@@ -2,7 +2,9 @@
 
 namespace App\Controllers;
 
+use App\Services\AlmacenMinaService;
 use App\Services\AlmacenService;
+use App\Services\ResponsableAlmacenService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +14,9 @@ use Illuminate\Support\Facades\Validator;
 class AlmacenController extends Controller
 {
     public function __construct(
-        private AlmacenService $almacenService
+        private AlmacenService $almacenService,
+        private ResponsableAlmacenService $responsableAlmacenService,
+        private AlmacenMinaService $almacenMinaService,
     ) {}
 
     public function get_almacenes(Request $request): JsonResponse
@@ -65,7 +69,7 @@ class AlmacenController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->almacenService->asignar_responsable_almacen(
+        $result = $this->responsableAlmacenService->asignar_responsable_almacen(
             $request->id_almacen,
             $request->id_usuario,
             $request->fecha_inicio,
@@ -78,11 +82,11 @@ class AlmacenController extends Controller
     public function get_responsables_almacen(Request $request): JsonResponse
     {
         $id_almacen = $request->input('id_almacen');
-        if (! $id_almacen) {
-            return response()->json(ApiResponse::error('El id_almacen es requerido'), 400);
+        if (!$id_almacen) {
+            return response()->json(ApiResponse::error('El almacen es requerido'));
         }
 
-        $result = $this->almacenService->get_responsables_almacen((int) $id_almacen);
+        $result = $this->responsableAlmacenService->get_responsables_almacen((int) $id_almacen);
 
         return response()->json($result);
     }
@@ -101,7 +105,7 @@ class AlmacenController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->almacenService->asignar_mina_almacen(
+        $result = $this->almacenMinaService->asignar_mina_almacen(
             $request->id_almacen,
             $request->id_mina
         );
@@ -116,7 +120,7 @@ class AlmacenController extends Controller
             return response()->json(ApiResponse::error('El id_almacen es requerido'), 400);
         }
 
-        $result = $this->almacenService->get_minas_almacen((int) $id_almacen);
+        $result = $this->almacenMinaService->get_minas_almacen((int) $id_almacen);
 
         return response()->json($result);
     }
@@ -128,7 +132,7 @@ class AlmacenController extends Controller
             return response()->json(ApiResponse::error('El id_asignacion es requerido'), 400);
         }
 
-        $result = $this->almacenService->desasignar_mina_almacen((int) $id_asignacion);
+        $result = $this->almacenMinaService->desasignar_mina_almacen((int) $id_asignacion);
 
         return response()->json($result);
     }
