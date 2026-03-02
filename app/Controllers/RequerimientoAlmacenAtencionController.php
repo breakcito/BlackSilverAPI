@@ -2,7 +2,9 @@
 
 namespace App\Controllers;
 
-use App\Services\RequerimientoAlmacenAtencionService;
+use App\Services\RequerimientoAlmacenService;
+use App\Services\RequerimientoAlmacenEntregaService;
+use App\Services\LoteService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,7 +13,11 @@ use Illuminate\Support\Facades\Validator;
 
 class RequerimientoAlmacenAtencionController extends Controller
 {
-    public function __construct(private RequerimientoAlmacenAtencionService $atencionService) {}
+    public function __construct(
+        private RequerimientoAlmacenService $requerimientoService,
+        private RequerimientoAlmacenEntregaService $entregaService,
+        private LoteService $loteService
+    ) {}
 
     /**
      * Listado de requerimientos para atención por almacén.
@@ -24,7 +30,7 @@ class RequerimientoAlmacenAtencionController extends Controller
         }
 
         $estado = $request->input('estado');
-        $result = $this->atencionService->obtener_requerimientos_atencion((int) $id_almacen, $estado);
+        $result = $this->requerimientoService->obtener_requerimientos_atencion((int) $id_almacen, $estado);
 
         return response()->json($result);
     }
@@ -49,7 +55,7 @@ class RequerimientoAlmacenAtencionController extends Controller
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
-        $result = $this->atencionService->cambiar_estado_detalle(
+        $result = $this->requerimientoService->cambiar_estado_detalle(
             $authUser->id_usuario,
             (int) $request->id_requerimiento_almacen_detalle,
             $request->nuevo_estado,
@@ -71,7 +77,7 @@ class RequerimientoAlmacenAtencionController extends Controller
             return response()->json(ApiResponse::error('id_producto e id_almacen son requeridos'), 400);
         }
 
-        $result = $this->atencionService->obtener_lotes_disponibles((int) $id_producto, (int) $id_almacen);
+        $result = $this->loteService->obtener_lotes_disponibles((int) $id_producto, (int) $id_almacen);
 
         return response()->json($result);
     }
@@ -100,7 +106,7 @@ class RequerimientoAlmacenAtencionController extends Controller
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
-        $result = $this->atencionService->registrar_entrega(
+        $result = $this->entregaService->registrar_entrega(
             $authUser->id_usuario,
             (int) $request->id_requerimiento,
             $request->fecha_entrega,
@@ -121,7 +127,7 @@ class RequerimientoAlmacenAtencionController extends Controller
             return response()->json(ApiResponse::error('El id_requerimiento_almacen_detalle es requerido'), 400);
         }
 
-        $result = $this->atencionService->obtener_historial_entregas_por_item((int) $id_detalle);
+        $result = $this->entregaService->obtener_historial_entregas_por_item((int) $id_detalle);
 
         return response()->json($result);
     }
