@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class ResponsableMina extends Model
 {
@@ -18,12 +20,8 @@ class ResponsableMina extends Model
         'estado',
     ];
 
-    public static function check_usuario_autorizado_mina(int $id_usuario, int $id_mina)
+    public static function check_usuario_autorizado_mina(int $id_usuario, int $id_mina, int $id_concesion)
     {
-        $mina = \App\Models\Mina::where('id', $id_mina)->first();
-        if (! $mina) {
-            return false;
-        }
 
         $sql = '
         SELECT EXISTS(
@@ -38,11 +36,11 @@ class ResponsableMina extends Model
         ) AS autorizado
         ';
 
-        $result = \Illuminate\Support\Facades\DB::selectOne($sql, [
+        $result = DB::selectOne($sql, [
             'id_usuario' => $id_usuario,
             'id_mina' => $id_mina,
-            'id_concesion' => $mina->id_concesion,
-            'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
+            'id_concesion' => $id_concesion,
+            'estado' => EstadoBase::Activo->value,
         ]);
 
         return (bool) $result->autorizado;
@@ -68,6 +66,6 @@ class ResponsableMina extends Model
         ORDER BY rm.fecha_inicio DESC
         ';
 
-        return \Illuminate\Support\Facades\DB::select($sql, ['id_mina' => $id_mina]);
+        return DB::select($sql, ['id_mina' => $id_mina]);
     }
 }

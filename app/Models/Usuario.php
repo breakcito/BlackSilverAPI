@@ -14,9 +14,7 @@ class Usuario extends Model implements AuthenticatableContract, JWTSubject
     use Authenticatable;
 
     protected $table = 'usuario';
-
     public $timestamps = false;
-
     protected $fillable = [
         'id_rol',
         'id_empleado',
@@ -64,10 +62,8 @@ class Usuario extends Model implements AuthenticatableContract, JWTSubject
             usu.id = :id_usuario
         ';
 
-        $result = DB::select($sql, [
+        return DB::selectOne($sql, [
             'id_usuario' => $id_usuario,
         ]);
-
-        return $result[0] ?? null;
     }
 }

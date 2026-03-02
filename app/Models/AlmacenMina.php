@@ -37,4 +37,20 @@ class AlmacenMina extends Model
 
         return \Illuminate\Support\Facades\DB::select($sql, ['id_almacen' => $id_almacen]);
     }
+
+    public static function get_almacenes_por_mina(int $id_mina)
+    {
+        $sql = "
+            SELECT
+                a.id,
+                a.nombre,
+                a.es_principal
+            FROM almacen a
+            INNER JOIN almacen_mina am ON am.id_almacen = a.id
+            WHERE am.id_mina = :id_mina
+              AND a.estado = 'Activo'
+        ";
+
+        return \Illuminate\Support\Facades\DB::select($sql, ['id_mina' => $id_mina]);
+    }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Almacen;
 use App\Models\AlmacenMina;
 use App\Shared\Responses\ApiResponse;
 
@@ -42,16 +41,12 @@ class AlmacenMinaService
     {
         AlmacenMina::where('id', $id_asignacion)->delete();
 
-        return ApiResponse::success(null, 'Mina desvinculada del almacén correctamente');
+        return ApiResponse::success(true, 'Mina desvinculada del almacén correctamente');
     }
 
     public function get_almacenes_por_mina(int $id_mina)
     {
-        $almacenes = Almacen::join('almacen_mina as am', 'am.id_almacen', '=', 'a.id')
-            ->where('am.id_mina', $id_mina)
-            ->where('a.estado', 'Activo')
-            ->select('a.id', 'a.nombre', 'a.es_principal')
-            ->get();
+        $almacenes = AlmacenMina::get_almacenes_por_mina($id_mina);
 
         return ApiResponse::success($almacenes);
     }

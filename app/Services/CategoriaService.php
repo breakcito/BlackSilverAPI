@@ -10,14 +10,18 @@ class CategoriaService
 {
     public function get_categorias(?string $tipo_requerimiento = null)
     {
-        $categorias = Categoria::get_categorias($tipo_requerimiento);
+        $categorias = Categoria::where('estado', EstadoBase::Activo->value);
 
-        return ApiResponse::success($categorias);
+        if ($tipo_requerimiento) {
+            $categorias->where('tipo_requerimiento', $tipo_requerimiento);
+        }
+
+        return ApiResponse::success($categorias->get());
     }
 
     public function get_categoria_by_id(int $id)
     {
-        $categoria = Categoria::get_categoria_by_id($id);
+        $categoria = Categoria::find($id);
         if (! $categoria) {
             return ApiResponse::error('Categoria no encontrada');
         }
@@ -28,7 +32,7 @@ class CategoriaService
     public function crear_categoria(string $nombre, ?string $descripcion, string $tipo_requerimiento, ?string $clasificacion_bien)
     {
         // Validar nombre duplicado
-        if (Categoria::whereRaw('LOWER(nombre) = LOWER(?)', [$nombre])->where('estado', EstadoBase::Activo->value)->exists()) {
+        if (Categoria::where('nombre', $nombre)->where('estado', EstadoBase::Activo->value)->exists()) {
             return ApiResponse::error('Ya existe una categoría con ese nombre');
         }
 
@@ -51,7 +55,7 @@ class CategoriaService
         }
 
         // Validar nombre duplicado excluyendo la categoría actual
-        if (Categoria::whereRaw('LOWER(nombre) = LOWER(?)', [$nombre])->where('estado', EstadoBase::Activo->value)->where('id', '!=', $id)->exists()) {
+        if (Categoria::where('nombre', $nombre)->where('estado', EstadoBase::Activo->value)->where('id', '!=', $id)->exists()) {
             return ApiResponse::error('Ya existe otra categoría con ese nombre');
         }
 

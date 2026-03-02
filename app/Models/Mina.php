@@ -107,14 +107,27 @@ class Mina extends Model
             return false;
         }
 
-        return DB::table('usuario_empresa as ue')
-            ->join('empresa_mina as em', 'em.id_empresa', '=', 'ue.id_empresa')
-            ->join('contrato_concesion as cc', 'cc.id_empresa', '=', 'ue.id_empresa')
-            ->where('ue.id_usuario', $id_usuario)
-            ->where('em.id_mina', $id_mina)
-            ->where('cc.id_concesion', $mina->id_concesion)
-            ->where('cc.estado', EstadoBase::Activo->value)
-            ->exists();
+        $sql = '
+        SELECT EXISTS (
+            SELECT 1
+            FROM usuario_empresa ue
+            INNER JOIN empresa_mina em ON em.id_empresa = ue.id_empresa
+            INNER JOIN contrato_concesion cc ON cc.id_empresa = ue.id_empresa
+            WHERE ue.id_usuario = :id_usuario
+              AND em.id_mina = :id_mina
+              AND cc.id_concesion = :id_concesion
+              AND cc.estado = :estado_activo
+        ) AS is_authorized
+        ';
+
+        $result = DB::selectOne($sql, [
+            'id_usuario' => $id_usuario,
+            'id_mina' => $id_mina,
+            'id_concesion' => $mina->id_concesion,
+            'estado_activo' => EstadoBase::Activo->value,
+        ]);
+
+        return (bool) $result->is_authorized;
     }
 
     /**

@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Concesion;
 use App\Models\ContratoConcesion;
 use App\Shared\Enums\EstadoBase;
 use App\Shared\Responses\ApiResponse;
@@ -12,10 +11,9 @@ use App\Shared\Responses\ApiResponse;
  */
 class ContratoConcesionService
 {
-    
     public function get_concesiones_by_empresa(int $id_empresa)
     {
-        $concesiones = Concesion::get_concesiones_by_empresa($id_empresa);
+        $concesiones = ContratoConcesion::get_concesiones_by_empresa($id_empresa);
 
         return ApiResponse::success($concesiones);
     }

@@ -36,12 +36,12 @@ class RequerimientoAlmacen extends Model
         SELECT
             ra.id AS id_requerimiento,
             ra.id_usuario_solicitante,
-            CONCAT(emp.nombre, \' \', emp.apellido) AS solicitante,
+            CONCAT(emp.nombre, " ", emp.apellido) AS solicitante,
             ra.id_mina,
             m.nombre AS mina,
             ra.id_almacen_destino,
             alm.nombre AS almacen_destino,
-            CONCAT(ra.correlativo, \'-\', DATE_FORMAT(ra.created_at, \'%y\'), \'-\', LPAD(ra.numero_correlativo, 5, \'0\')) AS codigo_requerimiento,
+            ra.correlativo,
             ra.premura,
             ra.fecha_entrega_requerida,
             ra.estado,
@@ -81,43 +81,5 @@ class RequerimientoAlmacen extends Model
         $sql .= ' ORDER BY ra.created_at DESC';
 
         return DB::select($sql, $params);
-    }
-
-    public static function get_requerimiento_by_id(int $id)
-    {
-        $sql = '
-        SELECT
-            ra.id AS id_requerimiento,
-            ra.id_usuario_solicitante,
-            CONCAT(emp.nombre, \' \', emp.apellido) AS solicitante,
-            ra.id_mina,
-            m.nombre AS mina,
-            ra.id_almacen_destino,
-            alm.nombre AS almacen_destino,
-            CONCAT(ra.correlativo, \'-\', DATE_FORMAT(ra.created_at, \'%y\'), \'-\', LPAD(ra.numero_correlativo, 5, \'0\')) AS codigo_requerimiento,
-            ra.premura,
-            ra.fecha_entrega_requerida,
-            ra.estado,
-            ra.created_at
-        FROM
-            requerimiento_almacen ra
-        INNER JOIN usuario u ON u.id = ra.id_usuario_solicitante
-        INNER JOIN empleado emp ON emp.id = u.id_empleado
-        INNER JOIN mina m ON m.id = ra.id_mina
-        INNER JOIN almacen alm ON alm.id = ra.id_almacen_destino
-        WHERE
-            ra.id = :id
-        ';
-
-        $cabecera = DB::selectOne($sql, ['id' => $id]);
-
-        if (! $cabecera) {
-            return null;
-        }
-
-        $cabecera->labores = RequerimientoAlmacenLabor::get_labores_por_requerimiento($id);
-        $cabecera->detalles = RequerimientoAlmacenDetalle::get_detalles_by_requerimiento($id);
-
-        return $cabecera;
     }
 }

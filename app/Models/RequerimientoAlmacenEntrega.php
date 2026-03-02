@@ -31,7 +31,7 @@ class RequerimientoAlmacenEntrega extends Model
         $sql = "
         SELECT 
             ea.id AS id_entrega,
-            CONCAT(ea.correlativo, '-', DATE_FORMAT(ea.created_at, '%y'), '-', LPAD(ea.numero_correlativo, 5, '0')) AS codigo_entrega,
+            ea.correlativo,
             ea.fecha_entrega,
             ead.cantidad,
             CONCAT(emp.nombre, ' ', emp.apellido) AS usuario_entrega

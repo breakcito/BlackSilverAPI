@@ -41,9 +41,9 @@ class ContratoConcesion extends Model
         ORDER BY cc.fecha_inicio DESC
         ';
 
-        return \Illuminate\Support\Facades\DB::select($sql, [
+        return DB::select($sql, [
             'id_concesion' => $id_concesion,
-            'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
+            'estado' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -67,7 +67,7 @@ class ContratoConcesion extends Model
         ORDER BY cc.estado ASC, cc.fecha_inicio DESC
         ';
 
-        return \Illuminate\Support\Facades\DB::select($sql, [
+        return DB::select($sql, [
             'id_concesion' => $id_concesion,
         ]);
     }
@@ -75,7 +75,7 @@ class ContratoConcesion extends Model
     public static function desasignar_empresa(int $id_contrato)
     {
         return self::where('id', $id_contrato)
-            ->update(['estado' => \App\Shared\Enums\EstadoBase::Inactivo->value]);
+            ->update(['estado' => EstadoBase::Inactivo->value]);
     }
 
     // obtener las concesiones donde trabaja una empresa (a través de contrato)
