@@ -17,4 +17,11 @@ class Categoria extends Model
         'clasificacion_bien',
         'estado',
     ];
+
+    protected $appends = ['id_categoria'];
+
+    public function getIdCategoriaAttribute(): int
+    {
+        return $this->id;
+    }
 }

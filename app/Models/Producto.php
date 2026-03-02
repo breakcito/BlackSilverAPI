@@ -24,6 +24,13 @@ class Producto extends Model
         'estado',
     ];
 
+    protected $appends = ['id_producto'];
+
+    public function getIdProductoAttribute(): int
+    {
+        return $this->id;
+    }
+
     /**
      * Listar todos los productos del catálogo.
      * Incluye el nombre de la categoría asociada.
