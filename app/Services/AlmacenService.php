@@ -34,7 +34,7 @@ class AlmacenService
             'estado' => EstadoBase::Activo->value,
         ]);
 
-        return ApiResponse::success($almacen, 'Almacén creado correctamente');
+        $nuevoAlmacen = Almacen::get_almacenes($almacen->id)[0];
+        return ApiResponse::success($nuevoAlmacen, 'Almacén creado correctamente');
     }
-
 }

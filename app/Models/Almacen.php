@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -22,7 +21,7 @@ class Almacen extends Model
     /**
      * Listar todos los almacenes.
      */
-    public static function get_almacenes()
+    public static function get_almacenes(?int $id_almacen = null)
     {
         $sql = '
         SELECT
@@ -36,7 +35,7 @@ class Almacen extends Model
                 FROM responsable_almacen ra
                 INNER JOIN usuario u ON u.id = ra.id_usuario
                 INNER JOIN empleado emp ON emp.id = u.id_empleado
-                WHERE ra.id_almacen = a.id AND ra.estado = :estado_activo
+                WHERE ra.id_almacen = a.id AND ra.estado = "Activo"
                 LIMIT 1
             ) AS responsable_actual,
             (
@@ -47,13 +46,16 @@ class Almacen extends Model
         FROM
             almacen a
         WHERE
-            a.estado = :estado
-        ORDER BY a.es_principal DESC, a.nombre ASC
+            1 = 1
         ';
 
-        return DB::select($sql, [
-            'estado' => EstadoBase::Activo->value,
-            'estado_activo' => EstadoBase::Activo->value,
-        ]);
+        $bindings = [];
+        if ($id_almacen !== null) {
+            $sql .= ' AND a.id = :id_almacen';
+            $bindings['id_almacen'] = $id_almacen;
+        }
+
+        $sql .= ' ORDER BY a.es_principal DESC, a.nombre ASC';
+        return DB::select($sql, $bindings);
     }
 }

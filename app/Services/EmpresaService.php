@@ -40,6 +40,8 @@ class EmpresaService
             'path_logo' => $path_logo,
         ]);
 
-        return ApiResponse::success(Empresa::select('id as id_empresa', 'ruc', 'razon_social', 'nombre_comercial', 'abreviatura', 'path_logo')->find($empresa->id), 'Empresa creada correctamente');
+        $nuevaEmpresa = Empresa::get_empresas($empresa->id)[0];
+
+        return ApiResponse::success($nuevaEmpresa, 'Empresa creada correctamente');
     }
 }

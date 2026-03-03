@@ -14,11 +14,22 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware('auth.jwt.custom')->group(function () {
+    // Empresas
     Route::prefix('empresas')->controller(EmpresaController::class)->group(function () {
-        Route::get('/', 'get_empresas');
-        Route::post('/', 'crear_empresa');
+        Route::get('/', 'get_empresas'); // ✅
+        Route::post('/', 'crear_empresa'); // ✅
         Route::get('/by-session', 'get_empresas_by_session');
-        Route::get('/usuarios', 'get_usuarios_por_empresa');
+    });
+
+    // Almacenes
+    Route::prefix('almacenes')->controller(AlmacenController::class)->group(function () {
+        Route::get('/', 'get_almacenes'); // ✅
+        Route::post('/', 'crear_almacen'); // ✅
+        Route::post('/asignar-responsable', 'asignar_responsable_almacen');
+        Route::post('/responsables', 'get_responsables_almacen');
+        Route::post('/asignar-mina', 'asignar_mina_almacen');
+        Route::post('/minas', 'get_minas_almacen');
+        Route::post('/desasignar-mina', 'desasignar_mina_almacen');
     });
 
     // Concesiones
@@ -56,16 +67,5 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::get('/by-id', 'get_labor_by_id');
         Route::put('/', 'update_labor');
         Route::delete('/', 'delete_labor');
-    });
-
-    // Almacenes
-    Route::prefix('almacenes')->controller(AlmacenController::class)->group(function () {
-        Route::get('/', 'get_almacenes');
-        Route::post('/', 'crear_almacen');
-        Route::post('/asignar-responsable', 'asignar_responsable_almacen');
-        Route::post('/responsables', 'get_responsables_almacen');
-        Route::post('/asignar-mina', 'asignar_mina_almacen');
-        Route::post('/minas', 'get_minas_almacen');
-        Route::post('/desasignar-mina', 'desasignar_mina_almacen');
     });
 });

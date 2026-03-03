@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Services\EmpresaService;
+use App\Services\UsuarioService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +13,8 @@ use Illuminate\Support\Facades\Validator;
 class EmpresaController extends Controller
 {
     public function __construct(
-        private EmpresaService $empresaService
+        private EmpresaService $empresaService,
+        private UsuarioService $usuarioService
     ) {}
 
     public function get_empresas(Request $request): JsonResponse
@@ -64,18 +66,6 @@ class EmpresaController extends Controller
             $data['abreviatura'],
             $data['path_logo']
         );
-
-        return response()->json($result);
-    }
-
-    public function get_usuarios_por_empresa(Request $request): JsonResponse
-    {
-        $id_empresa = $request->query('id_empresa');
-        if (! $id_empresa) {
-            return response()->json(ApiResponse::error('El id_empresa es requerido'), 400);
-        }
-
-        $result = $this->empresaService->get_usuarios_por_empresa((int) $id_empresa);
 
         return response()->json($result);
     }

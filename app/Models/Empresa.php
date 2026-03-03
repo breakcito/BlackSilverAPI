@@ -20,13 +20,12 @@ class Empresa extends Model
         'nombre_comercial',
         'abreviatura',
         'path_logo',
-        'estado',
     ];
 
     /**
      * Obtener todas las empresas.
      */
-    public static function get_empresas()
+    public static function get_empresas(?int $id_empresa = null)
     {
         $sql = '
         SELECT
@@ -38,10 +37,19 @@ class Empresa extends Model
             e.path_logo
         FROM
             empresa e
-        ORDER BY e.nombre_comercial
+        WHERE 
+            1 = 1
         ';
 
-        return DB::select($sql);
+        $bindings = [];
+        if ($id_empresa !== null) {
+            $sql .= ' AND e.id = :id_empresa';
+            $bindings['id_empresa'] = $id_empresa;
+        }
+
+        $sql .= ' ORDER BY e.nombre_comercial';
+
+        return DB::select($sql, $bindings);
     }
 
     /**
