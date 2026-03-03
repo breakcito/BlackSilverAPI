@@ -9,23 +9,20 @@ use App\Shared\Responses\ApiResponse;
 
 class ResponsableMinaService
 {
-    /**
-     * Asignar responsable a mina.
-     */
-    public function asignar_responsable_mina(int $id_mina, int $id_usuario, string $fecha_inicio)
+    // Asignar responsable a mina.
+    public function asignar_responsable_mina(int $id_mina, int $id_empleado, string $fecha_inicio)
     {
-        // 1. Obtener la mina
-        $mina = Mina::get_mina_by_id($id_mina);
-        if (! $mina) {
+        $mina = Mina::where('id_mina', $id_mina)->first(['id_concesion']);
+        if (!$mina) {
             return ApiResponse::error('Mina no encontrada');
         }
 
-        // 2. Validar si el usuario (vía sus empresas asociadas a esta mina) tiene autorización completa
-        if (!ResponsableMina::check_usuario_autorizado_mina($id_usuario, $id_mina)) {
-            return ApiResponse::error('Este usuario no pertenece a ninguna empresa autorizada en esta mina o no tiene contrato vigente.');
-        }
+        // // Validar si el usuario (vía sus empresas asociadas a esta mina) tiene autorización completa
+        // if (!ResponsableMina::check_usuario_autorizado_mina($id_usuario, $id_mina, $mina->id_concesion)) {
+        //     return ApiResponse::error('Este usuario no pertenece a ninguna empresa autorizada en esta mina o no tiene contrato vigente.');
+        // }
 
-        // 3. Transacción para cerrar anterior y crear nuevo
+        // Transacción para cerrar anterior y crear nuevo
         ResponsableMina::where('id_mina', $id_mina)
             ->where('estado', EstadoBase::Activo->value)
             ->update([
@@ -33,15 +30,15 @@ class ResponsableMinaService
                 'estado' => EstadoBase::Inactivo->value,
             ]);
 
-        ResponsableMina::insertGetId([
+        $id_asignacion = ResponsableMina::insertGetId([
             'id_mina' => $id_mina,
-            'id_usuario' => $id_usuario,
+            'id_empleado' => $id_empleado,
             'fecha_inicio' => $fecha_inicio,
             'fecha_fin' => null,
             'estado' => EstadoBase::Activo->value,
         ]);
 
-        return ApiResponse::success(null, 'Responsable asignado correctamente');
+        return ApiResponse::success($id_asignacion, 'Responsable asignado correctamente');
     }
 
     /**

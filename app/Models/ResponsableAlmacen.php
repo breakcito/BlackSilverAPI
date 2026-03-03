@@ -13,7 +13,7 @@ class ResponsableAlmacen extends Model
 
     protected $fillable = [
         'id_almacen',
-        'id_usuario',
+        'id_empleado',
         'fecha_inicio',
         'fecha_fin',
         'estado',

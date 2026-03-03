@@ -32,7 +32,7 @@ class Almacen extends Model
             a.es_principal,
             a.estado,
             (
-                SELECT CONCAT(emp.nombre, \' \', emp.apellido)
+                SELECT CONCAT(emp.nombre, " ", emp.apellido)
                 FROM responsable_almacen ra
                 INNER JOIN usuario u ON u.id = ra.id_usuario
                 INNER JOIN empleado emp ON emp.id = u.id_empleado

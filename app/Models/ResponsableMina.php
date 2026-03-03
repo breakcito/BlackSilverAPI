@@ -14,7 +14,7 @@ class ResponsableMina extends Model
 
     protected $fillable = [
         'id_mina',
-        'id_usuario',
+        'id_empleado',
         'fecha_inicio',
         'fecha_fin',
         'estado',
@@ -51,7 +51,7 @@ class ResponsableMina extends Model
         $sql = '
         SELECT
             rm.id AS id_asignacion,
-            rm.id_usuario,
+            rm.id_empleado,
             emp.nombre AS nombres,
             emp.apellido AS apellidos,
             rm.fecha_inicio,
@@ -59,8 +59,7 @@ class ResponsableMina extends Model
             rm.estado
         FROM
             responsable_mina rm
-        INNER JOIN usuario u ON u.id = rm.id_usuario
-        INNER JOIN empleado emp ON emp.id = u.id_empleado
+        INNER JOIN empleado emp ON emp.id = rm.id_empleado
         WHERE
             rm.id_mina = :id_mina
         ORDER BY rm.fecha_inicio DESC

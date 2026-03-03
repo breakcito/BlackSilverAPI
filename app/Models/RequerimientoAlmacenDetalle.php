@@ -13,10 +13,11 @@ class RequerimientoAlmacenDetalle extends Model
 
     protected $fillable = [
         'id_requerimiento_almacen',
-        'id_producto',
-        'id_unidad_medida_presentacion', // caja
+        'id_producto', // manzana - kilos
+        'id_unidad_medida', // caja
         'id_empleado_atencion', // quien decide aprobar/rechazar el producto del requerimiento
         //
+        'contenido_por_presentacion', // 10kg por caja
         'cantidad_solicitada', // 3 cajas
         'cantidad_solicitada_base', // 30kg
         'cantidad_entregada', // 2 cajas

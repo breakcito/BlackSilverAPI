@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Services\ConcesionService;
+use App\Services\ContratoConcesionService;
 use App\Shared\Enums\TipoMineral;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -14,7 +15,8 @@ use Illuminate\Validation\Rules\Enum;
 class ConcesionController extends Controller
 {
     public function __construct(
-        private ConcesionService $concesionService
+        private ConcesionService $concesionService,
+        private ContratoConcesionService $contratoConcesionService
     ) {}
 
     public function get_concesiones(Request $request): JsonResponse
@@ -56,7 +58,7 @@ class ConcesionController extends Controller
         }
 
         $data = $validator->validated();
-        $result = $this->concesionService->get_concesiones_by_empresa($data['id_empresa']);
+        $result = $this->contratoConcesionService->get_concesiones_by_empresa($data['id_empresa']);
 
         return response()->json($result);
     }
@@ -102,7 +104,7 @@ class ConcesionController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->concesionService->get_empresas_historial($request->id_concesion);
+        $result = $this->contratoConcesionService->get_empresas_historial($request->id_concesion);
 
         return response()->json($result);
     }
@@ -125,7 +127,7 @@ class ConcesionController extends Controller
         }
 
         $data = $validator->validated();
-        $result = $this->concesionService->asignar_empresa(
+        $result = $this->contratoConcesionService->asignar_empresa(
             $data['id_concesion'],
             $data['id_empresa'],
             $data['fecha_inicio'],
@@ -145,7 +147,7 @@ class ConcesionController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->concesionService->desasignar_empresa($request->id_asignacion);
+        $result = $this->contratoConcesionService->desasignar_empresa($request->id_asignacion);
 
         return response()->json($result);
     }

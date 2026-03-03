@@ -33,12 +33,11 @@ class Mina extends Model
             m.descripcion,
             m.estado,
             (SELECT COUNT(*) FROM empresa_mina em WHERE em.id_mina = m.id) AS empresas_count,
-            (SELECT COUNT(*) FROM labor l WHERE l.id_mina = m.id AND l.estado != \'Inactivo\') AS labores_count,
+            (SELECT COUNT(*) FROM labor l WHERE l.id_mina = m.id AND l.estado != "Inactivo") AS labores_count,
             (
-                SELECT CONCAT(emp.nombre, \' \', emp.apellido)
+                SELECT CONCAT(emp.nombre, " ", emp.apellido)
                 FROM responsable_mina rm
-                INNER JOIN usuario u ON u.id = rm.id_usuario
-                INNER JOIN empleado emp ON emp.id = u.id_empleado
+                INNER JOIN empleado emp ON emp.id = rm.id_empleado
                 WHERE rm.id_mina = m.id AND rm.estado = :estado_activo
                 LIMIT 1
             ) AS responsable_actual

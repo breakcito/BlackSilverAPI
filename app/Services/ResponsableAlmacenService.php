@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\ResponsableAlmacen;
-use App\Models\Usuario;
 use App\Shared\Enums\EstadoBase;
 use App\Shared\Responses\ApiResponse;
 
@@ -15,13 +14,6 @@ class ResponsableAlmacenService
      */
     public function asignar_responsable_almacen(int $id_almacen, int $id_empleado, string $fecha_inicio, ?string $fecha_fin)
     {
-        // validar que el empleado exista
-        $usuarioReal = Usuario::where('id_empleado', $id_empleado)->first();
-        if (!$usuarioReal) {
-            return ApiResponse::error('El empleado seleccionado no tiene cuenta de usuario en el sistema.');
-        }
-        $id_usuario_real = $usuarioReal->id;
-
         // Cerrar anteriores activos
         ResponsableAlmacen::where('id_almacen', $id_almacen)
             ->where('estado', EstadoBase::Activo->value)
@@ -30,10 +22,10 @@ class ResponsableAlmacenService
                 'estado' => EstadoBase::Inactivo->value,
             ]);
 
-        // Crear nuevo usando el id de la tabla usuario
+        // Crear nuevo usando el id de la tabla empleado
         $id = ResponsableAlmacen::insertGetId([
             'id_almacen' => $id_almacen,
-            'id_usuario' => $id_usuario_real,
+            'id_empleado' => $id_empleado,
             'fecha_inicio' => $fecha_inicio,
             'fecha_fin' => $fecha_fin,
             'estado' => EstadoBase::Activo->value,

@@ -70,7 +70,7 @@ class Labor extends Model
             $params['id_mina'] = $id_mina;
         }
 
-        $sql .= ' ORDER BY l.codigo_correlativo ASC';
+        $sql .= ' ORDER BY l.correlativo ASC';
 
         return DB::select($sql, $params);
     }

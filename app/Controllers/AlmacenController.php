@@ -56,12 +56,12 @@ class AlmacenController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id_almacen' => 'required|integer',
-            'id_usuario' => 'required|integer',
+            'id_empleado' => 'required|integer',
             'fecha_inicio' => 'required|date',
             'fecha_fin' => 'nullable|date|after:fecha_inicio',
         ], [
             'id_almacen.required' => 'El almacén es requerido',
-            'id_usuario.required' => 'El usuario es requerido',
+            'id_empleado.required' => 'El empleado es requerido',
             'fecha_inicio.required' => 'La fecha de inicio es requerida',
         ]);
 
@@ -71,7 +71,7 @@ class AlmacenController extends Controller
 
         $result = $this->responsableAlmacenService->asignar_responsable_almacen(
             $request->id_almacen,
-            $request->id_usuario,
+            $request->id_empleado,
             $request->fecha_inicio,
             $request->fecha_fin
         );
