@@ -7,12 +7,10 @@ use App\Shared\Responses\ApiResponse;
 
 class MinaService
 {
-    /**
-     * Listar minas.
-     */
-    public function get_minas(?int $id_concesion)
+    // Listar minas
+    public function get_minas(?int $id_mina = null, ?int $id_concesion = null)
     {
-        $minas = Mina::get_minas($id_concesion);
+        $minas = Mina::get_minas($id_mina, $id_concesion);
 
         return ApiResponse::success($minas);
     }
@@ -58,6 +56,4 @@ class MinaService
 
         return ApiResponse::success(['mensaje' => 'Mina eliminada correctamente']);
     }
-
-
 }

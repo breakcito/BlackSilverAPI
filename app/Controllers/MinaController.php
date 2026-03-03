@@ -21,8 +21,12 @@ class MinaController extends Controller
 
     public function get_minas(Request $request): JsonResponse
     {
+        $id_mina = $request->query('id_mina');
         $id_concesion = $request->query('id_concesion');
-        $result = $this->minaService->get_minas($id_concesion ? (int) $id_concesion : null);
+        $result = $this->minaService->get_minas(
+            id_mina: $id_mina ? (int) $id_mina : null,
+            id_concesion: $id_concesion ? (int) $id_concesion : null
+        );
 
         return response()->json($result);
     }

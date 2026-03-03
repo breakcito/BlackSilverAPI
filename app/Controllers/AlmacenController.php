@@ -117,7 +117,7 @@ class AlmacenController extends Controller
     {
         $id_almacen = $request->input('id_almacen');
         if (! $id_almacen) {
-            return response()->json(ApiResponse::error('El id_almacen es requerido'), 400);
+            return response()->json(ApiResponse::error('El id_almacen es requerido'));
         }
 
         $result = $this->almacenMinaService->get_minas_almacen((int) $id_almacen);
@@ -129,7 +129,7 @@ class AlmacenController extends Controller
     {
         $id_asignacion = $request->input('id_asignacion');
         if (! $id_asignacion) {
-            return response()->json(ApiResponse::error('El id_asignacion es requerido'), 400);
+            return response()->json(ApiResponse::error('El id_asignacion es requerido'));
         }
 
         $result = $this->almacenMinaService->desasignar_mina_almacen((int) $id_asignacion);

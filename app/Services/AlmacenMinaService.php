@@ -21,12 +21,12 @@ class AlmacenMinaService
             'id_mina' => $id_mina,
         ]);
 
-        return ApiResponse::success(['id_asignacion' => $almacenMina->id], 'Mina asignada correctamente');
+        $nuevoAlmacenMina = AlmacenMina::get_minas_asignadas($id_almacen, $almacenMina->id)[0];
+
+        return ApiResponse::success($nuevoAlmacenMina, 'Mina asignada correctamente');
     }
 
-    /**
-     * Listar minas que abastece un almacen
-     */
+    // Listar minas que abastece un almacen
     public function get_minas_almacen(int $id_almacen)
     {
         $minas = AlmacenMina::get_minas_asignadas($id_almacen);

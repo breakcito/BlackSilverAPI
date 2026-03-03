@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 // Tabla que ayuda a identificar:
 // - A que minas abastece un almacen
@@ -10,20 +11,18 @@ use Illuminate\Database\Eloquent\Model;
 class AlmacenMina extends Model
 {
     protected $table = 'almacen_mina';
-
     public $timestamps = false;
-
     protected $fillable = [
         'id_almacen',
         'id_mina',
     ];
 
     // Obtener las minas a las que atiende este almacén
-    public static function get_minas_asignadas(int $id_almacen)
+    public static function get_minas_asignadas(?int $id_almacen = null, ?int $id_almacen_mina = null)
     {
         $sql = '
         SELECT
-            am.id,
+            am.id as id_almacen_mina,
             m.nombre AS mina,
             c.nombre AS concesion
         FROM
@@ -31,18 +30,32 @@ class AlmacenMina extends Model
         INNER JOIN mina m ON m.id = am.id_mina
         INNER JOIN concesion c ON c.id = m.id_concesion
         WHERE
-            am.id_almacen = :id_almacen
-        ORDER BY m.nombre ASC
+            1 = 1
         ';
 
-        return \Illuminate\Support\Facades\DB::select($sql, ['id_almacen' => $id_almacen]);
+        $params = [];
+
+        if ($id_almacen) {
+            $sql .= ' AND am.id_almacen = :id_almacen';
+            $params['id_almacen'] = $id_almacen;
+        }
+        if ($id_almacen_mina) {
+            $sql .= ' AND am.id = :id_almacen_mina';
+            $params['id_almacen_mina'] = $id_almacen_mina;
+        }
+
+        $sql .= ' ORDER BY m.nombre ASC';
+
+        return DB::select($sql, $params);
     }
 
+
+    // Obtener los almacenes que atienden a una mina
     public static function get_almacenes_por_mina(int $id_mina)
     {
         $sql = "
             SELECT
-                a.id,
+                a.id as id_almacen,
                 a.nombre,
                 a.es_principal
             FROM almacen a
@@ -51,6 +64,6 @@ class AlmacenMina extends Model
               AND a.estado = 'Activo'
         ";
 
-        return \Illuminate\Support\Facades\DB::select($sql, ['id_mina' => $id_mina]);
+        return DB::select($sql, ['id_mina' => $id_mina]);
     }
 }
