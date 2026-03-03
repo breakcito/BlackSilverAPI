@@ -30,7 +30,7 @@ class LaborController extends Controller
 
     public function get_tipos_labor(Request $request): JsonResponse
     {
-        $tipos = TipoLabor::select('id as id_tipo_labor', 'prefijo', 'nombre', 'es_de_produccion')
+        $tipos = TipoLabor::select('id as id_tipo_labor', 'codigo', 'nombre', 'es_de_produccion')
             ->orderBy('nombre', 'asc')
             ->get();
 

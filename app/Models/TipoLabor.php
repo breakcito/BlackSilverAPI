@@ -9,7 +9,7 @@ class TipoLabor extends Model
     protected $table = 'tipo_labor';
     public $timestamps = false;
     protected $fillable = [
-        'prefijo',
+        'codigo',
         'nombre',
         'es_de_produccion',
     ];

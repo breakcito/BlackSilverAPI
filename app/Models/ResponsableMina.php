@@ -46,11 +46,11 @@ class ResponsableMina extends Model
         return (bool) $result->autorizado;
     }
 
-    public static function get_responsables_historial(int $id_mina)
+    public static function get_responsables_historial(?int $id_mina = null, ?int $id_responsable_mina = null)
     {
         $sql = '
         SELECT
-            rm.id AS id_asignacion,
+            rm.id AS id_responsable_mina,
             rm.id_empleado,
             emp.nombre AS nombres,
             emp.apellido AS apellidos,
@@ -61,10 +61,23 @@ class ResponsableMina extends Model
             responsable_mina rm
         INNER JOIN empleado emp ON emp.id = rm.id_empleado
         WHERE
-            rm.id_mina = :id_mina
-        ORDER BY rm.fecha_inicio DESC
+            1 = 1
         ';
 
-        return DB::select($sql, ['id_mina' => $id_mina]);
+        $params = [];
+
+        if ($id_mina) {
+            $sql .= ' AND rm.id_mina = :id_mina';
+            $params['id_mina'] = $id_mina;
+        }
+
+        if ($id_responsable_mina) {
+            $sql .= ' AND rm.id = :id_responsable_mina';
+            $params['id_responsable_mina'] = $id_responsable_mina;
+        }
+
+        $sql .= ' ORDER BY rm.fecha_inicio DESC';
+
+        return DB::select($sql, $params);
     }
 }

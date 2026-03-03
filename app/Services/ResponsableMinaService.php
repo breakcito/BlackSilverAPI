@@ -12,7 +12,7 @@ class ResponsableMinaService
     // Asignar responsable a mina.
     public function asignar_responsable_mina(int $id_mina, int $id_empleado, string $fecha_inicio)
     {
-        $mina = Mina::where('id_mina', $id_mina)->first(['id_concesion']);
+        $mina = Mina::where('id', $id_mina)->first(['id_concesion']);
         if (!$mina) {
             return ApiResponse::error('Mina no encontrada');
         }
@@ -38,7 +38,9 @@ class ResponsableMinaService
             'estado' => EstadoBase::Activo->value,
         ]);
 
-        return ApiResponse::success($id_asignacion, 'Responsable asignado correctamente');
+        $nuevoResponsable = ResponsableMina::get_responsables_historial(id_responsable_mina: $id_asignacion)[0];
+
+        return ApiResponse::success($nuevoResponsable, 'Responsable asignado correctamente');
     }
 
     /**

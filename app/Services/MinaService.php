@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Mina;
+use App\Shared\Enums\EstadoBase;
 use App\Shared\Responses\ApiResponse;
 
 class MinaService
@@ -25,10 +26,12 @@ class MinaService
             'id_concesion' => $id_concesion,
             'nombre' => $nombre,
             'descripcion' => $descripcion,
-            'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
+            'estado' => EstadoBase::Activo->value,
         ]);
 
-        return ApiResponse::success(Mina::get_mina_by_id($mina->id), 'Mina creada correctamente');
+        $nuevaMina = Mina::get_minas(id_mina: $mina->id)[0];
+
+        return ApiResponse::success($nuevaMina, 'Mina creada correctamente');
     }
 
     /**
@@ -52,7 +55,7 @@ class MinaService
     public function delete_mina(int $id)
     {
         Mina::where('id', $id)
-            ->update(['estado' => \App\Shared\Enums\EstadoBase::Inactivo->value]);
+            ->update(['estado' => EstadoBase::Inactivo->value]);
 
         return ApiResponse::success(['mensaje' => 'Mina eliminada correctamente']);
     }

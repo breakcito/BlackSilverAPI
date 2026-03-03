@@ -25,8 +25,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::prefix('almacenes')->controller(AlmacenController::class)->group(function () {
         Route::get('/', 'get_almacenes'); // ✅
         Route::post('/', 'crear_almacen'); // ✅
-        Route::post('/asignar-responsable', 'asignar_responsable_almacen');
-        Route::post('/responsables', 'get_responsables_almacen');
+        Route::post('/asignar-responsable', 'asignar_responsable_almacen'); // ✅
+        Route::post('/responsables', 'get_responsables_almacen'); // ✅
         Route::post('/asignar-mina', 'asignar_mina_almacen'); // ✅
         Route::post('/minas', 'get_minas_almacen'); // ✅
         Route::post('/desasignar-mina', 'desasignar_mina_almacen'); // ✅
@@ -34,11 +34,11 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
     // Concesiones
     Route::prefix('concesiones')->controller(ConcesionController::class)->group(function () {
-        Route::get('/', 'get_concesiones');
+        Route::get('/', 'get_concesiones'); // ✅
         Route::get('/tipos-mineral', 'get_tipos_mineral');
         Route::post('/by-empresa', 'get_concesiones_by_empresa');
         Route::get('/by-session', 'get_concesiones_by_session');
-        Route::post('/', 'crear_concesion');
+        Route::post('/', 'crear_concesion'); // ✅
         Route::put('/', 'update_concesion');
         Route::delete('/', 'delete_concesion');
         Route::post('/asignaciones', 'get_empresas_historial');
@@ -56,7 +56,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::post('/desasignar-empresa', 'desasignar_empresa_mina');
         Route::get('/empresas', 'get_empresas_mina');
         Route::post('/responsables', 'get_responsables_mina');
-        Route::post('/asignar-responsable', 'asignar_responsable_mina');
+        Route::post('/asignar-responsable', 'asignar_responsable_mina'); // 
     });
 
     // Labores
