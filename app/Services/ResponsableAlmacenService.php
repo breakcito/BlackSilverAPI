@@ -31,7 +31,9 @@ class ResponsableAlmacenService
             'estado' => EstadoBase::Activo->value,
         ]);
 
-        return ApiResponse::success(['id_asignacion' => $id], 'Responsable asignado correctamente');
+        $nuevoResponsableAlmacen = ResponsableAlmacen::get_responsables_historial(id_responsable_almacen: $id)[0];
+
+        return ApiResponse::success($nuevoResponsableAlmacen, 'Responsable asignado correctamente');
     }
 
     /**

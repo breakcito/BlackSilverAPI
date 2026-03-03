@@ -29,7 +29,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::post('/responsables', 'get_responsables_almacen');
         Route::post('/asignar-mina', 'asignar_mina_almacen'); // ✅
         Route::post('/minas', 'get_minas_almacen'); // ✅
-        Route::post('/desasignar-mina', 'desasignar_mina_almacen');
+        Route::post('/desasignar-mina', 'desasignar_mina_almacen'); // ✅
     });
 
     // Concesiones

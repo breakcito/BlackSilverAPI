@@ -19,12 +19,12 @@ class ResponsableAlmacen extends Model
         'estado',
     ];
 
-    public static function get_responsables_historial(int $id_almacen)
+    public static function get_responsables_historial(?int $id_almacen = null, ?int $id_responsable_almacen = null)
     {
         $sql = '
         SELECT
-            ra.id AS id_asignacion,
-            ra.id_usuario,
+            ra.id AS id_responsable_almacen,
+            ra.id_empleado,
             emp.nombre AS nombres,
             emp.apellido AS apellidos,
             ra.fecha_inicio,
@@ -32,13 +32,24 @@ class ResponsableAlmacen extends Model
             ra.estado
         FROM
             responsable_almacen ra
-        INNER JOIN usuario u ON u.id = ra.id_usuario
-        INNER JOIN empleado emp ON emp.id = u.id_empleado
+        INNER JOIN empleado emp ON emp.id = ra.id_empleado
         WHERE
-            ra.id_almacen = :id_almacen
-        ORDER BY ra.fecha_inicio DESC
+            1 = 1
         ';
 
-        return DB::select($sql, ['id_almacen' => $id_almacen]);
+        $params = [];
+
+        if ($id_almacen != null) {
+            $sql .= ' AND ra.id_almacen = :id_almacen';
+            $params['id_almacen'] = $id_almacen;
+        }
+        if ($id_responsable_almacen != null) {
+            $sql .= ' AND ra.id = :id_responsable_almacen';
+            $params['id_responsable_almacen'] = $id_responsable_almacen;
+        }
+
+        $sql .= ' ORDER BY ra.fecha_inicio DESC';
+
+        return DB::select($sql, $params);
     }
 }

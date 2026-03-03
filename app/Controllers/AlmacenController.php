@@ -50,8 +50,6 @@ class AlmacenController extends Controller
         return response()->json($result);
     }
 
-    // --- SUBMÓDULOS DE ALMACÉN ---
-
     public function asignar_responsable_almacen(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [

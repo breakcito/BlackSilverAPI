@@ -33,8 +33,7 @@ class Almacen extends Model
             (
                 SELECT CONCAT(emp.nombre, " ", emp.apellido)
                 FROM responsable_almacen ra
-                INNER JOIN usuario u ON u.id = ra.id_usuario
-                INNER JOIN empleado emp ON emp.id = u.id_empleado
+                INNER JOIN empleado emp ON emp.id = ra.id_empleado
                 WHERE ra.id_almacen = a.id AND ra.estado = "Activo"
                 LIMIT 1
             ) AS responsable_actual,
