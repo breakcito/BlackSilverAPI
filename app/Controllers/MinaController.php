@@ -95,7 +95,7 @@ class MinaController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(ApiResponse::error($validator->errors()->first()), 400);
+            return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
         $result = $this->empresaMinaService->asignar_empresa_mina($request->id_mina, $request->id_empresa);
