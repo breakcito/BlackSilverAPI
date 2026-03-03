@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Services\LoteService;
+use App\Services\UnidadMedidaService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +13,8 @@ use Illuminate\Support\Facades\Validator;
 class LoteController extends Controller
 {
     public function __construct(
-        private LoteService $loteService
+        private LoteService $loteService,
+        private UnidadMedidaService $unidadMedidaService
     ) {}
 
     public function get_lotes_by_almacen(Request $request): JsonResponse
@@ -36,9 +38,8 @@ class LoteController extends Controller
 
     public function get_unidades_medida(Request $request): JsonResponse
     {
-        $result = $this->loteService->get_unidades_medida();
+        $result = $this->unidadMedidaService->get_unidades_medida();
 
-        // Ojo: Si no hay unidad medida service, lo creo en LoteService por simplicidad.
         return response()->json($result);
     }
 

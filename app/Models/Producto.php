@@ -14,26 +14,19 @@ class Producto extends Model
 
     protected $fillable = [
         'id_categoria',
-        // indica la unidad de medida base que se usa para
-        // manipular/calcula/estimar en el dia a dia
         'id_unidad_medida_base',
         'nombre',
         'es_fiscalizado',
         'es_perecible',
         'stock_minimo',
+        'tiempo_espera_vencimiento',
+        'periodo_espera_vencimiento',
+        'dias_espera_vencimiento',
         'estado',
     ];
 
-    protected $appends = ['id_producto'];
-
-    public function getIdProductoAttribute(): int
-    {
-        return $this->id;
-    }
-
     /**
      * Listar todos los productos del catálogo.
-     * Incluye el nombre de la categoría asociada.
      */
     public static function get_productos()
     {
@@ -42,13 +35,21 @@ class Producto extends Model
             p.id AS id_producto,
             p.id_categoria,
             c.nombre as categoria,
+            p.id_unidad_medida_base,
+            um.nombre as unidad_medida_base,
+            um.abreviatura as unidad_medida_abreviatura,
             p.nombre,
             p.es_fiscalizado,
             p.es_perecible,
+            p.stock_minimo,
+            p.tiempo_espera_vencimiento,
+            p.periodo_espera_vencimiento,
+            p.dias_espera_vencimiento,
             p.estado
         FROM
             producto p
         INNER JOIN categoria c ON c.id = p.id_categoria
+        LEFT JOIN unidad_medida um ON um.id = p.id_unidad_medida_base
         WHERE
             p.estado != :estado_inactivo
         ORDER BY p.nombre ASC
@@ -64,13 +65,21 @@ class Producto extends Model
             p.id AS id_producto,
             p.id_categoria,
             c.nombre as categoria,
+            p.id_unidad_medida_base,
+            um.nombre as unidad_medida_base,
+            um.abreviatura as unidad_medida_abreviatura,
             p.nombre,
             p.es_fiscalizado,
             p.es_perecible,
+            p.stock_minimo,
+            p.tiempo_espera_vencimiento,
+            p.periodo_espera_vencimiento,
+            p.dias_espera_vencimiento,
             p.estado
         FROM
             producto p
         INNER JOIN categoria c ON c.id = p.id_categoria
+        LEFT JOIN unidad_medida um ON um.id = p.id_unidad_medida_base
         WHERE
             p.id = :id
         ';
@@ -88,10 +97,13 @@ class Producto extends Model
             p.id AS id_producto,
             p.nombre,
             c.nombre as categoria,
-            p.es_perecible
+            p.es_perecible,
+            p.id_unidad_medida_base,
+            um.abreviatura as unidad_medida_base
         FROM
             producto p
         INNER JOIN categoria c ON c.id = p.id_categoria
+        LEFT JOIN unidad_medida um ON um.id = p.id_unidad_medida_base
         WHERE
             p.estado = :estado AND
             c.tipo_requerimiento = :tipo_bien
