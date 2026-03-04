@@ -9,14 +9,9 @@ use Illuminate\Routing\Controller;
 
 class KardexController extends Controller
 {
-    private $kardexService;
-
-    public function obtener_kardex(
-        Request $request,
-        \App\Services\KardexService $kardexService
-    ) {
-        $this->kardexService = $kardexService;
-    }
+    public function __construct(
+        private \App\Services\KardexProductoService $kardexService
+    ) {}
 
     public function get_movimientos(Request $request): JsonResponse
     {

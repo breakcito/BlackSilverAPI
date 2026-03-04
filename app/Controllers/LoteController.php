@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Services\LoteService;
+use App\Services\UnidadMedidaService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +13,8 @@ use Illuminate\Support\Facades\Validator;
 class LoteController extends Controller
 {
     public function __construct(
-        private LoteService $loteService
+        private LoteService $loteService,
+        private UnidadMedidaService $unidadMedidaService
     ) {}
 
     public function get_lotes_by_almacen(Request $request): JsonResponse
@@ -36,9 +38,8 @@ class LoteController extends Controller
 
     public function get_unidades_medida(Request $request): JsonResponse
     {
-        $result = $this->loteService->get_unidades_medida();
+        $result = $this->unidadMedidaService->get_unidades_medida();
 
-        // Ojo: Si no hay unidad medida service, lo creo en LoteService por simplicidad.
         return response()->json($result);
     }
 
@@ -50,13 +51,15 @@ class LoteController extends Controller
             'id_almacen' => 'required|integer',
             'descripcion' => 'nullable|string',
             'stock_inicial' => 'required|numeric|min:0',
-            'fecha_ingreso' => 'required|date',
-            'fecha_vencimiento' => 'nullable|date|after_or_equal:fecha_ingreso',
+            'contenido_por_presentacion' => 'required|numeric|min:0',
+            'fecha_hora_ingreso' => 'required|date',
+            'fecha_vencimiento' => 'nullable|date|after_or_equal:fecha_hora_ingreso',
         ], [
             'id_producto.required' => 'El producto es requerido',
             'id_unidad_medida.required' => 'La unidad de medida es requerida',
             'id_almacen.required' => 'El almacén es requerido',
             'stock_inicial.min' => 'El stock inicial no puede ser negativo',
+            'contenido_por_presentacion.required' => 'El contenido por presentación es requerido',
         ]);
 
         if ($validator->fails()) {
@@ -69,7 +72,8 @@ class LoteController extends Controller
             $request->id_almacen,
             $request->descripcion ?? null,
             (float) $request->stock_inicial,
-            $request->fecha_ingreso,
+            (float) $request->contenido_por_presentacion,
+            $request->fecha_hora_ingreso,
             $request->fecha_vencimiento
         );
 

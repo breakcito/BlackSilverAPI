@@ -14,20 +14,16 @@ class LoteProducto extends Model
 
     protected $fillable = [
         'id_producto',
+        'id_unidad_medida',
         'id_almacen',
-        'id_unidad_medida_presentacion', // en que presentacion ingresa el lote al almacen (ej. caja)
-        //
+        'descripcion',
         'correlativo',
         'numero_correlativo',
-        'descripcion',
-        'cantidad_presentacion_inicial', // 2 cajas
-        'cantidad_presentacion_actual', // 1 caja
-        'contenido_por_presentacion', // 10kg por caja
-        'stock_inicial', // 20kg
-        'stock_actual', // 10kg
+        'stock_actual',
+        'contenido_por_presentacion',
+        'stock_actual_base',
         'fecha_hora_ingreso',
         'fecha_vencimiento',
-        //
         'created_at',
         'estado',
     ];
@@ -41,31 +37,49 @@ class LoteProducto extends Model
         SELECT
             lp.id AS id_lote,
             lp.id_producto,
-            p.nombre AS producto,
+            CONCAT(p.nombre, \' - \', COALESCE(um_base.abreviatura, \'S/U\')) AS producto,
             c.nombre AS categoria,
             lp.id_unidad_medida,
-            um.abreviatura AS unidad_medida,
+            um_lote.abreviatura AS unidad_medida,
             lp.id_almacen,
             lp.descripcion,
-            CONCAT(lp.correlativo, \'-\', DATE_FORMAT(lp.created_at, \'%y\'), \'-\', LPAD(lp.numero_correlativo, 5, \'0\')) AS codigo_lote,
+            lp.correlativo as codigo_lote,
             lp.stock_actual,
-            lp.fecha_ingreso,
+            lp.contenido_por_presentacion,
+            lp.stock_actual_base,
+            lp.fecha_hora_ingreso,
             lp.fecha_vencimiento,
-            lp.estado
+            lp.estado,
+            p.es_perecible,
+            p.stock_minimo,
+            p.dias_espera_vencimiento,
+            /* Cálculo de días restantes */
+            CASE 
+                WHEN lp.fecha_vencimiento IS NOT NULL THEN DATEDIFF(lp.fecha_vencimiento, CURRENT_DATE)
+                ELSE NULL
+            END as dias_para_vencer,
+            /* Stock total del producto en este almacén */
+            (SELECT SUM(stock_actual_base) 
+             FROM lote_producto 
+             WHERE id_producto = lp.id_producto 
+               AND id_almacen = lp.id_almacen 
+               AND estado = :estado_sub) as stock_total_almacen
         FROM
             lote_producto lp
         INNER JOIN producto p ON p.id = lp.id_producto
-        INNER JOIN categoria c ON c.id = p.id_categoria
-        INNER JOIN unidad_medida um ON um.id = lp.id_unidad_medida
+        LEFT JOIN categoria c ON c.id = p.id_categoria
+        LEFT JOIN unidad_medida um_base ON um_base.id = p.id_unidad_medida_base
+        LEFT JOIN unidad_medida um_lote ON um_lote.id = lp.id_unidad_medida
         WHERE
             lp.id_almacen = :id_almacen AND
             lp.estado = :estado
-        ORDER BY lp.created_at DESC
+        ORDER BY lp.fecha_hora_ingreso DESC
         ';
 
         return DB::select($sql, [
             'id_almacen' => $id_almacen,
             'estado' => EstadoBase::Activo->value,
+            'estado_sub' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -78,21 +92,34 @@ class LoteProducto extends Model
         SELECT
             lp.id AS id_lote,
             lp.id_producto,
-            p.nombre AS producto,
+            CONCAT(p.nombre, \' - \', COALESCE(um_base.abreviatura, \'S/U\')) AS producto,
             c.nombre AS categoria,
             lp.id_unidad_medida,
-            um.abreviatura AS unidad_medida,
+            um_lote.abreviatura AS unidad_medida,
             lp.id_almacen,
             lp.descripcion,
+            lp.correlativo as codigo_lote,
             lp.stock_actual,
-            lp.fecha_ingreso,
+            lp.contenido_por_presentacion,
+            lp.stock_actual_base,
+            lp.fecha_hora_ingreso,
             lp.fecha_vencimiento,
-            lp.estado
+            lp.estado,
+            p.es_perecible,
+            p.stock_minimo,
+            p.dias_espera_vencimiento,
+            DATEDIFF(lp.fecha_vencimiento, CURRENT_DATE) as dias_para_vencer,
+            (SELECT SUM(stock_actual_base) 
+             FROM lote_producto 
+             WHERE id_producto = lp.id_producto 
+               AND id_almacen = lp.id_almacen 
+               AND estado = \'Activo\') as stock_total_almacen
         FROM
             lote_producto lp
         INNER JOIN producto p ON p.id = lp.id_producto
-        INNER JOIN categoria c ON c.id = p.id_categoria
-        INNER JOIN unidad_medida um ON um.id = lp.id_unidad_medida
+        LEFT JOIN categoria c ON c.id = p.id_categoria
+        LEFT JOIN unidad_medida um_base ON um_base.id = p.id_unidad_medida_base
+        LEFT JOIN unidad_medida um_lote ON um_lote.id = lp.id_unidad_medida
         WHERE
             lp.id = :id
         ';
