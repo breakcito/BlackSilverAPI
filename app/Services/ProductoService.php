@@ -45,6 +45,18 @@ class ProductoService
             $tiempo_espera_vencimiento = null;
             $periodo_espera_vencimiento = null;
             $dias_espera_vencimiento = null;
+        } else {
+            // 3. Calcular días si están presentes tiempo y periodo
+            if ($tiempo_espera_vencimiento && $periodo_espera_vencimiento) {
+                $factor = match ($periodo_espera_vencimiento) {
+                    'diario' => 1,
+                    'semanal' => 7,
+                    'mensual' => 30,
+                    'anual' => 365,
+                    default => 0,
+                };
+                $dias_espera_vencimiento = $tiempo_espera_vencimiento * $factor;
+            }
         }
 
         $producto_nuevo = Producto::create([
