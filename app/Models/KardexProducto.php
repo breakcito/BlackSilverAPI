@@ -38,6 +38,8 @@ class KardexProducto extends Model
             lp.id_producto,
             CONCAT(p.nombre, \' - \', um_base.abreviatura) AS producto,
             lp.correlativo as codigo_lote,
+            um_lote.abreviatura as unidad_lote,
+            um_base.abreviatura as unidad_base,
             k.tipo_origen,
             k.tipo_movimiento,
             k.stock_anterior,
@@ -53,6 +55,7 @@ class KardexProducto extends Model
         INNER JOIN lote_producto lp ON lp.id = k.id_lote_producto
         INNER JOIN producto p ON p.id = lp.id_producto
         INNER JOIN unidad_medida um_base ON um_base.id = p.id_unidad_medida_base
+        INNER JOIN unidad_medida um_lote ON um_lote.id = lp.id_unidad_medida
         WHERE
             lp.id_almacen = :id_almacen
         ORDER BY k.created_at DESC
