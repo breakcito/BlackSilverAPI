@@ -49,7 +49,21 @@ class LoteProducto extends Model
             lp.stock_actual_base,
             lp.fecha_hora_ingreso,
             lp.fecha_vencimiento,
-            lp.estado
+            lp.estado,
+            p.es_perecible,
+            p.stock_minimo,
+            p.dias_espera_vencimiento,
+            /* Cálculo de días restantes */
+            CASE 
+                WHEN lp.fecha_vencimiento IS NOT NULL THEN DATEDIFF(lp.fecha_vencimiento, CURRENT_DATE)
+                ELSE NULL
+            END as dias_para_vencer,
+            /* Stock total del producto en este almacén */
+            (SELECT SUM(stock_actual_base) 
+             FROM lote_producto 
+             WHERE id_producto = lp.id_producto 
+               AND id_almacen = lp.id_almacen 
+               AND estado = :estado_sub) as stock_total_almacen
         FROM
             lote_producto lp
         INNER JOIN producto p ON p.id = lp.id_producto
@@ -65,6 +79,7 @@ class LoteProducto extends Model
         return DB::select($sql, [
             'id_almacen' => $id_almacen,
             'estado' => EstadoBase::Activo->value,
+            'estado_sub' => EstadoBase::Activo->value,
         ]);
     }
 
@@ -89,7 +104,16 @@ class LoteProducto extends Model
             lp.stock_actual_base,
             lp.fecha_hora_ingreso,
             lp.fecha_vencimiento,
-            lp.estado
+            lp.estado,
+            p.es_perecible,
+            p.stock_minimo,
+            p.dias_espera_vencimiento,
+            DATEDIFF(lp.fecha_vencimiento, CURRENT_DATE) as dias_para_vencer,
+            (SELECT SUM(stock_actual_base) 
+             FROM lote_producto 
+             WHERE id_producto = lp.id_producto 
+               AND id_almacen = lp.id_almacen 
+               AND estado = \'Activo\') as stock_total_almacen
         FROM
             lote_producto lp
         INNER JOIN producto p ON p.id = lp.id_producto

@@ -99,7 +99,8 @@ class Producto extends Model
             c.nombre as categoria,
             p.es_perecible,
             p.id_unidad_medida_base,
-            um.abreviatura as unidad_medida_base
+            um.abreviatura as unidad_medida_base,
+            p.stock_minimo
         FROM
             producto p
         INNER JOIN categoria c ON c.id = p.id_categoria
