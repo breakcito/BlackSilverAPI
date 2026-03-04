@@ -51,13 +51,15 @@ class LoteController extends Controller
             'id_almacen' => 'required|integer',
             'descripcion' => 'nullable|string',
             'stock_inicial' => 'required|numeric|min:0',
-            'fecha_ingreso' => 'required|date',
-            'fecha_vencimiento' => 'nullable|date|after_or_equal:fecha_ingreso',
+            'contenido_por_presentacion' => 'required|numeric|min:0',
+            'fecha_hora_ingreso' => 'required|date',
+            'fecha_vencimiento' => 'nullable|date|after_or_equal:fecha_hora_ingreso',
         ], [
             'id_producto.required' => 'El producto es requerido',
             'id_unidad_medida.required' => 'La unidad de medida es requerida',
             'id_almacen.required' => 'El almacén es requerido',
             'stock_inicial.min' => 'El stock inicial no puede ser negativo',
+            'contenido_por_presentacion.required' => 'El contenido por presentación es requerido',
         ]);
 
         if ($validator->fails()) {
@@ -70,7 +72,8 @@ class LoteController extends Controller
             $request->id_almacen,
             $request->descripcion ?? null,
             (float) $request->stock_inicial,
-            $request->fecha_ingreso,
+            (float) $request->contenido_por_presentacion,
+            $request->fecha_hora_ingreso,
             $request->fecha_vencimiento
         );
 

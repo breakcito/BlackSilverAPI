@@ -14,17 +14,15 @@ class KardexProducto extends Model
     protected $fillable = [
         'id_lote_producto',
         'id_origen',
-        //
-        'tipo_origen', // codigo_movimiento
-        'tipo_movimiento', // Entrada/Salida
-        'cantidad_anterior', // 3 cajas
-        'cantidad_anterior_base', // 75kg
-        'cantidad_movimiento', // 1 caja
-        'cantidad_movimiento_base', // 25kg
-        'cantidad_resultante', // 2 cajas
-        'cantidad_resultante_base', // 50kg
+        'tipo_origen',
+        'tipo_movimiento',
+        'stock_anterior',
+        'stock_anterior_base',
+        'cantidad_movimiento',
+        'cantidad_movimiento_base',
+        'stock_resultante',
+        'stock_resultante_base',
         'descripcion',
-        //
         'created_at',
     ];
 
@@ -38,20 +36,23 @@ class KardexProducto extends Model
             k.id AS id_kardex,
             k.id_lote_producto,
             lp.id_producto,
-            p.nombre AS producto,
-            lp.correlativo,
-            k.codigo_movimiento,
+            CONCAT(p.nombre, \' - \', um_base.abreviatura) AS producto,
+            lp.correlativo as codigo_lote,
+            k.tipo_origen,
             k.tipo_movimiento,
-            k.cantidad_anterior,
+            k.stock_anterior,
+            k.stock_anterior_base,
             k.cantidad_movimiento,
-            k.cantidad_resultante,
-            k.glosa,
-            k.created_at,
-            k.estado
+            k.cantidad_movimiento_base,
+            k.stock_resultante,
+            k.stock_resultante_base,
+            k.descripcion,
+            k.created_at
         FROM
             kardex_producto k
         INNER JOIN lote_producto lp ON lp.id = k.id_lote_producto
         INNER JOIN producto p ON p.id = lp.id_producto
+        INNER JOIN unidad_medida um_base ON um_base.id = p.id_unidad_medida_base
         WHERE
             lp.id_almacen = :id_almacen
         ORDER BY k.created_at DESC

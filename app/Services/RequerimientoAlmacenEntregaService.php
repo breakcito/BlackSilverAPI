@@ -9,7 +9,7 @@ use App\Models\RequerimientoAlmacenDetalle;
 use App\Models\RequerimientoAlmacenDetalleLog;
 use App\Models\RequerimientoAlmacenEntrega;
 use App\Models\RequerimientoAlmacenEntregaDetalle;
-use App\Shared\Enums\CodigoMovimiento;
+use App\Shared\Enums\OrigenMovimiento;
 use App\Shared\Enums\EstadoBase;
 use App\Shared\Enums\EstadoDetalleRequerimiento;
 use App\Shared\Enums\EstadoRequerimiento;
@@ -65,6 +65,14 @@ class RequerimientoAlmacenEntregaService
             $cantidad_a_entregar = $item['cantidad'];
 
             // Obtener Lote para Kardex y Stock
+            $lote = LoteProducto::where('id', $id_lote)->first([
+                'stock_actual', 
+                'stock_actual_base', 
+                'contenido_por_presentacion'
+            ]);
+
+            $cantidad_base_a_entregar = $cantidad_a_entregar * $lote->contenido_por_presentacion;
+
             // Crear Detalle de Entrega
             RequerimientoAlmacenEntregaDetalle::insert([
                 'id_requerimiento_almacen_entrega' => $id_entrega,
@@ -73,20 +81,26 @@ class RequerimientoAlmacenEntregaService
                 'cantidad' => $cantidad_a_entregar,
             ]);
 
-            $lote = LoteProducto::find($id_lote, ['stock_actual']);
-            LoteProducto::where('id', $id_lote)->decrement('stock_actual', $cantidad_a_entregar);
+            // Actualizar Stock del Lote
+            LoteProducto::where('id', $id_lote)->update([
+                'stock_actual' => $lote->stock_actual - $cantidad_a_entregar,
+                'stock_actual_base' => $lote->stock_actual_base - $cantidad_base_a_entregar
+            ]);
 
             // 6. Registrar Kardex (Salida)
             KardexProducto::create([
                 'id_lote_producto' => $id_lote,
-                'id_cabecera' => $id_entrega,
-                'codigo_movimiento' => CodigoMovimiento::Entrega->value,
+                'id_origen' => $id_entrega,
+                'tipo_origen' => OrigenMovimiento::Entrega->value,
                 'tipo_movimiento' => TipoMovimiento::Salida->value,
-                'cantidad_anterior' => (float) $lote->stock_actual,
+                'stock_anterior' => (float) $lote->stock_actual,
+                'stock_anterior_base' => (float) $lote->stock_actual_base,
                 'cantidad_movimiento' => (float) $cantidad_a_entregar,
-                'cantidad_resultante' => (float) ($lote->stock_actual - $cantidad_a_entregar),
-                'glosa' => "",
-                'estado' => EstadoBase::Activo->value,
+                'cantidad_movimiento_base' => (float) $cantidad_base_a_entregar,
+                'stock_resultante' => (float) ($lote->stock_actual - $cantidad_a_entregar),
+                'stock_resultante_base' => (float) ($lote->stock_actual_base - $cantidad_base_a_entregar),
+                'descripcion' => "Salida por Despacho de Requerimiento #$id_requerimiento",
+                'created_at' => now(),
             ]);
 
             // Obtener estado original antes de incrementar cantidades para saber si es el primer despacho

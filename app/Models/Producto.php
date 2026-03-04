@@ -95,7 +95,7 @@ class Producto extends Model
         $sql = '
         SELECT
             p.id AS id_producto,
-            p.nombre,
+            CONCAT(p.nombre, \' - \', um.abreviatura) AS nombre,
             c.nombre as categoria,
             p.es_perecible,
             p.id_unidad_medida_base,

@@ -2,7 +2,7 @@
 
 namespace App\Shared\Enums;
 
-enum CodigoMovimiento: string
+enum OrigenMovimiento: string
 {
     case NuevoLote = 'Nuevo lote';
     case Entrega = 'Entrega';
