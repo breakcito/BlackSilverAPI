@@ -111,7 +111,6 @@ class RequerimientoAlmacenService
                     'tipo_origen' => 'Solicitud',
                     'descripcion' => EstadoDetalleRequerimiento::Pendiente->getGlosa(),
                     'created_at' => now(),
-                    'estado' => EstadoDetalleRequerimiento::Pendiente->value,
                 ]);
             }
 
@@ -129,6 +128,12 @@ class RequerimientoAlmacenService
         if (! $data) {
             return ApiResponse::error('Requerimiento no encontrado');
         }
+
+        // 1. Obtener Labores
+        $data->labores = RequerimientoAlmacenLabor::get_labores_por_requerimiento($id);
+
+        // 2. Obtener Detalles (Productos)
+        $data->detalles = RequerimientoAlmacenDetalle::get_detalles_by_requerimiento($id);
 
         return ApiResponse::success($data);
     }
@@ -221,7 +226,6 @@ class RequerimientoAlmacenService
                 'id_empleado' => $id_empleado,
                 'tipo_origen' => 'Atención',
                 'descripcion' => $estadoEnum->getGlosa($comentario_decision),
-                'estado' => $estadoEnum->value,
                 'created_at' => now(),
             ]);
 

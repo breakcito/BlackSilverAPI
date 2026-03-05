@@ -27,8 +27,8 @@ class RequerimientoAlmacenDetalleLog extends Model
         $sql = "
         SELECT 
             rl.id,
-            rl.descripcion,
-            rl.estado,
+            rl.descripcion AS glosa,
+            'Pendiente' AS estado,
             rl.created_at,
             IFNULL(CONCAT(e.nombre, ' ', e.apellido), 'Trabajador Almacén') AS usuario
         FROM 

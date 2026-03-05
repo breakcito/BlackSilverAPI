@@ -39,10 +39,11 @@ class RequerimientoAlmacenDetalle extends Model
             p.es_perecible,
             rad.id_unidad_medida,
             um.abreviatura AS unidad_medida,
+            umb.abreviatura AS unidad_medida_base,
             rad.cantidad_solicitada,
             rad.contenido_por_presentacion,
             rad.cantidad_solicitada_base,
-            rad.cantidad_entregada,
+            rad.cantidad_entregada AS cantidad_atendida,
             rad.cantidad_entregada_base,
             rad.comentario,
             rad.comentario_decision,
@@ -58,6 +59,7 @@ class RequerimientoAlmacenDetalle extends Model
         INNER JOIN requerimiento_almacen ra ON ra.id = rad.id_requerimiento_almacen
         INNER JOIN producto p ON p.id = rad.id_producto
         INNER JOIN unidad_medida um ON um.id = rad.id_unidad_medida
+        INNER JOIN unidad_medida umb ON umb.id = p.id_unidad_medida_base
         WHERE
             rad.id_requerimiento_almacen = :id_requerimiento
         ";
