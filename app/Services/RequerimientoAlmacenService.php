@@ -6,6 +6,7 @@ use App\Models\AlmacenMina;
 use App\Models\RequerimientoAlmacen;
 use App\Models\RequerimientoAlmacenDetalle;
 use App\Models\RequerimientoAlmacenDetalleLog;
+use App\Models\RequerimientoAlmacenLabor;
 use App\Shared\Enums\EstadoDetalleRequerimiento;
 use App\Shared\Helpers\CorrelativoHelper;
 use App\Shared\Responses\ApiResponse;
