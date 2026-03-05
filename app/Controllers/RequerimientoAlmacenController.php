@@ -54,6 +54,7 @@ class RequerimientoAlmacenController extends Controller
             'detalles' => 'required|array|min:1',
             'detalles.*.id_producto' => 'required|integer',
             'detalles.*.id_unidad_medida' => 'required|integer',
+            'detalles.*.contenido_por_presentacion' => 'required|numeric|min:0',
             'detalles.*.cantidad_solicitada' => 'required|numeric|min:0.01',
             'detalles.*.comentario' => 'nullable|string',
         ]);
@@ -63,7 +64,7 @@ class RequerimientoAlmacenController extends Controller
         }
 
         $result = $this->requerimientoService->crear_requerimiento(
-            $authUser->id_usuario,
+            $authUser->id_empleado,
             (int) $request->id_mina,
             $request->id_labores,
             (int) $request->id_almacen_destino,

@@ -27,14 +27,13 @@ class RequerimientoAlmacenDetalleLog extends Model
         $sql = "
         SELECT 
             rl.id,
-            rl.glosa,
+            rl.descripcion,
             rl.estado,
             rl.created_at,
-            IFNULL(CONCAT(e.nombre, ' ', e.apellido), 'Usuario Sistema') AS usuario
+            IFNULL(CONCAT(e.nombre, ' ', e.apellido), 'Trabajador Almacén') AS usuario
         FROM 
             requerimiento_almacen_detalle_log AS rl
-        LEFT JOIN usuario AS u ON u.id = rl.id_usuario
-        LEFT JOIN empleado AS e ON e.id = u.id_empleado
+        LEFT JOIN empleado AS e ON e.id = rl.id_empleado
         WHERE
             rl.id_requerimiento_almacen_detalle = :id_detalle
         ORDER BY 
