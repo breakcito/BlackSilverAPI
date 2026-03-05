@@ -44,7 +44,7 @@ class RequerimientoAlmacenDetalle extends Model
             rad.contenido_por_presentacion,
             rad.cantidad_solicitada_base,
             rad.cantidad_entregada AS cantidad_atendida,
-            rad.cantidad_entregada_base,
+            rad.cantidad_entregada_base AS cantidad_atendida_base,
             rad.comentario,
             rad.comentario_decision,
             rad.estado,

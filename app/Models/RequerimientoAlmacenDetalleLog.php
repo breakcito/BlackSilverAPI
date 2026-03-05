@@ -28,7 +28,7 @@ class RequerimientoAlmacenDetalleLog extends Model
         SELECT 
             rl.id,
             rl.descripcion AS glosa,
-            'Pendiente' AS estado,
+            rl.estado,
             rl.created_at,
             IFNULL(CONCAT(e.nombre, ' ', e.apellido), 'Trabajador Almacén') AS usuario
         FROM 

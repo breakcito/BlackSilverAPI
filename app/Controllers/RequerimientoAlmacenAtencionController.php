@@ -43,7 +43,7 @@ class RequerimientoAlmacenAtencionController extends Controller
         $validator = Validator::make($request->all(), [
             'id_requerimiento_almacen_detalle' => 'required|integer',
             'nuevo_estado' => 'required|string',
-            'comentario_rechazo' => 'nullable|string',
+            'comentario_decision' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -56,10 +56,10 @@ class RequerimientoAlmacenAtencionController extends Controller
         }
 
         $result = $this->requerimientoService->cambiar_estado_detalle(
-            $authUser->id_usuario,
+            $authUser->id_empleado,
             (int) $request->id_requerimiento_almacen_detalle,
             $request->nuevo_estado,
-            $request->comentario_rechazo
+            $request->comentario_decision
         );
 
         return response()->json($result);
@@ -89,12 +89,15 @@ class RequerimientoAlmacenAtencionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id_requerimiento' => 'required|integer',
+            'id_empleado_recibe' => 'required|integer',
             'fecha_entrega' => 'required|date',
             'observacion' => 'nullable|string',
             'detalles' => 'required|array|min:1',
             'detalles.*.id_requerimiento_almacen_detalle' => 'required|integer',
-            'detalles.*.id_lote' => 'required|integer',
-            'detalles.*.cantidad' => 'required|numeric|min:0.01',
+            'detalles.*.id_lote_producto' => 'required|integer',
+            'detalles.*.cantidad_base' => 'required|numeric|min:0.01',
+            'detalles.*.cantidad_lote' => 'required|numeric|min:0.01',
+            'detalles.*.cantidad_requerimiento' => 'required|numeric|min:0.01',
         ]);
 
         if ($validator->fails()) {
@@ -107,12 +110,29 @@ class RequerimientoAlmacenAtencionController extends Controller
         }
 
         $result = $this->entregaService->registrar_entrega(
-            $authUser->id_usuario,
+            $authUser->id_empleado,
             (int) $request->id_requerimiento,
+            (int) $request->id_empleado_recibe,
             $request->fecha_entrega,
             $request->observacion,
             $request->detalles
         );
+
+        return response()->json($result);
+    }
+
+    /**
+     * Obtiene los productos de un requerimiento listos para ser atendidos,
+     * incluyendo los lotes disponibles en el almacén de destino.
+     */
+    public function obtener_detalles_atencion(Request $request): JsonResponse
+    {
+        $id = $request->input('id_requerimiento');
+        if (!$id) {
+            return response()->json(ApiResponse::error('El id_requerimiento es requerido'), 400);
+        }
+
+        $result = $this->requerimientoService->get_detalles_para_atencion((int) $id);
 
         return response()->json($result);
     }

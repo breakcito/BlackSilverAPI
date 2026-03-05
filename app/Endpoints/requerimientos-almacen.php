@@ -22,6 +22,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
     // Atención de Requerimientos (Despacho)
     Route::prefix('requerimientos/atencion')->controller(\App\Controllers\RequerimientoAlmacenAtencionController::class)->group(function () {
         Route::post('/obtener-pendientes', 'obtener_requerimientos_atencion');
+        Route::post('/obtener-detalles', 'obtener_detalles_atencion');
         Route::post('/cambiar-estado-detalle', 'cambiar_estado_detalle');
         Route::post('/obtener-lotes-disponibles', 'obtener_lotes_disponibles');
         Route::post('/registrar-entrega', 'registrar_entrega');

@@ -10,165 +10,155 @@ use App\Models\RequerimientoAlmacenDetalleLog;
 use App\Models\RequerimientoAlmacenEntrega;
 use App\Models\RequerimientoAlmacenEntregaDetalle;
 use App\Shared\Enums\OrigenMovimiento;
-use App\Shared\Enums\EstadoBase;
 use App\Shared\Enums\EstadoDetalleRequerimiento;
-use App\Shared\Enums\EstadoRequerimiento;
-use App\Shared\Enums\Periodo;
 use App\Shared\Enums\TipoMovimiento;
 use App\Shared\Helpers\CorrelativoHelper;
 use App\Shared\Responses\ApiResponse;
+use Illuminate\Support\Facades\DB;
 
 class RequerimientoAlmacenEntregaService
 {
-
     /**
-     * Registra una entrega masiva de productos (Despacho).
+     * Registra una entrega física de materiales (Despacho).
      */
     public function registrar_entrega(
-        int $id_usuario,
+        int $id_empleado_entrega,
         int $id_requerimiento,
+        int $id_empleado_recibe,
         string $fecha_entrega,
         ?string $observacion,
         array $detalles
     ) {
+        return DB::transaction(function () use ($id_empleado_entrega, $id_requerimiento, $id_empleado_recibe, $fecha_entrega, $observacion, $detalles) {
 
-        // Validar stock
-        foreach ($detalles as $item) {
-            $id_lote = $item['id_lote'];
-            $cantidad_a_entregar = $item['cantidad'];
-            $lote = LoteProducto::find($id_lote, ['correlativo', 'stock_actual']);
-            if (!$lote || $lote->stock_actual < $cantidad_a_entregar) {
-                return ApiResponse::error('Stock insuficiente en el lote ' . ($lote->correlativo ?? $id_lote));
+            // 1. Validar Stock de todos los lotes involucrados antes de empezar
+            foreach ($detalles as $item) {
+                $lote = LoteProducto::find($item['id_lote_producto']);
+                if (!$lote || $lote->stock_actual_base < $item['cantidad_base']) {
+                    return ApiResponse::error("Stock insuficiente en el lote: " . ($lote->codigo_lote ?? $item['id_lote_producto']));
+                }
             }
-        }
 
-        // Generar Correlativo de Entrega
-        $prefijo = 'ENTR';
-        $correlativoData = CorrelativoHelper::generar('requerimiento_almacen_entrega', $prefijo, [], 5, Periodo::Anual);
+            // 2. Generar Correlativo de Entrega
+            $correlativoData = CorrelativoHelper::generar('requerimiento_almacen_entrega', 'ENT');
 
-        // Crear Cabecera de Entrega
-        $id_entrega = RequerimientoAlmacenEntrega::insertGetId([
-            'correlativo' => $correlativoData['correlativo'],
-            'numero_correlativo' => $correlativoData['numero_correlativo'],
-            'id_empleado_entrega' => $id_usuario,
-            'id_requerimiento_almacen' => $id_requerimiento,
-            'fecha_hora_entrega' => $fecha_entrega,
-            'observacion' => $observacion,
-            'evidencias' => null,
-            'created_at' => now(),
-            'estado' => EstadoRequerimiento::Generada->value,
-        ]);
-
-        foreach ($detalles as $item) {
-            $id_detalle_req = $item['id_requerimiento_almacen_detalle'];
-            $id_lote = $item['id_lote'];
-            $cantidad_a_entregar = $item['cantidad'];
-
-            // Obtener Lote para Kardex y Stock
-            $lote = LoteProducto::where('id', $id_lote)->first([
-                'stock_actual', 
-                'stock_actual_base', 
-                'contenido_por_presentacion'
-            ]);
-
-            $cantidad_base_a_entregar = $cantidad_a_entregar * $lote->contenido_por_presentacion;
-
-            // Crear Detalle de Entrega
-            RequerimientoAlmacenEntregaDetalle::insert([
-                'id_requerimiento_almacen_entrega' => $id_entrega,
-                'id_requerimiento_almacen_detalle' => $id_detalle_req,
-                'id_lote' => $id_lote,
-                'cantidad' => $cantidad_a_entregar,
-            ]);
-
-            // Actualizar Stock del Lote
-            LoteProducto::where('id', $id_lote)->update([
-                'stock_actual' => $lote->stock_actual - $cantidad_a_entregar,
-                'stock_actual_base' => $lote->stock_actual_base - $cantidad_base_a_entregar
-            ]);
-
-            // 6. Registrar Kardex (Salida)
-            KardexProducto::create([
-                'id_lote_producto' => $id_lote,
-                'id_origen' => $id_entrega,
-                'tipo_origen' => OrigenMovimiento::Entrega->value,
-                'tipo_movimiento' => TipoMovimiento::Salida->value,
-                'stock_anterior' => (float) $lote->stock_actual,
-                'stock_anterior_base' => (float) $lote->stock_actual_base,
-                'cantidad_movimiento' => (float) $cantidad_a_entregar,
-                'cantidad_movimiento_base' => (float) $cantidad_base_a_entregar,
-                'stock_resultante' => (float) ($lote->stock_actual - $cantidad_a_entregar),
-                'stock_resultante_base' => (float) ($lote->stock_actual_base - $cantidad_base_a_entregar),
-                'descripcion' => "Salida por Despacho de Requerimiento #$id_requerimiento",
+            // 3. Crear Cabecera de Entrega
+            $entrega = RequerimientoAlmacenEntrega::create([
+                'id_requerimiento_almacen' => $id_requerimiento,
+                'id_empleado_entrega' => $id_empleado_entrega,
+                'id_empleado_recibe' => $id_empleado_recibe,
+                'correlativo' => $correlativoData['correlativo'],
+                'numero_correlativo' => $correlativoData['numero'],
+                'fecha_hora_entrega' => $fecha_entrega,
+                'observacion' => $observacion,
                 'created_at' => now(),
+                'estado' => 'Procesado'
             ]);
 
-            // Obtener estado original antes de incrementar cantidades para saber si es el primer despacho
-            $detalle_original = RequerimientoAlmacenDetalle::where('id', $id_detalle_req)->first();
-
-            // Actualizar Requerimiento (Cantidad Atendida)
-            RequerimientoAlmacenDetalle::where('id', $id_detalle_req)->increment('cantidad_atendida', $cantidad_a_entregar);
-
-            // Actualizar Estado del Detalle
-            $detalle_req = RequerimientoAlmacenDetalle::where('id', $id_detalle_req)->first();
-            $nuevo_estado_item = ($detalle_req->cantidad_atendida >= $detalle_req->cantidad_solicitada)
-                ? EstadoDetalleRequerimiento::Completado
-                : EstadoDetalleRequerimiento::DespachoIniciado;
-
-            RequerimientoAlmacenDetalle::where('id', $id_detalle_req)->update(['estado' => $nuevo_estado_item->value]);
-
-            // Registrar el log de 'Despacho Iniciado' si es la primera entrega física (estaba en Aprobación)
-            if ($detalle_original->cantidad_atendida == 0 && $cantidad_a_entregar > 0) {
-                RequerimientoAlmacenDetalleLog::insert([
-                    'id_requerimiento_almacen_detalle' => $id_detalle_req,
-                    'id_usuario' => $id_usuario,
-                    'glosa' => EstadoDetalleRequerimiento::DespachoIniciado->getGlosa(),
-                    'estado' => EstadoDetalleRequerimiento::DespachoIniciado->value,
+            foreach ($detalles as $item) {
+                $id_rad = $item['id_requerimiento_almacen_detalle'];
+                $id_lote = $item['id_lote_producto'];
+                
+                // 4. Crear Detalle de Entrega
+                RequerimientoAlmacenEntregaDetalle::create([
+                    'id_requerimiento_almacen_entrega' => $entrega->id,
+                    'id_requerimiento_almacen_detalle' => $id_rad,
+                    'id_lote_producto' => $id_lote,
+                    'cantidad_base' => $item['cantidad_base'],
+                    'cantidad_lote' => $item['cantidad_lote'],
+                    'cantidad_requerimiento' => $item['cantidad_requerimiento'],
                     'created_at' => now(),
+                    'estado' => 'Entregado'
+                ]);
+
+                // 5. Cargar Lote para Kardex y Stock
+                $lote = LoteProducto::find($id_lote);
+                $stock_anterior = $lote->stock_actual;
+                $stock_anterior_base = $lote->stock_actual_base;
+
+                // 6. Actualizar Stock del Lote
+                $lote->update([
+                    'stock_actual' => $stock_anterior - $item['cantidad_lote'],
+                    'stock_actual_base' => $stock_anterior_base - $item['cantidad_base']
+                ]);
+
+                // 7. Registrar Kardex (Salida)
+                KardexProducto::create([
+                    'id_lote_producto' => $id_lote,
+                    'id_origen' => $entrega->id,
+                    'tipo_origen' => OrigenMovimiento::Entrega->value,
+                    'tipo_movimiento' => TipoMovimiento::Salida->value,
+                    'stock_anterior' => $stock_anterior,
+                    'stock_anterior_base' => $stock_anterior_base,
+                    'cantidad_movimiento' => $item['cantidad_lote'],
+                    'cantidad_movimiento_base' => $item['cantidad_base'],
+                    'stock_resultante' => $lote->stock_actual,
+                    'stock_resultante_base' => $lote->stock_actual_base,
+                    'descripcion' => "Entrega parcial por Requerimiento #$id_requerimiento (ENT: {$entrega->correlativo})",
+                    'created_at' => now(),
+                ]);
+
+                // 8. Actualizar Requerimiento Detalle (Cantidades Atendidas)
+                $detalle_req = RequerimientoAlmacenDetalle::find($id_rad);
+                $detalle_req->increment('cantidad_entregada', $item['cantidad_requerimiento']);
+                $detalle_req->increment('cantidad_entregada_base', $item['cantidad_base']);
+
+                // 9. Actualizar Estado del Item
+                $finalizo_item = ($detalle_req->cantidad_entregada_base >= $detalle_req->cantidad_solicitada_base);
+                $nuevo_estado_item = $finalizo_item ? 'Completado' : 'Despacho iniciado';
+                
+                $detalle_req->update(['estado' => $nuevo_estado_item]);
+
+                // 10. Log de Trazabilidad
+                RequerimientoAlmacenDetalleLog::insert([
+                    'id_requerimiento_almacen_detalle' => $id_rad,
+                    'id_empleado' => $id_empleado_entrega,
+                    'tipo_origen' => 'Entrega',
+                    'descripcion' => "Se entregaron {$item['cantidad_base']} unidades base. " . ($finalizo_item ? "Ítem completado." : "Despacho parcial."),
+                    'estado' => $nuevo_estado_item,
+                    'created_at' => now()
                 ]);
             }
 
-            // Log de Trazabilidad de la Entrega
-            RequerimientoAlmacenDetalleLog::insert([
-                'id_requerimiento_almacen_detalle' => $id_detalle_req,
-                'id_usuario' => $id_usuario,
-                'glosa' => EstadoDetalleRequerimiento::NuevaEntrega->getGlosa((string) $cantidad_a_entregar),
-                'estado' => EstadoDetalleRequerimiento::NuevaEntrega->value,
-                'created_at' => now(),
-            ]);
+            // 11. Verificar si todo el requerimiento está completado para cerrarlo
+            $pendientes = RequerimientoAlmacenDetalle::where('id_requerimiento_almacen', $id_requerimiento)
+                ->whereNotIn('estado', ['Completado', 'Cerrado', 'Rechazado - Logística'])
+                ->count();
 
-            // Si con esta entrega se completó lo solicitado, registrar el log de Completado
-            if ($nuevo_estado_item === EstadoDetalleRequerimiento::Completado && $detalle_req->estado !== EstadoDetalleRequerimiento::Completado->value) {
-                RequerimientoAlmacenDetalleLog::insert([
-                    'id_requerimiento_almacen_detalle' => $id_detalle_req,
-                    'id_usuario' => $id_usuario,
-                    'glosa' => EstadoDetalleRequerimiento::Completado->getGlosa(),
-                    'estado' => EstadoDetalleRequerimiento::Completado->value,
-                    'created_at' => now(),
-                ]);
+            if ($pendientes === 0) {
+                RequerimientoAlmacen::where('id', $id_requerimiento)->update(['estado' => 'Cerrada']);
             }
-        }
 
-        // Verificar si todo el requerimiento está cerrado
-        $pendientes = RequerimientoAlmacenDetalle::where('id_requerimiento', $id_requerimiento)
-            ->where('estado', '!=', EstadoDetalleRequerimiento::Completado->value)
-            ->where('estado', '!=', EstadoDetalleRequerimiento::Cerrado->value)
-            ->where('estado', '!=', EstadoDetalleRequerimiento::RechazadoLogistica->value)
-            ->count();
-
-        if ($pendientes === 0) {
-            RequerimientoAlmacen::where('id', $id_requerimiento)->update(['estado' => EstadoRequerimiento::Cerrada->value]);
-        }
-
-        return ApiResponse::success(['mensaje' => 'Despacho registrado correctamente', 'id_entrega' => $id_entrega]);
+            return ApiResponse::success([
+                'mensaje' => 'Entrega registrada exitosamente', 
+                'id_entrega' => $entrega->id,
+                'correlativo' => $entrega->correlativo
+            ]);
+        });
     }
 
     /**
-     * Obtiene el historial de entregas realizadas para un ítem específico de un requerimiento.
+     * Obtiene el historial de entregas realizadas para un ítem específico.
      */
     public function obtener_historial_entregas_por_item(int $id_detalle)
     {
-        $historial = RequerimientoAlmacenEntrega::get_entregas_by_detalle($id_detalle);
+        // Esta lógica suele ir en el modelo RequerimientoAlmacenEntrega para ser reutilizable
+        $historial = DB::select("
+            SELECT 
+                rae.id AS id_entrega,
+                rae.correlativo AS codigo_entrega,
+                rae.fecha_hora_entrega AS fecha_entrega,
+                CONCAT(er.nombre, ' ', er.apellido) AS entregado_a,
+                raed.cantidad_base AS cantidad,
+                CONCAT(ee.nombre, ' ', ee.apellido) AS usuario_entrega
+            FROM requerimiento_almacen_entrega_detalle raed
+            INNER JOIN requerimiento_almacen_entrega rae ON rae.id = raed.id_requerimiento_almacen_entrega
+            INNER JOIN empleado ee ON ee.id = rae.id_empleado_entrega
+            INNER JOIN empleado er ON er.id = rae.id_empleado_recibe
+            WHERE raed.id_requerimiento_almacen_detalle = :id_detalle
+            ORDER BY rae.fecha_hora_entrega DESC
+        ", ['id_detalle' => $id_detalle]);
+
         return ApiResponse::success($historial);
     }
 }

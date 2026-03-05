@@ -227,6 +227,7 @@ class RequerimientoAlmacenService
                 'id_empleado' => $id_empleado,
                 'tipo_origen' => 'Atención',
                 'descripcion' => $estadoEnum->getGlosa($comentario_decision),
+                'estado' => $estadoEnum->value,
                 'created_at' => now(),
             ]);
 
@@ -246,5 +247,67 @@ class RequerimientoAlmacenService
         $data = AlmacenMina::get_almacenes_por_mina($id_mina);
 
         return ApiResponse::success($data);
+    }
+
+    /**
+     * Obtiene los productos de un requerimiento listos para ser atendidos,
+     * incluyendo los lotes disponibles en el almacén de destino.
+     */
+    public function get_detalles_para_atencion(int $id_requerimiento)
+    {
+        $requerimiento = RequerimientoAlmacen::find($id_requerimiento);
+        if (!$requerimiento) return ApiResponse::error("Requerimiento no encontrado");
+
+        // Obtenemos los detalles que están aprobados o en proceso de despacho
+        $detalles = DB::select("
+            SELECT 
+                rad.id AS id_requerimiento_detalle,
+                rad.id_producto,
+                p.nombre AS producto,
+                p.es_perecible,
+                p.dias_espera_vencimiento,
+                um.nombre AS unidad_medida,
+                umb.nombre AS unidad_medida_base,
+                rad.cantidad_solicitada,
+                rad.cantidad_solicitada_base,
+                rad.cantidad_entregada_base,
+                (rad.cantidad_solicitada_base - rad.cantidad_entregada_base) AS pendiente_base,
+                rad.estado
+            FROM requerimiento_almacen_detalle rad
+            INNER JOIN producto p ON p.id = rad.id_producto
+            INNER JOIN unidad_medida um ON um.id = rad.id_unidad_medida
+            LEFT JOIN unidad_medida umb ON umb.id = p.id_unidad_medida_base
+            WHERE rad.id_requerimiento_almacen = :id_req
+            AND rad.estado NOT IN ('Rechazado - Logística', 'Anulada', 'Cerrado', 'Completado')
+        ", ['id_req' => $id_requerimiento]);
+
+        foreach ($detalles as $det) {
+            // Por cada producto, buscamos sus lotes en el almacén de destino del requerimiento
+            $det->lotes = DB::select("
+                SELECT 
+                    lp.id AS id_lote_producto,
+                    lp.correlativo AS codigo_lote,
+                    lp.stock_actual,
+                    um.abreviatura AS unidad_lote,
+                    lp.stock_actual_base,
+                    umb.abreviatura AS unidad_base,
+                    lp.fecha_vencimiento,
+                    CONCAT(FORMAT(lp.stock_actual, 2), ' ', um.abreviatura, ' (', FORMAT(lp.stock_actual_base, 2), ' ', umb.abreviatura, ')') AS stock_formateado
+                FROM lote_producto lp
+                INNER JOIN unidad_medida um ON um.id = lp.id_unidad_medida
+                INNER JOIN producto p ON p.id = lp.id_producto
+                INNER JOIN unidad_medida umb ON umb.id = p.id_unidad_medida_base
+                WHERE lp.id_producto = :id_prod
+                AND lp.id_almacen = :id_alm
+                AND lp.stock_actual_base > 0
+                AND lp.estado = 'Activo'
+                ORDER BY lp.fecha_vencimiento ASC, lp.created_at ASC
+            ", [
+                'id_prod' => $det->id_producto,
+                'id_alm' => $requerimiento->id_almacen_destino
+            ]);
+        }
+
+        return ApiResponse::success($detalles);
     }
 }

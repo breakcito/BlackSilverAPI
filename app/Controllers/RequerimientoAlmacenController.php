@@ -111,4 +111,53 @@ class RequerimientoAlmacenController extends Controller
 
         return response()->json($result);
     }
+
+    /**
+     * Obtener productos de un requerimiento para ser atendidos.
+     */
+    public function obtener_detalles_atencion(Request $request): JsonResponse
+    {
+        $id = $request->input('id_requerimiento');
+        if (!$id) {
+            return response()->json(ApiResponse::error('El id_requerimiento es requerido'), 400);
+        }
+
+        $result = $this->requerimientoService->get_detalles_para_atencion((int) $id);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Registra la entrega de materiales.
+     */
+    public function registrar_entrega(Request $request): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+        if (!$authUser) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'id_requerimiento_almacen' => 'required|integer',
+            'id_empleado_recibe' => 'required|integer',
+            'observacion' => 'nullable|string',
+            'detalles' => 'required|array|min:1',
+            'detalles.*.id_requerimiento_detalle' => 'required|integer',
+            'detalles.*.id_lote_producto' => 'required|integer',
+            'detalles.*.cantidad_base' => 'required|numeric|min:0.01',
+            'detalles.*.cantidad_lote' => 'required|numeric|min:0.01',
+            'detalles.*.cantidad_requerimiento' => 'required|numeric|min:0.01',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 400);
+        }
+
+        $data = $request->all();
+        $data['id_empleado_entrega'] = $authUser->id_empleado;
+
+        $result = $this->requerimientoService->registrar_entrega($data);
+
+        return response()->json($result);
+    }
 }
