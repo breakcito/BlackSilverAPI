@@ -48,7 +48,7 @@ class RequerimientoAlmacenEntregaService
                 'id_empleado_entrega' => $id_empleado_entrega,
                 'id_empleado_recibe' => $id_empleado_recibe,
                 'correlativo' => $correlativoData['correlativo'],
-                'numero_correlativo' => $correlativoData['numero'],
+                'numero_correlativo' => $correlativoData['numero_correlativo'],
                 'fecha_hora_entrega' => $fecha_entrega,
                 'observacion' => $observacion,
                 'created_at' => now(),
@@ -94,7 +94,7 @@ class RequerimientoAlmacenEntregaService
                     'cantidad_movimiento_base' => $item['cantidad_base'],
                     'stock_resultante' => $lote->stock_actual,
                     'stock_resultante_base' => $lote->stock_actual_base,
-                    'descripcion' => "Entrega parcial por Requerimiento #$id_requerimiento (ENT: {$entrega->correlativo})",
+                    'descripcion' => "Entrega por Requerimiento ({$correlativoData['correlativo']})",
                     'created_at' => now(),
                 ]);
 
@@ -114,7 +114,7 @@ class RequerimientoAlmacenEntregaService
                     'id_requerimiento_almacen_detalle' => $id_rad,
                     'id_empleado' => $id_empleado_entrega,
                     'tipo_origen' => 'Entrega',
-                    'descripcion' => "Se entregaron {$item['cantidad_base']} unidades base. " . ($finalizo_item ? "Ítem completado." : "Despacho parcial."),
+                    'descripcion' => "Se entregaron {$item['cantidad_base']} unidades. " . ($finalizo_item ? "Ítem completado." : "Despacho parcial."),
                     'estado' => $nuevo_estado_item,
                     'created_at' => now()
                 ]);

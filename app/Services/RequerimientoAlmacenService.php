@@ -292,6 +292,7 @@ class RequerimientoAlmacenService
                     lp.stock_actual_base,
                     umb.abreviatura AS unidad_base,
                     lp.fecha_vencimiento,
+                    lp.contenido_por_presentacion,
                     CONCAT(FORMAT(lp.stock_actual, 2), ' ', um.abreviatura, ' (', FORMAT(lp.stock_actual_base, 2), ' ', umb.abreviatura, ')') AS stock_formateado
                 FROM lote_producto lp
                 INNER JOIN unidad_medida um ON um.id = lp.id_unidad_medida
