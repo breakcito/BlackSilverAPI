@@ -39,10 +39,14 @@ class RequerimientoAlmacenDetalle extends Model
             p.es_perecible,
             rad.id_unidad_medida,
             um.abreviatura AS unidad_medida,
+            umb.abreviatura AS unidad_medida_base,
             rad.cantidad_solicitada,
-            rad.cantidad_atendida,
+            rad.contenido_por_presentacion,
+            rad.cantidad_solicitada_base,
+            rad.cantidad_entregada AS cantidad_atendida,
+            rad.cantidad_entregada_base AS cantidad_atendida_base,
             rad.comentario,
-            rad.comentario_rechazo,
+            rad.comentario_decision,
             rad.estado,
             (SELECT IFNULL(SUM(lp.stock_actual), 0) 
              FROM lote_producto lp 
@@ -52,11 +56,12 @@ class RequerimientoAlmacenDetalle extends Model
             ) as stock_disponible
         FROM
             requerimiento_almacen_detalle rad
-        INNER JOIN requerimiento_almacen ra ON ra.id = rad.id_requerimiento
+        INNER JOIN requerimiento_almacen ra ON ra.id = rad.id_requerimiento_almacen
         INNER JOIN producto p ON p.id = rad.id_producto
         INNER JOIN unidad_medida um ON um.id = rad.id_unidad_medida
+        INNER JOIN unidad_medida umb ON umb.id = p.id_unidad_medida_base
         WHERE
-            rad.id_requerimiento = :id_requerimiento
+            rad.id_requerimiento_almacen = :id_requerimiento
         ";
 
         $detalles = DB::select($sql, ['id_requerimiento' => $id_requerimiento]);

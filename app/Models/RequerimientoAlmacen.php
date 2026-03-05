@@ -13,17 +13,43 @@ class RequerimientoAlmacen extends Model
 
     protected $fillable = [
         'id_empleado_solicitante',
-        'id_mina', // la mina que necesita los productos
-        'id_almacen_destino', // a que almacen se hace el requerimiento
-        //
+        'id_mina',
+        'id_almacen_destino',
         'correlativo',
         'numero_correlativo',
         'premura',
         'fecha_entrega_requerida',
-        //
         'created_at',
         'estado',
     ];
+
+    public static function get_requerimiento_by_id(int $id)
+    {
+        $sql = "
+        SELECT 
+            ra.id AS id_requerimiento,
+            ra.id_empleado_solicitante,
+            CONCAT(emp.nombre, ' ', emp.apellido) AS solicitante,
+            ra.id_mina,
+            m.nombre AS mina,
+            ra.id_almacen_destino,
+            alm.nombre AS almacen_destino,
+            ra.correlativo AS codigo_requerimiento,
+            ra.premura,
+            ra.fecha_entrega_requerida,
+            ra.estado,
+            ra.created_at
+        FROM 
+            requerimiento_almacen ra
+        INNER JOIN empleado emp ON emp.id = ra.id_empleado_solicitante
+        INNER JOIN mina m ON m.id = ra.id_mina
+        INNER JOIN almacen alm ON alm.id = ra.id_almacen_destino
+        WHERE 
+            ra.id = :id
+        ";
+
+        return collect(DB::select($sql, ['id' => $id]))->first();
+    }
 
     public static function get_requerimientos(
         ?int $id_mina = null,
@@ -35,21 +61,20 @@ class RequerimientoAlmacen extends Model
         $sql = '
         SELECT
             ra.id AS id_requerimiento,
-            ra.id_usuario_solicitante,
+            ra.id_empleado_solicitante,
             CONCAT(emp.nombre, " ", emp.apellido) AS solicitante,
             ra.id_mina,
             m.nombre AS mina,
             ra.id_almacen_destino,
             alm.nombre AS almacen_destino,
-            ra.correlativo,
+            ra.correlativo AS codigo_requerimiento,
             ra.premura,
             ra.fecha_entrega_requerida,
             ra.estado,
             ra.created_at
         FROM
             requerimiento_almacen ra
-        INNER JOIN usuario u ON u.id = ra.id_usuario_solicitante
-        INNER JOIN empleado emp ON emp.id = u.id_empleado
+        INNER JOIN empleado emp ON emp.id = ra.id_empleado_solicitante
         INNER JOIN mina m ON m.id = ra.id_mina
         INNER JOIN almacen alm ON alm.id = ra.id_almacen_destino
         WHERE 1=1
