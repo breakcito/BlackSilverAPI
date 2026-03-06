@@ -51,7 +51,7 @@ class ContratoConcesion extends Model
     {
         $sql = '
         SELECT
-            cc.id AS id_contrato,
+            cc.id AS id_contrato_concesion,
             cc.id_empresa,
             e.nombre_comercial,
             e.ruc,

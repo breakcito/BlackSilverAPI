@@ -23,7 +23,7 @@ class EmpresaMina extends Model
     {
         $sql = '
         SELECT
-            em.id AS id_asignacion,
+            em.id AS id_empresa_mina,
             em.id_empresa,
             e.nombre_comercial,
             e.ruc,

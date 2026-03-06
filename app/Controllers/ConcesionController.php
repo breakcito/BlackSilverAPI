@@ -92,6 +92,7 @@ class ConcesionController extends Controller
         return response()->json($result);
     }
 
+    // Obtener todas las empresas que tengan un contrato con la concesión
     public function get_empresas_historial(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [

@@ -22,7 +22,7 @@ class Concesion extends Model
     ];
 
     // obtener la lista de concesiones con conteo de empresas asignadas
-    public static function get_concesiones()
+    public static function get_concesiones(?int $id_concesion = null)
     {
         $sql = '
         SELECT
@@ -39,19 +39,22 @@ class Concesion extends Model
                 FROM contrato_concesion cc 
                 WHERE 
                     cc.id_concesion = cn.id AND 
-                    cc.estado = :estado_activo
+                    cc.estado = "Activo"
             ) as empresas_asignadas
         FROM
             concesion cn
         WHERE
-            cn.estado = :estado
-        ORDER BY cn.id DESC
+            1 = 1
         ';
 
-        return DB::select($sql, [
-            'estado' => EstadoBase::Activo->value,
-            'estado_activo' => EstadoBase::Activo->value,
-        ]);
+        $params = [];
+
+        if ($id_concesion) {
+            $sql .= ' AND cn.id = :id_concesion';
+            $params['id_concesion'] = $id_concesion;
+        }
+
+        return DB::select($sql, $params);
     }
 
     // obtener las concesiones donde trabaja un usuario (a través de empresa asignada)
