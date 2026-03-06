@@ -100,24 +100,52 @@ class RequerimientoAlmacenEntregaService
 
                 // 8. Actualizar Requerimiento Detalle (Cantidades Atendidas)
                 $detalle_req = RequerimientoAlmacenDetalle::find($id_rad);
+                $ya_entregado_antes = $detalle_req->cantidad_entregada_base;
+                
                 $detalle_req->increment('cantidad_entregada', $item['cantidad_requerimiento']);
                 $detalle_req->increment('cantidad_entregada_base', $item['cantidad_base']);
 
                 // 9. Actualizar Estado del Item
                 $finalizo_item = ($detalle_req->cantidad_entregada_base >= $detalle_req->cantidad_solicitada_base);
-                $nuevo_estado_item = $finalizo_item ? 'Completado' : 'Despacho iniciado';
+                $nuevo_estado_item = $finalizo_item ? EstadoDetalleRequerimiento::Completado->value : EstadoDetalleRequerimiento::DespachoIniciado->value;
                 
                 $detalle_req->update(['estado' => $nuevo_estado_item]);
 
-                // 10. Log de Trazabilidad
+                // 10. Log de Trazabilidad (Timeline)
+                
+                // 10.1. Si es la primera entrega de este ítem, marcar el inicio del proceso
+                if ($ya_entregado_antes == 0) {
+                    RequerimientoAlmacenDetalleLog::insert([
+                        'id_requerimiento_almacen_detalle' => $id_rad,
+                        'id_empleado' => $id_empleado_entrega,
+                        'tipo_origen' => 'Entrega',
+                        'descripcion' => EstadoDetalleRequerimiento::DespachoIniciado->getGlosa(),
+                        'estado' => EstadoDetalleRequerimiento::DespachoIniciado->value,
+                        'created_at' => now()
+                    ]);
+                }
+
+                // 10.2. Registro del evento de entrega actual
                 RequerimientoAlmacenDetalleLog::insert([
                     'id_requerimiento_almacen_detalle' => $id_rad,
                     'id_empleado' => $id_empleado_entrega,
                     'tipo_origen' => 'Entrega',
-                    'descripcion' => "Se entregaron {$item['cantidad_base']} unidades. " . ($finalizo_item ? "Ítem completado." : "Despacho parcial."),
-                    'estado' => $nuevo_estado_item,
+                    'descripcion' => EstadoDetalleRequerimiento::NuevaEntrega->getGlosa((string)$item['cantidad_requerimiento']),
+                    'estado' => EstadoDetalleRequerimiento::NuevaEntrega->value,
                     'created_at' => now()
                 ]);
+
+                // 10.3. Si el ítem se completó con esta entrega, registrar el hito final
+                if ($finalizo_item) {
+                    RequerimientoAlmacenDetalleLog::insert([
+                        'id_requerimiento_almacen_detalle' => $id_rad,
+                        'id_empleado' => $id_empleado_entrega,
+                        'tipo_origen' => 'Entrega',
+                        'descripcion' => EstadoDetalleRequerimiento::Completado->getGlosa(),
+                        'estado' => EstadoDetalleRequerimiento::Completado->value,
+                        'created_at' => now()
+                    ]);
+                }
             }
 
             // 11. Verificar si todo el requerimiento está completado para cerrarlo
