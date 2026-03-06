@@ -79,4 +79,33 @@ class LoteController extends Controller
 
         return response()->json($result);
     }
+
+    public function ajustar_stock(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_lote' => 'required|integer',
+            'nuevo_stock' => 'required|numeric|min:0',
+            'nuevo_stock_base' => 'required|numeric|min:0',
+            'motivo' => 'nullable|string',
+        ], [
+            'id_lote.required' => 'El lote es requerido',
+            'nuevo_stock.required' => 'El nuevo stock es requerido',
+            'nuevo_stock_base.required' => 'El nuevo stock base es requerido',
+            'nuevo_stock.min' => 'El stock no puede ser negativo',
+            'nuevo_stock_base.min' => 'El stock base no puede ser negativo',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $result = $this->loteService->ajustar_stock(
+            (int) $request->id_lote,
+            (float) $request->nuevo_stock,
+            (float) $request->nuevo_stock_base,
+            $request->motivo ?? null
+        );
+
+        return response()->json($result);
+    }
 }

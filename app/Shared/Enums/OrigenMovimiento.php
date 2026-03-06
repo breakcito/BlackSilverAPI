@@ -9,4 +9,5 @@ enum OrigenMovimiento: string
     case Recepcion = 'Recepcion';
     case Devolucion = 'Devolucion';
     case Inventario = 'Inventario';
+    case AjusteStock = 'Ajuste de Stock';
 }

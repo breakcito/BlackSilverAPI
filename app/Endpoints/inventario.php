@@ -35,6 +35,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::post('/', 'crear_lote');
         Route::get('/productos-disponibles', 'get_productos_para_lote');
         Route::get('/unidades-medida', 'get_unidades_medida');
+        Route::post('/ajustar-stock', 'ajustar_stock');
     });
 
     // Kardex

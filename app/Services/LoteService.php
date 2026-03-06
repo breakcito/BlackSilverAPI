@@ -134,4 +134,70 @@ class LoteService
         $productos = Producto::get_productos_para_lote();
         return ApiResponse::success($productos);
     }
+
+    /**
+     * Ajustar stock de un lote (Corrección manual).
+     */
+    public function ajustar_stock(int $id_lote, float $nuevo_stock, float $nuevo_stock_base, ?string $motivo = null)
+    {
+        return DB::transaction(function () use ($id_lote, $nuevo_stock, $nuevo_stock_base, $motivo) {
+            $lote = LoteProducto::find($id_lote);
+            if (!$lote) {
+                return ApiResponse::error('Lote no encontrado');
+            }
+
+            if ($lote->stock_actual_base == $nuevo_stock_base) {
+                return ApiResponse::error('El nuevo stock es igual al actual');
+            }
+
+            $stock_anterior = $lote->stock_actual;
+            $stock_anterior_base = $lote->stock_actual_base;
+            $diferencia_base = $nuevo_stock_base - $stock_anterior_base;
+            $diferencia_lote = $nuevo_stock - $stock_anterior;
+            $tipo_movimiento = $diferencia_base > 0 ? TipoMovimiento::Ingreso : TipoMovimiento::Salida;
+            
+            // Obtener abreviatura de unidad base para la descripción automática
+            $producto = DB::table('producto as p')
+                ->join('unidad_medida as um', 'um.id', '=', 'p.id_unidad_medida_base')
+                ->where('p.id', $lote->id_producto)
+                ->select('um.abreviatura as unidad_base')
+                ->first();
+            
+            $unidad_base = $producto ? $producto->unidad_base : '';
+
+            $descripcion_kardex = $motivo;
+            if (empty($descripcion_kardex)) {
+                $abs_diff = abs($diferencia_base);
+                if ($diferencia_base > 0) {
+                    $descripcion_kardex = "Se hizo un aumento de {$abs_diff} {$unidad_base}";
+                } else {
+                    $descripcion_kardex = "Se retiraron {$abs_diff} {$unidad_base}";
+                }
+            }
+
+            // Actualizar lote
+            $lote->update([
+                'stock_actual' => $nuevo_stock,
+                'stock_actual_base' => $nuevo_stock_base
+            ]);
+
+            // Registrar movimiento en Kardex
+            KardexProducto::create([
+                'id_lote_producto' => $id_lote,
+                'id_origen' => null,
+                'tipo_origen' => OrigenMovimiento::AjusteStock->value,
+                'tipo_movimiento' => $tipo_movimiento->value,
+                'stock_anterior' => $stock_anterior,
+                'stock_anterior_base' => $stock_anterior_base,
+                'cantidad_movimiento' => abs($diferencia_lote),
+                'cantidad_movimiento_base' => abs($diferencia_base),
+                'stock_resultante' => $nuevo_stock,
+                'stock_resultante_base' => $nuevo_stock_base,
+                'descripcion' => $descripcion_kardex,
+                'created_at' => now(),
+            ]);
+
+            return ApiResponse::success(LoteProducto::get_lote_by_id($id_lote), 'Stock del lote ajustado correctamente');
+        });
+    }
 }
