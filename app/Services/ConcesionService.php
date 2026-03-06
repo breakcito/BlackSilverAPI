@@ -42,7 +42,9 @@ class ConcesionService
             'estado' => EstadoBase::Activo->value,
         ]);
 
-        return ApiResponse::success($concesion, 'Concesión creada correctamente');
+        $nuevaConcesion = Concesion::get_concesiones($concesion->id)[0];
+
+        return ApiResponse::success($nuevaConcesion, 'Concesión creada correctamente');
     }
 
 
