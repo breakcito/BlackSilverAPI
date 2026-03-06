@@ -111,6 +111,7 @@ class RequerimientoAlmacenService
                     'id_empleado' => $id_empleado_solicitante,
                     'tipo_origen' => 'Solicitud',
                     'descripcion' => EstadoDetalleRequerimiento::Pendiente->getGlosa(),
+                    'estado' => EstadoDetalleRequerimiento::Pendiente->value,
                     'created_at' => now(),
                 ]);
             }
