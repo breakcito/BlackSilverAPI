@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Shared\Enums;
+namespace App\Shared\Enums\Producto;
 
-enum TipoRequerimiento: string
+enum TipoProducto: string
 {
     case Bien = 'Bien';
     case Servicio = 'Servicio';

@@ -1,32 +1,35 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Views\Almacenes;
 
-use App\Services\AlmacenMinaService;
-use App\Services\AlmacenService;
-use App\Services\ResponsableAlmacenService;
 use App\Shared\Responses\ApiResponse;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Validator;
 
-class AlmacenController extends Controller
+class AlmacenesController extends Controller
 {
     public function __construct(
-        private AlmacenService $almacenService,
-        private ResponsableAlmacenService $responsableAlmacenService,
-        private AlmacenMinaService $almacenMinaService,
+        private AlmacenesService $service,
     ) {}
 
+    /**
+     * Listar un resumen de todos los almacenes
+     */
     public function get_almacenes(Request $request): JsonResponse
     {
-        $result = $this->almacenService->get_almacenes();
-
+        $result = $this->service->get_almacenes();
         return response()->json($result);
     }
 
-    public function crear_almacen(Request $request): JsonResponse
+    /**
+     * Crear un nuevo almacén.
+     * @param string $nombre
+     * @param mixed $descripcion
+     * @param bool $es_principal
+     */
+    public function crear_almacen(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:128',
@@ -41,7 +44,7 @@ class AlmacenController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->almacenService->crear_almacen(
+        $result = $this->service->crear_almacen(
             $request->nombre,
             $request->descripcion ?? null,
             $request->es_principal
@@ -50,13 +53,34 @@ class AlmacenController extends Controller
         return response()->json($result);
     }
 
-    public function asignar_responsable_almacen(Request $request): JsonResponse
+    /**
+     * Obtener historial de responsables de un almacen
+     * @param int $id_almacen
+     */
+    public function get_historial_responsables(Request $request)
+    {
+        $id_almacen = $request->input('id_almacen');
+        if (!$id_almacen) {
+            return response()->json(ApiResponse::error('El almacen es requerido'));
+        }
+
+        $result = $this->service->get_historial_responsables((int) $id_almacen);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Asignar un nuevo responsable de almacen
+     * @param int $id_almacen
+     * @param int $id_empleado
+     * @param string $fecha_inicio
+     */
+    public function nuevo_responsable(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'id_almacen' => 'required|integer',
             'id_empleado' => 'required|integer',
             'fecha_inicio' => 'required|date',
-            'fecha_fin' => 'nullable|date|after:fecha_inicio',
         ], [
             'id_almacen.required' => 'El almacén es requerido',
             'id_empleado.required' => 'El empleado es requerido',
@@ -67,29 +91,36 @@ class AlmacenController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->responsableAlmacenService->asignar_responsable_almacen(
+        $result = $this->service->nuevo_responsable(
             $request->id_almacen,
             $request->id_empleado,
             $request->fecha_inicio,
-            $request->fecha_fin
         );
 
         return response()->json($result);
     }
 
-    public function get_responsables_almacen(Request $request): JsonResponse
+    /**
+     * Listar las minas que abstece un almacen
+     * @param mixed $id_almacen
+     */
+    public function get_minas_abastecidas(Request $request)
     {
         $id_almacen = $request->input('id_almacen');
         if (!$id_almacen) {
             return response()->json(ApiResponse::error('El almacen es requerido'));
         }
 
-        $result = $this->responsableAlmacenService->get_responsables_almacen((int) $id_almacen);
-
+        $result = $this->service->get_minas_abastecidas((int) $id_almacen);
         return response()->json($result);
     }
 
-    public function asignar_mina_almacen(Request $request): JsonResponse
+    /**
+     * Asignar nueva mina por abastecer
+     * @param int $id_almacen
+     * @param int $id_mina
+     */
+    public function nueva_mina_por_abastecer(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'id_almacen' => 'required|integer',
@@ -103,7 +134,7 @@ class AlmacenController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->almacenMinaService->asignar_mina_almacen(
+        $result = $this->service->nueva_mina_por_abastecer(
             $request->id_almacen,
             $request->id_mina
         );
@@ -111,36 +142,19 @@ class AlmacenController extends Controller
         return response()->json($result);
     }
 
-    public function get_minas_almacen(Request $request): JsonResponse
+    /**
+     * Dejar de abastecer a una mina
+     * @param int $id_asignacion
+     */
+    public function eliminar_abastecimiento_mina(Request $request)
     {
-        $id_almacen = $request->input('id_almacen');
-        if (! $id_almacen) {
-            return response()->json(ApiResponse::error('El id_almacen es requerido'));
-        }
-
-        $result = $this->almacenMinaService->get_minas_almacen((int) $id_almacen);
-
-        return response()->json($result);
-    }
-
-    public function desasignar_mina_almacen(Request $request): JsonResponse
-    {
-        $id_asignacion = $request->input('id_asignacion');
-        if (! $id_asignacion) {
+        $id_mina_almacen = $request->input('id_mina_almacen');
+        if (!$id_mina_almacen) {
             return response()->json(ApiResponse::error('El id_asignacion es requerido'));
         }
 
-        $result = $this->almacenMinaService->desasignar_mina_almacen((int) $id_asignacion);
+        $result = $this->service->eliminar_abastecimiento_mina($id_mina_almacen);
 
         return response()->json($result);
-    }
-
-    public function get_almacenes_by_responsable(Request $request): JsonResponse
-    {
-        $authUser = $request->attributes->get('auth_user');
-
-        $data = \App\Models\Almacen::get_almacenes_by_responsable((int) $authUser->id_empleado);
-
-        return response()->json(ApiResponse::success($data));
     }
 }

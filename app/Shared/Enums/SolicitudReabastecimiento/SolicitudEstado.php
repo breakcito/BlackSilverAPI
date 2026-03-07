@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Shared\Enums;
+namespace App\Shared\Enums\SolicitudReabastecimiento;
 
-enum EstadoRequerimiento: string
+enum SolicitudEstado: string
 {
     case Generada = 'Generada';
     case Cerrada = 'Cerrada';

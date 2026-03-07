@@ -5,13 +5,12 @@ namespace App\Views\SolicitudesReabastecimiento;
 use App\Models\SolicitudReabastecimiento;
 use App\Models\SolicitudReabastecimientoDetalle;
 use App\Models\UnidadMedida;
-use App\Shared\Enums\SolicitudReabastecimiento\SolicitudDetalleEstadoEnum;
-use App\Shared\Enums\SolicitudReabastecimiento\SolicitudEstadoEnum;
+use App\Shared\Enums\SolicitudReabastecimiento\SolicitudDetalleEstado;
+use App\Shared\Enums\SolicitudReabastecimiento\SolicitudEstado;
 use App\Shared\Helpers\CorrelativoHelper;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
-class SolicitudesData extends Model
+class SolicitudesData
 {
     // Obtener una o toda la lista de solicitudes
     public static function get_solicitudes(
@@ -158,7 +157,7 @@ class SolicitudesData extends Model
     }
 
     // Funcion helpder que ayuda a crear la cabecera de la solicitud
-    public function crear_solicitud(
+    public static function crear_solicitud(
         int $id_almacen_solicitante,
         int $id_empleado_solicitante,
         string $correlativo,
@@ -176,7 +175,7 @@ class SolicitudesData extends Model
             'premura' => $premura,
             'fecha_entrega_requerida' => $fecha_entrega_requerida,
             'created_at' => now(),
-            'estado' => SolicitudEstadoEnum::Generada->value,
+            'estado' => SolicitudEstado::Generada->value,
         ]);
     }
 
@@ -200,7 +199,7 @@ class SolicitudesData extends Model
             'cantidad_entregada' => 0,
             'cantidad_entregada_base' => 0,
             'comentario' => $comentario,
-            'estado' => SolicitudDetalleEstadoEnum::EsperandoAprobacion->value,
+            'estado' => SolicitudDetalleEstado::EsperandoAprobacion->value,
         ]);
     }
 

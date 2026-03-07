@@ -1,7 +1,7 @@
 <?php
 
 
-use App\Controllers\SolicitudesController;
+use App\Views\SolicitudesReabastecimiento\SolicitudesController;
 use Illuminate\Support\Facades\Route;
 
 /*

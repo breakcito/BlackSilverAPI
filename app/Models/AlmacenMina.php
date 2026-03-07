@@ -17,39 +17,6 @@ class AlmacenMina extends Model
         'id_mina',
     ];
 
-    // Obtener las minas a las que atiende este almacén
-    public static function get_minas_asignadas(?int $id_almacen = null, ?int $id_almacen_mina = null)
-    {
-        $sql = '
-        SELECT
-            am.id as id_almacen_mina,
-            m.nombre AS mina,
-            c.nombre AS concesion
-        FROM
-            almacen_mina am
-        INNER JOIN mina m ON m.id = am.id_mina
-        INNER JOIN concesion c ON c.id = m.id_concesion
-        WHERE
-            1 = 1
-        ';
-
-        $params = [];
-
-        if ($id_almacen) {
-            $sql .= ' AND am.id_almacen = :id_almacen';
-            $params['id_almacen'] = $id_almacen;
-        }
-        if ($id_almacen_mina) {
-            $sql .= ' AND am.id = :id_almacen_mina';
-            $params['id_almacen_mina'] = $id_almacen_mina;
-        }
-
-        $sql .= ' ORDER BY m.nombre ASC';
-
-        return DB::select($sql, $params);
-    }
-
-
     // Obtener los almacenes que atienden a una mina
     public static function get_almacenes_por_mina(int $id_mina)
     {

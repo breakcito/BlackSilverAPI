@@ -23,8 +23,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
     // Almacenes
     Route::prefix('almacenes')->controller(AlmacenController::class)->group(function () {
-        Route::get('/', 'get_almacenes'); // ✅
-        Route::post('/', 'crear_almacen'); // ✅
         Route::post('/asignar-responsable', 'asignar_responsable_almacen'); // ✅
         Route::post('/responsables', 'get_responsables_almacen'); // ✅
         Route::post('/asignar-mina', 'asignar_mina_almacen'); // ✅

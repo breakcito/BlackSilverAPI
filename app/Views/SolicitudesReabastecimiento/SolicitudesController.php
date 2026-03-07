@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Views\SolicitudesReabastecimiento;
 
-use App\Views\SolicitudesReabastecimiento\SolicitudesService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -10,14 +9,14 @@ use Illuminate\Routing\Controller;
 class SolicitudesController extends Controller
 {
     public function __construct(
-        private SolicitudesService $solicitudesService
+        private SolicitudesService $service
     ) {}
 
     // Obtener todas la lista de solicitudes en base al almacen solicitante
     // dentro de un periodo de tiempo (mes y año)
     public function get_solicitudes(Request $request): JsonResponse
     {
-        $result = $this->solicitudesService->get_solicitudes(
+        $result = $this->service->get_solicitudes(
             $request->id_almacen_solicitante,
             $request->mes,
             $request->yearcito,
@@ -30,7 +29,7 @@ class SolicitudesController extends Controller
     {
         $authUser = $request->attributes->get('auth_user');
 
-        $result = $this->solicitudesService->crear_solicitud(
+        $result = $this->service->crear_solicitud(
             $request->id_almacen_solicitante,
             $authUser->id_empleado,
             $request->premura,
@@ -45,7 +44,7 @@ class SolicitudesController extends Controller
     // Obtener los detalles de una solicitud
     public function get_detalles_solicitud(Request $request): JsonResponse
     {
-        $result = $this->solicitudesService->get_detalles_solicitud(
+        $result = $this->service->get_detalles_solicitud(
             $request->id_solicitud_reabastecimiento,
         );
         return response()->json($result);
@@ -55,7 +54,7 @@ class SolicitudesController extends Controller
     // Obtener toda la lista de productos junto a la abreviatura de su unidad de medida
     public function get_productos(Request $request): JsonResponse
     {
-        $result = $this->solicitudesService->get_productos();
+        $result = $this->service->get_productos();
         return response()->json($result);
     }
 
@@ -64,7 +63,7 @@ class SolicitudesController extends Controller
     public function get_almacenes(Request $request): JsonResponse
     {
         $authUser = $request->attributes->get('auth_user');
-        $result = $this->solicitudesService->get_almacenes(
+        $result = $this->service->get_almacenes(
             $authUser->id_empleado,
         );
         return response()->json($result);
@@ -73,7 +72,7 @@ class SolicitudesController extends Controller
     // Listar unidades de medida.
     public function get_unidades_medida(Request $request): JsonResponse
     {
-        $result = $this->solicitudesService->get_productos();
+        $result = $this->service->get_productos();
         return response()->json($result);
     }
 }

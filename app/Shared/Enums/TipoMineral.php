@@ -4,7 +4,7 @@ namespace App\Shared\Enums;
 
 enum TipoMineral: string
 {
-    case Polimetalico = 'Polimetalico';
-    case Carbon = 'Carbon';
-    case Aurifero = 'Aurifero';
+    case Polimetalico = 'Polimetålico';
+    case Carbon = 'Carbón';
+    case Aurifero = 'Aurífero';
 }
