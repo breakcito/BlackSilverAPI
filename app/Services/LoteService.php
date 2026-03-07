@@ -95,34 +95,7 @@ class LoteService
      */
     public function obtener_lotes_disponibles(int $id_producto, int $id_almacen)
     {
-        $sql = "
-        SELECT
-            lp.id AS id_lote,
-            lp.correlativo AS codigo_lote,
-            lp.descripcion,
-            lp.stock_actual,
-            um.abreviatura AS unidad_medida,
-            lp.fecha_hora_ingreso,
-            lp.fecha_vencimiento,
-            DATEDIFF(lp.fecha_vencimiento, CURDATE()) AS dias_para_vencer
-        FROM
-            lote_producto lp
-        INNER JOIN unidad_medida um ON um.id = lp.id_unidad_medida
-        WHERE
-            lp.id_producto = :id_producto
-            AND lp.id_almacen = :id_almacen
-            AND lp.stock_actual > 0
-            AND lp.estado = 'Activo'
-        ORDER BY
-            lp.fecha_vencimiento ASC,
-            lp.fecha_hora_ingreso ASC
-        ";
-
-        $data = DB::select($sql, [
-            'id_producto' => $id_producto,
-            'id_almacen' => $id_almacen,
-        ]);
-
+        $data = LoteProducto::obtener_lotes_disponibles($id_producto, $id_almacen);
         return ApiResponse::success($data);
     }
 
@@ -156,14 +129,7 @@ class LoteService
             $diferencia_lote = $nuevo_stock - $stock_anterior;
             $tipo_movimiento = $diferencia_base > 0 ? TipoMovimiento::Ingreso : TipoMovimiento::Salida;
             
-            // Obtener abreviatura de unidad base para la descripción automática
-            $producto = DB::table('producto as p')
-                ->join('unidad_medida as um', 'um.id', '=', 'p.id_unidad_medida_base')
-                ->where('p.id', $lote->id_producto)
-                ->select('um.abreviatura as unidad_base')
-                ->first();
-            
-            $unidad_base = $producto ? $producto->unidad_base : '';
+            $unidad_base = Producto::get_abreviatura_unidad_base($lote->id_producto);
 
             $descripcion_kardex = $motivo;
             if (empty($descripcion_kardex)) {

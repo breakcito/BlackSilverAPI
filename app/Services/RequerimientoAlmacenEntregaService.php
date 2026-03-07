@@ -170,23 +170,7 @@ class RequerimientoAlmacenEntregaService
      */
     public function obtener_historial_entregas_por_item(int $id_detalle)
     {
-        // Esta lógica suele ir en el modelo RequerimientoAlmacenEntrega para ser reutilizable
-        $historial = DB::select("
-            SELECT 
-                rae.id AS id_entrega,
-                rae.correlativo AS codigo_entrega,
-                rae.fecha_hora_entrega AS fecha_entrega,
-                CONCAT(er.nombre, ' ', er.apellido) AS entregado_a,
-                raed.cantidad_base AS cantidad,
-                CONCAT(ee.nombre, ' ', ee.apellido) AS usuario_entrega
-            FROM requerimiento_almacen_entrega_detalle raed
-            INNER JOIN requerimiento_almacen_entrega rae ON rae.id = raed.id_requerimiento_almacen_entrega
-            INNER JOIN empleado ee ON ee.id = rae.id_empleado_entrega
-            INNER JOIN empleado er ON er.id = rae.id_empleado_recibe
-            WHERE raed.id_requerimiento_almacen_detalle = :id_detalle
-            ORDER BY rae.fecha_hora_entrega DESC
-        ", ['id_detalle' => $id_detalle]);
-
+        $historial = RequerimientoAlmacenEntrega::get_historial_por_detalle_item($id_detalle);
         return ApiResponse::success($historial);
     }
 }
