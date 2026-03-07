@@ -73,4 +73,31 @@ class RequerimientoAlmacenDetalle extends Model
             return $detalle;
         }, $detalles);
     }
+    /**
+     * Obtener productos de un requerimiento listos para atención.
+     */
+    public static function get_detalles_para_atencion(int $id_requerimiento)
+    {
+        return DB::select("
+            SELECT 
+                rad.id AS id_requerimiento_detalle,
+                rad.id_producto,
+                p.nombre AS producto,
+                p.es_perecible,
+                p.dias_espera_vencimiento,
+                um.nombre AS unidad_medida,
+                umb.nombre AS unidad_medida_base,
+                rad.cantidad_solicitada,
+                rad.cantidad_solicitada_base,
+                rad.cantidad_entregada_base,
+                (rad.cantidad_solicitada_base - rad.cantidad_entregada_base) AS pendiente_base,
+                rad.estado
+            FROM requerimiento_almacen_detalle rad
+            INNER JOIN producto p ON p.id = rad.id_producto
+            INNER JOIN unidad_medida um ON um.id = rad.id_unidad_medida
+            LEFT JOIN unidad_medida umb ON umb.id = p.id_unidad_medida_base
+            WHERE rad.id_requerimiento_almacen = :id_req
+            AND rad.estado NOT IN ('Rechazado - Logística', 'Anulada')
+        ", ['id_req' => $id_requerimiento]);
+    }
 }

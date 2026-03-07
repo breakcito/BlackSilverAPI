@@ -117,4 +117,14 @@ class Producto extends Model
             'tipo_bien' => 'Bien',
         ]);
     }
+    /**
+     * Obtener la abreviatura de la unidad de medida base de un producto.
+     */
+    public static function get_abreviatura_unidad_base(int $id_producto): string
+    {
+        return DB::table('producto as p')
+            ->join('unidad_medida as um', 'um.id', '=', 'p.id_unidad_medida_base')
+            ->where('p.id', $id_producto)
+            ->value('um.abreviatura') ?? '';
+    }
 }

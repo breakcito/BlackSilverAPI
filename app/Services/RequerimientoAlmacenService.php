@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\AlmacenMina;
+use App\Models\LoteProducto;
+use App\Models\Producto;
 use App\Models\RequerimientoAlmacen;
 use App\Models\RequerimientoAlmacenDetalle;
 use App\Models\RequerimientoAlmacenDetalleLog;
@@ -145,60 +147,7 @@ class RequerimientoAlmacenService
      */
     public function obtener_requerimientos_atencion(int $id_almacen, ?string $estado = null, ?string $mes = null, ?string $anio = null)
     {
-        $sql = "
-        SELECT
-            ra.id AS id_requerimiento,
-            ra.id_empleado_solicitante,
-            CONCAT(emp.nombre, ' ', emp.apellido) AS solicitante,
-            ra.id_mina,
-            m.nombre AS mina,
-            ra.correlativo AS codigo_requerimiento,
-            ra.premura,
-            ra.fecha_entrega_requerida,
-            ra.estado,
-            ra.created_at,
-            (SELECT COUNT(*) FROM requerimiento_almacen_detalle rad WHERE rad.id_requerimiento_almacen = ra.id) as total_items
-        FROM
-            requerimiento_almacen ra
-        INNER JOIN empleado emp ON emp.id = ra.id_empleado_solicitante
-        INNER JOIN mina m ON m.id = ra.id_mina
-        WHERE
-            ra.id_almacen_destino = :id_almacen
-        ";
-
-        $params = [
-            'id_almacen' => $id_almacen,
-        ];
-
-        if ($estado) {
-            $sql .= ' AND ra.estado = :estado';
-            $params['estado'] = $estado;
-        }
-
-        if ($mes && $anio) {
-            $sql .= ' AND MONTH(ra.created_at) = :mes AND YEAR(ra.created_at) = :anio';
-            $params['mes'] = $mes;
-            $params['anio'] = $anio;
-        } elseif ($mes) {
-            $sql .= ' AND MONTH(ra.created_at) = :mes';
-            $params['mes'] = $mes;
-        } elseif ($anio) {
-            $sql .= ' AND YEAR(ra.created_at) = :anio';
-            $params['anio'] = $anio;
-        }
-
-        $sql .= " ORDER BY 
-            CASE ra.premura 
-                WHEN 'Emergencia' THEN 1 
-                WHEN 'Urgente' THEN 2 
-                WHEN 'Normal' THEN 3 
-                ELSE 4 
-            END ASC,
-            ra.fecha_entrega_requerida ASC,
-            ra.created_at ASC";
-
-        $data = DB::select($sql, $params);
-
+        $data = RequerimientoAlmacen::obtener_requerimientos_atencion($id_almacen, $estado, $mes, $anio);
         return ApiResponse::success($data);
     }
 
@@ -260,54 +209,19 @@ class RequerimientoAlmacenService
         if (!$requerimiento) return ApiResponse::error("Requerimiento no encontrado");
 
         // Obtenemos los detalles que están aprobados o en proceso de despacho
-        $detalles = DB::select("
-            SELECT 
-                rad.id AS id_requerimiento_detalle,
-                rad.id_producto,
-                p.nombre AS producto,
-                p.es_perecible,
-                p.dias_espera_vencimiento,
-                um.nombre AS unidad_medida,
-                umb.nombre AS unidad_medida_base,
-                rad.cantidad_solicitada,
-                rad.cantidad_solicitada_base,
-                rad.cantidad_entregada_base,
-                (rad.cantidad_solicitada_base - rad.cantidad_entregada_base) AS pendiente_base,
-                rad.estado
-            FROM requerimiento_almacen_detalle rad
-            INNER JOIN producto p ON p.id = rad.id_producto
-            INNER JOIN unidad_medida um ON um.id = rad.id_unidad_medida
-            LEFT JOIN unidad_medida umb ON umb.id = p.id_unidad_medida_base
-            WHERE rad.id_requerimiento_almacen = :id_req
-            AND rad.estado NOT IN ('Rechazado - Logística', 'Anulada', 'Cerrado', 'Completado')
-        ", ['id_req' => $id_requerimiento]);
+        $detalles = RequerimientoAlmacenDetalle::get_detalles_para_atencion($id_requerimiento);
 
         foreach ($detalles as $det) {
             // Por cada producto, buscamos sus lotes en el almacén de destino del requerimiento
-            $det->lotes = DB::select("
-                SELECT 
-                    lp.id AS id_lote_producto,
-                    lp.correlativo AS codigo_lote,
-                    lp.stock_actual,
-                    um.abreviatura AS unidad_lote,
-                    lp.stock_actual_base,
-                    umb.abreviatura AS unidad_base,
-                    lp.fecha_vencimiento,
-                    lp.contenido_por_presentacion,
-                    CONCAT(FORMAT(lp.stock_actual, 2), ' ', um.abreviatura, ' (', FORMAT(lp.stock_actual_base, 2), ' ', umb.abreviatura, ')') AS stock_formateado
-                FROM lote_producto lp
-                INNER JOIN unidad_medida um ON um.id = lp.id_unidad_medida
-                INNER JOIN producto p ON p.id = lp.id_producto
-                INNER JOIN unidad_medida umb ON umb.id = p.id_unidad_medida_base
-                WHERE lp.id_producto = :id_prod
-                AND lp.id_almacen = :id_alm
-                AND lp.stock_actual_base > 0
-                AND lp.estado = 'Activo'
-                ORDER BY lp.fecha_vencimiento ASC, lp.created_at ASC
-            ", [
-                'id_prod' => $det->id_producto,
-                'id_alm' => $requerimiento->id_almacen_destino
-            ]);
+            $det->lotes = LoteProducto::obtener_lotes_disponibles($det->id_producto, $requerimiento->id_almacen_destino);
+            
+            // Re-formatear stock para mantener compatibilidad con el front si es necesario
+            // (LoteProducto::obtener_lotes_disponibles ya trae datos, pero aquí el front esperaba un concat específico)
+            foreach ($det->lotes as $lote) {
+                if (!isset($lote->stock_formateado)) {
+                    $lote->stock_formateado = number_format($lote->stock_actual, 2) . " " . $lote->unidad_medida;
+                }
+            }
         }
 
         return ApiResponse::success($detalles);
