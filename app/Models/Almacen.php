@@ -57,4 +57,23 @@ class Almacen extends Model
         $sql .= ' ORDER BY a.es_principal DESC, a.nombre ASC';
         return DB::select($sql, $bindings);
     }
+
+    public static function get_almacenes_by_responsable(int $id_empleado)
+    {
+        $sql = '
+        SELECT DISTINCT
+            alm.id AS id_almacen,
+            alm.nombre
+        FROM
+            almacen alm
+        INNER JOIN responsable_almacen res ON
+            res.id_almacen = alm.id
+        WHERE
+            alm.es_principal != 1 AND
+            res.id_empleado = :id_empleado AND
+            res.estado = "Activo"
+        ';
+
+        return DB::select($sql,["id_empleado" => $id_empleado]);
+    }
 }

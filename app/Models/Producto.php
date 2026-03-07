@@ -117,4 +117,26 @@ class Producto extends Model
             'tipo_bien' => 'Bien',
         ]);
     }
+
+
+    // Obtener toda la lista de productos (bienes) junto a su unidad de medida
+    public static function get_productos_basic()
+    {
+        $sql = '
+        SELECT
+            pr.id AS id_producto,
+            pr.nombre,
+            uni.abreviatura as unidad_medida
+        FROM
+            producto pr
+        INNER JOIN unidad_medida uni ON
+            uni.id = pr.id_unidad_medida_base
+        INNER JOIN categoria cat on cat.id = pr.id_categoria
+        WHERE 
+            pr.estado = "Activo" AND
+            cat.tipo_requerimiento = "Bien"
+        ';
+
+        return DB::select($sql);
+    }
 }

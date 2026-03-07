@@ -12,15 +12,14 @@ class SolicitudReabastecimientoDetalle extends Model
         'id_solicitud_reabastecimiento',
         'id_producto',
         'id_empleado_atencion', // quien aprueba o rechaza
-        'id_unidad_medida_presentacion', // bolsa
+        'id_unidad_medida', // bolsa
         'cantidad_solicitada',
         'cantidad_solicitada_base',
+        'contenido_por_presentacion',
         'cantidad_entregada',
         'cantidad_entregada_base',
-        'cantidad_devuelta',
-        'cantidad_devuelta_base',
         'comentario',
-        'comentario_rechazo',
+        'comentario_decision',
         'estado',
     ];
 }
