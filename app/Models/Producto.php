@@ -136,6 +136,7 @@ class Producto extends Model
         SELECT
             pr.id AS id_producto,
             pr.nombre,
+            uni.id_unidad_medida,
             uni.abreviatura as unidad_medida
         FROM
             producto pr

@@ -30,10 +30,10 @@ class SolicitudReabastecimientoController extends Controller
 
     public function get_detalles_solicitud(Request $request): JsonResponse
     {
-        $id_solicitud_reabastecimiento = $request->query('id_solicitud_reabastecimiento');
+        $id_solicitud_reabastecimiento = $request->input('id_solicitud_reabastecimiento');
 
         $result = $this->solicitudService->get_detalles_solicitud(
-            $id_solicitud_reabastecimiento
+            (int) $id_solicitud_reabastecimiento
         );
 
         return response()->json($result);
@@ -63,13 +63,26 @@ class SolicitudReabastecimientoController extends Controller
         }
 
         $result = $this->solicitudService->crear_solicitud(
-            id_almacen_solicitante: $authUser->id_empleado,
-            id_empleado_solicitante: $authUser,
+            id_almacen_solicitante: (int) $request->id_almacen_solicitante,
+            id_empleado_solicitante: (int) $authUser->id_empleado,
             premura: $request->premura,
             observacion: $request->observacion,
             fecha_hora_entrega_requerida: $request->fecha_hora_entrega_requerida,
             detalles: $request->detalles
         );
+
+        return response()->json($result);
+    }
+
+    public function obtener_solicitud_por_id(Request $request): JsonResponse
+    {
+        $id = $request->input('id_solicitud_reabastecimiento');
+
+        if (! $id) {
+            return response()->json(ApiResponse::error('El id_solicitud_reabastecimiento es requerido'), 400);
+        }
+
+        $result = $this->solicitudService->get_detalles_solicitud((int) $id);
 
         return response()->json($result);
     }

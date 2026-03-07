@@ -134,4 +134,13 @@ class AlmacenController extends Controller
 
         return response()->json($result);
     }
+
+    public function get_almacenes_by_responsable(Request $request): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+
+        $data = \App\Models\Almacen::get_almacenes_by_responsable((int) $authUser->id_empleado);
+
+        return response()->json(ApiResponse::success($data));
+    }
 }

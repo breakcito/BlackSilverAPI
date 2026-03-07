@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        commands: __DIR__ . '/../routes/console.php',
+        commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function () {
             Route::middleware('api')->prefix('api')->group(function () {
@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 // Logistica
                 require base_path('app/Endpoints/inventario.php');
                 require base_path('app/Endpoints/requerimientos-almacen.php');
+                require base_path('app/Endpoints/solicitudes-reabastecimiento.php');
             });
         },
     )
