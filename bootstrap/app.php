@@ -12,16 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         then: function () {
             Route::middleware('api')->prefix('api')->group(function () {
-                require base_path('app/Endpoints/menu-navegacion.php');
-                // Configuracion
-                require base_path('app/Endpoints/empresas.php');
+                require base_path('app/Views/Login/LoginEndpoints.php');
+                require base_path('app/Shared/MenuNavegacion/MenuNavEndpoints.php');
                 require base_path('app/Views/Almacenes/AlmacenesEndpoints.php');
-                require base_path('app/Endpoints/personal.php');
-                require base_path('app/Endpoints/usuarios.php');
-                // Logistica
-                require base_path('app/Endpoints/inventario.php');
-                require base_path('app/Endpoints/requerimientos-almacen.php');
-                require base_path('app/Endpoints/solicitudes-reabastecimiento.php');
             });
         },
     )

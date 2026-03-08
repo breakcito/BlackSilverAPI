@@ -9,91 +9,85 @@ use App\Views\Almacenes\Data\ResponsablesData;
 
 class AlmacenesService
 {
-    public function __construct(
-        private AlmacenesData $almacenesData,
-        private AbastecimientoMinasData $abastecimientoMinasData,
-        private ResponsablesData $responsablesData,
-    ) {}
-
-    public function get_almacenes()
+    public static function get_almacenes()
     {
-        $almacenes = $this->almacenesData->get_almacenes();
+        $almacenes = AlmacenesData::get_almacenes();
 
         return ApiResponse::success($almacenes);
     }
 
-    public function crear_almacen(string $nombre, ?string $descripcion = null, bool $es_principal)
+    public static function crear_almacen(string $nombre, ?string $descripcion = null, bool $es_principal)
     {
-        if ($this->almacenesData->verificar_nombre_duplicado($nombre)) {
+        if (AlmacenesData::verificar_nombre_duplicado($nombre)) {
             return ApiResponse::error('Ya existe un almacén con este nombre.');
         }
 
-        $id_almacen = $this->almacenesData->crear_almacen($nombre, $descripcion, $es_principal);
-        $nuevoAlmacen = $this->almacenesData->get_almacen_by_id($id_almacen);
+        $id_almacen = AlmacenesData::crear_almacen($nombre, $descripcion, $es_principal);
+        $nuevoAlmacen = AlmacenesData::get_almacen_by_id($id_almacen);
 
         return ApiResponse::success($nuevoAlmacen, 'Almacén creado correctamente');
     }
 
     //
 
-    public function nueva_mina_por_abastecer(int $id_almacen, int $id_mina)
+    public static function nueva_mina_por_abastecer(int $id_almacen, int $id_mina)
     {
-        if ($this->abastecimientoMinasData->verificar_abastecimiento_mina($id_almacen, $id_mina)) {
+        if (AbastecimientoMinasData::verificar_abastecimiento_mina($id_almacen, $id_mina)) {
             return ApiResponse::error('Esta mina ya está siendo abastecida por este almacén.');
         }
 
-        $id = $this->abastecimientoMinasData->nueva_mina_por_abastecer($id_almacen, $id_mina);
+        $id = AbastecimientoMinasData::nueva_mina_por_abastecer($id_almacen, $id_mina);
 
-        $nuevaAsignacion = $this->abastecimientoMinasData->get_mina_abastecida_by_id($id);
+        $nuevaAsignacion = AbastecimientoMinasData::get_mina_abastecida_by_id($id);
 
         return ApiResponse::success($nuevaAsignacion, 'Mina asignada correctamente');
     }
 
-    public function eliminar_abastecimiento_mina(int $id_almacen_mina)
+    public static function eliminar_abastecimiento_mina(int $id_almacen_mina)
     {
-        $this->abastecimientoMinasData->eliminar_abastecimiento_mina($id_almacen_mina);
+        AbastecimientoMinasData::eliminar_abastecimiento_mina($id_almacen_mina);
 
         return ApiResponse::success(null, 'Se detuvo el abastecimiento de esta mina');
     }
 
-    public function get_minas_abastecidas(int $id_almacen)
+    public static function get_minas_abastecidas(int $id_almacen)
     {
-        $result = $this->abastecimientoMinasData->get_minas_abastecidas($id_almacen);
+        $result = AbastecimientoMinasData::get_minas_abastecidas($id_almacen);
 
         return ApiResponse::success($result);
     }
 
-    public function get_minas(int $id_almacen)
+    public static function get_minas(int $id_almacen)
     {
-        $result = $this->abastecimientoMinasData->get_minas($id_almacen);
+        $result = AbastecimientoMinasData::get_minas($id_almacen);
 
         return ApiResponse::success($result);
     }
 
     //
 
-    public function nuevo_responsable(int $id_almacen, int $id_empleado, string $fecha_inicio)
+    public static function nuevo_responsable(int $id_almacen, int $id_empleado, string $fecha_inicio)
     {
         // Finalizar el periodo de actividad de los responsables anteriores
-        $this->responsablesData->update_fecha_fin_responsabilidad($id_almacen, $fecha_inicio);
+        ResponsablesData::update_fecha_fin_responsabilidad($id_almacen, $fecha_inicio);
 
         // Crear nuevo usando el id de la tabla empleado
-        $id_nuevo_responsable = $this->responsablesData->nuevo_responsable($id_almacen, $id_empleado, $fecha_inicio);
-        $nuevoResponsable = $this->responsablesData->get_responsable_by_id($id_nuevo_responsable);
+        $id_nuevo_responsable = ResponsablesData::nuevo_responsable($id_almacen, $id_empleado, $fecha_inicio);
+        $nuevoResponsable = ResponsablesData::get_responsable_by_id($id_nuevo_responsable);
 
         return ApiResponse::success($nuevoResponsable, 'Responsable asignado correctamente');
     }
 
-    public function get_historial_responsables(int $id_almacen)
+    public static function get_historial_responsables(int $id_almacen)
     {
-        $historial = $this->responsablesData->get_historial_responsables($id_almacen);
+        $historial = ResponsablesData::get_historial_responsables($id_almacen);
 
         return ApiResponse::success($historial);
     }
 
-    public function get_empleados(int $id_almacen)
+    public static function get_empleados(int $id_almacen)
     {
-        $result = $this->responsablesData->get_empleados($id_almacen);
+        $result = ResponsablesData::get_empleados($id_almacen);
 
         return ApiResponse::success($result);
     }
