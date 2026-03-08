@@ -16,7 +16,7 @@ class AbastecimientoMinasData
         $sql = '
         SELECT
             am.id as id_almacen_mina,
-            m.nombre AS mina,
+            m.nombre,
             c.nombre AS concesion
         FROM
             almacen_mina am
@@ -76,9 +76,9 @@ class AbastecimientoMinasData
     /**
      * Dejar de abastecer a una mina
      */
-    public static function eliminar_abastecimiento_mina(int $id_mina_almacen)
+    public static function eliminar_abastecimiento_mina(int $id_almacen_mina)
     {
-        AlmacenMina::where('id', $id_mina_almacen)->delete();
+        AlmacenMina::where('id', $id_almacen_mina)->delete();
     }
 
     /**

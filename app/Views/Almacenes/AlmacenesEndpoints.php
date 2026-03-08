@@ -24,29 +24,29 @@ Route::middleware('auth.jwt.custom')->group(function () {
         // Responsables
         Route::prefix('responsables')->group(function () {
             // Obtener historial de responsables de un almacen
-            Route::get('/', 'get_historial_responsables');
+            Route::get('/{id_almacen}', 'get_historial_responsables');
 
             // Asignar un nuevo responsable de almacen
             Route::post('/', 'nuevo_responsable');
 
-            // Listar los empleados para asignar como responsable de almacen
-            Route::post('/empleados', 'get_empleados');
+            // Listar empleados disponibles para asignar como responsable de almacen
+            Route::post('/empleados/{id_almacen}', 'get_empleados');
         });
 
 
         // Abastecimiento de minas
         Route::prefix('abastecimiento-minas')->group(function () {
             // Listar las minas que abstece un almacen
-            Route::get('/', 'get_minas_abastecidas');
+            Route::get('/{id_almacen}', 'get_minas_abastecidas');
 
             // Asignar nueva mina por abastecer
             Route::post('/', 'nueva_mina_por_abastecer');
 
             // Dejar de abastecer a una mina
-            Route::delete('/', 'eliminar_abastecimiento_mina');
+            Route::delete('/{id_almacen_mina}', 'eliminar_abastecimiento_mina');
 
             // Listar las minas disponibles para abastecer
-            Route::get('/minas', 'get_minas');
+            Route::get('/minas/{id_almacen}', 'get_minas');
         });
     });
 });

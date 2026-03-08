@@ -15,18 +15,12 @@ class AlmacenesService
         private ResponsablesData $responsablesData,
     ) {}
 
-    /**
-     * Listar un resumen de todos los almacenes
-     */
     public function get_almacenes()
     {
         $almacenes = $this->almacenesData->get_almacenes();
         return ApiResponse::success($almacenes);
     }
 
-    /**
-     * Crear un nuevo almacén.
-     */
     public function crear_almacen(string $nombre, ?string $descripcion = null, bool $es_principal)
     {
         if ($this->almacenesData->verificar_nombre_duplicado($nombre)) {
@@ -43,9 +37,6 @@ class AlmacenesService
     //
 
 
-    /**
-     * Asignar nueva mina por abastecer
-     */
     public function nueva_mina_por_abastecer(int $id_almacen, int $id_mina)
     {
         if ($this->abastecimientoMinasData->verificar_abastecimiento_mina($id_almacen, $id_mina)) {
@@ -59,27 +50,18 @@ class AlmacenesService
         return ApiResponse::success($nuevaAsignacion, 'Mina asignada correctamente');
     }
 
-    /**
-     * Dejar de abastecer a una mina
-     */
-    public function eliminar_abastecimiento_mina(int $id_mina_almacen)
+    public function eliminar_abastecimiento_mina(int $id_almacen_mina)
     {
-        $this->abastecimientoMinasData->eliminar_abastecimiento_mina($id_mina_almacen);
+        $this->abastecimientoMinasData->eliminar_abastecimiento_mina($id_almacen_mina);
         return ApiResponse::success(null, 'Se detuvo el abastecimiento de esta mina');
     }
 
-    /**
-     * Listar las minas que abstece un almacen
-     */
     public function get_minas_abastecidas(int $id_almacen)
     {
         $result = $this->abastecimientoMinasData->get_minas_abastecidas($id_almacen);
         return ApiResponse::success($result);
     }
 
-    /**
-     * Listar todas las minas posibles para abastecer
-     */
     public function get_minas(int $id_almacen)
     {
         $result = $this->abastecimientoMinasData->get_minas($id_almacen);
@@ -90,9 +72,6 @@ class AlmacenesService
     //
 
 
-    /**
-     * Asignar un nuevo responsable de almacen
-     */
     public function nuevo_responsable(int $id_almacen, int $id_empleado, string $fecha_inicio)
     {
         // Finalizar el periodo de actividad de los responsables anteriores
@@ -105,19 +84,12 @@ class AlmacenesService
         return ApiResponse::success($nuevoResponsable, 'Responsable asignado correctamente');
     }
 
-    /**
-     * Obtener historial de responsables de un almacen
-     */
     public function get_historial_responsables(int $id_almacen)
     {
         $historial = $this->responsablesData->get_historial_responsables($id_almacen);
         return ApiResponse::success($historial);
     }
 
-
-    /**
-     * Obtener listado de empleados para asignar como responsable de almacen
-     */
     public function get_empleados(int $id_almacen)
     {
         $result = $this->responsablesData->get_empleados($id_almacen);

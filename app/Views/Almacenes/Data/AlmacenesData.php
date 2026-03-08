@@ -10,7 +10,6 @@ class AlmacenesData
 {
     /**
      * Listar un resumen de los almacenes
-     * @param mixed $id_almacen
      */
     public static function get_almacenes(?int $id_almacen = null)
     {
@@ -57,7 +56,6 @@ class AlmacenesData
 
     /**
      * Obtener datos de un almacen
-     * @param int $id_almacen
      */
     public static function get_almacen_by_id(int $id_almacen)
     {
@@ -66,9 +64,6 @@ class AlmacenesData
 
     /**
      * Helper para registrar un almacen
-     * @param string $nombre
-     * @param mixed $descripcion
-     * @param bool $es_principal
      */
     public static function crear_almacen(string $nombre, ?string $descripcion = null, bool $es_principal)
     {
@@ -82,7 +77,6 @@ class AlmacenesData
 
     /**
      * Verificar si ya existe un almacen activo o inactivo con el mismo nombre
-     * @param string $nombre
      */
     public static function verificar_nombre_duplicado(string $nombre)
     {

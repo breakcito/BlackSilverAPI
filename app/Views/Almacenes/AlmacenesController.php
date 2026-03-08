@@ -132,12 +132,12 @@ class AlmacenesController extends Controller
 
     public function eliminar_abastecimiento_mina(Request $request)
     {
-        $id_mina_almacen = $request->input('id_mina_almacen');
-        if (!$id_mina_almacen) {
+        $id_almacen_mina = $request->input('id_almacen_mina');
+        if (!$id_almacen_mina) {
             return response()->json(ApiResponse::error('El id_asignacion es requerido'));
         }
 
-        $result = $this->service->eliminar_abastecimiento_mina($id_mina_almacen);
+        $result = $this->service->eliminar_abastecimiento_mina($id_almacen_mina);
 
         return response()->json($result);
     }
