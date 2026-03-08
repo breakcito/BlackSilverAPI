@@ -89,7 +89,7 @@ class AbastecimientoMinasData
         $sql = `
         SELECT DISTINCT
             min.id as id_mina,
-            min.nombre as mina,
+            min.nombre,
             con.nombre as concesion
         FROM
             mina min

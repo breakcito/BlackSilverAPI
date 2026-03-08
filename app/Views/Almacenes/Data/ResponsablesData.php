@@ -16,7 +16,6 @@ class ResponsablesData
         $sql = '
         SELECT
             ra.id AS id_responsable_almacen,
-            ra.id_empleado,
             CONCAT(emp.nombre, " ", emp.apellido) as nombre_completo,
             emp.path_foto,
             emp.dni,

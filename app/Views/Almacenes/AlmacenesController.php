@@ -3,9 +3,7 @@
 namespace App\Views\Almacenes;
 
 use App\Shared\Responses\ApiResponse;
-use App\Views\Almacenes\Service\AbastecimientoMinasService;
-use App\Views\Almacenes\Service\AlmacenesService;
-use App\Views\Almacenes\Service\ResponsablesService;
+use App\Views\Almacenes\AlmacenesService;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,14 +12,12 @@ use Illuminate\Routing\Controller;
 class AlmacenesController extends Controller
 {
     public function __construct(
-        private AlmacenesService $almacenesService,
-        private ResponsablesService $responsablesService,
-        private AbastecimientoMinasService $abastecimientoMinasService,
+        private AlmacenesService $service,
     ) {}
 
     public function get_almacenes(Request $request): JsonResponse
     {
-        $result = $this->almacenesService->get_almacenes();
+        $result = $this->service->get_almacenes();
         return response()->json($result);
     }
 
@@ -40,7 +36,7 @@ class AlmacenesController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->almacenesService->crear_almacen(
+        $result = $this->service->crear_almacen(
             $request->nombre,
             $request->descripcion ?? null,
             $request->es_principal
@@ -58,7 +54,7 @@ class AlmacenesController extends Controller
             return response()->json(ApiResponse::error('El almacen es requerido'));
         }
 
-        $result = $this->responsablesService->get_historial_responsables((int) $id_almacen);
+        $result = $this->service->get_historial_responsables((int) $id_almacen);
 
         return response()->json($result);
     }
@@ -79,7 +75,7 @@ class AlmacenesController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->responsablesService->nuevo_responsable(
+        $result = $this->service->nuevo_responsable(
             $request->id_almacen,
             $request->id_empleado,
             $request->fecha_inicio,
@@ -95,7 +91,7 @@ class AlmacenesController extends Controller
             return response()->json(ApiResponse::error('El almacen es requerido'));
         }
 
-        $result = $this->responsablesService->get_empleados((int) $id_almacen);
+        $result = $this->service->get_empleados((int) $id_almacen);
         return response()->json($result);
     }
 
@@ -108,7 +104,7 @@ class AlmacenesController extends Controller
             return response()->json(ApiResponse::error('El almacen es requerido'));
         }
 
-        $result = $this->abastecimientoMinasService->get_minas_abastecidas((int) $id_almacen);
+        $result = $this->service->get_minas_abastecidas((int) $id_almacen);
         return response()->json($result);
     }
 
@@ -126,7 +122,7 @@ class AlmacenesController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->abastecimientoMinasService->nueva_mina_por_abastecer(
+        $result = $this->service->nueva_mina_por_abastecer(
             $request->id_almacen,
             $request->id_mina
         );
@@ -141,7 +137,7 @@ class AlmacenesController extends Controller
             return response()->json(ApiResponse::error('El id_asignacion es requerido'));
         }
 
-        $result = $this->abastecimientoMinasService->eliminar_abastecimiento_mina($id_mina_almacen);
+        $result = $this->service->eliminar_abastecimiento_mina($id_mina_almacen);
 
         return response()->json($result);
     }
@@ -153,7 +149,7 @@ class AlmacenesController extends Controller
             return response()->json(ApiResponse::error('El almacen es requerido'));
         }
 
-        $result = $this->abastecimientoMinasService->get_minas((int) $id_almacen);
+        $result = $this->service->get_minas((int) $id_almacen);
         return response()->json($result);
     }
 }
