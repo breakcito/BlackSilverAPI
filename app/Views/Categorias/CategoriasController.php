@@ -1,80 +1,45 @@
-
 <?php
 
-namespace App\Controllers;
+namespace App\Views\Categorias;
 
-use App\Services\CategoriaService;
-use App\Shared\Enums\ClasificacionBien;
-use App\Shared\Enums\TipoRequerimiento;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rules\Enum;
 
 class CategoriasController extends Controller
 {
-    public function __construct(
-        private CategoriaService $categoriaService
-    ) {}
-
+    /**
+     * Listar categorías
+     */
     public function get_categorias(Request $request): JsonResponse
     {
-        $tipo_requerimiento = $request->query('tipo_requerimiento');
-        $result = $this->categoriaService->get_categorias($tipo_requerimiento);
+        $result = CategoriasService::get_categorias();
 
         return response()->json($result);
     }
 
-    public function get_categoria_by_id(Request $request): JsonResponse
-    {
-        $id = $request->query('id');
-        if (! $id) {
-            return response()->json(ApiResponse::error('El id es requerido'), 400);
-        }
-        $result = $this->categoriaService->get_categoria_by_id((int) $id);
-
-        return response()->json($result);
-    }
-
+    /**
+     * Crear una nueva categoría
+     */
     public function crear_categoria(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'nombre' => 'required|string|max:255',
+            'nombre' => 'required|string|max:128',
             'descripcion' => 'nullable|string',
-            'tipo_requerimiento' => ['required', new Enum(TipoRequerimiento::class)],
-            'clasificacion_bien' => ['nullable', new Enum(ClasificacionBien::class)],
+            'tipo_requerimiento' => 'required|string|max:64',
+            'clasificacion_bien' => 'nullable|string|max:64',
         ], [
-            'nombre.required' => 'El nombre es requerido',
-            'tipo_requerimiento.required' => 'El tipo de requerimiento es requerido',
-            'tipo_requerimiento.Illuminate\Validation\Rules\Enum' => 'El tipo de requerimiento no es válido',
-            'clasificacion_bien.Illuminate\Validation\Rules\Enum' => 'La clasificación del bien no es válida',
+            'nombre.required' => 'El nombre es obligatorio',
+            'tipo_requerimiento.required' => 'El tipo de requerimiento es obligatorio',
         ]);
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $data = $validator->validated();
-
-        $result = $this->categoriaService->crear_categoria(
-            $data['nombre'],
-            $data['descripcion'] ?? null,
-            $data['tipo_requerimiento'],
-            $data['clasificacion_bien'] ?? null
-        );
-
-        return response()->json($result);
-    }
-
-    public function delete_categoria(Request $request): JsonResponse
-    {
-        $id = $request->input('id');
-        if (! $id) {
-            return response()->json(ApiResponse::error('La categoria es requerida'));
-        }
-        $result = $this->categoriaService->delete_categoria((int) $id);
+        $result = CategoriasService::crear_categoria($request->all());
 
         return response()->json($result);
     }
