@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Shared\MenuNavegacion\Data;
+namespace App\Data;
 
 use Illuminate\Support\Facades\DB;
 

@@ -1,7 +1,7 @@
 
 <?php
 
-use App\Shared\MenuNavegacion\MenuNavController;
+use App\Controllers\MenuNavController;
 use Illuminate\Support\Facades\Route;
 
 

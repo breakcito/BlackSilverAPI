@@ -13,7 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function () {
             Route::middleware('api')->prefix('api')->group(function () {
                 require base_path('app/Views/Login/LoginEndpoints.php');
-                require base_path('app/Shared/MenuNavegacion/MenuNavEndpoints.php');
+                require base_path('app/Endpoints/MenuNavEndpoints.php');
                 require base_path('app/Views/Almacenes/AlmacenesEndpoints.php');
             });
         },

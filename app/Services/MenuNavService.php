@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Shared\MenuNavegacion;
+namespace App\Services;
 
 use App\Shared\Responses\ApiResponse;
-use App\Shared\MenuNavegacion\Data\MenuNavData;
+use App\Data\MenuNavData;
 
 
 class MenuNavService

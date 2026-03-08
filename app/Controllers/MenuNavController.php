@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Shared\MenuNavegacion;
+namespace App\Controllers;
 
+use App\Services\MenuNavService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
