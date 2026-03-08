@@ -10,9 +10,7 @@ use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
 class Usuario extends Model implements AuthenticatableContract, JWTSubject
 {
-    // region setup
     use Authenticatable;
-
     protected $table = 'usuario';
     public $timestamps = false;
     protected $fillable = [
@@ -36,9 +34,7 @@ class Usuario extends Model implements AuthenticatableContract, JWTSubject
     {
         return [];
     }
-    // endregion
 
-    // Obtener información del usuario
     public static function getInfoUsuarioById(int $id_usuario)
     {
         $sql = '
@@ -53,8 +49,7 @@ class Usuario extends Model implements AuthenticatableContract, JWTSubject
             emp.carnet_extranjeria,
             emp.pasaporte,
             emp.fecha_nacimiento,
-            emp.path_foto,
-            usu.estado
+            emp.path_foto
         FROM
             usuario usu
         INNER JOIN empleado emp on emp.id = usu.id_empleado

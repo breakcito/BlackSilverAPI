@@ -68,42 +68,11 @@ class CategoriasController extends Controller
         return response()->json($result);
     }
 
-    public function update_categoria(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'id' => 'required|integer|exists:categoria,id',
-            'nombre' => 'required|string|max:255',
-            'descripcion' => 'nullable|string',
-            'tipo_requerimiento' => ['required', new Enum(TipoRequerimiento::class)],
-            'clasificacion_bien' => ['nullable', new Enum(ClasificacionBien::class)],
-        ], [
-            'id.required' => 'El id es requerido',
-            'id.exists' => 'La categoría no existe',
-            // ...
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(ApiResponse::error($validator->errors()->first()));
-        }
-
-        $data = $validator->validated();
-
-        $result = $this->categoriaService->update_categoria(
-            $request->id,
-            $data['nombre'],
-            $data['descripcion'] ?? null,
-            $data['tipo_requerimiento'],
-            $data['clasificacion_bien'] ?? null
-        );
-
-        return response()->json($result);
-    }
-
     public function delete_categoria(Request $request): JsonResponse
     {
         $id = $request->input('id');
         if (! $id) {
-            return response()->json(ApiResponse::error('El id es requerido'), 400);
+            return response()->json(ApiResponse::error('La categoria es requerida'));
         }
         $result = $this->categoriaService->delete_categoria((int) $id);
 

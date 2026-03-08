@@ -2,9 +2,9 @@
 
 namespace App\Middlewares;
 
-use App\Services\UsuarioService;
-use App\Shared\Responses\ApiResponse;
 use Closure;
+use App\Models\Usuario;
+use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\Request;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenExpiredException;
@@ -13,9 +13,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class JwtAuthMiddleware
 {
-    public function __construct(
-        private UsuarioService $usuarioService
-    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -51,14 +48,14 @@ class JwtAuthMiddleware
                 return response()->json(ApiResponse::error('Token inválido: falta el identificador de usuario'), 401);
             }
 
-            $result = $this->usuarioService->getInfoUsuarioById($id_usuario);
+            $infoUsuario = Usuario::getInfoUsuarioById($id_usuario);
 
-            if (!$result['success']) {
-                return response()->json($result, 401);
+            if (!$infoUsuario) {
+                return response()->json(ApiResponse::error('Usuario no encontrado'), 401);
             }
 
             // Usar attributes para que el controlador pueda acceder
-            $request->attributes->set('auth_user', $result['data']);
+            $request->attributes->set('auth_user', $infoUsuario);
 
             return $next($request);
         } catch (TokenExpiredException $e) {
