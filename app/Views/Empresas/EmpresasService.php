@@ -1,42 +1,34 @@
 <?php
 
-class EmpresaService
+namespace App\Views\Empresas;
+
+use App\Shared\Responses\ApiResponse;
+use App\Views\Empresas\Data\EmpresasData;
+
+class EmpresasService
 {
-public function get_empresas()
-{
-$empresas = Empresa::get_empresas();
+    /**
+     * Obtener el listado de empresas
+     */
+    public static function get_empresas()
+    {
+        $empresas = EmpresasData::get_empresas();
 
-return ApiResponse::success($empresas);
-}
+        return ApiResponse::success($empresas);
+    }
 
-public function get_empresas_by_usuario(int $id_usuario)
-{
-$empresas = Empresa::get_empresas_by_usuario($id_usuario);
+    /**
+     * Crear una nueva empresa
+     */
+    public static function crear_empresa(array $data)
+    {
+        if (EmpresasData::verificar_ruc_duplicado($data['ruc'])) {
+            return ApiResponse::error('Ya existe una empresa registrada con este RUC.');
+        }
 
-return ApiResponse::success($empresas);
-}
+        $id_empresa = EmpresasData::crear_empresa($data);
+        $nuevaEmpresa = EmpresasData::get_empresa_by_id($id_empresa);
 
-/**
-* Crear una nueva empresa
-*/
-public function crear_empresa(string $ruc, string $razon_social, string $nombre_comercial, string $abreviatura, string $path_logo)
-{
-// Verificar si el RUC ya existe
-if (Empresa::where('ruc', $ruc)->exists()) {
-return ApiResponse::error('Ya existe una empresa con este RUC.');
-}
-
-// Crear
-$empresa = Empresa::create([
-'ruc' => $ruc,
-'razon_social' => $razon_social,
-'nombre_comercial' => $nombre_comercial,
-'abreviatura' => $abreviatura,
-'path_logo' => $path_logo,
-]);
-
-$nuevaEmpresa = Empresa::get_empresas($empresa->id)[0];
-
-return ApiResponse::success($nuevaEmpresa, 'Empresa creada correctamente');
-}
+        return ApiResponse::success($nuevaEmpresa, 'Empresa registrada correctamente');
+    }
 }
