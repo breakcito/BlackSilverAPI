@@ -29,9 +29,9 @@ class OrganigramaService
 
     // CARGOS
 
-    public static function get_cargos()
+    public static function get_cargos(int $id_area)
     {
-        return ApiResponse::success(CargosData::get_cargos());
+        return ApiResponse::success(CargosData::get_cargos(id_area: $id_area));
     }
 
     public static function crear_cargo(string $nombre, int $id_area)

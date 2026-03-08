@@ -36,9 +36,15 @@ class OrganigramaController extends Controller
 
     // CARGOS
 
-    public function get_cargos(Request $request): JsonResponse
+    public function get_cargos(Request $request, ?int $id_area = null): JsonResponse
     {
-        $result = OrganigramaService::get_cargos();
+        $id_area_final = $id_area ?? $request->input('id_area');
+
+        if (! $id_area_final) {
+            return response()->json(ApiResponse::error('El id_area es requerido'));
+        }
+
+        $result = OrganigramaService::get_cargos((int) $id_area_final);
 
         return response()->json($result);
     }

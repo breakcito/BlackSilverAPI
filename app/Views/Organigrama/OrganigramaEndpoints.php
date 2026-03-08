@@ -9,7 +9,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::get('/areas', 'get_areas');
         Route::post('/areas', 'crear_area');
 
-        Route::get('/cargos', 'get_cargos');
+        Route::get('/cargos/{id_area}', 'get_cargos');
         Route::post('/cargos', 'crear_cargo');
     });
 });

@@ -11,7 +11,7 @@ class CargosData
     /**
      * Listar o obtener un cargo
      */
-    public static function get_cargos(?int $id_cargo = null)
+    public static function get_cargos(?int $id_area = null, ?int $id_cargo = null)
     {
         $sql = '
         SELECT
@@ -28,6 +28,12 @@ class CargosData
         ';
 
         $params = [];
+
+        if ($id_area !== null) {
+            $sql .= ' AND c.id_area = :id_area';
+            $params['id_area'] = $id_area;
+        }
+
         if ($id_cargo !== null) {
             $sql .= ' AND c.id = :id_cargo';
             $params['id_cargo'] = $id_cargo;
@@ -35,7 +41,7 @@ class CargosData
             return DB::selectOne($sql, $params);
         }
 
-        $sql .= ' AND c.estado = :estado ORDER BY a.nombre ASC, c.nombre ASC';
+        $sql .= ' AND c.estado = :estado ORDER BY c.nombre ASC';
         $params['estado'] = EstadoBase::Activo->value;
 
         return DB::select($sql, $params);
