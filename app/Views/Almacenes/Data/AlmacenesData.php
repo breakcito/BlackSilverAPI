@@ -47,10 +47,12 @@ class AlmacenesData
         if ($id_almacen !== null) {
             $sql .= ' AND a.id = :id_almacen';
             $params['id_almacen'] = $id_almacen;
+
             return DB::selectOne($sql, $params);
         }
 
         $sql .= ' ORDER BY a.es_principal DESC, a.nombre ASC';
+
         return DB::select($sql, $params);
     }
 
@@ -65,7 +67,7 @@ class AlmacenesData
     /**
      * Helper para registrar un almacen
      */
-    public static function crear_almacen(string $nombre, ?string $descripcion = null, bool $es_principal)
+    public static function crear_almacen(string $nombre, ?string $descripcion, bool $es_principal)
     {
         return Almacen::insertGetId([
             'nombre' => $nombre,

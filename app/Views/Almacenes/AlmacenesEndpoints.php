@@ -20,7 +20,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
         // Crear un nuevo almacén.
         Route::post('/', 'crear_almacen');
 
-
         // Responsables
         Route::prefix('responsables')->group(function () {
             // Obtener historial de responsables de un almacen
@@ -32,7 +31,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
             // Listar empleados disponibles para asignar como responsable de almacen
             Route::post('/empleados/{id_almacen}', 'get_empleados');
         });
-
 
         // Abastecimiento de minas
         Route::prefix('abastecimiento-minas')->group(function () {

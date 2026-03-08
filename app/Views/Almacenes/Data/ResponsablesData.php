@@ -35,6 +35,7 @@ class ResponsablesData
         if ($id_responsable != null) {
             $sql .= ' AND ra.id = :id_responsable_almacen';
             $params['id_responsable_almacen'] = $id_responsable;
+
             return DB::selectOne($sql, $params);
         }
 
@@ -89,8 +90,9 @@ class ResponsablesData
     /**
      * Obtener listado de empleados para asignar como responsable de almacen
      */
-    public static function get_empleados(int $id_almacen){
-        $sql = `
+    public static function get_empleados(int $id_almacen): array
+    {
+        $sql = '
         SELECT DISTINCT
             emp.id AS id_empleado,
             CONCAT(emp.nombre, " ", emp.apellido) AS nombre_completo,
@@ -100,16 +102,15 @@ class ResponsablesData
             empleado emp
         WHERE
             emp.estado = "Activo" AND
-            -- que no sean responsables del almacen
             emp.id NOT IN (
                 SELECT
                     res.id_empleado
                 FROM responsable_almacen res
-                WHERE 
+                WHERE
                     res.id_almacen = :id_almacen AND
-                    res.estado != "Activo"
+                    res.estado = "Activo"
             )
-        `;
+        ';
 
         return DB::select($sql, ['id_almacen' => $id_almacen]);
     }

@@ -3,11 +3,10 @@
 namespace App\Views\Almacenes;
 
 use App\Shared\Responses\ApiResponse;
-use App\Views\Almacenes\AlmacenesService;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Validator;
 
 class AlmacenesController extends Controller
 {
@@ -18,6 +17,7 @@ class AlmacenesController extends Controller
     public function get_almacenes(Request $request): JsonResponse
     {
         $result = $this->service->get_almacenes();
+
         return response()->json($result);
     }
 
@@ -50,7 +50,7 @@ class AlmacenesController extends Controller
     public function get_historial_responsables(Request $request)
     {
         $id_almacen = $request->input('id_almacen');
-        if (!$id_almacen) {
+        if (! $id_almacen) {
             return response()->json(ApiResponse::error('El almacen es requerido'));
         }
 
@@ -87,11 +87,12 @@ class AlmacenesController extends Controller
     public function get_empleados(Request $request)
     {
         $id_almacen = $request->input('id_almacen');
-        if (!$id_almacen) {
+        if (! $id_almacen) {
             return response()->json(ApiResponse::error('El almacen es requerido'));
         }
 
         $result = $this->service->get_empleados((int) $id_almacen);
+
         return response()->json($result);
     }
 
@@ -100,11 +101,12 @@ class AlmacenesController extends Controller
     public function get_minas_abastecidas(Request $request)
     {
         $id_almacen = $request->input('id_almacen');
-        if (!$id_almacen) {
+        if (! $id_almacen) {
             return response()->json(ApiResponse::error('El almacen es requerido'));
         }
 
         $result = $this->service->get_minas_abastecidas((int) $id_almacen);
+
         return response()->json($result);
     }
 
@@ -133,7 +135,7 @@ class AlmacenesController extends Controller
     public function eliminar_abastecimiento_mina(Request $request)
     {
         $id_almacen_mina = $request->input('id_almacen_mina');
-        if (!$id_almacen_mina) {
+        if (! $id_almacen_mina) {
             return response()->json(ApiResponse::error('El id_asignacion es requerido'));
         }
 
@@ -145,11 +147,12 @@ class AlmacenesController extends Controller
     public function get_minas(Request $request)
     {
         $id_almacen = $request->input('id_almacen');
-        if (!$id_almacen) {
+        if (! $id_almacen) {
             return response()->json(ApiResponse::error('El almacen es requerido'));
         }
 
         $result = $this->service->get_minas((int) $id_almacen);
+
         return response()->json($result);
     }
 }

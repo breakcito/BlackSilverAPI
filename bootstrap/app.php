@@ -8,13 +8,14 @@ use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        commands: __DIR__.'/../routes/console.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
         then: function () {
             Route::middleware('api')->prefix('api')->group(function () {
                 require base_path('app/Endpoints/menu-navegacion.php');
                 // Configuracion
                 require base_path('app/Endpoints/empresas.php');
+                require base_path('app/Views/Almacenes/AlmacenesEndpoints.php');
                 require base_path('app/Endpoints/personal.php');
                 require base_path('app/Endpoints/usuarios.php');
                 // Logistica

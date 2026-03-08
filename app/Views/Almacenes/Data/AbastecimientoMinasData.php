@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\DB;
 
 class AbastecimientoMinasData
 {
-
     /**
      * Listar las minas que abstece un almacen
      */
@@ -32,6 +31,7 @@ class AbastecimientoMinasData
         if ($id_almacen_mina) {
             $sql .= ' AND am.id = :id_almacen_mina';
             $params['id_almacen_mina'] = $id_almacen_mina;
+
             return DB::selectOne($sql, $params);
         }
         if ($id_almacen) {
@@ -61,7 +61,7 @@ class AbastecimientoMinasData
     {
         return AlmacenMina::insertGetId([
             'id_almacen' => $id_almacen,
-            'id_mina' => $id_mina
+            'id_mina' => $id_mina,
         ]);
     }
 

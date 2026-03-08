@@ -18,6 +18,7 @@ class AlmacenesService
     public function get_almacenes()
     {
         $almacenes = $this->almacenesData->get_almacenes();
+
         return ApiResponse::success($almacenes);
     }
 
@@ -33,9 +34,7 @@ class AlmacenesService
         return ApiResponse::success($nuevoAlmacen, 'Almacén creado correctamente');
     }
 
-
     //
-
 
     public function nueva_mina_por_abastecer(int $id_almacen, int $id_mina)
     {
@@ -53,24 +52,25 @@ class AlmacenesService
     public function eliminar_abastecimiento_mina(int $id_almacen_mina)
     {
         $this->abastecimientoMinasData->eliminar_abastecimiento_mina($id_almacen_mina);
+
         return ApiResponse::success(null, 'Se detuvo el abastecimiento de esta mina');
     }
 
     public function get_minas_abastecidas(int $id_almacen)
     {
         $result = $this->abastecimientoMinasData->get_minas_abastecidas($id_almacen);
+
         return ApiResponse::success($result);
     }
 
     public function get_minas(int $id_almacen)
     {
         $result = $this->abastecimientoMinasData->get_minas($id_almacen);
+
         return ApiResponse::success($result);
     }
 
-
     //
-
 
     public function nuevo_responsable(int $id_almacen, int $id_empleado, string $fecha_inicio)
     {
@@ -87,12 +87,14 @@ class AlmacenesService
     public function get_historial_responsables(int $id_almacen)
     {
         $historial = $this->responsablesData->get_historial_responsables($id_almacen);
+
         return ApiResponse::success($historial);
     }
 
     public function get_empleados(int $id_almacen)
     {
         $result = $this->responsablesData->get_empleados($id_almacen);
+
         return ApiResponse::success($result);
     }
 }
