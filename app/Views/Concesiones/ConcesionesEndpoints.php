@@ -1,28 +1,20 @@
-
-
-
 <?php
 
+use App\Views\Concesiones\ConcesionesController;
 use Illuminate\Support\Facades\Route;
 
-
 Route::middleware('auth.jwt.custom')->group(function () {
+    Route::prefix('concesiones')->controller(ConcesionesController::class)->group(function () {
 
-    // Concesiones
-    Route::prefix('concesiones')->controller(ConcesionController::class)->group(function () {
-        Route::get('/', 'get_concesiones'); 
-        Route::get('/tipos-mineral', 'get_tipos_mineral');
-        Route::get('/by-empresa', 'get_concesiones_by_empresa');
-        Route::get('/by-session', 'get_concesiones_by_session');
-        Route::post('/', 'crear_concesion'); 
-        Route::put('/', 'update_concesion');
-        Route::delete('/', 'delete_concesion');
-        Route::get('/asignaciones', 'get_empresas_historial'); 
-        Route::post('/asignar', 'asignar_empresa');
-        Route::delete('/desasignar', 'desasignar_empresa');
+        Route::get('/', 'get_concesiones');
+        Route::post('/', 'crear_concesion');
+        Route::get('/{id_concesion}', 'get_concesion');
+        
+        Route::prefix('contratos')->group(function () {
+            Route::get('/empresas', 'get_empresas');
+            Route::get('/{id_concesion}', 'get_contratos');
+            Route::post('/', 'crear_contrato');
+            Route::delete('/{id_contrato}', 'terminar_contrato');
+        });
     });
-
-
-
-
 });

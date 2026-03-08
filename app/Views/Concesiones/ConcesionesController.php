@@ -1,64 +1,26 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Views\Concesiones;
 
-use App\Services\ConcesionService;
-use App\Services\ContratoConcesionService;
-use App\Shared\Enums\TipoMineral;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rules\Enum;
 
-class ConcesionController extends Controller
+class ConcesionesController
 {
-    public function __construct(
-        private ConcesionService $concesionService,
-        private ContratoConcesionService $contratoConcesionService
-    ) {}
-
     public function get_concesiones(Request $request): JsonResponse
     {
-        $result = $this->concesionService->get_concesiones();
+        $id_usuario = $request->user()->id;
+        $result = ConcesionesService::get_concesiones($id_usuario);
 
         return response()->json($result);
     }
 
-    public function get_tipos_mineral(): JsonResponse
+    public function get_empresas(Request $request): JsonResponse
     {
-        $tipos = array_column(TipoMineral::cases(), 'value');
-
-        return response()->json(ApiResponse::success($tipos));
-    }
-
-    public function get_concesiones_by_session(Request $request): JsonResponse
-    {
-        $authUser = $request->attributes->get('auth_user');
-
-        if (! $authUser || ! isset($authUser->id_rol)) {
-            return response()->json(ApiResponse::error('No autorizado'), 401);
-        }
-
-        $result = $this->concesionService->get_concesiones_by_usuario($authUser->id_usuario);
-
-        return response()->json($result);
-    }
-
-    public function get_concesiones_by_empresa(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'id_empresa' => 'required|integer',
-        ], [
-            'id_empresa.required' => 'La empresa es requerida',
-        ]);
-        if ($validator->fails()) {
-            return response()->json(ApiResponse::error($validator->errors()->first()));
-        }
-
-        $data = $validator->validated();
-        $result = $this->contratoConcesionService->get_concesiones_by_empresa($data['id_empresa']);
+        $id_usuario = $request->user()->id;
+        $result = ConcesionesService::get_empresas($id_usuario);
 
         return response()->json($result);
     }
@@ -66,127 +28,61 @@ class ConcesionController extends Controller
     public function crear_concesion(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'nombre' => 'required|string|max:64',
-            'codigo_concesion' => 'nullable|string|max:64',
-            'codigo_reinfo' => 'nullable|string|max:64',
-            'ubigeo' => 'nullable|string|max:128',
-            'tipo_mineral' => ['required', new Enum(TipoMineral::class)],
-        ], [
-            'nombre.required' => 'El nombre es requerido',
-            'tipo_mineral.required' => 'El tipo de mineral es obligatorio',
+            'nombre' => 'required|string|max:255',
+            'codigo_concesion' => 'required|string|max:100',
+            'codigo_reinfo' => 'nullable|string|max:100',
+            'ubigeo' => 'nullable|string|max:100',
+            'tipo_mineral' => 'required|string|max:50',
         ]);
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $data = $validator->validated();
-        $result = $this->concesionService->crear_concesion(
-            $data['nombre'],
-            $data['codigo_concesion'] ?? null,
-            $data['codigo_reinfo'] ?? null,
-            $data['ubigeo'] ?? null,
-            $data['tipo_mineral'] ?? null
+        $result = ConcesionesService::crear_concesion(
+            $request->string('nombre'),
+            $request->string('codigo_concesion'),
+            $request->string('codigo_reinfo'),
+            $request->string('ubigeo'),
+            $request->string('tipo_mineral')
         );
 
         return response()->json($result);
     }
 
-    // Obtener todas las empresas que tengan un contrato con la concesión
-    public function get_empresas_historial(Request $request): JsonResponse
+    public function get_contratos(Request $request, int $id_concesion): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'id_concesion' => 'required|integer',
-        ], [
-            'id_concesion.required' => 'La concesión es requerida',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(ApiResponse::error($validator->errors()->first()));
-        }
-
-        $result = $this->contratoConcesionService->get_empresas_historial($request->id_concesion);
+        $result = ConcesionesService::get_contratos($id_concesion);
 
         return response()->json($result);
     }
 
-    public function asignar_empresa(Request $request): JsonResponse
+    public function crear_contrato(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'id_concesion' => 'required|integer',
             'id_empresa' => 'required|integer',
             'fecha_inicio' => 'required|date',
             'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
-        ], [
-            'id_concesion.required' => 'La concesión es requerida',
-            'id_empresa.required' => 'La empresa es requerida',
-            'fecha_inicio.required' => 'La fecha de inicio es requerida',
         ]);
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $data = $validator->validated();
-        $result = $this->contratoConcesionService->asignar_empresa(
-            $data['id_concesion'],
-            $data['id_empresa'],
-            $data['fecha_inicio'],
-            $data['fecha_fin'] ?? null
+        $result = ConcesionesService::crear_contrato(
+            $request->integer('id_concesion'),
+            $request->integer('id_empresa'),
+            $request->string('fecha_inicio'),
+            $request->string('fecha_fin')
         );
 
         return response()->json($result);
     }
 
-    public function desasignar_empresa(Request $request): JsonResponse
+    public function terminar_contrato(Request $request, int $id_contrato): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'id_asignacion' => 'required|integer',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(ApiResponse::error($validator->errors()->first()));
-        }
-
-        $result = $this->contratoConcesionService->desasignar_empresa($request->id_asignacion);
-
-        return response()->json($result);
-    }
-
-    public function update_concesion(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'id_concesion' => 'required|integer',
-            'nombre' => 'required|string',
-        ], [
-            'id_concesion.required' => 'La concesion es requerida',
-            'nombre.required' => 'El nombre es requerido',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(ApiResponse::error($validator->errors()->first()));
-        }
-
-        $data = $validator->validated();
-        $result = $this->concesionService->update_concesion($data['id_concesion'], $data['nombre']);
-
-        return response()->json($result);
-    }
-
-    public function delete_concesion(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'id_concesion' => 'required|integer',
-        ], [
-            'id_concesion.required' => 'La concesion es requerida',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(ApiResponse::error($validator->errors()->first()));
-        }
-
-        $data = $validator->validated();
-        $result = $this->concesionService->delete_concesion($data['id_concesion']);
+        $result = ConcesionesService::terminar_contrato($id_contrato);
 
         return response()->json($result);
     }
