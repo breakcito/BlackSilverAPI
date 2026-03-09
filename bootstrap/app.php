@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Views/Empresas/EmpresasEndpoints.php');
                 require base_path('app/Views/Organigrama/OrganigramaEndpoints.php');
                 require base_path('app/Views/Concesiones/ConcesionesEndpoints.php');
+                require base_path('app/Views/Empleados/EmpleadosEndpoints.php');
             });
         },
     )

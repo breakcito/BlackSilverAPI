@@ -1,27 +1,51 @@
-
 <?php
 
-namespace App\Services;
+namespace App\Views\Empleados;
 
-use App\Models\Empleado;
 use App\Shared\Responses\ApiResponse;
+use App\Views\Empleados\Data\EmpleadosData;
 
-class EmpleadoService
+class EmpleadosService
 {
     /**
-     * Obtener el listado.
+     * Listar empleados de las empresas del usuario
      */
-    public function get_empleados()
+    public static function get_empleados(int $id_usuario, ?int $id_empresa = null)
     {
-        return ApiResponse::success(Empleado::get_empleados());
+        return ApiResponse::success(EmpleadosData::get_empleados($id_usuario, $id_empresa));
     }
 
     /**
-     * Crear un nuevo empleado.
+     * Obtener empresas asociadas al usuario
      */
-    public function crear_empleado(
-        int $id_cargo,
+    public static function get_empresas(int $id_usuario)
+    {
+        return ApiResponse::success(EmpleadosData::get_empresas($id_usuario));
+    }
+
+    /**
+     * Obtener todas las áreas activas
+     */
+    public static function get_areas()
+    {
+        return ApiResponse::success(EmpleadosData::get_areas());
+    }
+
+    /**
+     * Obtener cargos por área
+     */
+    public static function get_cargos(int $id_area)
+    {
+        return ApiResponse::success(EmpleadosData::get_cargos_by_area($id_area));
+    }
+
+    /**
+     * Registrar un nuevo empleado
+     */
+    public static function crear_empleado(
+        int $id_usuario,
         int $id_empresa,
+        int $id_cargo,
         string $nombre,
         string $apellido,
         ?string $dni,
@@ -31,30 +55,26 @@ class EmpleadoService
         ?string $fecha_nacimiento,
         ?string $path_foto
     ) {
-        // Validar DNI único
-        if ($dni && Empleado::where('dni', $dni)->exists()) {
-            return ApiResponse::error('Ya existe un empleado con este DNI.');
+        if ($dni && EmpleadosData::existe_dni($dni)) {
+            return ApiResponse::error('El DNI ingresado ya se encuentra registrado.');
         }
 
-        // Validar RUC único
-        if ($ruc && Empleado::where('ruc', $ruc)->exists()) {
-            return ApiResponse::error('Ya existe un empleado con este RUC.');
-        }
+        $id = EmpleadosData::crear_empleado(
+            $id_empresa,
+            $id_cargo,
+            $nombre,
+            $apellido,
+            $dni,
+            $ruc,
+            $carnet_extranjeria,
+            $pasaporte,
+            $fecha_nacimiento,
+            $path_foto
+        );
 
-        $empleado = Empleado::create([
-            'id_cargo' => $id_cargo,
-            'id_empresa' => $id_empresa,
-            'nombre' => $nombre,
-            'apellido' => $apellido,
-            'dni' => $dni,
-            'ruc' => $ruc,
-            'carnet_extranjeria' => $carnet_extranjeria,
-            'pasaporte' => $pasaporte,
-            'fecha_nacimiento' => $fecha_nacimiento,
-            'path_foto' => $path_foto,
-            'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
-        ]);
-
-        return ApiResponse::success(Empleado::get_empleado_by_id($empleado->id), 'Empleado registrado correctamente');
+        return ApiResponse::success(
+            EmpleadosData::get_empleado_by_id($id_usuario, $id),
+            'Empleado registrado correctamente'
+        );
     }
 }
