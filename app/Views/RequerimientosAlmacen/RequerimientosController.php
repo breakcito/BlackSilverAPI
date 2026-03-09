@@ -1,7 +1,6 @@
-
 <?php
 
-namespace App\Controllers;
+namespace App\Views\RequerimientosAlmacen;
 
 use App\Services\RequerimientoAlmacenService;
 use App\Shared\Enums\Premura;
@@ -12,7 +11,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Enum;
 
-class RequerimientoAlmacenController extends Controller
+class RequerimientosController extends Controller
 {
     public function __construct(
         private RequerimientoAlmacenService $requerimientoService

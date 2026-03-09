@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Shared\Enums;
+namespace App\Shared\Enums\RequerimientoAlmacen;
 
-enum RequerimientoDetalleEstado: string
+enum EstadoDetalleRequerimiento: string
 {
     case EsperandoAprobacion = "Esperando aprobación";
     case Rechazado = "Rechazado";

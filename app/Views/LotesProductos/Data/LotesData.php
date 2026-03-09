@@ -29,6 +29,7 @@ class LotesData
             pr.id AS id_producto,
             pr.id_unidad_medida_base,
             pr.nombre,
+            uni.abreviatura as unidad_medida_base,
             pr.es_perecible,
             pr.es_fiscalizado,
             pr.stock_minimo,
@@ -37,10 +38,10 @@ class LotesData
             pr.dias_espera_vencimiento
         FROM
             producto pr
-        INNER JOIN categoria cat ON
-            cat.id = pr.id_categoria
+        INNER JOIN unidad_medida uni ON
+            uni.id = pr.id_unidad_medida_base
         WHERE
-            pr.estado = "Activo" AND cat.tipo_requerimiento = "Bien"
+            pr.estado = "Activo"
         ORDER BY
             pr.nombre;
         ';
@@ -234,14 +235,13 @@ class LotesData
     }
 
     /**
-     * Obtener unidades de medida base
+     * Obtener unidades de medida 
      */
     public static function get_unidades_medida()
     {
         return DB::select('
             SELECT id AS id_unidad_medida, nombre, abreviatura
             FROM unidad_medida
-            WHERE es_base = 1
             ORDER BY nombre ASC
         ');
     }

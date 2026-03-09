@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Shared\Enums;
+namespace App\Shared\Enums\RequerimientoAlmacen;
 
-enum RequerimientoEstado: string
+enum EstadoRequerimiento: string
 {
     case Generada = 'Generado';
     case Cerrada = 'Cerrado';
