@@ -10,7 +10,7 @@ class LoginData
     /**
      * Obtener usuario en base a su username
      */
-    public static function get_usuario_by_username(int $username)
+    public static function get_usuario_by_username(string $username)
     {
         return Usuario::where('username', $username)
             ->where('estado', EstadoBase::Activo->value)
