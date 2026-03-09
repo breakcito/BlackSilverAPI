@@ -11,7 +11,8 @@ class ConcesionesController
 {
     public function get_concesiones(Request $request): JsonResponse
     {
-        $id_usuario = $request->user()->id;
+        $authUser = $request->attributes->get('auth_user');
+        $id_usuario = $authUser->id;
         $result = ConcesionesService::get_concesiones($id_usuario);
 
         return response()->json($result);
@@ -19,7 +20,8 @@ class ConcesionesController
 
     public function get_empresas(Request $request): JsonResponse
     {
-        $id_usuario = $request->user()->id;
+        $authUser = $request->attributes->get('auth_user');
+        $id_usuario = $authUser->id;
         $result = ConcesionesService::get_empresas($id_usuario);
 
         return response()->json($result);

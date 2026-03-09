@@ -14,7 +14,8 @@ class EmpleadosController
      */
     public function get_empleados(Request $request): JsonResponse
     {
-        $id_usuario = $request->user()->id;
+        $authUser = $request->attributes->get('auth_user');
+        $id_usuario = $authUser->id;
         $id_empresa = $request->query('id_empresa') ? (int) $request->query('id_empresa') : null;
         $result = EmpleadosService::get_empleados($id_usuario, $id_empresa);
 
@@ -26,7 +27,8 @@ class EmpleadosController
      */
     public function get_empresas(Request $request): JsonResponse
     {
-        $id_usuario = $request->user()->id;
+        $authUser = $request->attributes->get('auth_user');
+        $id_usuario = $authUser->id;
         $result = EmpleadosService::get_empresas($id_usuario);
 
         return response()->json($result);
@@ -74,7 +76,8 @@ class EmpleadosController
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $id_usuario = $request->user()->id;
+        $authUser = $request->attributes->get('auth_user');
+        $id_usuario = $authUser->id;
 
         $result = EmpleadosService::crear_empleado(
             $id_usuario,
