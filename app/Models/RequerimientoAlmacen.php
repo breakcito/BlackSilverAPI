@@ -18,6 +18,7 @@ class RequerimientoAlmacen extends Model
         'correlativo',
         'numero_correlativo',
         'premura',
+        'observacion',
         'fecha_entrega_requerida',
         'created_at',
         'estado',

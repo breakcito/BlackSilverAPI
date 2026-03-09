@@ -1,7 +1,7 @@
 
 <?php
 
-use App\Controllers\RequerimientoAlmacenController;
+use App\Views\RequerimientosAlmacen\RequerimientosController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -12,21 +12,17 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.jwt.custom')->group(function () {
     // Requerimientos / Solicitud a almacen
-    Route::prefix('requerimientos')->controller(RequerimientoAlmacenController::class)->group(function () {
-        Route::get('/', 'get_requerimientos');
-        Route::post('/', 'crear_requerimiento');
-        Route::get('/almacenes', 'get_almacenes_por_mina');
-        Route::post('/obtener-por-id', 'obtener_requerimiento_por_id');
-        Route::post('/detalle/trazabilidad', 'obtener_trazabilidad_detalle');
-    });
-
-    // Atención de Requerimientos (Despacho)
-    Route::prefix('requerimientos/atencion')->controller(\App\Controllers\RequerimientoAlmacenAtencionController::class)->group(function () {
-        Route::post('/obtener-pendientes', 'obtener_requerimientos_atencion');
-        Route::post('/obtener-detalles', 'obtener_detalles_atencion');
-        Route::post('/cambiar-estado-detalle', 'cambiar_estado_detalle');
-        Route::post('/obtener-lotes-disponibles', 'obtener_lotes_disponibles');
-        Route::post('/registrar-entrega', 'registrar_entrega');
-        Route::post('/obtener-historial-entregas', 'obtener_historial_entregas_por_item');
+    Route::prefix('requerimientos-almacen')->controller(RequerimientosController::class)->group(function () {
+        Route::get('/', 'get_requerimientos'); // listar requerimientos en base al empleado logueado y periodo (mes y año)
+        Route::post('/', 'crear_requerimiento'); // registrar un requerimiento, enviando datos del requerimeitno, las labores involucradas y su detalle
+        Route::get('/detalle', 'get_detalle_by_requerimiento'); // obtener los detalles de un requerimiento
+        Route::get('/detalle-trazabilidad', 'get_trazabilidad_by_detalle'); // obtener la trazabilidad del detalle de un requerimiento
+        Route::get('/labores-requerimiento', 'get_labores_by_requerimiento'); // obtener las labores involucradas en un requerimiento
+        //
+        Route::get('/minas', 'get_minas'); // obtener las minas donde el empleado logueado es responsables
+        Route::get('/almacenes', 'get_almacenes_by_mina'); // en base a la mina elegida, obtener los almacenes que abastecen esa mina
+        Route::get('/labores', 'get_labores_by_mina'); // en base a la mina elegida, obtener las labores/frentes de esa mina
+        Route::get('/productos', 'get_productos'); // obteenr los productos para registrar un requerimiento
+        Route::get('/unidades', 'get_unidades_medida'); // obtener las unidades de medida para registrar un requerimiento
     });
 });

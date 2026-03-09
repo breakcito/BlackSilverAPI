@@ -14,7 +14,7 @@ use Illuminate\Validation\Rules\Enum;
 class RequerimientosController extends Controller
 {
     public function __construct(
-        private RequerimientoAlmacenService $requerimientoService
+        private RequerimientosController $requerimientoService
     ) {}
 
     public function get_requerimientos(Request $request): JsonResponse

@@ -25,6 +25,7 @@ class RequerimientosData
             ra.id_mina,
             ra.id_almacen_destino,
             ra.correlativo,
+            ra.observacion,
             m.nombre AS mina,
             CONCAT(emp.nombre, " ", emp.apellido) AS solicitante,
             alm.nombre AS almacen_destino,
@@ -201,6 +202,7 @@ class RequerimientosData
         string $correlativo,
         int $numero_correlativo,
         string $premura,
+        ?string $observacion = null,
         string $fecha_entrega_requerida
     ) {
         return RequerimientoAlmacen::insertGetId([
@@ -210,6 +212,7 @@ class RequerimientosData
             'correlativo'             => $correlativo,
             'numero_correlativo'      => $numero_correlativo,
             'premura'                 => $premura,
+            'observacion'             => $observacion,
             'fecha_entrega_requerida' => $fecha_entrega_requerida,
             'created_at'              => now(),
             'estado'                  => EstadoRequerimiento::Generada->value,
