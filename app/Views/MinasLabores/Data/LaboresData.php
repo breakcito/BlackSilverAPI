@@ -3,7 +3,10 @@
 namespace App\Views\MinasLabores\Data;
 
 use App\Models\Labor;
+use App\Models\TipoLabor;
 use App\Shared\Enums\EstadoBase;
+use App\Shared\Enums\Periodo;
+use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 
 class LaboresData
@@ -78,6 +81,22 @@ class LaboresData
         return DB::select($sql, $params);
     }
 
+    public static function get_codigo_tipo_labor(int $id_tipo_labor)
+    {
+        return TipoLabor::where('id', $id_tipo_labor)->first(["codigo"]);
+    }
+
+    public static function get_nuevo_correlativo(int $id_mina, string $prefijo)
+    {
+        return CorrelativoHelper::generar(
+            tabla: 'labor',
+            prefijo: $prefijo,
+            filtros: ['id_mina' => $id_mina],
+            longitudCeros: 5,
+            reseteo: Periodo::Ninguno
+        );
+    }
+
     public static function get_labor_by_id(int $id_labor)
     {
         return self::get_historial_labores(id_labor: $id_labor);
@@ -89,6 +108,7 @@ class LaboresData
         int $id_tipo_labor,
         string $nombre,
         string $correlativo,
+        int $numero_correlativo,
         ?string $descripcion,
         string $tipo_sostenimiento,
         ?string $veta,
@@ -103,6 +123,7 @@ class LaboresData
             'id_tipo_labor' => $id_tipo_labor,
             'nombre' => $nombre,
             'correlativo' => $correlativo,
+            'numero_correlativo' => $numero_correlativo,
             'descripcion' => $descripcion,
             'tipo_sostenimiento' => $tipo_sostenimiento,
             'veta' => $veta,

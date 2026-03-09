@@ -120,13 +120,16 @@ class MinasLaboresService
         ?float $alto,
         ?string $nivel,
         ?string $fecha_inicio
-    ): array|object {
+    ) {
+        $codigo_tipo_labor = LaboresData::get_codigo_tipo_labor($id_tipo_labor);
+        $correlativo_data = LaboresData::get_nuevo_correlativo($id_mina, $codigo_tipo_labor);
         $id_labor = LaboresData::crear_labor(
             id_mina: $id_mina,
             id_empresa: $id_empresa,
             id_tipo_labor: $id_tipo_labor,
             nombre: $nombre,
-            correlativo: 'LAB-'.rand(1000, 9999),
+            correlativo: $correlativo_data["correlativo"],
+            numero_correlativo: $correlativo_data["numero_correlativo"],
             descripcion: $descripcion,
             tipo_sostenimiento: $tipo_sostenimiento,
             veta: $veta,
