@@ -1,41 +1,42 @@
-
 <?php
 
+namespace App\Views\Productos;
 
+use App\Shared\Responses\ApiResponse;
+use App\Views\Productos\Data\ProductosData;
 
-class ProductoService
+class ProductosService
 {
-    public function get_unidades_medida(?bool $es_base = null)
-    {
-        $query = UnidadMedida::select('id as id_unidad_medida', 'nombre', 'abreviatura', 'es_base')
-            ->orderBy('nombre', 'asc');
-
-        if ($es_base !== null) {
-            $query->where('es_base', $es_base);
-        }
-
-        $unidades = $query->get();
-
-        return ApiResponse::success($unidades);
-    }
     /**
-     * Listar todos los productos.
+     * Listar todos los productos del catálogo
      */
-    public function get_productos()
+    public static function get_productos()
     {
-        $productos = Producto::get_productos();
-
-        foreach ($productos as $producto) {
-            $this->formatear_producto($producto);
-        }
+        $productos = ProductosData::get_productos();
 
         return ApiResponse::success($productos);
     }
 
     /**
-     * Crear un nuevo producto en el catálogo.
+     * Obtener unidades de medida base
      */
-    public function crear_producto(
+    public static function get_unidades_medida()
+    {
+        return ApiResponse::success(ProductosData::get_unidades_medida());
+    }
+
+    /**
+     * Obtener categorías de tipo bien
+     */
+    public static function get_categorias()
+    {
+        return ApiResponse::success(ProductosData::get_categorias());
+    }
+
+    /**
+     * Registrar un nuevo producto
+     */
+    public static function crear_producto(
         int $id_categoria,
         int $id_unidad_medida_base,
         string $nombre,
@@ -43,21 +44,19 @@ class ProductoService
         bool $es_perecible,
         float $stock_minimo = 0,
         ?int $tiempo_espera_vencimiento = null,
-        ?string $periodo_espera_vencimiento = null,
-        ?int $dias_espera_vencimiento = null
+        ?string $periodo_espera_vencimiento = null
     ) {
         // 1. Validar nombre único
-        if (Producto::where('nombre', $nombre)->where('estado', '!=', \App\Shared\Enums\EstadoBase::Inactivo->value)->exists()) {
-            return ApiResponse::error('Ya existe un producto con este nombre.');
+        if (ProductosData::existe_nombre($nombre)) {
+            return ApiResponse::error('Ya existe un producto registrado con este nombre.');
         }
 
-        // 2. Si no es perecible, limpiamos los campos de vencimiento
+        // 2. Procesar perecibilidad
         if (! $es_perecible) {
             $tiempo_espera_vencimiento = null;
             $periodo_espera_vencimiento = null;
             $dias_espera_vencimiento = null;
         } else {
-            // 3. Calcular días si están presentes tiempo y periodo
             if ($tiempo_espera_vencimiento && $periodo_espera_vencimiento) {
                 $factor = match ($periodo_espera_vencimiento) {
                     'diario' => 1,
@@ -70,50 +69,21 @@ class ProductoService
             }
         }
 
-        $producto_nuevo = Producto::create([
-            'id_categoria' => $id_categoria,
-            'id_unidad_medida_base' => $id_unidad_medida_base,
-            'nombre' => $nombre,
-            'es_fiscalizado' => $es_fiscalizado,
-            'es_perecible' => $es_perecible,
-            'stock_minimo' => $stock_minimo,
-            'tiempo_espera_vencimiento' => $tiempo_espera_vencimiento,
-            'periodo_espera_vencimiento' => $periodo_espera_vencimiento,
-            'dias_espera_vencimiento' => $dias_espera_vencimiento,
-            'estado' => \App\Shared\Enums\EstadoBase::Activo->value,
-        ]);
+        // 3. Crear
+        $id_producto = ProductosData::crear_producto(
+            $id_categoria,
+            $id_unidad_medida_base,
+            $nombre,
+            $es_fiscalizado,
+            $es_perecible,
+            $stock_minimo,
+            $tiempo_espera_vencimiento,
+            $periodo_espera_vencimiento,
+            $dias_espera_vencimiento
+        );
 
-        $producto = Producto::get_producto_by_id($producto_nuevo->id);
-
-        if ($producto) {
-            $this->formatear_producto($producto);
-        }
+        $producto = ProductosData::get_producto_by_id($id_producto);
 
         return ApiResponse::success($producto, 'Producto registrado correctamente');
-    }
-
-    /**
-     * Formatear tipos de datos del producto para el frontend.
-     */
-    private function formatear_producto($producto): void
-    {
-        $producto->es_fiscalizado = (bool) $producto->es_fiscalizado;
-        $producto->es_perecible = (bool) $producto->es_perecible;
-        $producto->stock_minimo = (float) $producto->stock_minimo;
-        if (isset($producto->tiempo_espera_vencimiento)) {
-            $producto->tiempo_espera_vencimiento = (int) $producto->tiempo_espera_vencimiento;
-        }
-        if (isset($producto->dias_espera_vencimiento)) {
-            $producto->dias_espera_vencimiento = (int) $producto->dias_espera_vencimiento;
-        }
-    }
-
-    /**
-     * Listar productos disponibles para sugerir (filtramos servicios).
-     */
-    public function get_productos_para_lote()
-    {
-        $productos = Producto::get_productos_para_lote();
-        return ApiResponse::success($productos);
     }
 }
