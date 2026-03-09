@@ -17,7 +17,7 @@ class LotesData
     public static function get_almacenes()
     {
         return Almacen::select('id as id_almacen', 'nombre')
-            ->where('estado', "Activo")
+            ->where('estado', 'Activo')
             ->get();
     }
 
@@ -58,6 +58,7 @@ class LotesData
             lp.id AS id_lote,
             lp.id_producto,
             lp.id_unidad_medida,
+            lp.id_almacen,
             p.nombre as producto,
             um_base.abreviatura as unidad_medida_base,
             c.nombre AS categoria,
@@ -71,6 +72,7 @@ class LotesData
             lp.fecha_vencimiento,
             lp.estado,
             p.es_perecible,
+            p.es_fiscalizado,
             p.stock_minimo,
             p.dias_espera_vencimiento,
             /* Cálculo de días restantes */
@@ -106,6 +108,7 @@ class LotesData
         if ($id_lote !== null) {
             $sql .= ' AND lp.id = :id_lote';
             $params['id_lote'] = $id_lote;
+
             return DB::selectOne($sql, $params);
         }
 
@@ -114,8 +117,9 @@ class LotesData
             $params['id_almacen'] = $id_almacen;
         }
 
-        $sql .= " ORDER BY lp.fecha_hora_ingreso DESC;";
-        return DB::select($sql, []);
+        $sql .= ' ORDER BY lp.fecha_hora_ingreso DESC';
+
+        return DB::select($sql, $params);
     }
 
     /**
@@ -162,7 +166,7 @@ class LotesData
             'fecha_hora_ingreso' => $fecha_hora_ingreso,
             'fecha_vencimiento' => $fecha_vencimiento,
             'created_at' => now(),
-            'estado' => "Activo",
+            'estado' => 'Activo',
         ]);
     }
 
@@ -193,7 +197,7 @@ class LotesData
     {
         return LoteProducto::where('id', $id_lote)->update([
             'stock_actual' => $nuevo_stock,
-            'stock_actual_base' => $nuevo_stock_base
+            'stock_actual_base' => $nuevo_stock_base,
         ]);
     }
 
