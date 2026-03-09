@@ -1,45 +1,42 @@
-
 <?php
 
-namespace App\Controllers;
+namespace App\Views\LotesProductos;
 
-use App\Services\LoteService;
-use App\Services\UnidadMedidaService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
 
-class LoteController extends Controller
+class LotesController extends Controller
 {
-    public function __construct(
-        private LoteService $loteService,
-        private UnidadMedidaService $unidadMedidaService
-    ) {}
+    public function get_almacenes(): JsonResponse
+    {
+        $result = LotesService::get_almacenes();
+        return response()->json($result);
+    }
 
-    public function get_lotes_by_almacen(Request $request): JsonResponse
+    public function get_unidades_medida(): JsonResponse
+    {
+        $result = LotesService::get_unidades_medida();
+        return response()->json($result);
+    }
+
+    public function get_resumen_lotes(Request $request): JsonResponse
     {
         $id_almacen = $request->query('id_almacen');
         if (! $id_almacen) {
             return response()->json(ApiResponse::error('El id_almacen es requerido'), 400);
         }
 
-        $result = $this->loteService->get_lotes_by_almacen((int) $id_almacen);
+        $result = LotesService::get_resumen_lotes((int) $id_almacen);
 
         return response()->json($result);
     }
 
-    public function get_productos_para_lote(Request $request): JsonResponse
+    public function get_productos(Request $request): JsonResponse
     {
-        $result = $this->loteService->get_productos_para_lote();
-
-        return response()->json($result);
-    }
-
-    public function get_unidades_medida(Request $request): JsonResponse
-    {
-        $result = $this->unidadMedidaService->get_unidades_medida();
+        $result = LotesService::get_productos();
 
         return response()->json($result);
     }
@@ -67,7 +64,7 @@ class LoteController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->loteService->crear_lote(
+        $result = LotesService::crear_lote(
             $request->id_producto,
             $request->id_unidad_medida,
             $request->id_almacen,
@@ -100,7 +97,7 @@ class LoteController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = $this->loteService->ajustar_stock(
+        $result = LotesService::ajustar_stock(
             (int) $request->id_lote,
             (float) $request->nuevo_stock,
             (float) $request->nuevo_stock_base,

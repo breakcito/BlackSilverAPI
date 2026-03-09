@@ -2,25 +2,48 @@
 
 namespace App\Views\LotesProductos;
 
+use App\Shared\Enums\Kardex\TipoMovimiento;
 use App\Shared\Responses\ApiResponse;
 use App\Views\LotesProductos\Data\LotesData;
+use Illuminate\Support\Facades\DB;
 
 class LotesService
 {
     /**
      * Listar almacenes.
      */
-    public function get_almacenes()
+    public static function get_almacenes()
     {
         $almacenes = LotesData::get_almacenes();
 
         return ApiResponse::success($almacenes);
     }
-    
+
+    /**
+     * Listar productos
+     */
+    public static function get_productos()
+    {
+        $productos = LotesData::get_productos();
+
+        return ApiResponse::success($productos);
+    }
+
+
+    /**
+     * Listar unidades de meddida
+     */
+    public static function get_unidades_medida()
+    {
+        $unidades = LotesData::get_unidades_medida();
+
+        return ApiResponse::success($unidades);
+    }
+
     /**
      * Listar lotes de un almacén.
      */
-    public function get_resumen_lotes(int $id_almacen)
+    public static function get_resumen_lotes(int $id_almacen)
     {
         $lotes = LotesData::get_resumen_lotes($id_almacen);
 
@@ -30,7 +53,7 @@ class LotesService
     /**
      * Crear nuevo lote e insertar en Kardex si aplica.
      */
-    public function crear_lote(
+    public static function crear_lote(
         int $id_producto,
         int $id_unidad_medida,
         int $id_almacen,
@@ -40,98 +63,58 @@ class LotesService
         string $fecha_hora_ingreso,
         ?string $fecha_vencimiento
     ) {
-        $prefijo = 'LOT';
-        // Usamos fecha_hora_ingreso para el reseteo del correlativo anual
-        $correlativoData = CorrelativoHelper::generar(
-            'lote_producto',
-            $prefijo,
-            [],
-            5,
-            Periodo::Anual,
-            'fecha_hora_ingreso'
-        );
+        $correlativoData = LotesData::get_nuevo_correlativo($id_almacen);
 
         $stock_actual_base = $stock_inicial * $contenido_por_presentacion;
 
-        $lote = LoteProducto::create([
-            'id_producto' => $id_producto,
-            'id_unidad_medida' => $id_unidad_medida,
-            'id_almacen' => $id_almacen,
-            'descripcion' => $descripcion,
-            'correlativo' => $correlativoData['correlativo'],
-            'numero_correlativo' => $correlativoData['numero_correlativo'],
-            'stock_actual' => $stock_inicial,
-            'contenido_por_presentacion' => $contenido_por_presentacion,
-            'stock_actual_base' => $stock_actual_base,
-            'fecha_hora_ingreso' => $fecha_hora_ingreso,
-            'fecha_vencimiento' => $fecha_vencimiento,
-            'created_at' => now(),
-            'estado' => EstadoBase::Activo->value,
-        ]);
-
-        $id_lote = $lote->id;
+        $id_lote = LotesData::crear_lote(
+            id_producto: $id_producto,
+            id_unidad_medida: $id_unidad_medida,
+            id_almacen: $id_almacen,
+            descripcion: $descripcion,
+            correlativo: $correlativoData["correlativo"],
+            numero_correlativo: $correlativoData["numero_correlativo"],
+            stock_inicial: $stock_inicial,
+            contenido_por_presentacion: $contenido_por_presentacion,
+            stock_actual_base: $stock_actual_base,
+            fecha_hora_ingreso: $fecha_hora_ingreso,
+            fecha_vencimiento: $fecha_vencimiento
+        );
 
         if ($stock_inicial > 0) {
-            KardexProducto::create([
-                'id_lote_producto' => $id_lote,
-                'id_origen' => null,
-                'tipo_origen' => OrigenMovimiento::NuevoLote->value,
-                'tipo_movimiento' => TipoMovimiento::Ingreso->value,
-                'stock_anterior' => 0,
-                'stock_anterior_base' => 0,
-                'cantidad_movimiento' => $stock_inicial,
-                'cantidad_movimiento_base' => $stock_actual_base,
-                'stock_resultante' => $stock_inicial,
-                'stock_resultante_base' => $stock_actual_base,
-                'descripcion' => 'Ingreso por Nuevo Lote en almacén',
-                'created_at' => now(),
-            ]);
+            LotesData::registrar_log_kardex(
+                $id_lote,
+                $stock_inicial,
+                $stock_actual_base
+            );
         }
 
-        return ApiResponse::success(LoteProducto::get_lote_by_id($id_lote), 'Lote registrado correctamente');
-    }
-
-
-    /**
-     * Obtiene los lotes disponibles para un producto en un almacén, con lógica FEFO/FIFO.
-     */
-    public function obtener_lotes_disponibles(int $id_producto, int $id_almacen)
-    {
-        $data = LoteProducto::obtener_lotes_disponibles($id_producto, $id_almacen);
-        return ApiResponse::success($data);
-    }
-
-    /**
-     * Listar productos disponibles para sugerir en la creación de lotes.
-     */
-    public function get_productos_para_lote()
-    {
-        $productos = Producto::get_productos_para_lote();
-        return ApiResponse::success($productos);
+        return ApiResponse::success(LotesData::get_lote_by_id(id_lote: $id_lote), 'Lote registrado correctamente');
     }
 
     /**
      * Ajustar stock de un lote (Corrección manual).
      */
-    public function ajustar_stock(int $id_lote, float $nuevo_stock, float $nuevo_stock_base, ?string $motivo = null)
+    public static function ajustar_stock(int $id_lote, float $nuevo_stock, float $nuevo_stock_base, ?string $motivo = null)
     {
         return DB::transaction(function () use ($id_lote, $nuevo_stock, $nuevo_stock_base, $motivo) {
-            $lote = LoteProducto::find($id_lote);
+            $lote = LotesData::get_lote_simple_by_id($id_lote);
+
             if (!$lote) {
                 return ApiResponse::error('Lote no encontrado');
             }
 
-            if ($lote->stock_actual_base == $nuevo_stock_base) {
+            if ($lote['stock_actual_base'] == $nuevo_stock_base) {
                 return ApiResponse::error('El nuevo stock es igual al actual');
             }
 
-            $stock_anterior = $lote->stock_actual;
-            $stock_anterior_base = $lote->stock_actual_base;
+            $stock_anterior = $lote['stock_actual'];
+            $stock_anterior_base = $lote['stock_actual_base'];
             $diferencia_base = $nuevo_stock_base - $stock_anterior_base;
             $diferencia_lote = $nuevo_stock - $stock_anterior;
             $tipo_movimiento = $diferencia_base > 0 ? TipoMovimiento::Ingreso : TipoMovimiento::Salida;
 
-            $unidad_base = Producto::get_abreviatura_unidad_base($lote->id_producto);
+            $unidad_base = LotesData::get_abreviatura_unidad_medida($lote['id_unidad_medida']);
 
             $descripcion_kardex = $motivo;
             if (empty($descripcion_kardex)) {
@@ -144,28 +127,22 @@ class LotesService
             }
 
             // Actualizar lote
-            $lote->update([
-                'stock_actual' => $nuevo_stock,
-                'stock_actual_base' => $nuevo_stock_base
-            ]);
+            LotesData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
 
             // Registrar movimiento en Kardex
-            KardexProducto::create([
-                'id_lote_producto' => $id_lote,
-                'id_origen' => null,
-                'tipo_origen' => OrigenMovimiento::AjusteStock->value,
-                'tipo_movimiento' => $tipo_movimiento->value,
-                'stock_anterior' => $stock_anterior,
-                'stock_anterior_base' => $stock_anterior_base,
-                'cantidad_movimiento' => abs($diferencia_lote),
-                'cantidad_movimiento_base' => abs($diferencia_base),
-                'stock_resultante' => $nuevo_stock,
-                'stock_resultante_base' => $nuevo_stock_base,
-                'descripcion' => $descripcion_kardex,
-                'created_at' => now(),
-            ]);
+            LotesData::registrar_ajuste_kardex(
+                $id_lote,
+                $tipo_movimiento->value,
+                $stock_anterior,
+                $stock_anterior_base,
+                abs($diferencia_lote),
+                abs($diferencia_base),
+                $nuevo_stock,
+                $nuevo_stock_base,
+                $descripcion_kardex
+            );
 
-            return ApiResponse::success(LoteProducto::get_lote_by_id($id_lote), 'Stock del lote ajustado correctamente');
+            return ApiResponse::success(LotesData::get_lote_by_id(id_lote: $id_lote), 'Stock del lote ajustado correctamente');
         });
     }
 }

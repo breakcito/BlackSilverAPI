@@ -3,16 +3,49 @@
 namespace App\Views\LotesProductos\Data;
 
 use App\Models\Almacen;
+use App\Models\KardexProducto;
 use App\Models\LoteProducto;
+use App\Shared\Enums\Kardex\OrigenMovimiento;
+use App\Shared\Enums\Kardex\TipoMovimiento;
+use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 
 class LotesData
 {
+    // Util para filtrar los lotes y para elegir en que almacen
+    // crear el lote
     public static function get_almacenes()
     {
         return Almacen::select('id as id_almacen', 'nombre')
             ->where('estado', "Activo")
             ->get();
+    }
+
+    // Util para determinar de que producto se creara el lote
+    public static function get_productos()
+    {
+        $sql = '
+        SELECT
+            pr.id AS id_producto,
+            pr.id_unidad_medida_base,
+            pr.nombre,
+            pr.es_perecible,
+            pr.es_fiscalizado,
+            pr.stock_minimo,
+            pr.tiempo_espera_vencimiento,
+            pr.periodo_espera_vencimiento,
+            pr.dias_espera_vencimiento
+        FROM
+            producto pr
+        INNER JOIN categoria cat ON
+            cat.id = pr.id_categoria
+        WHERE
+            pr.estado = "Activo" AND cat.tipo_requerimiento = "Bien"
+        ORDER BY
+            pr.nombre;
+        ';
+
+        return DB::select($sql, []);
     }
 
     /**
@@ -93,19 +126,15 @@ class LotesData
         return self::get_resumen_lotes(id_lote: $id_lote);
     }
 
-    /**
-     * Obtener stock total de un producto en un almacén.
-     */
-    public static function get_stock_total_producto_almacen(int $id_producto, int $id_almacen)
+    public static function get_nuevo_correlativo(int $id_almacen)
     {
-        return DB::table('lote_producto')
-            ->where('id_producto', $id_producto)
-            ->where('id_almacen', $id_almacen)
-            ->where('estado', 'Activo')
-            ->sum('stock_actual_base');
+        return CorrelativoHelper::generar(
+            tabla: 'lote_producto',
+            prefijo: 'LOT',
+            filtros: ['id_almacen' => $id_almacen],
+            columnaFecha: 'fecha_hora_ingreso'
+        );
     }
-
-public static 
 
     public static function crear_lote(
         int $id_producto,
@@ -135,5 +164,81 @@ public static
             'created_at' => now(),
             'estado' => "Activo",
         ]);
+    }
+
+    public static function registrar_log_kardex(int $id_lote, $stock_inicial, $stock_actual_base)
+    {
+        return KardexProducto::insertGetId([
+            'id_lote_producto' => $id_lote,
+            'id_origen' => null,
+            'tipo_origen' => OrigenMovimiento::NuevoLote->value,
+            'tipo_movimiento' => TipoMovimiento::Ingreso->value,
+            'stock_anterior' => 0,
+            'stock_anterior_base' => 0,
+            'cantidad_movimiento' => $stock_inicial,
+            'cantidad_movimiento_base' => $stock_actual_base,
+            'stock_resultante' => $stock_inicial,
+            'stock_resultante_base' => $stock_actual_base,
+            'descripcion' => 'Ingreso por Nuevo Lote en almacén',
+            'created_at' => now(),
+        ]);
+    }
+
+    public static function get_lote_simple_by_id(int $id_lote)
+    {
+        return LoteProducto::where('id', $id_lote)->first()?->toArray();
+    }
+
+    public static function update_stock(int $id_lote, float $nuevo_stock, float $nuevo_stock_base)
+    {
+        return LoteProducto::where('id', $id_lote)->update([
+            'stock_actual' => $nuevo_stock,
+            'stock_actual_base' => $nuevo_stock_base
+        ]);
+    }
+
+    public static function get_abreviatura_unidad_medida(int $id_unidad_medida)
+    {
+        return DB::table('unidad_medida')->where('id', $id_unidad_medida)->value('abreviatura') ?? '';
+    }
+
+    public static function registrar_ajuste_kardex(
+        int $id_lote,
+        string $tipo_movimiento,
+        float $stock_anterior,
+        float $stock_anterior_base,
+        float $cantidad_lote,
+        float $cantidad_base,
+        float $nuevo_stock,
+        float $nuevo_stock_base,
+        string $descripcion
+    ) {
+        return KardexProducto::create([
+            'id_lote_producto' => $id_lote,
+            'id_origen' => null,
+            'tipo_origen' => OrigenMovimiento::AjusteStock->value,
+            'tipo_movimiento' => $tipo_movimiento,
+            'stock_anterior' => $stock_anterior,
+            'stock_anterior_base' => $stock_anterior_base,
+            'cantidad_movimiento' => $cantidad_lote,
+            'cantidad_movimiento_base' => $cantidad_base,
+            'stock_resultante' => $nuevo_stock,
+            'stock_resultante_base' => $nuevo_stock_base,
+            'descripcion' => $descripcion,
+            'created_at' => now(),
+        ]);
+    }
+
+    /**
+     * Obtener unidades de medida base
+     */
+    public static function get_unidades_medida()
+    {
+        return DB::select('
+            SELECT id AS id_unidad_medida, nombre, abreviatura
+            FROM unidad_medida
+            WHERE es_base = 1
+            ORDER BY nombre ASC
+        ');
     }
 }

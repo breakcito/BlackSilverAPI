@@ -164,7 +164,14 @@ class RequerimientoAlmacenEntregaService
             ]);
         });
     }
-
+    /**
+     * Obtiene los lotes disponibles para un producto en un almacén, con lógica FEFO/FIFO.
+     */
+    public function obtener_lotes_disponibles(int $id_producto, int $id_almacen)
+    {
+        $data = LoteProducto::obtener_lotes_disponibles($id_producto, $id_almacen);
+        return ApiResponse::success($data);
+    }
     /**
      * Obtiene el historial de entregas realizadas para un ítem específico.
      */

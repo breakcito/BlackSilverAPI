@@ -1,0 +1,22 @@
+
+<?php
+
+use App\Views\LotesProductos\LotesController;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Módulo Inventario - Rutas
+|--------------------------------------------------------------------------
+|*/
+
+Route::middleware('auth.jwt.custom')->group(function () {
+    Route::prefix('lotes-productos')->controller(LotesController::class)->group(function () {
+        Route::get('/', 'get_resumen_lotes');
+        Route::post('/', 'crear_lote');
+        Route::post('/ajustar-stock', 'ajustar_stock');
+        Route::get('/almacenes', 'get_almacenes');
+        Route::get('/unidades', 'get_unidades_medida');
+        Route::get('/productos', 'get_productos');
+    });
+});
