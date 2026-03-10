@@ -5,7 +5,7 @@ namespace App\Views\Almacenes\Data;
 use App\Models\AlmacenMina;
 use Illuminate\Support\Facades\DB;
 
-class AbastecimientoMinasData
+class AbastecimientoData
 {
     /**
      * Listar las minas que abstece un almacen

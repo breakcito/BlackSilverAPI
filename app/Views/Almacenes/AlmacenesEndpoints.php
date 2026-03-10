@@ -2,7 +2,9 @@
 
 <?php
 
-use App\Views\Almacenes\AlmacenesController;
+use App\Views\Almacenes\Controller\AbastecimientoController;
+use App\Views\Almacenes\Controller\AlmacenesController;
+use App\Views\Almacenes\Controller\ResponsablesController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,7 +23,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::post('/', 'crear_almacen');
 
         // Responsables
-        Route::prefix('responsables')->group(function () {
+        Route::prefix('responsables')->controller(ResponsablesController::class)->group(function () {
             // Obtener historial de responsables de un almacen
             Route::get('/{id_almacen}', 'get_historial_responsables');
 
@@ -33,7 +35,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
         });
 
         // Abastecimiento de minas
-        Route::prefix('abastecimiento-minas')->group(function () {
+        Route::prefix('abastecimiento-minas')->controller(AbastecimientoController::class)->group(function () {
             // Listar las minas que abstece un almacen
             Route::get('/{id_almacen}', 'get_minas_abastecidas');
 
