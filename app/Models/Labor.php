@@ -32,81 +32,39 @@ class Labor extends Model
         'estado',
     ];
 
-    // obtener labores, opcionalmente filtrar por mina
-    public static function get_labores(?int $id_mina = null)
+    /**
+     * Obtiene las labores asociadas a un requerimiento de almacen
+     */
+    public static function get_labores_by_requerimiento(?int $id_requerimiento = null, ?int $id_enlace = null)
     {
         $sql = '
         SELECT
-            l.id as id_labor,
-            l.id_empresa,
-            l.id_mina,
-            l.id_tipo_labor,
-            m.nombre as mina,
-            e.nombre_comercial as empresa,
-            tl.nombre as tipo_labor_nombre,
-            tl.es_de_produccion,
-            l.correlativo,
-            l.nombre,
-            l.descripcion,
-            l.tipo_sostenimiento,
-            l.veta,
-            l.ancho,
-            l.alto,
-            l.nivel,
-            l.fecha_fin,
-            l.created_at,
-            l.estado
+            lab.id AS id_labor,
+            lab.nombre,
+            lab.correlativo
         FROM
-            labor l
-        INNER JOIN mina m ON m.id = l.id_mina
-        INNER JOIN empresa e ON e.id = l.id_empresa
-        INNER JOIN tipo_labor tl ON tl.id = l.id_tipo_labor
+            labor lab
+        INNER JOIN requerimiento_almacen_labor ral ON
+            ral.id_labor = lab.id
+        WHERE
+            1=1
         ';
 
         $params = [];
+        if ($id_enlace !== null) {
+            $sql .= ' AND ral.id = :id_enlace';
+            $params['id_enlace'] = $id_enlace;
 
-        if ($id_mina) {
-            $sql .= ' WHERE l.id_mina = :id_mina';
-            $params['id_mina'] = $id_mina;
+            return DB::selectOne($sql, $params);
         }
 
-        $sql .= ' ORDER BY l.correlativo ASC';
+        if ($id_requerimiento !== null) {
+            $sql .= ' AND ral.id_requerimiento = :id_requerimiento';
+            $params['id_requerimiento'] = $id_requerimiento;
+        }
+
+        $sql .= ' ORDER BY lab.nombre ASC';
 
         return DB::select($sql, $params);
-    }
-
-    public static function get_labor_by_id(int $id)
-    {
-        $sql = '
-        SELECT
-            l.id as id_labor,
-            l.id_empresa,
-            l.id_mina,
-            l.id_tipo_labor,
-            m.nombre as mina,
-            e.nombre_comercial as empresa,
-            tl.nombre as tipo_labor_nombre,
-            tl.es_de_produccion,
-            l.correlativo,
-            l.nombre,
-            l.descripcion,
-            l.tipo_sostenimiento,
-            l.veta,
-            l.ancho,
-            l.alto,
-            l.nivel,
-            l.fecha_fin,
-            l.created_at,
-            l.estado
-        FROM
-            labor l
-        INNER JOIN mina m ON m.id = l.id_mina
-        INNER JOIN empresa e ON e.id = l.id_empresa
-        INNER JOIN tipo_labor tl ON tl.id = l.id_tipo_labor
-        WHERE
-            l.id = :id
-        ';
-
-        return DB::selectOne($sql, ['id' => $id]);
     }
 }
