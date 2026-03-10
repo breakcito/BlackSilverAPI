@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Views\RequerimientosAlmacenAtencion;
 
 use App\Models\KardexProducto;
 use App\Models\LoteProducto;
@@ -16,7 +16,7 @@ use App\Shared\Helpers\CorrelativoHelper;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Support\Facades\DB;
 
-class RequerimientoAlmacenEntregaService
+class AtencionService
 {
     /**
      * Registra una entrega física de materiales (Despacho).

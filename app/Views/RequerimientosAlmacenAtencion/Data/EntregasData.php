@@ -11,27 +11,56 @@ class EntregasData
 {
 
     /**
-     * Obtener el historial de entregas de un ítem de requerimiento.
+     * Obtener el historial de entregas en base al detalle de un requerimiento
      */
-    public static function get_historial_por_detalle_item(int $id_detalle)
+    public static function get_historial_entregas(?int $id_detalle_requerimiento = null, ?int $id_entrega = null)
     {
-        $sql = "
-            SELECT 
-                rae.id AS id_entrega,
-                rae.correlativo AS codigo_entrega,
-                rae.fecha_hora_entrega AS fecha_entrega,
-                CONCAT(er.nombre, ' ', er.apellido) AS entregado_a,
-                raed.cantidad_base AS cantidad,
-                CONCAT(ee.nombre, ' ', ee.apellido) AS usuario_entrega
-            FROM requerimiento_almacen_entrega_detalle raed
-            INNER JOIN requerimiento_almacen_entrega rae ON rae.id = raed.id_requerimiento_almacen_entrega
-            INNER JOIN empleado ee ON ee.id = rae.id_empleado_entrega
-            INNER JOIN empleado er ON er.id = rae.id_empleado_recibe
-            WHERE raed.id_requerimiento_almacen_detalle = :id_detalle
-            ORDER BY rae.fecha_hora_entrega DESC
-        ";
+        $sql = '
+        SELECT DISTINCT
+            ent.id AS id_requerimiento_almacen_entrega,
+            CONCAT(emp_ent.nombre," ",emp_ent.apellido) AS empleado_entrega,
+            CONCAT(emp_rec.nombre," ",emp_rec.apellido) AS empleado_recibe,
+            ent.correlativo,
+            ent.fecha_hora_entrega,
+            ent.observacion,
+            ent.evidencias,
+            ent.created_at,
+            ent.estado
+        FROM
+            requerimiento_almacen_entrega_detalle raed
+        INNER JOIN requerimiento_almacen_entrega ent ON
+            ent.id = raed.id_requerimiento_almacen_entrega
+        LEFT JOIN empleado emp_ent ON
+            emp_ent.id = ent.id_empleado_entrega
+        LEFT JOIN empleado emp_rec ON
+            emp_rec.id = ent.id_empleado_recibe
+        WHERE 1 = 1
+        ';
 
-        return DB::select($sql, ['id_detalle' => $id_detalle]);
+        $params = [];
+
+        if ($id_entrega) {
+            $sql .= ' AND ent.id = :id_entrega';
+            $params['id_entrega'] = $id_entrega;
+            return DB::selectOne($sql, $params);
+        }
+
+        if ($id_detalle_requerimiento) {
+            $sql .= ' AND raed.id_requerimiento_almacen_detalle = :id_detalle_requerimiento';
+            $params['id_detalle_requerimiento'] = $id_detalle_requerimiento;
+        }
+
+        $sql .= ' ORDER BY ent.correlativo DESC;';
+
+        return DB::select($sql, $params);
+    }
+
+    /**
+     * Obtener una entrega
+     */
+    public static function get_entrega_by_id(int $id_entrega)
+    {
+        return self::get_historial_entregas(id_entrega: $id_entrega);
     }
 
     /**
@@ -162,5 +191,21 @@ class EntregasData
             'created_at' => now(),
             'estado' => 'Procesado'
         ]);
+    }
+
+    // obtener la lista de empleados para indicar quien recibe
+    public static function get_empleados()
+    {
+        return DB::select('
+        SELECT DISTINCT
+            emp.id AS id_empleado,
+            CONCAT(emp.nombre, " ", emp.apellido) AS nombre_completo,
+            emp.dni,
+            emp.path_foto
+        FROM
+            empleado emp
+        WHERE
+            emp.estado = "Activo"
+        ');
     }
 }
