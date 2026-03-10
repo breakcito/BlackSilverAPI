@@ -17,7 +17,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::post('/', 'crear_requerimiento'); // registrar un requerimiento, enviando datos del requerimeitno, las labores involucradas y su detalle
         Route::get('/detalle', 'get_detalle_by_requerimiento'); // obtener los detalles de un requerimiento
         Route::get('/detalle-trazabilidad', 'get_trazabilidad_by_detalle'); // obtener la trazabilidad del detalle de un requerimiento
-        Route::get('/labores-requerimiento', 'get_labores_by_requerimiento'); // obtener las labores involucradas en un requerimiento
         //
         Route::get('/minas', 'get_minas'); // obtener las minas donde el empleado logueado es responsables
         Route::get('/almacenes', 'get_almacenes_by_mina'); // en base a la mina elegida, obtener los almacenes que abastecen esa mina

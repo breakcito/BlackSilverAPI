@@ -20,6 +20,11 @@ class RequerimientosService
             yearcito: $yearcito
         );
 
+        // Adjuntar labores a cada requerimiento
+        foreach ($data as $req) {
+            $req->labores = RequerimientosData::get_labores_by_requerimiento((int) $req->id_requerimiento);
+        }
+
         return ApiResponse::success($data);
     }
 
@@ -84,8 +89,11 @@ class RequerimientosService
                 RequerimientosDetalleData::registrar_trazabilidad($id_detalle, $id_empleado_solicitante);
             }
 
+            $resumen = RequerimientosData::get_requerimiento_by_id($id_requerimiento);
+            $resumen->labores = RequerimientosData::get_labores_by_requerimiento($id_requerimiento);
+
             return ApiResponse::success(
-                RequerimientosData::get_requerimiento_by_id($id_requerimiento),
+                $resumen,
                 'Requerimiento generado correctamente'
             );
         });
