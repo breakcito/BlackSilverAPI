@@ -29,9 +29,6 @@ class RequerimientosController extends Controller
 
         $result = $this->requerimientoService->get_requerimientos(
             $authUser->id_empleado,
-            $id_mina ? (int) $id_mina : null,
-            $id_almacen_destino ? (int) $id_almacen_destino : null,
-            $estado,
             $mes,
             $yearcito
         );
@@ -160,6 +157,26 @@ class RequerimientosController extends Controller
     public function get_unidades_medida(): JsonResponse
     {
         $result = $this->requerimientoService->get_unidades_medida();
+
+        return response()->json($result);
+    }
+
+    public function get_data_to_registro(Request $request): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+        $result = $this->requerimientoService->get_data_to_registro($authUser->id_empleado);
+
+        return response()->json($result);
+    }
+
+    public function get_data_by_mina(Request $request): JsonResponse
+    {
+        $id_mina = $request->query('id_mina');
+        if (!$id_mina) {
+            return response()->json(ApiResponse::error('Mina requerida'), 400);
+        }
+
+        $result = $this->requerimientoService->get_data_by_mina((int) $id_mina);
 
         return response()->json($result);
     }

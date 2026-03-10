@@ -130,7 +130,8 @@ class RequerimientosDetalleData
             pr.id AS id_producto,
             pr.id_unidad_medida_base,
             pr.nombre,
-            uni.abreviatura as unidad_medida_base
+            uni.nombre as unidad_medida_base,
+            uni.abreviatura as unidad_medida_base_abv
         FROM
             producto pr
         INNER JOIN unidad_medida uni ON
