@@ -1,27 +1,23 @@
 <?php
 
-namespace App\Services;
+namespace App\Views\RequerimientosAlmacen;
 
-use App\Shared\Enums\EstadoDetalleRequerimiento;
-use App\Shared\Helpers\CorrelativoHelper;
 use App\Shared\Responses\ApiResponse;
+use App\Views\RequerimientosAlmacen\Data\RequerimientosData;
+use App\Views\RequerimientosAlmacen\Data\RequerimientosDetalleData;
 use Illuminate\Support\Facades\DB;
 
 class RequerimientosService
 {
     public function get_requerimientos(
-        ?int $id_mina = null,
-        ?int $id_almacen_destino = null,
-        ?string $estado = null,
-        ?string $fecha_inicio = null,
-        ?string $fecha_fin = null
-    ) {
-        $data = RequerimientoAlmacen::get_requerimientos(
-            $id_mina,
-            $id_almacen_destino,
-            $estado,
-            $fecha_inicio,
-            $fecha_fin
+        int $id_empleado,
+        ?string $mes = null,
+        ?string $yearcito = null
+    ): array {
+        $data = RequerimientosData::get_resumen_requerimientos(
+            id_empleado_solicitante: $id_empleado,
+            mes: $mes,
+            yearcito: $yearcito
         );
 
         return ApiResponse::success($data);
@@ -30,125 +26,116 @@ class RequerimientosService
     public function crear_requerimiento(
         int $id_empleado_solicitante,
         int $id_mina,
-        ?array $id_labores,
         int $id_almacen_destino,
         string $premura,
         ?string $fecha_entrega_requerida,
+        ?string $observacion,
+        ?array $id_labores,
         array $detalles
-    ) {
+    ): array {
         return DB::transaction(function () use (
             $id_empleado_solicitante,
             $id_mina,
-            $id_labores,
             $id_almacen_destino,
             $premura,
             $fecha_entrega_requerida,
+            $observacion,
+            $id_labores,
             $detalles
         ) {
-            // 1. Generar Correlativo (Reseteo anual basado en fecha de creación)
-            $correlativoData = CorrelativoHelper::generar(
-                'requerimiento_almacen',
-                'REQ',
-                [],
-                5,
-                \App\Shared\Enums\Periodo::Anual,
-                'created_at'
-            );
+            // 1. Generar Correlativo
+            $correlativoData = RequerimientosDetalleData::get_nuevo_correlativo($id_almacen_destino);
 
             // 2. Crear Cabecera
-            $id_requerimiento = RequerimientoAlmacen::insertGetId([
-                'id_empleado_solicitante' => $id_empleado_solicitante,
-                'id_mina' => $id_mina,
-                'id_almacen_destino' => $id_almacen_destino,
-                'correlativo' => $correlativoData['correlativo'],
-                'numero_correlativo' => $correlativoData['numero_correlativo'],
-                'premura' => $premura,
-                'fecha_entrega_requerida' => $fecha_entrega_requerida,
-                'created_at' => now(),
-                'estado' => \App\Shared\Enums\EstadoRequerimiento::Generada->value,
-            ]);
+            $id_requerimiento = RequerimientosData::crear_requerimiento(
+                $id_empleado_solicitante,
+                $id_mina,
+                $id_almacen_destino,
+                $correlativoData['correlativo'],
+                $correlativoData['numero_correlativo'],
+                $premura,
+                $observacion,
+                $fecha_entrega_requerida ?? now()->addDays(2)->toDateString()
+            );
 
-            // 2.1. Asociar Labores (M:N)
-            if (! empty($id_labores)) {
-                $dataLabores = [];
+            // 3. Asociar Labores
+            if (!empty($id_labores)) {
                 foreach ($id_labores as $id_labor) {
-                    $dataLabores[] = [
-                        'id_requerimiento' => $id_requerimiento,
-                        'id_labor' => $id_labor,
-                    ];
+                    RequerimientosData::asignar_labor($id_requerimiento, $id_labor);
                 }
-                DB::table('requerimiento_almacen_labor')->insert($dataLabores);
             }
 
-            // 3. Crear Detalle y Logs
+            // 4. Crear Detalles y Trazabilidad
             foreach ($detalles as $detalle) {
                 $contenido = (float) $detalle['contenido_por_presentacion'];
                 $cantidad = (float) $detalle['cantidad_solicitada'];
                 $cantidad_base = $cantidad * $contenido;
 
-                // Insertar detalle
-                $id_detalle = RequerimientoAlmacenDetalle::insertGetId([
-                    'id_requerimiento_almacen' => $id_requerimiento,
-                    'id_producto' => $detalle['id_producto'],
-                    'id_unidad_medida' => $detalle['id_unidad_medida'],
-                    'cantidad_solicitada' => $cantidad,
-                    'contenido_por_presentacion' => $contenido,
-                    'cantidad_solicitada_base' => $cantidad_base,
-                    'cantidad_entregada' => 0,
-                    'cantidad_entregada_base' => 0,
-                    'comentario' => $detalle['comentario'] ?? null,
-                    'estado' => EstadoDetalleRequerimiento::Pendiente->value,
-                ]);
+                $id_detalle = RequerimientosDetalleData::crear_detalle(
+                    $id_requerimiento,
+                    $detalle['id_producto'],
+                    $detalle['id_unidad_medida'],
+                    $cantidad,
+                    $contenido,
+                    $cantidad_base,
+                    $detalle['comentario'] ?? null
+                );
 
-                // Registrar log inicial (Solicitud)
-                RequerimientoAlmacenDetalleLog::insert([
-                    'id_requerimiento_almacen_detalle' => (int) $id_detalle,
-                    'id_empleado' => $id_empleado_solicitante,
-                    'tipo_origen' => 'Solicitud',
-                    'descripcion' => EstadoDetalleRequerimiento::Pendiente->getGlosa(),
-                    'estado' => EstadoDetalleRequerimiento::Pendiente->value,
-                    'created_at' => now(),
-                ]);
+                RequerimientosDetalleData::registrar_trazabilidad($id_detalle, $id_empleado_solicitante);
             }
 
             return ApiResponse::success(
-                RequerimientoAlmacen::get_requerimiento_by_id($id_requerimiento),
+                RequerimientosData::get_requerimiento_by_id($id_requerimiento),
                 'Requerimiento generado correctamente'
             );
         });
     }
 
-    public function get_requerimiento_por_id(int $id)
+    public function get_detalle_by_requerimiento(int $id_requerimiento): array
     {
-        $data = RequerimientoAlmacen::get_requerimiento_by_id($id);
-
-        if (! $data) {
-            return ApiResponse::error('Requerimiento no encontrado');
-        }
-
-        // 1. Obtener Labores
-        $data->labores = RequerimientoAlmacenLabor::get_labores_por_requerimiento($id);
-
-        // 2. Obtener Detalles (Productos)
-        $data->detalles = RequerimientoAlmacenDetalle::get_detalles_by_requerimiento($id);
-
+        $data = RequerimientosDetalleData::get_detalles_by_requerimiento($id_requerimiento);
         return ApiResponse::success($data);
     }
 
-
-    public function get_trazabilidad_detalle(int $id_detalle)
+    public function get_trazabilidad_by_detalle(int $id_detalle): array
     {
-        $data = RequerimientoAlmacenDetalleLog::get_trazabilidad($id_detalle);
-
+        $data = RequerimientosDetalleData::get_trazabilidad_by_detalle($id_detalle);
         return ApiResponse::success($data);
     }
 
-    public function get_almacenes_por_mina(int $id_mina)
+    public function get_labores_by_requerimiento(int $id_requerimiento): array
     {
-        $data = AlmacenMina::get_almacenes_por_mina($id_mina);
-
+        $data = RequerimientosData::get_labores_by_requerimiento($id_requerimiento);
         return ApiResponse::success($data);
     }
 
+    public function get_minas(int $id_empleado): array
+    {
+        $data = RequerimientosData::get_minas($id_empleado);
+        return ApiResponse::success($data);
+    }
 
+    public function get_almacenes_by_mina(int $id_mina): array
+    {
+        $data = RequerimientosData::get_almacenes_by_mina($id_mina);
+        return ApiResponse::success($data);
+    }
+
+    public function get_labores_by_mina(int $id_mina): array
+    {
+        $data = RequerimientosData::get_labores($id_mina);
+        return ApiResponse::success($data);
+    }
+
+    public function get_productos(): array
+    {
+        $data = RequerimientosDetalleData::get_productos();
+        return ApiResponse::success($data);
+    }
+
+    public function get_unidades_medida(): array
+    {
+        $data = RequerimientosDetalleData::get_unidades_medida();
+        return ApiResponse::success($data);
+    }
 }

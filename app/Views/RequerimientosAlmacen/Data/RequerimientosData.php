@@ -77,7 +77,9 @@ class RequerimientosData
         $sql = '
         SELECT
             lab.id AS id_labo,
-            lab.nombre
+            lab.nombre,
+            lab.correlativo,
+            lab.descripcion
         FROM
             labor lab
         INNER JOIN requerimiento_almacen_labor ral ON

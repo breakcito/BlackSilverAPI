@@ -20,7 +20,7 @@ enum EstadoDetalleRequerimiento: string
         return match ($this) {
             self::EsperandoAprobacion => 'Esperando aprobación',
             self::Rechazado => 'Lo sentimos, tu producto fue rechazado por el área de logística',
-            self::Aprobado => 'El jefe de logística aprobó el despacho para este producto',
+            self::Aprobado => 'El encargado del almacén aprobó el despacho para este producto',
             self::EnDespacho => 'El área de logística está procesando tu pedido',
             self::NuevaEntrega => "Se realizó la entrega de {$dinamico} producto(s)",
             self::Completado => 'Tu producto ha sido completamente despachado',
