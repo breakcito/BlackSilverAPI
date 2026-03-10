@@ -1,14 +1,13 @@
+
 <?php
 
-namespace App\Views\RequerimientosAlmacen\Data;
+namespace App\Views\RequerimientosAlmacenAtencion\Data;
 
-use App\Models\RequerimientoAlmacen;
-use App\Models\RequerimientoAlmacenLabor;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimiento;
 use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 
-class RequerimientosData
+class EntregasData
 {
     /**
      * Obtiene los requerimientos de almacen hechos por el usuario
@@ -22,11 +21,13 @@ class RequerimientosData
         $sql = '
         SELECT
             ra.id AS id_requerimiento,
+            ra.id_empleado_solicitante,
             ra.id_mina,
             ra.id_almacen_destino,
             ra.correlativo,
             ra.observacion,
             m.nombre AS mina,
+            CONCAT(emp.nombre, " ", emp.apellido) AS solicitante,
             alm.nombre AS almacen_destino,
             ra.premura,
             ra.fecha_entrega_requerida,
@@ -34,6 +35,7 @@ class RequerimientosData
             ra.created_at
         FROM
             requerimiento_almacen ra
+        INNER JOIN empleado emp ON emp.id = ra.id_empleado_solicitante
         INNER JOIN mina m ON m.id = ra.id_mina
         INNER JOIN almacen alm ON alm.id = ra.id_almacen_destino
         WHERE 1=1
@@ -77,7 +79,8 @@ class RequerimientosData
         SELECT
             lab.id AS id_labo,
             lab.nombre,
-            lab.correlativo
+            lab.correlativo,
+            lab.descripcion
         FROM
             labor lab
         INNER JOIN requerimiento_almacen_labor ral ON

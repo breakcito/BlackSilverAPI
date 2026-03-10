@@ -91,8 +91,7 @@ class LaboresData
         return CorrelativoHelper::generar(
             tabla: 'labor',
             prefijo: $prefijo,
-            filtros: ['id_mina' => $id_mina],
-            longitudCeros: 5,
+            longitudCeros: 3,
             reseteo: Periodo::Ninguno
         );
     }
