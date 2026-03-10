@@ -105,7 +105,7 @@ class RequerimientosDetalleData
             $params['id_detalle'] = $id_detalle;
         }
 
-        $sql .= ' ORDER BY trz.created_at DESC';
+        $sql .= ' ORDER BY trz.created_at';
 
         return DB::select($sql, $params);
     }
