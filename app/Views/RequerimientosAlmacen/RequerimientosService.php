@@ -49,7 +49,7 @@ class RequerimientosService
             $detalles
         ) {
             // 1. Generar Correlativo
-            $correlativoData = RequerimientosDetalleData::get_nuevo_correlativo($id_almacen_destino);
+            $correlativoData = RequerimientosData::get_nuevo_correlativo($id_almacen_destino);
 
             // 2. Crear Cabecera
             $id_requerimiento = RequerimientosData::crear_requerimiento(

@@ -157,18 +157,6 @@ class RequerimientosDetalleData
         ');
     }
 
-    /**
-     * Obtener el nuevo correlativo para un requerimiento en 
-     * base al almacen de destino
-     */
-    public static function get_nuevo_correlativo(int $id_almacen_destino)
-    {
-        return CorrelativoHelper::generar(
-            tabla: 'requerimiento_almacen',
-            prefijo: 'REQ',
-            filtros: ['id_almacen_destino' => $id_almacen_destino]
-        );
-    }
 
     /**
      * Crear el detalle de un requerimiento de almacén.

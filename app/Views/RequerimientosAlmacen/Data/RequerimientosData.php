@@ -5,6 +5,7 @@ namespace App\Views\RequerimientosAlmacen\Data;
 use App\Models\RequerimientoAlmacen;
 use App\Models\RequerimientoAlmacenLabor;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimiento;
+use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 
 class RequerimientosData
@@ -114,6 +115,20 @@ class RequerimientosData
     /**
      * Consultas utiles para el registro de un requerimiento
      */
+
+    /**
+     * Obtener el nuevo correlativo para un requerimiento en 
+     * base al almacen de destino
+     */
+    public static function get_nuevo_correlativo(int $id_almacen_destino)
+    {
+        return CorrelativoHelper::generar(
+            tabla: 'requerimiento_almacen',
+            prefijo: 'REQ',
+            filtros: ['id_almacen_destino' => $id_almacen_destino]
+        );
+    }
+
 
     /**
      * Obtiene la lista de minas en las que el empleado logueado es responsable
