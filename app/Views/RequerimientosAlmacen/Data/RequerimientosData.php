@@ -2,6 +2,7 @@
 
 namespace App\Views\RequerimientosAlmacen\Data;
 
+use App\Models\Labor;
 use App\Models\RequerimientoAlmacen;
 use App\Models\RequerimientoAlmacenLabor;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimiento;
@@ -73,35 +74,7 @@ class RequerimientosData
      */
     public static function get_labores_by_requerimiento(?int $id_requerimiento = null, ?int $id_enlace = null)
     {
-        $sql = '
-        SELECT
-            lab.id AS id_labo,
-            lab.nombre,
-            lab.correlativo
-        FROM
-            labor lab
-        INNER JOIN requerimiento_almacen_labor ral ON
-            ral.id_labor = lab.id
-        WHERE
-            1=1
-        ';
-
-        $params = [];
-        if ($id_enlace !== null) {
-            $sql .= ' AND ral.id = :id_enlace';
-            $params['id_enlace'] = $id_enlace;
-
-            return DB::selectOne($sql, $params);
-        }
-
-        if ($id_requerimiento !== null) {
-            $sql .= ' AND ral.id_requerimiento = :id_requerimiento';
-            $params['id_requerimiento'] = $id_requerimiento;
-        }
-
-        $sql .= ' ORDER BY lab.nombre ASC';
-
-        return DB::select($sql, $params);
+        return Labor::get_labores_by_requerimiento($id_requerimiento, $id_enlace);
     }
 
     public static function get_requerimiento_labor_by_id(int $id_enlace)
@@ -227,7 +200,7 @@ class RequerimientosData
             'observacion' => $observacion,
             'fecha_entrega_requerida' => $fecha_entrega_requerida,
             'created_at' => now(),
-            'estado' => EstadoRequerimiento::Generada->value,
+            'estado' => EstadoRequerimiento::Generado->value,
         ]);
     }
 

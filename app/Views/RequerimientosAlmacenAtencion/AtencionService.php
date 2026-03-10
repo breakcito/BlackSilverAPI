@@ -46,7 +46,7 @@ class RequerimientoAlmacenEntregaService
             $entrega = RequerimientoAlmacenEntrega::create([
                 'id_requerimiento_almacen' => $id_requerimiento,
                 'id_empleado_entrega' => $id_empleado_entrega,
-                'id_empleado_recibe' => $id_empleado_recibe,
+            'id_empleado_recibe' => $id_empleado_recibe,
                 'correlativo' => $correlativoData['correlativo'],
                 'numero_correlativo' => $correlativoData['numero_correlativo'],
                 'fecha_hora_entrega' => $fecha_entrega,
