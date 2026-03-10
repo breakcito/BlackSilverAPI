@@ -37,20 +37,8 @@ class ConcesionesData
         $params = [];
 
         // Solo unimos si necesitamos filtrar por usuario
-        if ($id_usuario) {
-            $sql .= '
-            INNER JOIN contrato_concesion ctr ON ctr.id_concesion = cn.id
-            INNER JOIN empresa emp ON emp.id = ctr.id_empresa
-            INNER JOIN usuario_empresa usu ON usu.id_empresa = emp.id
-            ';
-        }
 
         $sql .= ' WHERE 1 = 1 ';
-
-        if ($id_usuario) {
-            $sql .= ' AND usu.id_usuario = :id_usuario';
-            $params['id_usuario'] = $id_usuario;
-        }
 
         if ($id_concesion) {
             $sql .= ' AND cn.id = :id_concesion';
