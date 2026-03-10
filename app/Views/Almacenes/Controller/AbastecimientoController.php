@@ -11,9 +11,8 @@ use Illuminate\Support\Facades\Validator;
 class AbastecimientoController extends Controller
 {
 
-    public function get_minas_abastecidas(Request $request)
+    public function get_minas_abastecidas(Request $request, $id_almacen)
     {
-        $id_almacen = $request->input('id_almacen');
         if (! $id_almacen) {
             return response()->json(ApiResponse::error('El almacen es requerido'));
         }
@@ -45,9 +44,8 @@ class AbastecimientoController extends Controller
         return response()->json($result);
     }
 
-    public function eliminar_abastecimiento_mina(Request $request)
+    public function eliminar_abastecimiento_mina(Request $request, $id_almacen_mina)
     {
-        $id_almacen_mina = $request->input('id_almacen_mina');
         if (! $id_almacen_mina) {
             return response()->json(ApiResponse::error('El id_asignacion es requerido'));
         }
@@ -57,9 +55,8 @@ class AbastecimientoController extends Controller
         return response()->json($result);
     }
 
-    public function get_minas(Request $request)
+    public function get_minas(Request $request, $id_almacen)
     {
-        $id_almacen = $request->input('id_almacen');
         if (! $id_almacen) {
             return response()->json(ApiResponse::error('El almacen es requerido'));
         }

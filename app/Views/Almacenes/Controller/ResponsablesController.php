@@ -10,9 +10,8 @@ use Illuminate\Support\Facades\Validator;
 
 class ResponsablesController extends Controller
 {
-    public function get_historial_responsables(Request $request)
+    public function get_historial_responsables(Request $request, $id_almacen)
     {
-        $id_almacen = $request->input('id_almacen');
         if (! $id_almacen) {
             return response()->json(ApiResponse::error('El almacen es requerido'));
         }
@@ -47,9 +46,8 @@ class ResponsablesController extends Controller
         return response()->json($result);
     }
 
-    public function get_empleados(Request $request)
+    public function get_empleados(Request $request, $id_almacen)
     {
-        $id_almacen = $request->input('id_almacen');
         if (! $id_almacen) {
             return response()->json(ApiResponse::error('El almacen es requerido'));
         }
