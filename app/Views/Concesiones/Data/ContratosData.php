@@ -4,6 +4,7 @@ namespace App\Views\Concesiones\Data;
 
 use App\Models\ContratoConcesion;
 use App\Shared\Enums\EstadoBase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ContratosData
@@ -77,12 +78,15 @@ class ContratosData
     }
 
     /**
-     * Terminar un contrato (desactivar)
+     * Terminar un contrato (desactivar y registrar fecha fin)
      */
     public static function terminar_contrato(int $id_contrato)
     {
         return ContratoConcesion::where('id', $id_contrato)
-            ->update(['estado' => EstadoBase::Inactivo->value]);
+            ->update([
+                'estado'    => EstadoBase::Inactivo->value,
+                'fecha_fin' => Carbon::today()->toDateString(),
+            ]);
     }
 
     /**

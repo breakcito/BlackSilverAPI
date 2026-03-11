@@ -78,7 +78,7 @@ class ConcesionesController
             $request->integer('id_concesion'),
             $request->integer('id_empresa'),
             $request->string('fecha_inicio'),
-            $request->string('fecha_fin')
+            $request->input('fecha_fin'),
         );
 
         return response()->json($result);
