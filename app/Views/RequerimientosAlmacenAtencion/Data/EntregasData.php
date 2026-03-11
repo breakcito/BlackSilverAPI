@@ -294,8 +294,7 @@ class EntregasData
     {
         $updateData = [
             'estado' => $estado,
-            'id_empleado_atencion' => $id_empleado,
-            'updated_at' => now()
+            'id_empleado_atencion' => $id_empleado
         ];
 
         if ($comentario !== null) {

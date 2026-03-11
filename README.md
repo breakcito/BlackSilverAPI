@@ -1,60 +1,46 @@
-Contexto del Proyecto:
-Actúas como un experto en desarrollo Full Stack trabajando en el proyecto Black Silver, un SaaS para gestión minera. El stack tecnológico es Laravel 12 (PHP 8.4) para la API y React.js para el Frontend.
+# Black Silver - Sistema de Gestión Minera (SaaS)
 
-Arquitectura de Directorios:
-Debes seguir estrictamente una estructura de Aislamiento por Vista. Ninguna vista debe importar lógica, servicios o componentes de otra vista. Si se requiere funcionalidad compartida, se duplica o se abstrae a nivel de Modelos (API) o Common Components (Front), pero nunca entre módulos hermanos.
+Black Silver es una plataforma SaaS diseñada para la gestión integral de operaciones mineras. Este proyecto utiliza un stack moderno y una arquitectura diseñada para la escalabilidad y el mantenimiento independiente de módulos.
 
-1. Estándar de la API (Laravel)
-Ubicación: BlackSilverAPI/app/Views/[NombreModulo]
+## Stack Tecnológico
 
-Cada módulo en la API debe dividirse en:
+- **Backend:** Laravel 12 (PHP 8.4)
+- **Frontend:** React.js + Zustand + Material UI
+- **Base de Datos:** MySQL
 
-Endpoints: Definición de rutas específicas para la vista.
+---
 
-Controller: Orquestador simple que llama exclusivamente a su Service correspondiente.
+## Arquitectura de Software: Aislamiento por Vista
 
-Service: Contiene la lógica de negocio del módulo. Consume datos de la carpeta Data.
+El proyecto sigue estrictamente el principio de **Aislamiento por Vista**. Cada módulo o vista debe ser autosuficiente, evitando acoplamientos innecesarios con otros módulos hermanos.
 
-Data: Carpeta con clases de consulta. Su función es preparar los datos que el Service requiere.
+### 1. Backend (API)
+**Ubicación:** `BlackSilverAPI/app/Views/[NombreModulo]`
 
-Regla de Oro: Si dos vistas requieren los mismos datos, ambos archivos Data deben llamar al mismo método en el Modelo de Eloquent. No se permite comunicación entre Controllers o Services de distintas vistas.
+La lógica de la API se organiza por vistas para garantizar que cada sección del frontend tenga su contraparte específica en el backend. Cada módulo se divide en cuatro capas:
 
-2. Estándar del Frontend (React + Zustand)
-Ubicación: blacksilver/src/view/[nombre-modulo]
+*   **Endpoints:** Define las rutas específicas y accesibles para la vista.
+*   **Controller:** Actúa como un orquestador ligero. Valida la entrada y delega la ejecución al Service.
+*   **Service:** Contiene la lógica de negocio pura. Es el encargado de procesar la información y tomar decisiones.
+*   **Data:** Capa de acceso a datos. Contiene consultas optimizadas (SQL puro o Eloquent) para proveer información al Service.
 
-Cada vista se divide en tres capas obligatorias:
+> [!IMPORTANT]
+> **Regla de Oro:** Si dos vistas requieren datos similares, ambos archivos `Data` deben recurrir a métodos compartidos en los **Modelos de Eloquent** globales. No se permite comunicación directa entre Controllers o Services de distintas vistas.
 
-Presentation:
+### 2. Frontend
+**Ubicación:** `blacksilver/src/views/[nombre-modulo]`
 
-Contiene el archivo [Nombre].page.tsx (punto de entrada).
+El frontend sigue una estructura de tres capas para separar la interfaz de la lógica y el estado:
 
-Sub-componentes (formularios, modales, tablas) exclusivos de esa vista.
+*   **Presentation:** Contiene el archivo principal `.page.tsx` y sub-componentes visuales. No debe contener lógica compleja ni manejo de estados pesados; solo renderiza datos y emite eventos.
+*   **Hooks:** Centralizan la lógica de la interfaz, el manejo de estados locales, efectos (`useEffect`) y validaciones de formularios.
+*   **Service:** Gestiona la comunicación con la API (Fetch/Axios). Define los **DTOs** (Data Transfer Objects) mediante Zustand para el manejo de estados globales de formularios e **Interfaces** para la comunicación de datos.
 
-Prohibido: No debe contener lógica de negocio ni manejo de estados complejos. Solo recibe datos y dispara eventos de los Hooks.
+---
 
-Hooks:
+## Lineamientos de Desarrollo
 
-Cada componente de la capa de Presentation debe tener su Hook correspondiente.
-
-Manejan el estado, efectos (useEffect), validaciones y lógica de interfaz.
-
-Service:
-
-Contiene todas las llamadas a la API mediante Fetch/Axios.
-
-Define DTOs con Zustand para formularios que requieran entrada manual del usuario (nombres, fechas, etc.).
-
-Define Interfaces puras para payloads que solo envíen IDs o datos armados internamente.
-
-Instrucción de Tarea:
-Basado en esta arquitectura, analiza las vistas actuales de Almacenes, Categorías, Productos, Empresas, Concesiones, Contratos y Empleados.
-
-Al trabajar en una vista (nueva o existente), asegúrate de:
-
-Verificar que el Hook de la vista sea el único que hable con el Service.
-
-Confirmar que el Service del Front apunte correctamente a los endpoints en la carpeta de la vista en la API.
-
-Asegurar que la capa Data en la API no esté "cruzando cables" con otras carpetas de vistas.
-
-Mantener el tipado estricto en los DTOs de Zustand.
+1.  **Independencia:** Ninguna vista debe importar lógica, servicios o componentes de otra vista hermana.
+2.  **Abstracción:** La funcionalidad compartida debe abstraerse en el directorio `shared` (Front) o en `Models/Shared` (API).
+3.  **Tipado:** Se exige un uso estricto de TypeScript en el Frontend y tipos nativos en PHP 8.4 para asegurar la integridad de los datos.
+4.  **Flujo de Datos:** El flujo de datos debe ser siempre: `Presentation -> Hook -> Service -> API`.
