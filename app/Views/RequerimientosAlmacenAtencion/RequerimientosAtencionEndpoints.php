@@ -22,6 +22,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::get('/requerimientos', 'get_requerimientos');
             Route::get('/detalles-by-requerimiento', 'get_detalles_requerimiento');
             Route::put('/save-decision-detalle', 'update_estado_detalle_requerimiento');
+            Route::get('/trazabilidad', 'get_trazabilidad');
         });
 
         // Entregas (Despacho, Stock, Lotes)
@@ -29,6 +30,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::get('/lotes', 'get_lotes_disponibles');
             Route::post('/save-entrega', 'crear_entrega');
             Route::get('/entregas', 'get_historial_entregas');
+            Route::get('/empleados', 'get_empleados');
         });
 
     });

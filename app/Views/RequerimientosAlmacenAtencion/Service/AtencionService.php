@@ -58,4 +58,13 @@ class AtencionService
             return ApiResponse::success(['mensaje' => 'Estado del producto actualizado correctamente']);
         });
     }
+
+    /**
+     * Obtiene la trazabilidad de un detalle de requerimiento
+     */
+    public function obtener_trazabilidad(int $id_detalle)
+    {
+        $data = EntregasData::get_detalle_logs($id_detalle);
+        return ApiResponse::success($data);
+    }
 }

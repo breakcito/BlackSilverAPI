@@ -92,4 +92,19 @@ class AtencionController extends Controller
 
         return response()->json($result);
     }
+
+    /**
+     * Obtener trazabilidad de un detalle de requerimiento.
+     */
+    public function get_trazabilidad(Request $request): JsonResponse
+    {
+        $id_detalle = $request->input('id_requerimiento_almacen_detalle');
+        if (!$id_detalle) {
+            return response()->json(ApiResponse::error('El id_requerimiento_almacen_detalle es requerido'), 400);
+        }
+
+        $result = $this->atencionService->obtener_trazabilidad((int) $id_detalle);
+
+        return response()->json($result);
+    }
 }

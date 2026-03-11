@@ -254,6 +254,40 @@ class EntregasData
     }
 
     /**
+     * Obtiene los lotes disponibles para un producto en un almacén
+     */
+    public static function get_lotes_disponibles(int $id_producto, int $id_almacen)
+    {
+        return DB::select('
+            SELECT 
+                lp.id AS id_lote,
+                lp.correlativo,
+                lp.stock_actual,
+                lp.stock_actual_base,
+                lp.contenido_por_presentacion,
+                uni.nombre AS unidad_medida,
+                uni.abreviatura AS unidad_medida_abv,
+                lp.fecha_hora_ingreso,
+                lp.fecha_vencimiento,
+                DATEDIFF(lp.fecha_vencimiento, NOW()) AS dias_para_vencer
+            FROM 
+                lote_producto lp
+            INNER JOIN unidad_medida uni ON uni.id = lp.id_unidad_medida
+            WHERE 
+                lp.id_producto = :id_producto AND 
+                lp.id_almacen = :id_almacen AND 
+                lp.stock_actual_base > 0 AND
+                lp.estado = "Activo"
+            ORDER BY 
+                lp.fecha_vencimiento ASC, 
+                lp.created_at ASC
+        ', [
+            'id_producto' => $id_producto,
+            'id_almacen' => $id_almacen
+        ]);
+    }
+
+    /**
      * Actualiza el estado de un detalle de requerimiento
      */
     public static function update_detalle_estado(int $id_detalle, string $estado, int $id_empleado, ?string $comentario = null)
@@ -288,11 +322,53 @@ class EntregasData
     }
 
     /**
+     * Obtiene los logs de trazabilidad de un detalle
+     */
+    public static function get_detalle_logs(int $id_detalle)
+    {
+        return DB::select('
+            SELECT DISTINCT
+                trz.id AS id_requerimiento_almacen_detalle_log,
+                CASE
+                    WHEN trz.id_empleado IS NOT NULL THEN (
+                        SELECT CONCAT(emp.nombre, " ", emp.apellido)
+                        FROM empleado emp
+                        WHERE emp.id = trz.id_empleado
+                    )
+                    ELSE NULL
+                END AS empleado,
+                trz.descripcion,
+                trz.created_at,
+                trz.estado
+            FROM
+                requerimiento_almacen_detalle_log trz
+            WHERE
+                trz.id_requerimiento_almacen_detalle = :id_detalle
+            ORDER BY trz.created_at
+        ', ["id_detalle" => $id_detalle]);
+    }
+
+    /**
      * Insertar detalle de entrega
      */
-    public static function insert_entrega_detalle(array $data)
-    {
-        return DB::table('requerimiento_almacen_entrega_detalle')->insert($data);
+    public static function insert_entrega_detalle(
+        int $id_entrega,
+        int $id_detalle,
+        int $id_lote,
+        float $cantidad_base,
+        float $cantidad_lote,
+        float $cantidad_requerimiento
+    ) {
+        return DB::table('requerimiento_almacen_entrega_detalle')->insert([
+            'id_requerimiento_almacen_entrega' => $id_entrega,
+            'id_requerimiento_almacen_detalle' => $id_detalle,
+            'id_lote_producto' => $id_lote,
+            'cantidad_base' => $cantidad_base,
+            'cantidad_lote' => $cantidad_lote,
+            'cantidad_requerimiento' => $cantidad_requerimiento,
+            'created_at' => now(),
+            'estado' => 'Entregado'
+        ]);
     }
 
     /**
@@ -313,9 +389,33 @@ class EntregasData
     /**
      * Insertar en Kardex
      */
-    public static function insert_kardex(array $data)
-    {
-        return DB::table('kardex_producto')->insert($data);
+    public static function insert_kardex(
+        int $id_lote,
+        int $id_origen,
+        string $tipo_origen,
+        string $tipo_movimiento,
+        float $stock_ant,
+        float $stock_ant_base,
+        float $cant_mov,
+        float $cant_mov_base,
+        float $stock_res,
+        float $stock_res_base,
+        string $descripcion
+    ) {
+        return DB::table('kardex_producto')->insert([
+            'id_lote_producto' => $id_lote,
+            'id_origen' => $id_origen,
+            'tipo_origen' => $tipo_origen,
+            'tipo_movimiento' => $tipo_movimiento,
+            'stock_anterior' => $stock_ant,
+            'stock_anterior_base' => $stock_ant_base,
+            'cantidad_movimiento' => $cant_mov,
+            'cantidad_movimiento_base' => $cant_mov_base,
+            'stock_resultante' => $stock_res,
+            'stock_resultante_base' => $stock_res_base,
+            'descripcion' => $descripcion,
+            'created_at' => now()
+        ]);
     }
 
     /**

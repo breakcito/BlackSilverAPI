@@ -12,9 +12,9 @@ class LotesService
     /**
      * Listar almacenes.
      */
-    public static function get_almacenes()
+    public static function get_almacenes(int $id_empleado)
     {
-        $almacenes = LotesData::get_almacenes();
+        $almacenes = LotesData::get_almacenes($id_empleado);
 
         return ApiResponse::success($almacenes);
     }

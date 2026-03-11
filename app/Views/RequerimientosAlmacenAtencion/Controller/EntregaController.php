@@ -23,7 +23,7 @@ class EntregaController extends Controller
         $id_producto = $request->input('id_producto');
         $id_almacen = $request->input('id_almacen');
 
-        if (! $id_producto || ! $id_almacen) {
+        if (is_null($id_producto) || is_null($id_almacen)) {
             return response()->json(ApiResponse::error('id_producto e id_almacen son requeridos'), 400);
         }
 
@@ -83,6 +83,15 @@ class EntregaController extends Controller
 
         $result = $this->entregaService->obtener_historial_entregas((int) $id_detalle);
 
+        return response()->json($result);
+    }
+
+    /**
+     * Obtener empleados facultados para recibir material.
+     */
+    public function get_empleados(): JsonResponse
+    {
+        $result = $this->entregaService->obtener_empleados();
         return response()->json($result);
     }
 }

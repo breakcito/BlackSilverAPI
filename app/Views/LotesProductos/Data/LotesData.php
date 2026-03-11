@@ -2,7 +2,6 @@
 
 namespace App\Views\LotesProductos\Data;
 
-use App\Models\Almacen;
 use App\Models\KardexProducto;
 use App\Models\LoteProducto;
 use App\Shared\Enums\Kardex\OrigenMovimiento;
@@ -14,11 +13,27 @@ class LotesData
 {
     // Util para filtrar los lotes y para elegir en que almacen
     // crear el lote
-    public static function get_almacenes()
+    /**
+     * obtener la lista de almacenes donde el empleado es responsable
+     */
+    public static function get_almacenes(int $id_empleado): array
     {
-        return Almacen::select('id as id_almacen', 'nombre')
-            ->where('estado', 'Activo')
-            ->get();
+        $sql = '
+        SELECT DISTINCT
+            alm.id AS id_almacen,
+            alm.nombre
+        FROM
+            almacen alm
+        INNER JOIN responsable_almacen res ON
+            res.id_almacen = alm.id
+        WHERE
+            alm.estado = "Activo" AND
+            alm.es_principal != 1 AND 
+            res.estado = "Activo" AND 
+            res.id_empleado = :id_empleado
+        ';
+
+        return DB::select($sql, ['id_empleado' => $id_empleado]);
     }
 
     // Util para determinar de que producto se creara el lote

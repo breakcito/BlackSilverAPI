@@ -10,9 +10,14 @@ use Illuminate\Support\Facades\Validator;
 
 class LotesController extends Controller
 {
-    public function get_almacenes(): JsonResponse
+    public function get_almacenes(Request $request): JsonResponse
     {
-        $result = LotesService::get_almacenes();
+        $authUser = $request->attributes->get('auth_user');
+        if (!$authUser) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
+        }
+
+        $result = LotesService::get_almacenes($authUser->id_empleado);
         return response()->json($result);
     }
 

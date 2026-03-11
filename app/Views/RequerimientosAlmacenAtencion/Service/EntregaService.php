@@ -19,7 +19,7 @@ class EntregaService
      */
     public function obtener_lotes_disponibles(int $id_producto, int $id_almacen)
     {
-        $data = LoteProducto::obtener_lotes_disponibles($id_producto, $id_almacen);
+        $data = EntregasData::get_lotes_disponibles($id_producto, $id_almacen);
         return ApiResponse::success($data);
     }
 
@@ -73,16 +73,14 @@ class EntregaService
                 $id_lote = $item['id_lote_producto'];
                 
                 // 4. Crear Detalle de Entrega
-                EntregasData::insert_entrega_detalle([
-                    'id_requerimiento_almacen_entrega' => $id_entrega,
-                    'id_requerimiento_almacen_detalle' => $id_rad,
-                    'id_lote_producto' => $id_lote,
-                    'cantidad_base' => $item['cantidad_base'],
-                    'cantidad_lote' => $item['cantidad_lote'],
-                    'cantidad_requerimiento' => $item['cantidad_requerimiento'],
-                    'created_at' => now(),
-                    'estado' => 'Entregado'
-                ]);
+                EntregasData::insert_entrega_detalle(
+                    $id_entrega,
+                    $id_rad,
+                    $id_lote,
+                    $item['cantidad_base'],
+                    $item['cantidad_lote'],
+                    $item['cantidad_requerimiento']
+                );
 
                 // 5. Cargar Lote para Kardex
                 $lote = LoteProducto::find($id_lote);
@@ -93,20 +91,19 @@ class EntregaService
                 EntregasData::update_lote_stock($id_lote, $item['cantidad_lote'], $item['cantidad_base']);
 
                 // 7. Registrar Kardex (Salida)
-                EntregasData::insert_kardex([
-                    'id_lote_producto' => $id_lote,
-                    'id_origen' => $id_entrega,
-                    'tipo_origen' => OrigenMovimiento::Entrega->value,
-                    'tipo_movimiento' => TipoMovimiento::Salida->value,
-                    'stock_anterior' => $stock_anterior,
-                    'stock_anterior_base' => $stock_anterior_base,
-                    'cantidad_movimiento' => $item['cantidad_lote'],
-                    'cantidad_movimiento_base' => $item['cantidad_base'],
-                    'stock_resultante' => $stock_anterior - $item['cantidad_lote'],
-                    'stock_resultante_base' => $stock_anterior_base - $item['cantidad_base'],
-                    'descripcion' => "Entrega por Requerimiento ({$correlativoData['correlativo']})",
-                    'created_at' => now(),
-                ]);
+                EntregasData::insert_kardex(
+                    $id_lote,
+                    $id_entrega,
+                    OrigenMovimiento::Entrega->value,
+                    TipoMovimiento::Salida->value,
+                    $stock_anterior,
+                    $stock_anterior_base,
+                    $item['cantidad_lote'],
+                    $item['cantidad_base'],
+                    $stock_anterior - $item['cantidad_lote'],
+                    $stock_anterior_base - $item['cantidad_base'],
+                    "Entrega por Requerimiento ({$correlativoData['correlativo']})"
+                );
 
                 // 8. Actualizar Requerimiento Detalle
                 $detalle_req = RequerimientoAlmacenDetalle::find($id_rad);
@@ -125,13 +122,13 @@ class EntregaService
 
                 // 10. Log de Trazabilidad
                 if ($ya_entregado_antes == 0) {
-                    EntregasData::insert_detalle_log($id_rad, $id_empleado_entrega, 'Entrega', EstadoDetalleRequerimiento::EnDespacho->getGlosa(), EstadoDetalleRequerimiento::EnDespacho->value);
+                    EntregasData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::EnDespacho->getGlosa(), EstadoDetalleRequerimiento::EnDespacho->value);
                 }
 
-                EntregasData::insert_detalle_log($id_rad, $id_empleado_entrega, 'Entrega', EstadoDetalleRequerimiento::NuevaEntrega->getGlosa((string)$item['cantidad_requerimiento']), EstadoDetalleRequerimiento::NuevaEntrega->value);
+                EntregasData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::NuevaEntrega->getGlosa((string)$item['cantidad_requerimiento']), EstadoDetalleRequerimiento::NuevaEntrega->value);
 
                 if ($finalizo_item) {
-                    EntregasData::insert_detalle_log($id_rad, $id_empleado_entrega, 'Entrega', EstadoDetalleRequerimiento::Completado->getGlosa(), EstadoDetalleRequerimiento::Completado->value);
+                    EntregasData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::Completado->getGlosa(), EstadoDetalleRequerimiento::Completado->value);
                 }
             }
 
@@ -146,5 +143,14 @@ class EntregaService
                 'correlativo' => $correlativoData['correlativo']
             ]);
         });
+    }
+
+    /**
+     * Obtiene los empleados para la entrega
+     */
+    public function obtener_empleados()
+    {
+        $data = EntregasData::get_empleados();
+        return ApiResponse::success($data);
     }
 }
