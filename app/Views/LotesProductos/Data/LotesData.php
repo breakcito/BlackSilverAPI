@@ -176,7 +176,7 @@ class LotesData
             'descripcion' => $descripcion,
             'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
-            'stock_inicial' => $stock_inicial,
+            'stock_actual' => $stock_inicial,
             'contenido_por_presentacion' => $contenido_por_presentacion,
             'stock_actual_base' => $stock_actual_base,
             'fecha_hora_ingreso' => $fecha_hora_ingreso,
