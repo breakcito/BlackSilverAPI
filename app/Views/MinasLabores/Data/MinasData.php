@@ -44,6 +44,7 @@ class MinasData
         SELECT DISTINCT
             mn.id AS id_mina,
             mn.id_concesion,
+            cn.nombre as concesion,
             mn.nombre,
             mn.descripcion,
             CONCAT(em.nombre, " ", em.apellido) as responsable,
@@ -68,6 +69,7 @@ class MinasData
             mn.estado
         FROM
             mina mn
+        INNER JOIN concesion cn ON cn.id = mn.id_concesion
         LEFT JOIN responsable_mina res ON
             res.id_mina = mn.id AND
             res.estado = "Activo" AND
