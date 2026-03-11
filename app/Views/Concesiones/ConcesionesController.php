@@ -3,9 +3,11 @@
 namespace App\Views\Concesiones;
 
 use App\Shared\Responses\ApiResponse;
+use App\Shared\Enums\TipoMineral;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class ConcesionesController
 {
@@ -34,7 +36,7 @@ class ConcesionesController
             'codigo_concesion' => 'required|string|max:100',
             'codigo_reinfo' => 'nullable|string|max:100',
             'ubigeo' => 'nullable|string|max:100',
-            'tipo_mineral' => 'required|string|max:50',
+            'tipo_mineral' => ['required', Rule::enum(TipoMineral::class)],
         ]);
 
         if ($validator->fails()) {

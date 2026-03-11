@@ -3,6 +3,7 @@
 namespace App\Views\Concesiones;
 
 use App\Shared\Responses\ApiResponse;
+use App\Shared\Enums\TipoMineral;
 use App\Views\Concesiones\Data\ConcesionesData;
 use App\Views\Concesiones\Data\ContratosData;
 
@@ -32,18 +33,21 @@ class ConcesionesService
         string $codigo_concesion,
         ?string $codigo_reinfo,
         ?string $ubigeo,
-        string $tipo_mineral
+        string|TipoMineral $tipo_mineral
     ) {
         if (ConcesionesData::existe_nombre($nombre)) {
             return ApiResponse::error('El nombre de la concesión ya existe.');
         }
+
+        // Si viene como Enum, extraemos su valor
+        $val_tipo = $tipo_mineral instanceof TipoMineral ? $tipo_mineral->value : $tipo_mineral;
 
         $id = ConcesionesData::crear_concesion(
             $nombre,
             $codigo_concesion,
             $codigo_reinfo,
             $ubigeo,
-            $tipo_mineral
+            $val_tipo
         );
 
         return ApiResponse::success(ConcesionesData::get_concesion_by_id($id), 'Concesión creada con éxito');
