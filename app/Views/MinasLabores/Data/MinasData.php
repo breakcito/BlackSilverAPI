@@ -43,6 +43,7 @@ class MinasData
         $sql = '
         SELECT DISTINCT
             mn.id AS id_mina,
+            mn.id_concesion,
             mn.nombre,
             mn.descripcion,
             CONCAT(em.nombre, " ", em.apellido) as responsable,
