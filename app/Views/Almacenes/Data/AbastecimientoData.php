@@ -86,7 +86,7 @@ class AbastecimientoData
      */
     public static function get_minas(int $id_almacen)
     {
-        $sql = `
+        $sql = '
         SELECT DISTINCT
             min.id as id_mina,
             min.nombre,
@@ -105,7 +105,7 @@ class AbastecimientoData
                 WHERE 
                     alm.id_almacen = :id_almacen
             )
-        `;
+        ';
 
         return DB::select($sql, ['id_almacen' => $id_almacen]);
     }
