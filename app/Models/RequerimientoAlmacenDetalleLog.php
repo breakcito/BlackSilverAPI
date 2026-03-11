@@ -15,7 +15,6 @@ class RequerimientoAlmacenDetalleLog extends Model
         'id_requerimiento_almacen_detalle',
         'id_empleado', // quien provoco el cambio
         //
-        'tipo_origen', // Solicitud o Atencion
         'descripcion', // descripcion del cambio
         //
         'created_at',

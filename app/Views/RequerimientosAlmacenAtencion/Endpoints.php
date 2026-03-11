@@ -2,7 +2,8 @@
 
 <?php
 
-use App\Controllers\RequerimientoAlmacenController;
+use App\Views\RequerimientosAlmacenAtencion\Controller\AtencionController;
+use App\Views\RequerimientosAlmacenAtencion\Controller\EntregaController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -11,23 +12,24 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth.jwt.custom')->group(function () {
-    // Requerimientos / Solicitud a almacen
-    Route::prefix('requerimientos')->controller(RequerimientoAlmacenController::class)->group(function () {
-        Route::get('/', 'get_requerimientos');
-        Route::post('/', 'crear_requerimiento');
-        Route::get('/almacenes', 'get_almacenes_por_mina');
-        Route::post('/obtener-por-id', 'obtener_requerimiento_por_id');
-        Route::post('/detalle/trazabilidad', 'obtener_trazabilidad_detalle');
-    });
 
-    // Atención de Requerimientos (Despacho)
-    Route::prefix('requerimientos/atencion')->controller(\App\Controllers\RequerimientoAlmacenAtencionController::class)->group(function () {
-        Route::post('/obtener-pendientes', 'obtener_requerimientos_atencion');
-        Route::post('/obtener-detalles', 'obtener_detalles_atencion');
-        Route::post('/cambiar-estado-detalle', 'cambiar_estado_detalle');
-        Route::post('/obtener-lotes-disponibles', 'obtener_lotes_disponibles');
-        Route::post('/registrar-entrega', 'registrar_entrega');
-        Route::post('/obtener-historial-entregas', 'obtener_historial_entregas_por_item');
+Route::middleware('auth.jwt.custom')->group(function () {
+    Route::prefix('requerimientos-atencion')->group(function () {
+        
+        // Gestión de Atención (Aprobación/Rechazo)
+        Route::controller(AtencionController::class)->group(function () {
+            Route::get('/almacenes-autorizados', 'get_almacenes_autorizados');
+            Route::get('/requerimientos', 'get_requerimientos');
+            Route::get('/detalles-by-requerimiento', 'get_detalles_requerimiento');
+            Route::put('/save-decision-detalle', 'update_estado_detalle_requerimiento');
+        });
+
+        // Entregas (Despacho, Stock, Lotes)
+        Route::controller(EntregaController::class)->group(function () {
+            Route::get('/lotes', 'get_lotes_disponibles');
+            Route::post('/save-entrega', 'crear_entrega');
+            Route::get('/entregas', 'get_historial_entregas');
+        });
+
     });
 });

@@ -5,8 +5,6 @@ namespace App\Views\RequerimientosAlmacen\Data;
 use App\Models\RequerimientoAlmacenDetalle;
 use App\Models\RequerimientoAlmacenDetalleLog;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
-use App\Shared\Enums\RequerimientoAlmacen\TipoOrigenTrazabilidad;
-use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 
 class RequerimientosDetalleData
@@ -83,7 +81,6 @@ class RequerimientosDetalleData
                     )
                     ELSE NULL
                 END AS empleado,
-                trz.tipo_origen,
                 trz.descripcion,
                 trz.created_at,
                 trz.estado
@@ -194,7 +191,6 @@ class RequerimientosDetalleData
         return RequerimientoAlmacenDetalleLog::insertGetId([
             'id_requerimiento_almacen_detalle' => (int) $id_detalle,
             'id_empleado' => $id_empleado_solicitante,
-            'tipo_origen' => TipoOrigenTrazabilidad::Solicitud->value,
             'estado' => EstadoDetalleRequerimiento::EsperandoAprobacion->value,
             'descripcion' => EstadoDetalleRequerimiento::EsperandoAprobacion->getGlosa(),
             'created_at' => now(),

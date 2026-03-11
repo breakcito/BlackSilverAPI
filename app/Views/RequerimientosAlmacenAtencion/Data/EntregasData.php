@@ -111,8 +111,8 @@ class EntregasData
         INNER JOIN empleado emp ON emp.id = ra.id_empleado_solicitante
         INNER JOIN mina m ON m.id = ra.id_mina
         WHERE
-            ra.id_almacen_destino = 1 AND
-            MONTH(ra.created_at) = 3 AND YEAR(ra.created_at) = 2026
+            ra.id_almacen_destino = :id_almacen_destino AND
+            MONTH(ra.created_at) = :mes AND YEAR(ra.created_at) = :yearcito
         ORDER BY 
         	CASE ra.estado
                 WHEN "Generado"  THEN 1
@@ -129,6 +129,50 @@ class EntregasData
             'mes' => $mes,
             'yearcito' => $yearcito,
         ];
+
+        return DB::select($sql, $params);
+    }
+
+    /**
+     * Obtiene los detalles de un requerimiento de almacen
+     */
+    public static function get_detalles_by_requerimiento(
+        int $id_requerimiento
+    ) {
+        // 1. Definimos la base de la consulta (sin WHERE ni ORDER BY aún)
+        $sql = '
+    SELECT
+        rad.id AS id_requerimiento_almacen_detalle,
+        CONCAT(emp.nombre, " ", emp.apellido) AS empleado_atencion,
+        pr.nombre AS producto,
+        unib.abreviatura AS unidad_medida_base,
+        uni.abreviatura AS unidad_medida,
+        rad.contenido_por_presentacion,
+        rad.cantidad_solicitada,
+        rad.cantidad_solicitada_base,
+        rad.cantidad_entregada,
+        rad.cantidad_entregada_base,
+        CASE 
+            WHEN rad.cantidad_solicitada_base > 0 THEN 
+                ROUND(((rad.cantidad_entregada_base / rad.cantidad_solicitada_base) * 100 ), 0)
+            ELSE 0 
+        END AS porcentaje_progreso,
+        rad.comentario,
+        rad.comentario_decision,
+        rad.estado
+    FROM
+        requerimiento_almacen_detalle rad
+    INNER JOIN producto pr ON pr.id = rad.id_producto
+    LEFT JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
+    LEFT JOIN unidad_medida uni ON uni.id = rad.id_unidad_medida
+    LEFT JOIN empleado emp ON emp.id = rad.id_empleado_atencion
+    WHERE 1=1';
+
+        $params = [];
+        $sql .= ' AND rad.id_requerimiento_almacen = :id_requerimiento';
+        $params['id_requerimiento'] = $id_requerimiento;
+
+        $sql .= ' ORDER BY pr.nombre';
 
         return DB::select($sql, $params);
     }
@@ -207,5 +251,109 @@ class EntregasData
         WHERE
             emp.estado = "Activo"
         ');
+    }
+
+    /**
+     * Actualiza el estado de un detalle de requerimiento
+     */
+    public static function update_detalle_estado(int $id_detalle, string $estado, int $id_empleado, ?string $comentario = null)
+    {
+        $updateData = [
+            'estado' => $estado,
+            'id_empleado_atencion' => $id_empleado,
+            'updated_at' => now()
+        ];
+
+        if ($comentario !== null) {
+            $updateData['comentario_decision'] = $comentario;
+        }
+
+        return DB::table('requerimiento_almacen_detalle')
+            ->where('id', $id_detalle)
+            ->update($updateData);
+    }
+
+    /**
+     * Inserta un log de trazabilidad para un detalle
+     */
+    public static function insert_detalle_log(int $id_detalle, int $id_empleado, string $descripcion, string $estado)
+    {
+        return DB::table('requerimiento_almacen_detalle_log')->insert([
+            'id_requerimiento_almacen_detalle' => $id_detalle,
+            'id_empleado' => $id_empleado,
+            'descripcion' => $descripcion,
+            'estado' => $estado,
+            'created_at' => now()
+        ]);
+    }
+
+    /**
+     * Insertar detalle de entrega
+     */
+    public static function insert_entrega_detalle(array $data)
+    {
+        return DB::table('requerimiento_almacen_entrega_detalle')->insert($data);
+    }
+
+    /**
+     * Actualizar stock del lote
+     */
+    public static function update_lote_stock(int $id_lote, float $cantidad_lote, float $cantidad_base)
+    {
+        return DB::table('lote_producto')
+            ->where('id', $id_lote)
+            ->decrementEach([
+                'stock_actual' => $cantidad_lote,
+                'stock_actual_base' => $cantidad_base
+            ], [
+                'updated_at' => now()
+            ]);
+    }
+
+    /**
+     * Insertar en Kardex
+     */
+    public static function insert_kardex(array $data)
+    {
+        return DB::table('kardex_producto')->insert($data);
+    }
+
+    /**
+     * Incrementar cantidades entregadas en el detalle del requerimiento
+     */
+    public static function increment_detalle_entregado(int $id_detalle, float $cantidad_req, float $cantidad_base)
+    {
+        return DB::table('requerimiento_almacen_detalle')
+            ->where('id', $id_detalle)
+            ->incrementEach([
+                'cantidad_entregada' => $cantidad_req,
+                'cantidad_entregada_base' => $cantidad_base
+            ]);
+    }
+
+    /**
+     * Verificar si el requerimiento está completado
+     */
+    public static function check_requerimiento_completado(int $id_requerimiento): bool
+    {
+        $pendientes = DB::table('requerimiento_almacen_detalle')
+            ->where('id_requerimiento_almacen', $id_requerimiento)
+            ->whereNotIn('estado', ['Completado', 'Cerrado', 'Rechazado - Almacen', 'Anulado'])
+            ->count();
+
+        return $pendientes === 0;
+    }
+
+    /**
+     * Actualizar estado del requerimiento
+     */
+    public static function update_requerimiento_estado(int $id_requerimiento, string $estado)
+    {
+        return DB::table('requerimiento_almacen')
+            ->where('id', $id_requerimiento)
+            ->update([
+                'estado' => $estado,
+                'updated_at' => now()
+            ]);
     }
 }

@@ -7,10 +7,13 @@ enum EstadoDetalleRequerimiento: string
     case EsperandoAprobacion = "Esperando aprobación";
     case Rechazado = "Rechazado";
     case Aprobado = "Aprobado";
-    case EnDespacho = "En Despacho"; // La primera vez que se realiza una entrega
-    case NuevaEntrega = "Nueva Entrega"; // solo para la trazabilidad
+    // cuando el almacenero decide primero consultar con logistica y que esta le de el
+    case ConsultaLogistica = "Consultando a Logística";
     case Completado = "Completado"; // estado automatico
     case Cerrado = "Cerrado"; // estado manual - se decidio dejar de realizar entregas
+    //
+    case EnDespacho = "En Despacho"; // La primera vez que se realiza una entrega
+    case NuevaEntrega = "Nueva Entrega"; // solo para la trazabilidad
 
     /**
      * Obtiene la glosa estándar para la trazabilidad

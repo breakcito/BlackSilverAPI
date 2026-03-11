@@ -40,7 +40,6 @@ class KardexProducto extends Model
             lp.correlativo as codigo_lote,
             um_lote.abreviatura as unidad_lote,
             um_base.abreviatura as unidad_base,
-            k.tipo_origen,
             k.tipo_movimiento,
             k.stock_anterior,
             k.stock_anterior_base,
