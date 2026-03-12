@@ -21,7 +21,7 @@ class MinasLaboresService
 
     // ─── Minas ────────────────────────────────────────────────────────────────
 
-    public static function get_minas_resumen(int $id_concesion): array|object
+    public static function get_minas_resumen(?int $id_concesion = null): array|object
     {
         $minas = MinasData::get_resumen_minas($id_concesion);
 
@@ -119,7 +119,8 @@ class MinasLaboresService
         ?float $ancho,
         ?float $alto,
         ?string $nivel,
-        ?string $fecha_inicio
+        ?string $fecha_inicio,
+        ?string $fecha_fin = null
     ) {
         $codigo_tipo_labor = LaboresData::get_codigo_tipo_labor($id_tipo_labor);
         $correlativo_data = LaboresData::get_nuevo_correlativo($id_mina, $codigo_tipo_labor);
@@ -136,7 +137,8 @@ class MinasLaboresService
             ancho: $ancho,
             alto: $alto,
             nivel: $nivel,
-            fecha_inicio: $fecha_inicio
+            fecha_inicio: $fecha_inicio,
+            fecha_fin: $fecha_fin
         );
 
         $creada = LaboresData::get_labor_by_id($id_labor);

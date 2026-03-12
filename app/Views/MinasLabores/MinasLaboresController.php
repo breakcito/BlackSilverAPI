@@ -23,12 +23,12 @@ class MinasLaboresController extends Controller
 
     public function get_minas_resumen(Request $request): JsonResponse
     {
+        // id_concesion es opcional: si se pasa filtra, si no devuelve todas las minas
         $id_concesion = $request->query('id_concesion');
-        if (! $id_concesion) {
-            return response()->json(ApiResponse::error('id_concesion es requerido'), 400);
-        }
 
-        return response()->json(MinasLaboresService::get_minas_resumen((int) $id_concesion));
+        return response()->json(MinasLaboresService::get_minas_resumen(
+            $id_concesion ? (int) $id_concesion : null
+        ));
     }
 
     public function crear_mina(Request $request): JsonResponse
@@ -193,6 +193,7 @@ class MinasLaboresController extends Controller
             alto: isset($v['alto']) ? (float) $v['alto'] : null,
             nivel: isset($v['nivel']) ? (string) $v['nivel'] : null,
             fecha_inicio: isset($v['fecha_inicio']) ? (string) $v['fecha_inicio'] : null,
+            fecha_fin: isset($v['fecha_fin']) ? (string) $v['fecha_fin'] : null,
         ));
     }
 }

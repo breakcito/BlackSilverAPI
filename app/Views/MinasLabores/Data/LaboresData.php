@@ -81,9 +81,9 @@ class LaboresData
         return DB::select($sql, $params);
     }
 
-    public static function get_codigo_tipo_labor(int $id_tipo_labor)
+    public static function get_codigo_tipo_labor(int $id_tipo_labor): string
     {
-        return TipoLabor::where('id', $id_tipo_labor)->first(["codigo"]);
+        return TipoLabor::where('id', $id_tipo_labor)->value('codigo') ?? 'LAB';
     }
 
     public static function get_nuevo_correlativo(int $id_mina, string $prefijo)
@@ -115,6 +115,7 @@ class LaboresData
         ?float $alto,
         ?string $nivel,
         ?string $fecha_inicio,
+        ?string $fecha_fin = null,
     ) {
         return Labor::insertGetId([
             'id_mina' => $id_mina,
@@ -130,8 +131,9 @@ class LaboresData
             'alto' => $alto,
             'nivel' => $nivel,
             'fecha_inicio' => $fecha_inicio,
-            'fecha_fin' => null,
+            'fecha_fin' => $fecha_fin,
             'estado' => EstadoBase::Activo->value,
+            'created_at' => now(),
         ]);
     }
 }
