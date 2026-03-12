@@ -2,6 +2,7 @@
 
 namespace App\Views\LotesProductos\Data;
 
+use App\Models\Almacen;
 use App\Models\KardexProducto;
 use App\Models\LoteProducto;
 use App\Shared\Enums\Kardex\OrigenMovimiento;
@@ -11,29 +12,12 @@ use Illuminate\Support\Facades\DB;
 
 class LotesData
 {
-    // Util para filtrar los lotes y para elegir en que almacen
-    // crear el lote
     /**
      * obtener la lista de almacenes donde el empleado es responsable
      */
     public static function get_almacenes(int $id_empleado): array
     {
-        $sql = '
-        SELECT DISTINCT
-            alm.id AS id_almacen,
-            alm.nombre
-        FROM
-            almacen alm
-        INNER JOIN responsable_almacen res ON
-            res.id_almacen = alm.id
-        WHERE
-            alm.estado = "Activo" AND
-            alm.es_principal != 1 AND 
-            res.estado = "Activo" AND 
-            res.id_empleado = :id_empleado
-        ';
-
-        return DB::select($sql, ['id_empleado' => $id_empleado]);
+        return Almacen::get_almacenes($id_empleado);
     }
 
     // Util para determinar de que producto se creara el lote
@@ -193,13 +177,13 @@ class LotesData
             'id_origen' => null,
             'tipo_origen' => OrigenMovimiento::NuevoLote->value,
             'tipo_movimiento' => TipoMovimiento::Ingreso->value,
-            'stock_anterior' => 0,
-            'stock_anterior_base' => 0,
+            'stock_anterior' => null,
+            'stock_anterior_base' => null,
             'cantidad_movimiento' => $stock_inicial,
             'cantidad_movimiento_base' => $stock_actual_base,
             'stock_resultante' => $stock_inicial,
             'stock_resultante_base' => $stock_actual_base,
-            'descripcion' => 'Ingreso por Nuevo Lote en almacén',
+            'descripcion' => 'Ingreso por nuevo lote al almacén',
             'created_at' => now(),
         ]);
     }

@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class KardexProducto extends Model
 {
@@ -25,41 +24,4 @@ class KardexProducto extends Model
         'descripcion',
         'created_at',
     ];
-
-    /**
-     * Listar movimientos de kardex por almacén.
-     */
-    public static function get_kardex_by_almacen(int $id_almacen)
-    {
-        $sql = '
-        SELECT
-            k.id AS id_kardex,
-            k.id_lote_producto,
-            lp.id_producto,
-            CONCAT(p.nombre, \' - \', um_base.abreviatura) AS producto,
-            lp.correlativo as codigo_lote,
-            um_lote.abreviatura as unidad_lote,
-            um_base.abreviatura as unidad_base,
-            k.tipo_movimiento,
-            k.stock_anterior,
-            k.stock_anterior_base,
-            k.cantidad_movimiento,
-            k.cantidad_movimiento_base,
-            k.stock_resultante,
-            k.stock_resultante_base,
-            k.descripcion,
-            k.created_at
-        FROM
-            kardex_producto k
-        INNER JOIN lote_producto lp ON lp.id = k.id_lote_producto
-        INNER JOIN producto p ON p.id = lp.id_producto
-        INNER JOIN unidad_medida um_base ON um_base.id = p.id_unidad_medida_base
-        INNER JOIN unidad_medida um_lote ON um_lote.id = lp.id_unidad_medida
-        WHERE
-            lp.id_almacen = :id_almacen
-        ORDER BY k.created_at DESC
-        ';
-
-        return DB::select($sql, ['id_almacen' => $id_almacen]);
-    }
 }

@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth.jwt.custom')->group(function () {
     Route::prefix('requerimientos-atencion')->group(function () {
         
-        // Gestión de Atención (Aprobación/Rechazo)
         Route::controller(AtencionController::class)->group(function () {
             Route::get('/almacenes-autorizados', 'get_almacenes_autorizados');
             Route::get('/requerimientos', 'get_requerimientos');
