@@ -16,8 +16,11 @@ class EmpleadosData
         $sql = '
         SELECT DISTINCT
             e.id AS id_empleado,
+            e.id_empresa,
             emp.nombre_comercial AS empresa,
+            e.id_cargo,
             car.nombre AS cargo,
+            car.id_area,
             a.nombre AS area,
             e.nombre,
             e.apellido,

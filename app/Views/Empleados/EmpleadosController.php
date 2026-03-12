@@ -85,12 +85,12 @@ class EmpleadosController
             $request->integer('id_cargo'),
             $request->string('nombre'),
             $request->string('apellido'),
-            $request->string('dni'),
-            $request->string('ruc'),
-            $request->string('carnet_extranjeria'),
-            $request->string('pasaporte'),
-            $request->string('fecha_nacimiento'),
-            $request->string('path_foto')
+            $request->input('dni') ?: null,
+            $request->input('ruc') ?: null,
+            $request->input('carnet_extranjeria') ?: null,
+            $request->input('pasaporte') ?: null,
+            $request->input('fecha_nacimiento') ?: null,
+            $request->input('path_foto') ?: null
         );
 
         return response()->json($result);
