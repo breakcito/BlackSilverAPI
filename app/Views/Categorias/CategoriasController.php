@@ -7,6 +7,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Enum;
+use App\Shared\Enums\Producto\TipoProducto;
+use App\Shared\Enums\Producto\ClasificacionBien;
 
 class CategoriasController extends Controller
 {
@@ -28,8 +31,8 @@ class CategoriasController extends Controller
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:128',
             'descripcion' => 'nullable|string',
-            'tipo_requerimiento' => 'required|string|max:64',
-            'clasificacion_bien' => 'nullable|string|max:64',
+            'tipo_requerimiento' => ['required', new Enum(TipoProducto::class)],
+            'clasificacion_bien' => ['nullable', new Enum(ClasificacionBien::class)],
         ], [
             'nombre.required' => 'El nombre es obligatorio',
             'tipo_requerimiento.required' => 'El tipo de requerimiento es obligatorio',
