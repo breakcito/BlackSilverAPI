@@ -41,8 +41,7 @@ class CargosData
             return DB::selectOne($sql, $params);
         }
 
-        $sql .= ' AND c.estado = :estado ORDER BY c.nombre ASC';
-        $params['estado'] = EstadoBase::Activo->value;
+        $sql .= ' ORDER BY c.estado ASC, c.nombre ASC';
 
         return DB::select($sql, $params);
     }
@@ -75,5 +74,20 @@ class CargosData
         return Cargo::where('nombre', $nombre)
             ->where('id_area', $id_area)
             ->exists();
+    }
+
+    /**
+     * Alternar estado
+     */
+    public static function cambiar_estado(int $id_cargo)
+    {
+        $cargo = Cargo::findOrFail($id_cargo);
+        $nuevo_estado = $cargo->estado === EstadoBase::Activo->value
+            ? EstadoBase::Inactivo->value
+            : EstadoBase::Activo->value;
+
+        $cargo->update(['estado' => $nuevo_estado]);
+
+        return $nuevo_estado;
     }
 }

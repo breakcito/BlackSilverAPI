@@ -45,4 +45,11 @@ class OrganigramaService
 
         return ApiResponse::success($nuevo, 'Cargo creado correctamente');
     }
+
+    public static function cambiar_estado_cargo(int $id_cargo)
+    {
+        $nuevo_estado = CargosData::cambiar_estado($id_cargo);
+
+        return ApiResponse::success(null, "Cargo marcado como $nuevo_estado");
+    }
 }

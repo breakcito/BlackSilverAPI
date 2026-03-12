@@ -64,4 +64,11 @@ class OrganigramaController extends Controller
 
         return response()->json($result);
     }
+
+    public function cambiar_estado_cargo(int $id_cargo): JsonResponse
+    {
+        $result = OrganigramaService::cambiar_estado_cargo($id_cargo);
+
+        return response()->json($result);
+    }
 }
