@@ -73,4 +73,12 @@ class RequerimientosData
             ->where('id', $id_requerimiento)
             ->first();
     }
+
+    public static function update_requerimiento_estado(int $id_requerimiento, string $estado)
+    {
+        return RequerimientoAlmacen::where('id', $id_requerimiento)
+            ->update([
+                'estado' => $estado
+            ]);
+    }
 }

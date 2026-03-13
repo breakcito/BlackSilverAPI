@@ -19,9 +19,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
         // Entregas (Despacho, Stock, Lotes)
         Route::controller(EntregaController::class)->group(function () {
+            Route::get('/lotes', 'get_lotes_disponibles');
+            Route::get('/empleados', 'get_empleados');
             Route::get('/lotes-and-empleados', 'get_lotes_disponibles');
-            // Route::get('/lotes', 'get_lotes_disponibles');
-            // Route::get('/empleados', 'get_empleados');
             Route::post('/save-entrega', 'crear_entrega');
             Route::get('/entregas', 'get_historial_entregas');
         });

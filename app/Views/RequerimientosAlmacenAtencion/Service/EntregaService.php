@@ -45,7 +45,7 @@ class EntregaService
         int $id_empleado_recibe,
         string $fecha_entrega,
         ?string $observacion,
-        array $detalles // {id_lote_producto, cantidad_base, cantidad_lote, cantidad_requerimiento}
+        array $detalles // {id_requerimiento_almacen_detalle, id_lote_producto, cantidad_base, cantidad_lote, cantidad_requerimiento}
     ) {
         return DB::transaction(function () use ($id_empleado_entrega, $id_requerimiento, $id_empleado_recibe, $fecha_entrega, $observacion, $detalles) {
 

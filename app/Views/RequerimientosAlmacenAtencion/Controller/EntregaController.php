@@ -16,7 +16,7 @@ class EntregaController extends Controller
     ) {}
 
     /**
-     * Obtener lotes disponibles para un producto en un almacén.
+     * Obtener lotes disponibles para productos en un almacén.
      */
     public function get_lotes_disponibles(Request $request): JsonResponse
     {
@@ -27,7 +27,10 @@ class EntregaController extends Controller
             return response()->json(ApiResponse::error('id_producto e id_almacen son requeridos'), 400);
         }
 
-        $result = $this->entregaService->obtener_lotes_disponibles((int) $id_producto, (int) $id_almacen);
+        // Handle both single int and array of ints for backwards compatibility and new batch feature
+        $ids_productos = is_array($id_producto) ? array_map('intval', $id_producto) : [(int) $id_producto];
+
+        $result = $this->entregaService->obtener_lotes_disponibles($ids_productos, (int) $id_almacen);
 
         return response()->json($result);
     }
@@ -72,16 +75,16 @@ class EntregaController extends Controller
     }
 
     /**
-     * Obtener el historial de entregas realizadas para un ítem específico.
+     * Obtener el historial de entregas realizadas para un requerimiento específico.
      */
     public function get_historial_entregas(Request $request): JsonResponse
     {
-        $id_detalle = $request->input('id_requerimiento_almacen_detalle');
-        if (! $id_detalle) {
-            return response()->json(ApiResponse::error('El id_requerimiento_almacen_detalle es requerido'), 400);
+        $id_requerimiento = $request->input('id_requerimiento');
+        if (! $id_requerimiento) {
+            return response()->json(ApiResponse::error('El id_requerimiento es requerido'), 400);
         }
 
-        $result = $this->entregaService->obtener_historial_entregas((int) $id_detalle);
+        $result = $this->entregaService->obtener_historial_entregas((int) $id_requerimiento);
 
         return response()->json($result);
     }

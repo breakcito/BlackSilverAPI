@@ -55,7 +55,9 @@ class AuxData
      */
     public static function get_lotes_disponibles(array $ids_productos, int $id_almacen)
     {
-        return DB::select('
+        $placeholders = implode(',', array_fill(0, count($ids_productos), '?'));
+
+        return DB::select("
             SELECT 
                 lp.id AS id_lote,
                 lp.id_producto,
@@ -72,17 +74,14 @@ class AuxData
                 lote_producto lp
             INNER JOIN unidad_medida uni ON uni.id = lp.id_unidad_medida
             WHERE 
-                lp.id_producto IN (:ids_productos) AND 
-                lp.id_almacen = :id_almacen AND 
+                lp.id_producto IN ($placeholders) AND 
+                lp.id_almacen = ? AND 
                 lp.stock_actual_base > 0 AND
-                lp.estado = "Activo"
+                lp.estado = 'Activo'
             ORDER BY 
                 lp.fecha_vencimiento ASC, 
                 lp.created_at ASC
-        ', [
-            'ids_productos' => implode(',', $ids_productos),
-            'id_almacen' => $id_almacen
-        ]);
+        ", [...$ids_productos, $id_almacen]);
     }
 
     /**
