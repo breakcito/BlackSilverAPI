@@ -12,7 +12,7 @@ class EntregasData
     /**
      * Obtener el historial de entregas en base al detalle de un requerimiento
      */
-    public static function get_historial_entregas(?int $id_detalle_requerimiento = null, ?int $id_entrega = null)
+    public static function get_historial_entregas(?int $id_requerimiento = null, ?int $id_entrega = null)
     {
         $sql = '
         SELECT DISTINCT
@@ -26,9 +26,7 @@ class EntregasData
             ent.created_at,
             ent.estado
         FROM
-            requerimiento_almacen_entrega_detalle raed
-        INNER JOIN requerimiento_almacen_entrega ent ON
-            ent.id = raed.id_requerimiento_almacen_entrega
+            requerimiento_almacen_entrega ent
         LEFT JOIN empleado emp_ent ON
             emp_ent.id = ent.id_empleado_entrega
         LEFT JOIN empleado emp_rec ON
@@ -44,9 +42,9 @@ class EntregasData
             return DB::selectOne($sql, $params);
         }
 
-        if ($id_detalle_requerimiento) {
-            $sql .= ' AND raed.id_requerimiento_almacen_detalle = :id_detalle_requerimiento';
-            $params['id_detalle_requerimiento'] = $id_detalle_requerimiento;
+        if ($id_requerimiento) {
+            $sql .= ' AND ent.id_requerimiento_almacen = :id_requerimiento';
+            $params['id_requerimiento'] = $id_requerimiento;
         }
 
         $sql .= ' ORDER BY ent.correlativo DESC;';

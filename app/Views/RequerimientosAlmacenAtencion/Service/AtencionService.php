@@ -4,7 +4,9 @@ namespace App\Views\RequerimientosAlmacenAtencion\Service;
 
 use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
 use App\Shared\Responses\ApiResponse;
-use App\Views\RequerimientosAlmacenAtencion\Data\EntregasData;
+use App\Views\RequerimientosAlmacenAtencion\Data\AuxData;
+use App\Views\RequerimientosAlmacenAtencion\Data\RequerimientosData;
+use App\Views\RequerimientosAlmacenAtencion\Data\RequerimientosDetalleData;
 use Illuminate\Support\Facades\DB;
 
 class AtencionService
@@ -14,7 +16,7 @@ class AtencionService
      */
     public function get_almacenes_autorizados(int $id_empleado)
     {
-        $data = EntregasData::get_almacenes($id_empleado);
+        $data = AuxData::get_almacenes($id_empleado);
         return ApiResponse::success($data);
     }
 
@@ -23,7 +25,13 @@ class AtencionService
      */
     public function get_requerimientos(int $id_almacen, string $mes, string $yearcito)
     {
-        $data = EntregasData::get_resumen_requerimientos($id_almacen, $mes, $yearcito);
+        $data = RequerimientosData::get_resumen_requerimientos($id_almacen, $mes, $yearcito);
+
+        // Adjuntar labores a cada requerimiento
+        foreach ($data as $req) {
+            $req->labores = RequerimientosData::get_labores_by_requerimiento((int) $req->id_requerimiento);
+        }
+
         return ApiResponse::success($data);
     }
 
@@ -32,30 +40,36 @@ class AtencionService
      */
     public function get_detalles_requerimiento(int $id_requerimiento)
     {
-        $data = EntregasData::get_detalles_by_requerimiento($id_requerimiento);
+        $data = RequerimientosDetalleData::get_detalles_by_requerimiento($id_requerimiento);
         return ApiResponse::success($data);
     }
 
     /**
-     * Cambia el estado de un producto (Aprobado/Rechazado) y registra en Timeline.
+     * Cambia el estado de un producto (Aprobado/Rechazado/Consultar con logistica) y registra en Timeline.
      */
     public function cambiar_estado_detalle(int $id_empleado, int $id_detalle, string $nuevo_estado, ?string $comentario_decision = null)
     {
         return DB::transaction(function () use ($id_empleado, $id_detalle, $nuevo_estado, $comentario_decision) {
-            
-            EntregasData::update_detalle_estado($id_detalle, $nuevo_estado, $id_empleado, $comentario_decision);
+
+            RequerimientosDetalleData::update_detalle_estado($id_detalle, $nuevo_estado, $id_empleado, $comentario_decision);
 
             // Determinar el Enum para el log
             $estadoEnum = EstadoDetalleRequerimiento::from($nuevo_estado);
 
-            EntregasData::insert_detalle_log(
+            // Colocar en estado de proceso al requerimiento si uno de sus detalles es aprobado o consultado con logistica
+            if (EstadoDetalleRequerimiento::Aprobado == $nuevo_estado || $nuevo_estado == EstadoDetalleRequerimiento::ConsultaLogistica) {
+                $requerimiento = RequerimientosDetalleData::get_id_requerimiento_by_detalle($id_detalle);
+                RequerimientosData::update_requerimiento_estado((int) $requerimiento->id_requerimiento_almacen, $nuevo_estado);
+            }
+
+            RequerimientosDetalleData::insert_detalle_log(
                 $id_detalle,
                 $id_empleado,
                 $estadoEnum->getGlosa($comentario_decision),
                 $estadoEnum->value
             );
 
-            return ApiResponse::success(['mensaje' => 'Estado del producto actualizado correctamente']);
+            return ApiResponse::success(null, 'Estado del producto actualizado correctamente');
         });
     }
 
@@ -64,7 +78,7 @@ class AtencionService
      */
     public function obtener_trazabilidad(int $id_detalle)
     {
-        $data = EntregasData::get_detalle_logs($id_detalle);
+        $data = RequerimientosDetalleData::get_detalle_logs($id_detalle);
         return ApiResponse::success($data);
     }
 }

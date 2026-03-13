@@ -3,6 +3,7 @@
 namespace App\Views\RequerimientosAlmacenAtencion\Data;
 
 use App\Models\Labor;
+use App\Models\RequerimientoAlmacenDetalle;
 use App\Models\RequerimientoAlmacenDetalleLog;
 use Illuminate\Support\Facades\DB;
 
@@ -20,6 +21,7 @@ class RequerimientosDetalleData
     SELECT
         rad.id AS id_requerimiento_almacen_detalle,
         CONCAT(emp.nombre, " ", emp.apellido) AS empleado_atencion,
+        pr.id AS id_producto,
         pr.nombre AS producto,
         unib.abreviatura AS unidad_medida_base,
         uni.abreviatura AS unidad_medida,
@@ -145,5 +147,28 @@ class RequerimientosDetalleData
             'estado' => $estado,
             'created_at' => now()
         ]);
+    }
+
+
+    public static function get_id_requerimiento_by_detalle(int $id_detalle)
+    {
+        return DB::selectOne('
+            SELECT
+                rad.id_requerimiento_almacen
+            FROM
+                requerimiento_almacen_detalle rad
+            WHERE
+                rad.id = :id_detalle
+        ', ["id_detalle" => $id_detalle]);
+    }
+
+    /**
+     * Obtener detalle por id
+     */
+    public static function get_detalle_by_id(int $id_detalle)
+    {
+        return RequerimientoAlmacenDetalle::select('cantidad_entregada_base', 'cantidad_solicitada_base')
+            ->where('id', $id_detalle)
+            ->first();
     }
 }

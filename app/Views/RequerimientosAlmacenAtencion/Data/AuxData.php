@@ -3,6 +3,7 @@
 namespace App\Views\RequerimientosAlmacenAtencion\Data;
 
 use App\Models\KardexProducto;
+use App\Models\LoteProducto;
 use App\Shared\Enums\Kardex\OrigenMovimiento;
 use App\Shared\Enums\Kardex\TipoMovimiento;
 use Illuminate\Support\Facades\DB;
@@ -52,11 +53,12 @@ class AuxData
     /**
      * Obtiene los lotes disponibles para un producto en un almacén
      */
-    public static function get_lotes_disponibles(int $id_producto, int $id_almacen)
+    public static function get_lotes_disponibles(array $ids_productos, int $id_almacen)
     {
         return DB::select('
             SELECT 
                 lp.id AS id_lote,
+                lp.id_producto,
                 lp.correlativo,
                 lp.stock_actual,
                 lp.stock_actual_base,
@@ -70,7 +72,7 @@ class AuxData
                 lote_producto lp
             INNER JOIN unidad_medida uni ON uni.id = lp.id_unidad_medida
             WHERE 
-                lp.id_producto = :id_producto AND 
+                lp.id_producto IN (:ids_productos) AND 
                 lp.id_almacen = :id_almacen AND 
                 lp.stock_actual_base > 0 AND
                 lp.estado = "Activo"
@@ -78,7 +80,7 @@ class AuxData
                 lp.fecha_vencimiento ASC, 
                 lp.created_at ASC
         ', [
-            'id_producto' => $id_producto,
+            'ids_productos' => implode(',', $ids_productos),
             'id_almacen' => $id_almacen
         ]);
     }
@@ -102,13 +104,13 @@ class AuxData
             'id_origen' => $id_detalle_entrega,
             'tipo_origen' => OrigenMovimiento::Entrega->value,
             'tipo_movimiento' => TipoMovimiento::Salida->value,
+            'descripcion' => $descripcion,
             'stock_anterior' => $stock_anterior,
             'stock_anterior_base' => $stock_anterior_base,
             'cantidad_movimiento' => $cantidad_lote,
             'cantidad_movimiento_base' => $cantidad_base,
             'stock_resultante' => $nuevo_stock,
             'stock_resultante_base' => $nuevo_stock_base,
-            'descripcion' => $descripcion,
             'created_at' => now(),
         ]);
     }
@@ -116,15 +118,22 @@ class AuxData
     /**
      * Actualizar stock del lote
      */
-    public static function update_lote_stock(int $id_lote, float $cantidad_lote, float $cantidad_base)
+    public static function update_lote_stock(int $id_lote, float $stock_nuevo, float $stock_nuevo_base)
     {
-        return DB::table('lote_producto')
-            ->where('id', $id_lote)
-            ->decrementEach([
-                'stock_actual' => $cantidad_lote,
-                'stock_actual_base' => $cantidad_base
-            ], [
-                'updated_at' => now()
+        return LoteProducto::where('id', $id_lote)
+            ->update([
+                'stock_actual' => $stock_nuevo,
+                'stock_actual_base' => $stock_nuevo_base
             ]);
+    }
+
+    /**
+     * Obtener un lote por su id
+     */
+    public static function get_lote_by_id(int $id_lote)
+    {
+        return LoteProducto::select('correlativo', 'stock_actual', 'stock_actual_base')
+            ->where('id', $id_lote)
+            ->first();
     }
 }

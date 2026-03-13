@@ -6,16 +6,9 @@ use App\Views\RequerimientosAlmacenAtencion\Controller\AtencionController;
 use App\Views\RequerimientosAlmacenAtencion\Controller\EntregaController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Módulo Requermientos de Almacen - Rutas
-|--------------------------------------------------------------------------
-*/
-
-
 Route::middleware('auth.jwt.custom')->group(function () {
     Route::prefix('requerimientos-atencion')->group(function () {
-        
+
         Route::controller(AtencionController::class)->group(function () {
             Route::get('/almacenes-autorizados', 'get_almacenes_autorizados');
             Route::get('/requerimientos', 'get_requerimientos');
@@ -26,11 +19,11 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
         // Entregas (Despacho, Stock, Lotes)
         Route::controller(EntregaController::class)->group(function () {
-            Route::get('/lotes', 'get_lotes_disponibles');
+            Route::get('/lotes-and-empleados', 'get_lotes_disponibles');
+            // Route::get('/lotes', 'get_lotes_disponibles');
+            // Route::get('/empleados', 'get_empleados');
             Route::post('/save-entrega', 'crear_entrega');
             Route::get('/entregas', 'get_historial_entregas');
-            Route::get('/empleados', 'get_empleados');
         });
-
     });
 });

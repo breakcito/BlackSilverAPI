@@ -2,33 +2,37 @@
 
 namespace App\Views\RequerimientosAlmacenAtencion\Service;
 
-use App\Models\LoteProducto;
-use App\Models\RequerimientoAlmacen;
-use App\Models\RequerimientoAlmacenDetalle;
-use App\Shared\Enums\Kardex\OrigenMovimiento;
-use App\Shared\Enums\Kardex\TipoMovimiento;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
 use App\Shared\Responses\ApiResponse;
+use App\Views\RequerimientosAlmacenAtencion\Data\AuxData;
 use App\Views\RequerimientosAlmacenAtencion\Data\EntregasData;
+use App\Views\RequerimientosAlmacenAtencion\Data\EntregasDetalleData;
+use App\Views\RequerimientosAlmacenAtencion\Data\RequerimientosData;
+use App\Views\RequerimientosAlmacenAtencion\Data\RequerimientosDetalleData;
 use Illuminate\Support\Facades\DB;
 
 class EntregaService
 {
     /**
-     * Obtiene los lotes disponibles para un producto en un almacén.
+     * Obtiene los lotes disponibles para una lista de productos de un almacén.
      */
-    public function obtener_lotes_disponibles(int $id_producto, int $id_almacen)
+    public function obtener_lotes_disponibles(array $ids_productos, int $id_almacen)
     {
-        $data = EntregasData::get_lotes_disponibles($id_producto, $id_almacen);
+        $data = AuxData::get_lotes_disponibles($ids_productos, $id_almacen);
         return ApiResponse::success($data);
     }
 
     /**
-     * Obtiene el historial de entregas.
+     * Obtiene el historial de entregas y sus detalles.
      */
-    public function obtener_historial_entregas(int $id_detalle_requerimiento)
+    public function obtener_historial_entregas(int $id_requerimiento)
     {
-        $data = EntregasData::get_historial_entregas(id_detalle_requerimiento: $id_detalle_requerimiento);
+        $data = EntregasData::get_historial_entregas(id_requerimiento: $id_requerimiento);
+
+        foreach ($data as $entrega) {
+            $entrega->detalles = EntregasDetalleData::get_detalles_entrega(id_entrega: (int) $entrega->id_requerimiento_almacen_entrega);
+        }
+
         return ApiResponse::success($data);
     }
 
@@ -41,23 +45,23 @@ class EntregaService
         int $id_empleado_recibe,
         string $fecha_entrega,
         ?string $observacion,
-        array $detalles
+        array $detalles // {id_lote_producto, cantidad_base, cantidad_lote, cantidad_requerimiento}
     ) {
         return DB::transaction(function () use ($id_empleado_entrega, $id_requerimiento, $id_empleado_recibe, $fecha_entrega, $observacion, $detalles) {
 
-            // 1. Validar Stock
+            // Validar Stock
             foreach ($detalles as $item) {
-                $lote = LoteProducto::find($item['id_lote_producto']);
+                $lote = AuxData::get_lote_by_id($item['id_lote_producto']);
                 if (!$lote || $lote->stock_actual_base < $item['cantidad_base']) {
-                    return ApiResponse::error("Stock insuficiente en el lote: " . ($lote->codigo_lote ?? $item['id_lote_producto']));
+                    return ApiResponse::error("Stock insuficiente en el lote: " . $lote->correlativo);
                 }
             }
 
-            // 2. Generar Correlativo
-            $requerimiento = RequerimientoAlmacen::find($id_requerimiento);
+            // Generar Correlativo
+            $requerimiento = RequerimientosData::get_almacen_destino_by_requerimiento($id_requerimiento);
             $correlativoData = EntregasData::get_nuevo_correlativo($requerimiento->id_almacen_destino);
 
-            // 3. Crear Cabecera de Entrega
+            // Crear Cabecera de Entrega
             $id_entrega = EntregasData::crear_entrega(
                 $id_requerimiento,
                 $id_empleado_entrega,
@@ -65,15 +69,15 @@ class EntregaService
                 $correlativoData['correlativo'],
                 $correlativoData['numero_correlativo'],
                 strtotime($fecha_entrega), // Asumiendo que espera timestamp segun EntregasData anterior, pero revisemos
-                $observacion
+                $observacion,
             );
 
             foreach ($detalles as $item) {
                 $id_rad = $item['id_requerimiento_almacen_detalle'];
                 $id_lote = $item['id_lote_producto'];
-                
-                // 4. Crear Detalle de Entrega
-                EntregasData::insert_entrega_detalle(
+
+                // Crear Detalle de Entrega
+                $id_detalle_entrega = EntregasDetalleData::crear_detalle_entrega(
                     $id_entrega,
                     $id_rad,
                     $id_lote,
@@ -82,66 +86,61 @@ class EntregaService
                     $item['cantidad_requerimiento']
                 );
 
-                // 5. Cargar Lote para Kardex
-                $lote = LoteProducto::find($id_lote);
+                // Cargar Lote para Kardex
+                $lote = AuxData::get_lote_by_id($id_lote);
                 $stock_anterior = $lote->stock_actual;
                 $stock_anterior_base = $lote->stock_actual_base;
+                $nuevo_stock = $stock_anterior - $item['cantidad_lote'];
+                $nuevo_stock_base = $stock_anterior_base - $item['cantidad_base'];
 
-                // 6. Actualizar Stock del Lote
-                EntregasData::update_lote_stock($id_lote, $item['cantidad_lote'], $item['cantidad_base']);
+                // Actualizar Stock del Lote
+                AuxData::update_lote_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
 
-                // 7. Registrar Kardex (Salida)
-                EntregasData::insert_kardex(
+                // Registrar Kardex (Salida)
+                AuxData::registrar_kardex(
                     $id_lote,
-                    $id_entrega,
-                    OrigenMovimiento::Entrega->value,
-                    TipoMovimiento::Salida->value,
+                    $id_detalle_entrega,
                     $stock_anterior,
                     $stock_anterior_base,
                     $item['cantidad_lote'],
                     $item['cantidad_base'],
-                    $stock_anterior - $item['cantidad_lote'],
-                    $stock_anterior_base - $item['cantidad_base'],
-                    "Entrega por Requerimiento ({$correlativoData['correlativo']})"
+                    $nuevo_stock,
+                    $nuevo_stock_base,
+                    "Salida por entrega N° {$correlativoData['correlativo']}"
                 );
 
-                // 8. Actualizar Requerimiento Detalle
-                $detalle_req = RequerimientoAlmacenDetalle::find($id_rad);
+                // Actualizar Requerimiento Detalle
+                $detalle_req = RequerimientosDetalleData::get_detalle_by_id($id_rad);
                 $ya_entregado_antes = $detalle_req->cantidad_entregada_base;
-                
-                EntregasData::increment_detalle_entregado($id_rad, $item['cantidad_requerimiento'], $item['cantidad_base']);
+
+                RequerimientosDetalleData::increment_detalle_entregado($id_rad, $item['cantidad_requerimiento'], $item['cantidad_base']);
 
                 // Reload para ver el nuevo estado
-                $detalle_req->refresh();
+                $detalle_req = RequerimientosDetalleData::get_detalle_by_id($id_rad);
 
-                // 9. Actualizar Estado del Item
+                // Actualizar Estado del Item
                 $finalizo_item = ($detalle_req->cantidad_entregada_base >= $detalle_req->cantidad_solicitada_base);
                 $nuevo_estado_item = $finalizo_item ? EstadoDetalleRequerimiento::Completado->value : EstadoDetalleRequerimiento::EnDespacho->value;
-                
-                EntregasData::update_detalle_estado($id_rad, $nuevo_estado_item, $id_empleado_entrega);
 
-                // 10. Log de Trazabilidad
-                if ($ya_entregado_antes == 0) {
-                    EntregasData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::EnDespacho->getGlosa(), EstadoDetalleRequerimiento::EnDespacho->value);
+                RequerimientosDetalleData::update_detalle_estado($id_rad, $nuevo_estado_item, $id_empleado_entrega);
+
+                //  Log de Trazabilidad ---
+                if ($ya_entregado_antes == 0) { // si es la primera entrega
+                    RequerimientosDetalleData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::EnDespacho->getGlosa(), EstadoDetalleRequerimiento::EnDespacho->value);
                 }
 
-                EntregasData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::NuevaEntrega->getGlosa((string)$item['cantidad_requerimiento']), EstadoDetalleRequerimiento::NuevaEntrega->value);
+                // Por nueva entrega
+                RequerimientosDetalleData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::NuevaEntrega->getGlosa((string)$item['cantidad_requerimiento']), EstadoDetalleRequerimiento::NuevaEntrega->value);
 
-                if ($finalizo_item) {
-                    EntregasData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::Completado->getGlosa(), EstadoDetalleRequerimiento::Completado->value);
+                if ($finalizo_item) { // si ya finalizo
+                    RequerimientosDetalleData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::Completado->getGlosa(), EstadoDetalleRequerimiento::Completado->value);
                 }
             }
 
-            // 11. Verificar cierre de requerimiento
-            if (EntregasData::check_requerimiento_completado($id_requerimiento)) {
-                EntregasData::update_requerimiento_estado($id_requerimiento, 'Cerrado');
-            }
-
-            return ApiResponse::success([
-                'mensaje' => 'Entrega registrada exitosamente', 
-                'id_entrega' => $id_entrega,
-                'correlativo' => $correlativoData['correlativo']
-            ]);
+            return ApiResponse::success(
+                $correlativoData['correlativo'],
+                "Entrega N° {$correlativoData['correlativo']} registrada exitosamente"
+            );
         });
     }
 
@@ -150,7 +149,7 @@ class EntregaService
      */
     public function obtener_empleados()
     {
-        $data = EntregasData::get_empleados();
+        $data = AuxData::get_empleados();
         return ApiResponse::success($data);
     }
 }

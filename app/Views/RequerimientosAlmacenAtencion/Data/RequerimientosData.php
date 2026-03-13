@@ -3,6 +3,7 @@
 namespace App\Views\RequerimientosAlmacenAtencion\Data;
 
 use App\Models\Labor;
+use App\Models\RequerimientoAlmacen;
 use Illuminate\Support\Facades\DB;
 
 class RequerimientosData
@@ -64,15 +65,12 @@ class RequerimientosData
     }
 
     /**
-     * Actualizar estado del requerimiento
+     * Obtener almacen de destino de un requerimiento de almacen
      */
-    public static function update_requerimiento_estado(int $id_requerimiento, string $estado)
+    public static function get_almacen_destino_by_requerimiento(int $id_requerimiento)
     {
-        return DB::table('requerimiento_almacen')
+        return RequerimientoAlmacen::select('id_almacen_destino')
             ->where('id', $id_requerimiento)
-            ->update([
-                'estado' => $estado,
-                'updated_at' => now()
-            ]);
+            ->first();
     }
 }

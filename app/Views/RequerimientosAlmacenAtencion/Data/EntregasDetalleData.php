@@ -106,18 +106,4 @@ class EntregasDetalleData
     {
         return self::get_detalles_entrega(id_detalle_entrega: $id_detalle_entrega);
     }
-
-
-    /**
-     * Verificar si el requerimiento está completado
-     */
-    public static function check_requerimiento_completado(int $id_requerimiento): bool
-    {
-        $pendientes = DB::table('requerimiento_almacen_detalle')
-            ->where('id_requerimiento_almacen', $id_requerimiento)
-            ->whereNotIn('estado', ['Completado', 'Cerrado', 'Rechazado - Almacen', 'Anulado'])
-            ->count();
-
-        return $pendientes === 0;
-    }
 }
