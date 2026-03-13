@@ -46,4 +46,22 @@ class PermisosData
             'id_seccion' => $id_seccion
         ]);
     }
+
+    /**
+     * Obtener solo los IDs de las secciones de un rol
+     */
+    public static function get_ids_secciones_por_rol(int $id_rol): array
+    {
+        return SeccionRol::where('id_rol', $id_rol)
+            ->pluck('id_seccion')
+            ->toArray();
+    }
+
+    /**
+     * Eliminar todas las asociaciones de secciones de un rol
+     */
+    public static function limpiar_permisos_rol(int $id_rol): void
+    {
+        SeccionRol::where('id_rol', $id_rol)->delete();
+    }
 }

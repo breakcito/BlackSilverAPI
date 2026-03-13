@@ -54,4 +54,35 @@ class RolesService
             return ApiResponse::error('Ocurrió un error al registrar el rol: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Obtener los IDs de las secciones asignadas a un rol
+     */
+    public static function get_permisos_rol(int $id_rol)
+    {
+        $secciones = PermisosData::get_ids_secciones_por_rol($id_rol);
+        return ApiResponse::success($secciones);
+    }
+
+    /**
+     * Actualizar los permisos de un rol
+     */
+    public static function actualizar_permisos_rol(int $id_rol, array $secciones)
+    {
+        try {
+            return DB::transaction(function () use ($id_rol, $secciones) {
+                // 1. Limpiar permisos actuales
+                PermisosData::limpiar_permisos_rol($id_rol);
+
+                // 2. Asignar nuevos permisos
+                foreach ($secciones as $id_seccion) {
+                    PermisosData::asignar_seccion_a_rol($id_rol, $id_seccion);
+                }
+
+                return ApiResponse::success(null, 'Permisos actualizados correctamente.');
+            });
+        } catch (\Exception $e) {
+            return ApiResponse::error('Error al actualizar los permisos: ' . $e->getMessage());
+        }
+    }
 }

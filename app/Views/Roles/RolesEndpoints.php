@@ -15,5 +15,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
         // Crear un nuevo rol
         Route::post('/', 'crear_rol');
 
+        // Gestión de permisos por rol
+        Route::get('/permisos/{id_rol}', 'get_permisos_rol');
+        Route::patch('/permisos/{id_rol}', 'actualizar_permisos_rol');
+
     });
 });
