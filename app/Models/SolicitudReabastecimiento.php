@@ -12,12 +12,13 @@ class SolicitudReabastecimiento extends Model
 
     protected $fillable = [
         'id_almacen_solicitante',
+        'id_requerimiento_almacen', // null - sirve para saber si fue generado por un requerimiento
         'id_empleado_solicitante',
         'correlativo',
         'numero_correlativo',
         'observacion',
         'premura',
-        'fecha_hora_entrega_requerida',
+        'fecha_entrega_requerida',
         'created_at',
         'estado',
     ];

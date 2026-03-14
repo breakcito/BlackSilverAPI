@@ -12,6 +12,7 @@ class SolicitudReabastecimientoDetalle extends Model
 
     protected $fillable = [
         'id_solicitud_reabastecimiento',
+        'id_requerimiento_almacen_detalle', // null - sirve para saber si fue generado por un requerimiento
         'id_producto',
         'id_empleado_atencion', // quien aprueba o rechaza
         'id_unidad_medida', // bolsa
