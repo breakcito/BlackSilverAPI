@@ -42,5 +42,5 @@ El frontend sigue una estructura de tres capas para separar la interfaz de la l�
 
 1.  **Independencia:** Ninguna vista debe importar lógica, servicios o componentes de otra vista hermana.
 2.  **Abstracción:** La funcionalidad compartida debe abstraerse en el directorio `shared` (Front) o en `Models/Shared` (API).
-3.  **Tipado:** Se exige un uso estricto de TypeScript en el Frontend y tipos nativos en PHP 8.4 para asegurar la integridad de los datos.
+3.  **Tipado:** Se exige un uso estricto de TypeScript en el Frontend y tipos nativos en PHP 8.4 para asegurar la integridad de los datos. **NUNCA usar arreglos genéricos (como `array $data`) para pasar parámetros a los métodos de Controller/Service; cada parámetro debe estar definido explícitamente y tipado de manera individual.**
 4.  **Flujo de Datos:** El flujo de datos debe ser siempre: `Presentation -> Hook -> Service -> API`.

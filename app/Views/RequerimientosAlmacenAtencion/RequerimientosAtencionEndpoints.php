@@ -4,6 +4,7 @@
 
 use App\Views\RequerimientosAlmacenAtencion\Controller\AtencionController;
 use App\Views\RequerimientosAlmacenAtencion\Controller\EntregaController;
+use App\Views\RequerimientosAlmacenAtencion\Controller\SolicitudesController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.jwt.custom')->group(function () {
@@ -24,6 +25,12 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::get('/lotes-and-empleados', 'get_lotes_disponibles');
             Route::post('/save-entrega', 'crear_entrega');
             Route::get('/entregas', 'get_historial_entregas');
+        });
+
+        // Solicitudes (Logística)
+        Route::controller(SolicitudesController::class)->group(function () {
+            Route::post('/save-solicitud-logistica', 'registrar_solicitud');
+            Route::get('/solicitudes-logistica', 'get_historial_solicitudes');
         });
     });
 });
