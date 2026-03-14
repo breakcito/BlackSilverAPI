@@ -32,8 +32,8 @@ La lógica de la API se organiza por vistas para garantizar que cada sección de
 
 El frontend sigue una estructura de tres capas para separar la interfaz de la lógica y el estado:
 
-*   **Presentation:** Contiene el archivo principal `.page.tsx` y sub-componentes visuales. No debe contener lógica compleja ni manejo de estados pesados; solo renderiza datos y emite eventos.
-*   **Hooks:** Centralizan la lógica de la interfaz, el manejo de estados locales, efectos (`useEffect`) y validaciones de formularios.
+*   **Presentation:** Contiene el archivo principal `.page.tsx` y sub-componentes visuales. No debe contener lógica compleja, cálculos, ni manejo de estados pesados; solo renderiza datos y emite eventos.
+*   **Hooks:** Centralizan la lógica de la interfaz, el manejo de estados locales, efectos (`useEffect`), validaciones de formularios, y **cualquier cálculo o transformación de datos derivado del estado (ej. `useMemo` para calcular progresos o totales)**.
 *   **Service:** Gestiona la comunicación con la API (Fetch/Axios). Define los **DTOs** (Data Transfer Objects) mediante Zustand para el manejo de estados globales de formularios e **Interfaces** para la comunicación de datos.
 
 ---
