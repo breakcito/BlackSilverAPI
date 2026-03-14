@@ -19,9 +19,9 @@ enum SolicitudDetalleEstado: string
     {
         return match ($this) {
             self::EsperandoAprobacion => 'Esperando aprobación',
-            self::Rechazado => 'Lo sentimos, tu producto fue rechazado por el almacén',
-            self::Aprobado => 'El encargado del almacén aprobó el despacho para este producto',
-            self::EnDespacho => 'El almacén está procesando tu pedido',
+            self::Rechazado => 'Lo sentimos, tu producto fue rechazado por el área de Logística',
+            self::Aprobado => 'El área de Logística aprobó el despacho para este producto',
+            self::EnDespacho => 'El área de Logística está procesando tu pedido',
             self::NuevaEntrega => "Se realizó la entrega de {$dinamico} producto(s)",
             self::Completado => 'Tu producto ha sido completamente despachado',
             self::Cerrado => 'El despacho de tu producto ha terminado.',
