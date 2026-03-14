@@ -1,0 +1,18 @@
+<?php
+
+namespace App\Views\Cuentas;
+
+use Illuminate\Support\Facades\Route;
+
+Route::prefix('cuentas')->group(function () {
+    Route::get('/', [CuentasController::class, 'get_cuentas']);
+    Route::get('/empleados-disponibles', [CuentasController::class, 'get_empleados_sin_cuenta']);
+    Route::get('/roles', [CuentasController::class, 'get_roles_disponibles']);
+    Route::post('/', [CuentasController::class, 'crear_cuenta']);
+    Route::put('/{id_usuario}', [CuentasController::class, 'actualizar_cuenta']);
+    
+    // Gestión de Empresas por Usuario
+    Route::get('/{id_usuario}/empresas', [CuentasController::class, 'get_empresas_usuario']);
+    Route::post('/vincular-empresa', [CuentasController::class, 'vincular_empresa']);
+    Route::delete('/desvincular-empresa', [CuentasController::class, 'desvincular_empresa']);
+});
