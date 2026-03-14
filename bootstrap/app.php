@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Views/RequerimientosAlmacenAtencion/RequerimientosAtencionEndpoints.php');
                 require base_path('app/Views/KardexProductos/KardexEndpoints.php');
                 require base_path('app/Views/Roles/RolesEndpoints.php');
+                require base_path('app/Views/Cuentas/CuentasEndpoints.php');
             });
         },
     )
