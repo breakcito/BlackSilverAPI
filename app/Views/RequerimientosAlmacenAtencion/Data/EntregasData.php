@@ -92,7 +92,7 @@ class EntregasData
         int $id_empleado_recibe,
         string $correlativo,
         int $numero_correlativo,
-        int $fecha_hora_entrega,
+        string $fecha_hora_entrega,
         ?string $observacion = null,
     ) {
         return RequerimientoAlmacenEntrega::insertGetId([

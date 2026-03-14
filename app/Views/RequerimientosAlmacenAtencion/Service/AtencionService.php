@@ -61,11 +61,11 @@ class AtencionService
                 $requerimiento = RequerimientosDetalleData::get_id_requerimiento_by_detalle($id_detalle);
                 RequerimientosData::update_requerimiento_estado((int) $requerimiento->id_requerimiento_almacen, $nuevo_estado);
             }
-
+            $descripcion = $estadoEnum->getGlosa($comentario_decision);
             RequerimientosDetalleData::insert_detalle_log(
                 $id_detalle,
                 $id_empleado,
-                $estadoEnum->getGlosa($comentario_decision),
+                $comentario_decision ?? $descripcion,
                 $estadoEnum->value
             );
 

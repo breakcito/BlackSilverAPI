@@ -44,6 +44,7 @@ class EntregasDetalleData
             raed.id_requerimiento_almacen_detalle,
             lot.correlativo,
             lot.fecha_vencimiento,
+            prod.nombre as producto,
             /* Cálculo de días restantes */
             CASE WHEN lot.fecha_vencimiento IS NOT NULL THEN DATEDIFF(
                 lot.fecha_vencimiento,
@@ -64,7 +65,9 @@ class EntregasDetalleData
             -- en base a la unidad de medida base del lote
             raed.cantidad_requerimiento,
             uni_lot.nombre as unidad_lote,
-            uni_lot.abreviatura as unidad_lote_abv
+            uni_lot.abreviatura as unidad_lote_abv,
+            uni_base.nombre as unidad_base,
+            uni_base.abreviatura as unidad_base_abv
         FROM
             requerimiento_almacen_entrega_detalle raed
         INNER JOIN lote_producto lot ON

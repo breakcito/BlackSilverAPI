@@ -68,7 +68,7 @@ class EntregaService
                 $id_empleado_recibe,
                 $correlativoData['correlativo'],
                 $correlativoData['numero_correlativo'],
-                strtotime($fecha_entrega), // Asumiendo que espera timestamp segun EntregasData anterior, pero revisemos
+                $fecha_entrega,
                 $observacion,
             );
 
