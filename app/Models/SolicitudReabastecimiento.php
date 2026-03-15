@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Database\Eloquent\Model;
 
 class SolicitudReabastecimiento extends Model
@@ -22,4 +23,14 @@ class SolicitudReabastecimiento extends Model
         'created_at',
         'estado',
     ];
+
+    // Helper que ayuda a calcular el siguiente correlativo - reseteo anual
+    public static function get_nuevo_correlativo(int $id_almacen_solicitante)
+    {
+        return CorrelativoHelper::generar(
+            'solicitud_reabastecimiento',
+            'SCR',
+            ["id_almacen_solicitante" => $id_almacen_solicitante]
+        );
+    }
 }

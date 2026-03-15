@@ -4,9 +4,9 @@ namespace App\Views\RequerimientosAlmacenAtencion\Data;
 
 use App\Models\SolicitudReabastecimiento;
 use App\Models\SolicitudReabastecimientoDetalle;
+use App\Models\SolicitudReabastecimientoDetalleLog;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitud;
-use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 
 class SolicitudesData
@@ -126,7 +126,7 @@ class SolicitudesData
         string $descripcion,
         string $estado
     ) {
-        return \App\Models\SolicitudReabastecimientoDetalleLog::insert([
+        return SolicitudReabastecimientoDetalleLog::insert([
             'id_solicitud_reabastecimiento_detalle' => $id_solicitud_detalle,
             'id_empleado' => $id_empleado,
             'descripcion' => $descripcion,
@@ -138,10 +138,6 @@ class SolicitudesData
     // Helper que ayuda a calcular el siguiente correlativo - reseteo anual
     public static function get_nuevo_correlativo(int $id_almacen_solicitante)
     {
-        return CorrelativoHelper::generar(
-            'solicitud_reabastecimiento',
-            'SCR',
-            ["id_almacen_solicitante" => $id_almacen_solicitante]
-        );
+        return SolicitudReabastecimiento::get_nuevo_correlativo($id_almacen_solicitante);
     }
 }

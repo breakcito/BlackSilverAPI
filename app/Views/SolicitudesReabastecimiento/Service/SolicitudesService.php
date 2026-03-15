@@ -1,14 +1,11 @@
 <?php
 
-namespace App\Views\SolicitudesReabastecimiento;
+namespace App\Views\SolicitudesReabastecimiento\Service;
 
 use App\Shared\Responses\ApiResponse;
 
 class SolicitudesService
 {
-    public function __construct(
-        private SolicitudesData $data,
-    ) {}
     
     // Obtener todas la lista de solicitudes en base al almacen solicitante
     // dentro de un periodo de tiempo (mes y año)

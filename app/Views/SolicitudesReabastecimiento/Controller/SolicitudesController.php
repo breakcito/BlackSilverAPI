@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Views\SolicitudesReabastecimiento;
+namespace App\Views\SolicitudesReabastecimiento\Controller;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
