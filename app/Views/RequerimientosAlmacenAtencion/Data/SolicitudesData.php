@@ -4,8 +4,8 @@ namespace App\Views\RequerimientosAlmacenAtencion\Data;
 
 use App\Models\SolicitudReabastecimiento;
 use App\Models\SolicitudReabastecimientoDetalle;
-use App\Shared\Enums\SolicitudReabastecimiento\SolicitudDetalleEstado;
-use App\Shared\Enums\SolicitudReabastecimiento\SolicitudEstado;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitud;
 use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 
@@ -89,7 +89,7 @@ class SolicitudesData
             'premura' => $premura,
             'fecha_entrega_requerida' => $fecha_entrega_requerida,
             'created_at' => now(),
-            'estado' => SolicitudEstado::Generada->value,
+            'estado' => EstadoSolicitud::Generada->value,
         ]);
     }
 
@@ -104,7 +104,7 @@ class SolicitudesData
         float $cantidad_solicitada_base,
         ?string $comentario = null
     ) {
-        return SolicitudReabastecimientoDetalle::insert([
+        return SolicitudReabastecimientoDetalle::insertGetId([
             'id_requerimiento_almacen_detalle' => $id_requerimiento_detalle,
             'id_solicitud_reabastecimiento' => $id_solicitud,
             'id_producto' => $id_producto,
@@ -115,7 +115,23 @@ class SolicitudesData
             'cantidad_entregada' => 0,
             'cantidad_entregada_base' => 0,
             'comentario' => $comentario,
-            'estado' => SolicitudDetalleEstado::EsperandoAprobacion->value,
+            'estado' => EstadoSolicitudDetalle::EsperandoAprobacion->value,
+        ]);
+    }
+
+    // Registrar en trazabilidad el cambio de estado de un detalle de solicitud de reabastecimiento
+    public static function insert_detalle_log(
+        int $id_solicitud_detalle,
+        int $id_empleado,
+        string $descripcion,
+        string $estado
+    ) {
+        return \App\Models\SolicitudReabastecimientoDetalleLog::insert([
+            'id_solicitud_reabastecimiento_detalle' => $id_solicitud_detalle,
+            'id_empleado' => $id_empleado,
+            'descripcion' => $descripcion,
+            'estado' => $estado,
+            'created_at' => now(),
         ]);
     }
 

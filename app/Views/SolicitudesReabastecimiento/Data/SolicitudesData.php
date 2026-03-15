@@ -5,8 +5,8 @@ namespace App\Views\SolicitudesReabastecimiento\Data;
 use App\Models\SolicitudReabastecimiento;
 use App\Models\SolicitudReabastecimientoDetalle;
 use App\Models\UnidadMedida;
-use App\Shared\Enums\SolicitudReabastecimiento\SolicitudDetalleEstado;
-use App\Shared\Enums\SolicitudReabastecimiento\SolicitudEstado;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitud;
 use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 
@@ -175,7 +175,7 @@ class SolicitudesData
             'premura' => $premura,
             'fecha_entrega_requerida' => $fecha_entrega_requerida,
             'created_at' => now(),
-            'estado' => SolicitudEstado::Generada->value,
+            'estado' => EstadoSolicitud::Generada->value,
         ]);
     }
 
@@ -199,7 +199,7 @@ class SolicitudesData
             'cantidad_entregada' => 0,
             'cantidad_entregada_base' => 0,
             'comentario' => $comentario,
-            'estado' => SolicitudDetalleEstado::EsperandoAprobacion->value,
+            'estado' => EstadoSolicitudDetalle::EsperandoAprobacion->value,
         ]);
     }
 

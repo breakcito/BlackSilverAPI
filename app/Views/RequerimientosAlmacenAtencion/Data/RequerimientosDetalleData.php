@@ -2,7 +2,6 @@
 
 namespace App\Views\RequerimientosAlmacenAtencion\Data;
 
-use App\Models\Labor;
 use App\Models\RequerimientoAlmacenDetalle;
 use App\Models\RequerimientoAlmacenDetalleLog;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +17,7 @@ class RequerimientosDetalleData
     ) {
         // 1. Definimos la base de la consulta (sin WHERE ni ORDER BY aún)
         $sql = '
-        SELECT
+        SELECT DISTINCT
             rad.id AS id_requerimiento_almacen_detalle,
             CONCAT(emp.nombre, " ", emp.apellido) AS empleado_atencion,
             pr.id AS id_producto,
@@ -36,6 +35,16 @@ class RequerimientosDetalleData
                     ROUND(((rad.cantidad_entregada_base / rad.cantidad_solicitada_base) * 100 ), 0)
                 ELSE 0 
             END AS porcentaje_progreso,
+            (
+                SELECT
+                    SUM(lot.stock_actual_base)
+                FROM
+                    lote_producto lot
+                WHERE
+                    lot.id_producto = pr.id AND 
+                    lot.estado = "Activo" AND 
+                    lot.id_almacen = alm.id
+            ) as stock_disponible,
             rad.comentario,
             rad.comentario_decision,
             rad.estado
@@ -45,6 +54,8 @@ class RequerimientosDetalleData
         LEFT JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
         LEFT JOIN unidad_medida uni ON uni.id = rad.id_unidad_medida
         LEFT JOIN empleado emp ON emp.id = rad.id_empleado_atencion
+        LEFT JOIN requerimiento_almacen req on req.id = rad.id_requerimiento_almacen
+        LEFT JOIN almacen alm on alm.id = req.id_almacen_destino
         WHERE 1=1
         ';
 

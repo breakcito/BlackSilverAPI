@@ -5,6 +5,7 @@ namespace App\Views\RequerimientosAlmacenAtencion\Service;
 use Illuminate\Support\Facades\DB;
 use App\Shared\Responses\ApiResponse;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Views\RequerimientosAlmacenAtencion\Data\RequerimientosData;
 use App\Views\RequerimientosAlmacenAtencion\Data\RequerimientosDetalleData;
 use App\Views\RequerimientosAlmacenAtencion\Data\SolicitudesData;
@@ -48,7 +49,7 @@ class SolicitudService
                 $id_rad = $item['id_requerimiento_almacen_detalle'];
 
                 // a) Crear el detalle de la solicitud
-                SolicitudesData::crear_detalle_solicitud(
+                $id_srd = SolicitudesData::crear_detalle_solicitud(
                     $id_rad,
                     $id_solicitud,
                     $item['id_producto'],
@@ -59,7 +60,15 @@ class SolicitudService
                     $item['comentario'] ?? null
                 );
 
-                // b) Actualizar estado en el detalle del requerimiento de almacén
+                // b) Registrar en trazabilidad DE LA SOLICITUD el inicio (Generada)
+                SolicitudesData::insert_detalle_log(
+                    (int)$id_srd,
+                    $id_empleado,
+                    "Solicitud generada a raíz del requerimiento de almacén",
+                    EstadoSolicitudDetalle::EsperandoAprobacion->value
+                );
+
+                // c) Actualizar estado en el detalle del requerimiento de almacén
                 RequerimientosDetalleData::update_detalle_estado(
                     $id_rad,
                     EstadoDetalleRequerimiento::ConsultaLogistica->value,

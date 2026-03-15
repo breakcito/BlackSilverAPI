@@ -2,7 +2,7 @@
 
 namespace App\Shared\Enums\SolicitudReabastecimiento;
 
-enum SolicitudEstado: string
+enum EstadoSolicitud: string
 {
     case Generada = 'Generada';
     case Cerrada = 'Cerrada';

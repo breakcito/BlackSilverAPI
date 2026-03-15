@@ -2,7 +2,7 @@
 
 namespace App\Shared\Enums\SolicitudReabastecimiento;
 
-enum SolicitudDetalleEstado: string
+enum EstadoSolicitudDetalle: string
 {
     case EsperandoAprobacion = "Esperando aprobación";
     case Rechazado = "Rechazado";
