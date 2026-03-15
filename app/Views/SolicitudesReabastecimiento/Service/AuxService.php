@@ -8,7 +8,7 @@ use App\Views\SolicitudesReabastecimiento\Data\AuxData;
 class AuxService
 {
 
-    public function get_catalogo(int $id_empleado)
+    public static function get_catalogo(int $id_empleado)
     {
         $almacenes = AuxData::get_almacenes($id_empleado);
         $productos = AuxData::get_productos();

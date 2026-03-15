@@ -3,22 +3,21 @@
 namespace App\Views\SolicitudesReabastecimiento\Data;
 
 use App\Models\SolicitudReabastecimiento;
-use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitud;
-use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 
 class SolicitudesData
 {
-    // Obtener una o toda la lista de solicitudes
+    // Obtener una o toda la lista de solicitudes hechas por un usuario
     public static function get_solicitudes(
         ?int $id_solicitud = null,
+        ?int $id_empleado = null,
         ?int $mes = null,
         ?int $yearcito = null,
     ) {
         $sql = "
         SELECT
-            sr.id AS id_solicitud_reabastecimiento,
+            sr.id AS id_solicitud,
             sr.id_almacen_solicitante,
             sr.id_requerimiento_almacen,
             req.correlativo as correlativo_requerimiento,
@@ -47,6 +46,12 @@ class SolicitudesData
             $sql .= ' AND sr.id = :id_solicitud_reabastecimiento';
             $params['id_solicitud_reabastecimiento'] = $id_solicitud;
             return DB::selectOne($sql, $params);
+        }
+
+        // Por empleado
+        if ($id_empleado !== null) {
+            $sql .= ' AND sr.id_empleado_solicitante = :id_empleado';
+            $params['id_empleado'] = $id_empleado;
         }
 
         // Por periodo

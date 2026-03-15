@@ -19,11 +19,13 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::post('/', 'crear_solicitud');
         // Obtener los detalles de una solicitud
         Route::get('/detalles-solicitud', 'get_detalles_solicitud');
+        // Obtener la trazabilidad de un detalle de solicitud
+        Route::get('/trazabilidad-detalle', 'get_trazabilidad_by_detalle');
 
         Route::prefix('catalogos')->controller(AuxController::class)->group(function () {
             // Obtener la lista de almacenes en las que el empleado
             // solicitante es reesponsable
-            
+
             // Obtener la lista de almacenes donde el empleado es responsable
             // productos y unidades de medida
             Route::get('/', 'get_catalogos');
@@ -32,5 +34,4 @@ Route::middleware('auth.jwt.custom')->group(function () {
             // Route::get('/unidades-medida', 'get_unidades_medida');
         });
     });
-
 });

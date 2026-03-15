@@ -2,17 +2,19 @@
 
 namespace App\Views\SolicitudesReabastecimiento\Service;
 
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Responses\ApiResponse;
+use App\Views\SolicitudesReabastecimiento\Data\SolicitudesData;
+use App\Views\SolicitudesReabastecimiento\Data\SolicitudesDetalleData;
 
 class SolicitudesService
 {
     
-    // Obtener todas la lista de solicitudes en base al almacen solicitante
-    // dentro de un periodo de tiempo (mes y año)
-    public function get_solicitudes(int $id_almacen_solicitante, int $mes, int $yearcito)
+    // Obtener todas la lista de solicitudes hechas por el empleado
+    public static function get_solicitudes(int $id_empleado, int $mes, int $yearcito)
     {
-        $data = $this->data->get_solicitudes(
-            id_almacen_solicitante: $id_almacen_solicitante,
+        $data = SolicitudesData::get_solicitudes(
+            id_empleado: $id_empleado,
             mes: $mes,
             yearcito: $yearcito
         );
@@ -21,21 +23,24 @@ class SolicitudesService
     }
 
     // Registrar una solicitud y sus detalles
-    public function crear_solicitud(
+    public static function crear_solicitud(
         int $id_almacen_solicitante,
         int $id_empleado_solicitante,
         string $premura,
         ?string $observacion,
         ?string $fecha_entrega_requerida,
-        array $detalles
+        // id_producto, id_unidad_medida, cantidad_solicitada, 
+        // contenido_por_presentacion, cantidad_solicitada_base, 
+        // comentario
+        array $detalles 
     ) {
         // 1. Generar Correlativo
-        $correlativoData = $this->data->get_nuevo_correlativo($id_almacen_solicitante);
+        $correlativoData = SolicitudesData::get_nuevo_correlativo($id_almacen_solicitante);
         $correlativo = $correlativoData['correlativo'];
         $numero_correlativo = $correlativoData['numero_correlativo'];
 
         // 2. Crear cabecera
-        $id_solicitud = $this->data->crear_solicitud(
+        $id_solicitud = SolicitudesData::crear_solicitud(
             $id_almacen_solicitante,
             $id_empleado_solicitante,
             $correlativo,
@@ -54,7 +59,7 @@ class SolicitudesService
             $cantidad_solicitada_base = $cantidad_solicitada * $contenido_por_presentacion;
             $comentario = $detalle['comentario'] ?? null;
 
-            $this->data->crear_detalle_solicitud(
+            $id_solicitud_detalle = SolicitudesDetalleData::crear_detalle_solicitud(
                 $id_solicitud,
                 $id_producto,
                 $id_unidad_medida,
@@ -63,38 +68,34 @@ class SolicitudesService
                 $cantidad_solicitada_base,
                 $comentario
             );
+
+            $estadoEnum = EstadoSolicitudDetalle::EsperandoAprobacion;
+            SolicitudesDetalleData::insert_detalle_log(
+                (int)$id_solicitud_detalle,
+                $id_empleado_solicitante,
+                $estadoEnum->getGlosa($comentario),
+                $estadoEnum->value
+            );
         }
 
         return ApiResponse::success(
-            $this->data->get_solicitud_by_id($id_solicitud),
+            SolicitudesData::get_solicitud_by_id($id_solicitud),
             'Solicitud generada correctamente'
         );
     }
 
     // Obtener los detalles de una solicitud
-    public function get_detalles_solicitud(int $id_solicitud)
+    public static function get_detalles_solicitud(int $id_solicitud)
     {
-        $detalles = $this->data->get_detalles_solicitud($id_solicitud);
-
+        $detalles = SolicitudesDetalleData::get_detalles_solicitud($id_solicitud);
         return ApiResponse::success($detalles);
     }
 
-    // Obtener toda la lista de productos junto a la abreviatura de su unidad de medida
-    public function get_productos()
-    {
-        return ApiResponse::success($this->data->get_productos());
-    }
 
-    // Obtener la lista de almacenes en las que el empleado
-    // solicitante es reesponsable
-    public function get_almacenes($id_empleado)
+    // Obtener la trazabildiad de un detalle
+    public static function get_trazabilidad_by_detalle(int $id_solicitud_detalle)
     {
-        return ApiResponse::success($this->data->get_almacenes($id_empleado));
-    }
-
-    // Listar unidades de medida.
-    public function get_unidades_medida()
-    {
-        return ApiResponse::success($this->data->get_unidades_medida());
+        $detalles = SolicitudesDetalleData::get_trazabilidad_by_detalle($id_solicitud_detalle);
+        return ApiResponse::success($detalles);
     }
 }
