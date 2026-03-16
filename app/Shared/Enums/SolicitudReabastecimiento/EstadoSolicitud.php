@@ -6,5 +6,6 @@ enum EstadoSolicitud: string
 {
     case Generada = 'Generada';
     case Cerrada = 'Cerrada';
+    case EnProceso = 'En Proceso';
     case Anulada = 'Anulada';
 }

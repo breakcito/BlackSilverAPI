@@ -21,6 +21,8 @@ class RequerimientosDetalleData
             rad.id AS id_requerimiento_almacen_detalle,
             CONCAT(emp.nombre, " ", emp.apellido) AS empleado_atencion,
             pr.id AS id_producto,
+            pr.id_unidad_medida_base,
+            rad.id_unidad_medida as id_unidad_medida_req, 
             pr.nombre AS producto,
             pr.stock_minimo,
             unib.abreviatura AS unidad_medida_base_abv,

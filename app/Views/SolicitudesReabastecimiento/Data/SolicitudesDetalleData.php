@@ -17,8 +17,10 @@ class SolicitudesDetalleData
         SELECT
             srd.id AS id_solicitud_detalle,
             pr.nombre as producto, -- manzana
-            uni_p.abreviatura as unidad_medida_base_abreviatura, -- kilo
-            uni_s.abreviatura as unidad_medida_solicitud_abreviatura, -- caja
+            pr.id_unidad_medida_base,
+            srd.id_unidad_medida as id_unidad_medida_sol,
+            uni_p.abreviatura as unidad_medida_base_abv, -- kilo
+            uni_s.abreviatura as unidad_medida_solicitud_abv, -- caja
             pr.es_fiscalizado,
             pr.es_perecible,
             srd.cantidad_solicitada, -- 2 cajas

@@ -15,7 +15,7 @@ class AuxData
         SELECT
             pr.id AS id_producto,
             pr.nombre,
-            uni.id_unidad_medida,
+            pr.id_unidad_medida_base,
             uni.nombre as unidad_medida_base,
             uni.abreviatura as unidad_medida_base_abv
         FROM
@@ -54,6 +54,7 @@ class AuxData
     public static function get_unidades_medida()
     {
         return UnidadMedida::select('id as id_unidad_medida', 'nombre', 'abreviatura')
-            ->orderBy('nombre', 'asc');
+            ->orderBy('nombre', 'asc')
+            ->get();
     }
 }

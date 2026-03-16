@@ -20,10 +20,6 @@ class RequerimientosController extends Controller
     public function get_requerimientos(Request $request): JsonResponse
     {
         $authUser = $request->attributes->get('auth_user');
-
-        $id_mina = $request->query('id_mina');
-        $id_almacen_destino = $request->query('id_almacen_destino');
-        $estado = $request->query('estado');
         $mes = $request->query('mes');
         $yearcito = $request->query('yearcito');
 

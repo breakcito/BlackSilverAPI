@@ -30,7 +30,7 @@ class SolicitudesService
         ?string $observacion,
         ?string $fecha_entrega_requerida,
         // id_producto, id_unidad_medida, cantidad_solicitada, 
-        // contenido_por_presentacion, cantidad_solicitada_base, 
+        // contenido_por_presentacion 
         // comentario
         array $detalles 
     ) {
@@ -52,8 +52,8 @@ class SolicitudesService
 
         // 3. Crear detalles
         foreach ($detalles as $detalle) {
-            $id_producto = $detalle['id_producto'];
-            $id_unidad_medida = $detalle['id_unidad_medida'];
+            $id_producto = (int) $detalle['id_producto'];
+            $id_unidad_medida = (int) $detalle['id_unidad_medida'];
             $cantidad_solicitada = (float) $detalle['cantidad_solicitada'];
             $contenido_por_presentacion = (float) $detalle['contenido_por_presentacion'];
             $cantidad_solicitada_base = $cantidad_solicitada * $contenido_por_presentacion;
