@@ -1,40 +1,41 @@
 <?php
 
-namespace App\Views\RequerimientosAlmacenAtencion\Data;
+namespace App\Views\SolicitudesReabastecimientoAtencion\Data;
 
 use App\Models\RequerimientoAlmacenDetalle;
 use App\Models\RequerimientoAlmacenDetalleLog;
+use App\Models\SolicitudReabastecimientoDetalle;
+use App\Models\SolicitudReabastecimientoDetalleLog;
 use Illuminate\Support\Facades\DB;
 
-class RequerimientosDetalleData
+class SolicitudesDetalleData
 {
 
     /**
-     * Obtiene los detalles de un requerimiento de almacen
+     * Obtiene los detalles de una solicitud de reabastecimiento
      */
-    public static function get_detalles_by_requerimiento(
-        int $id_requerimiento
+    public static function get_detalles_by_solicitud(
+        int $id_solicitud
     ) {
-        // 1. Definimos la base de la consulta (sin WHERE ni ORDER BY aún)
         $sql = '
         SELECT DISTINCT
-            rad.id AS id_requerimiento_almacen_detalle,
+            srd.id AS id_solicitud_detalle,
             CONCAT(emp.nombre, " ", emp.apellido) AS empleado_atencion,
             pr.id AS id_producto,
             pr.id_unidad_medida_base,
-            rad.id_unidad_medida as id_unidad_medida_req, 
+            srd.id_unidad_medida as id_unidad_medida_sol, 
             pr.nombre AS producto,
             pr.stock_minimo,
             unib.abreviatura AS unidad_medida_base_abv,
-            uni.abreviatura AS unidad_medida_abv,
-            rad.contenido_por_presentacion,
-            rad.cantidad_solicitada,
-            rad.cantidad_solicitada_base,
-            rad.cantidad_entregada,
-            rad.cantidad_entregada_base,
+            uni.abreviatura AS unidad_medida_sol_abv,
+            srd.contenido_por_presentacion,
+            srd.cantidad_solicitada,
+            srd.cantidad_solicitada_base,
+            srd.cantidad_entregada,
+            srd.cantidad_entregada_base,
             CASE 
-                WHEN rad.cantidad_solicitada_base > 0 THEN 
-                    ROUND(((rad.cantidad_entregada_base / rad.cantidad_solicitada_base) * 100 ), 0)
+                WHEN srd.cantidad_solicitada_base > 0 THEN 
+                    ROUND(((srd.cantidad_entregada_base / srd.cantidad_solicitada_base) * 100 ), 0)
                 ELSE 0 
             END AS porcentaje_progreso,
             (
@@ -47,23 +48,23 @@ class RequerimientosDetalleData
                     lot.estado = "Activo" AND 
                     lot.id_almacen = alm.id
             ) as stock_disponible,
-            rad.comentario,
-            rad.comentario_decision,
-            rad.estado
+            srd.comentario,
+            srd.comentario_decision,
+            srd.estado
         FROM
-            requerimiento_almacen_detalle rad
-        INNER JOIN producto pr ON pr.id = rad.id_producto
+            solicitud_reabastecimiento_detalle srd
+        INNER JOIN producto pr ON pr.id = srd.id_producto
         LEFT JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
-        LEFT JOIN unidad_medida uni ON uni.id = rad.id_unidad_medida
-        LEFT JOIN empleado emp ON emp.id = rad.id_empleado_atencion
-        LEFT JOIN requerimiento_almacen req on req.id = rad.id_requerimiento_almacen
-        LEFT JOIN almacen alm on alm.id = req.id_almacen_destino
+        LEFT JOIN unidad_medida uni ON uni.id = srd.id_unidad_medida
+        LEFT JOIN empleado emp ON emp.id = srd.id_empleado_atencion
+        LEFT JOIN solicitud_reabastecimiento src on src.id = srd.id_solicitud_reabastecimiento
+        LEFT JOIN almacen alm on alm.id = src.id_almacen_solicitante
         WHERE 1=1
         ';
 
         $params = [];
-        $sql .= ' AND rad.id_requerimiento_almacen = :id_requerimiento';
-        $params['id_requerimiento'] = $id_requerimiento;
+        $sql .= ' AND srd.id_solicitud_reabastecimiento = :id_solicitud';
+        $params['id_solicitud'] = $id_solicitud;
 
         $sql .= ' ORDER BY pr.nombre';
 
@@ -77,23 +78,23 @@ class RequerimientosDetalleData
     {
         return DB::select('
             SELECT DISTINCT
-                trz.id AS id_requerimiento_almacen_detalle_log,
+                srdl.id AS id_solicitud_detalle_log,
                 CASE
-                    WHEN trz.id_empleado IS NOT NULL THEN (
+                    WHEN srdl.id_empleado IS NOT NULL THEN (
                         SELECT CONCAT(emp.nombre, " ", emp.apellido)
                         FROM empleado emp
-                        WHERE emp.id = trz.id_empleado
+                        WHERE emp.id = srdl.id_empleado
                     )
                     ELSE NULL
                 END AS empleado,
-                trz.descripcion,
-                trz.created_at,
-                trz.estado
+                srdl.descripcion,
+                srdl.created_at,
+                srdl.estado
             FROM
-                requerimiento_almacen_detalle_log trz
+                solicitud_reabastecimiento_detalle_log srdl
             WHERE
-                trz.id_requerimiento_almacen_detalle = :id_detalle
-            ORDER BY trz.created_at
+                srdl.id_solicitud_reabastecimiento_detalle = :id_detalle
+            ORDER BY srdl.created_at
         ', ["id_detalle" => $id_detalle]);
     }
 
@@ -102,8 +103,8 @@ class RequerimientosDetalleData
      */
     public static function insert_detalle_log(int $id_detalle, int $id_empleado, string $descripcion, string $estado)
     {
-        return RequerimientoAlmacenDetalleLog::insertGetId([
-            'id_requerimiento_almacen_detalle' => $id_detalle,
+        return SolicitudReabastecimientoDetalleLog::insertGetId([
+            'id_solicitud_reabastecimiento_detalle' => $id_detalle,
             'id_empleado' => $id_empleado,
             'descripcion' => $descripcion,
             'estado' => $estado,
@@ -125,7 +126,7 @@ class RequerimientosDetalleData
             $updateData['comentario_decision'] = $comentario;
         }
 
-        return RequerimientoAlmacenDetalle::where('id', $id_detalle)
+        return SolicitudReabastecimientoDetalle::where('id', $id_detalle)
             ->update($updateData);
     }
 
@@ -133,26 +134,21 @@ class RequerimientosDetalleData
     /**
      * Incrementar cantidades entregadas en el detalle del requerimiento
      */
-    public static function increment_detalle_entregado(int $id_detalle, float $cantidad_req, float $cantidad_base)
+    public static function increment_detalle_entregado(int $id_detalle, float $cantidad_sol, float $cantidad_base)
     {
-        return RequerimientoAlmacenDetalle::where('id', $id_detalle)
+        return SolicitudReabastecimientoDetalle::where('id', $id_detalle)
             ->incrementEach([
-                'cantidad_entregada' => $cantidad_req,
+                'cantidad_entregada' => $cantidad_sol,
                 'cantidad_entregada_base' => $cantidad_base
             ]);
     }
 
 
-    public static function get_id_requerimiento_by_detalle(int $id_detalle)
+    public static function get_id_solicitud_by_detalle(int $id_detalle)
     {
-        return DB::selectOne('
-            SELECT
-                rad.id_requerimiento_almacen
-            FROM
-                requerimiento_almacen_detalle rad
-            WHERE
-                rad.id = :id_detalle
-        ', ["id_detalle" => $id_detalle]);
+        return SolicitudReabastecimientoDetalle::select('id_solicitud_reabastecimiento')
+            ->where('id', $id_detalle)
+            ->first();
     }
 
     /**
@@ -160,7 +156,7 @@ class RequerimientosDetalleData
      */
     public static function get_detalle_by_id(int $id_detalle)
     {
-        return RequerimientoAlmacenDetalle::select('cantidad_entregada_base', 'cantidad_solicitada_base')
+        return SolicitudReabastecimientoDetalle::select('cantidad_entregada_base', 'cantidad_solicitada_base')
             ->where('id', $id_detalle)
             ->first();
     }
