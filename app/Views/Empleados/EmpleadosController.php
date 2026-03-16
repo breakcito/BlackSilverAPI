@@ -69,7 +69,7 @@ class EmpleadosController
             'carnet_extranjeria' => 'nullable|string|max:20',
             'pasaporte' => 'nullable|string|max:20',
             'fecha_nacimiento' => 'nullable|date',
-            'path_foto' => 'nullable|string',
+            'path_foto' => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -79,19 +79,28 @@ class EmpleadosController
         $authUser = $request->attributes->get('auth_user');
         $id_usuario = $authUser->id_usuario;
 
-        $result = EmpleadosService::crear_empleado(
-            $id_usuario,
-            $request->integer('id_empresa'),
-            $request->integer('id_cargo'),
-            $request->string('nombre'),
-            $request->string('apellido'),
-            $request->input('dni') ?: null,
-            $request->input('ruc') ?: null,
-            $request->input('carnet_extranjeria') ?: null,
-            $request->input('pasaporte') ?: null,
-            $request->input('fecha_nacimiento') ?: null,
-            $request->input('path_foto') ?: null
-        );
+        $result = EmpleadosService::crear_empleado($id_usuario, $request->all());
+
+        return response()->json($result);
+    }
+
+    /**
+     * Actualizar foto de empleado
+     */
+    public function actualizar_foto(Request $request, int $id_empleado): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'path_foto' => 'required|image|mimes:jpg,png,jpeg|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $authUser = $request->attributes->get('auth_user');
+        $id_usuario = $authUser->id_usuario;
+
+        $result = EmpleadosService::actualizar_foto($id_usuario, $id_empleado, $request->file('path_foto'));
 
         return response()->json($result);
     }
