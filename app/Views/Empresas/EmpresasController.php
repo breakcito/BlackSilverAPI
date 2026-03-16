@@ -42,7 +42,13 @@ class EmpresasController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = EmpresasService::crear_empresa($request->all());
+        $result = EmpresasService::crear_empresa(
+            ruc: $request->input('ruc'),
+            razon_social: $request->input('razon_social'),
+            nombre_comercial: $request->input('nombre_comercial'),
+            abreviatura: $request->input('abreviatura'),
+            logo: $request->file('path_logo')
+        );
 
         return response()->json($result);
     }

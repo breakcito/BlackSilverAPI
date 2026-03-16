@@ -79,7 +79,19 @@ class EmpleadosController
         $authUser = $request->attributes->get('auth_user');
         $id_usuario = $authUser->id_usuario;
 
-        $result = EmpleadosService::crear_empleado($id_usuario, $request->all());
+        $result = EmpleadosService::crear_empleado(
+            id_usuario: $id_usuario,
+            id_empresa: (int) $request->input('id_empresa'),
+            id_cargo: (int) $request->input('id_cargo'),
+            nombre: (string) $request->input('nombre'),
+            apellido: (string) $request->input('apellido'),
+            dni: $request->input('dni'),
+            ruc: $request->input('ruc'),
+            carnet_extranjeria: $request->input('carnet_extranjeria'),
+            pasaporte: $request->input('pasaporte'),
+            fecha_nacimiento: $request->input('fecha_nacimiento'),
+            foto: $request->file('path_foto')
+        );
 
         return response()->json($result);
     }

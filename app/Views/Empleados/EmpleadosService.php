@@ -5,6 +5,7 @@ namespace App\Views\Empleados;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Views\Empleados\Data\EmpleadosData;
+use Illuminate\Http\UploadedFile;
 
 class EmpleadosService
 {
@@ -52,33 +53,42 @@ class EmpleadosService
     /**
      * Registrar un nuevo empleado
      */
-    public static function crear_empleado(int $id_usuario, array $data)
-    {
-        $dni = $data['dni'] ?? null;
+    public static function crear_empleado(
+        int $id_usuario,
+        int $id_empresa,
+        int $id_cargo,
+        string $nombre,
+        string $apellido,
+        ?string $dni = null,
+        ?string $ruc = null,
+        ?string $carnet_extranjeria = null,
+        ?string $pasaporte = null,
+        ?string $fecha_nacimiento = null,
+        ?UploadedFile $foto = null
+    ) {
         if ($dni && EmpleadosData::existe_dni($dni)) {
             return ApiResponse::error('El DNI ingresado ya se encuentra registrado.');
         }
 
-        // Si viene un archivo en path_foto, lo procesamos
-        $request = request();
-        if ($request->hasFile('path_foto')) {
-            $archivos = ArchivoHelper::guardarArchivos('fotos-empleados', [$request->file('path_foto')]);
+        $path_foto = null;
+        if ($foto && $foto->isValid()) {
+            $archivos = ArchivoHelper::guardarArchivos('fotos-empleados', [$foto]);
             if (!empty($archivos)) {
-                $data['path_foto'] = $archivos[0]['relative_path'];
+                $path_foto = $archivos[0]['relative_path'];
             }
         }
 
         $id = EmpleadosData::crear_empleado(
-            (int) $data['id_empresa'],
-            (int) $data['id_cargo'],
-            (string) $data['nombre'],
-            (string) $data['apellido'],
-            $data['dni'] ?? null,
-            $data['ruc'] ?? null,
-            $data['carnet_extranjeria'] ?? null,
-            $data['pasaporte'] ?? null,
-            $data['fecha_nacimiento'] ?? null,
-            $data['path_foto'] ?? null
+            $id_empresa,
+            $id_cargo,
+            $nombre,
+            $apellido,
+            $dni,
+            $ruc,
+            $carnet_extranjeria,
+            $pasaporte,
+            $fecha_nacimiento,
+            $path_foto
         );
 
         $nuevoEmpleado = EmpleadosData::get_empleado_by_id($id_usuario, $id);
@@ -95,7 +105,7 @@ class EmpleadosService
     /**
      * Actualizar la foto de un empleado
      */
-    public static function actualizar_foto(int $id_usuario, int $id_empleado, $file)
+    public static function actualizar_foto(int $id_usuario, int $id_empleado, ?UploadedFile $file)
     {
         $archivos = ArchivoHelper::guardarArchivos('fotos-empleados', [$file]);
         if (empty($archivos)) {
