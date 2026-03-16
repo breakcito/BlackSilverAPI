@@ -28,7 +28,7 @@ enum EstadoDetalleRequerimiento: string
             self::EsperandoAprobacion => 'Esperando aprobación',
             self::Rechazado => 'Lo sentimos, tu producto fue rechazado por el almacén',
             self::Aprobado => 'El encargado del almacén aprobó el despacho para este producto',
-            self::ConsultaLogistica => 'La decisión ha pasado a manos del área de Logística',
+            self::ConsultaLogistica => 'La decisión ha pasado a manos del área de Logística con la solicitud N° ' . $dinamico,
             self::RechazadoLogistica => 'Lo sentimos, tu producto fue rechazado por el área de Logística',
             self::AprobadoLogistica => 'El área de Logística aprobó el despacho para este producto',
             self::EnDespacho => 'El almacén está procesando tu pedido',
