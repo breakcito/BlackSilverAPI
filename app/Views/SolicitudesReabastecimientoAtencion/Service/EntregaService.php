@@ -2,13 +2,11 @@
 
 namespace App\Views\SolicitudesReabastecimientoAtencion\Service;
 
-use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Responses\ApiResponse;
 use App\Views\SolicitudesReabastecimientoAtencion\Data\AuxData;
 use App\Views\SolicitudesReabastecimientoAtencion\Data\EntregasData;
 use App\Views\SolicitudesReabastecimientoAtencion\Data\EntregasDetalleData;
-use App\Views\SolicitudesReabastecimientoAtencion\Data\SolicitudesData;
 use App\Views\SolicitudesReabastecimientoAtencion\Data\SolicitudesDetalleData;
 use Illuminate\Support\Facades\DB;
 
@@ -18,7 +16,7 @@ class EntregaService
     /**
      * Obtiene el historial de entregas de una solicitud y sus detalles.
      */
-    public function obtener_historial_entregas(int $id_solicitud)
+    public static function obtener_historial_entregas(int $id_solicitud)
     {
         $data = EntregasData::get_historial_entregas(id_solicitud: $id_solicitud);
 
@@ -32,7 +30,7 @@ class EntregaService
     /**
      * Registra una entrega física de materiales.
      */
-    public function registrar_entrega(
+    public static function registrar_entrega(
         int $id_almacen_entrega,
         int $id_empleado_entrega,
         int $id_solicitud,

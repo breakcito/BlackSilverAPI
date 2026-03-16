@@ -15,7 +15,7 @@ class AtencionService
     /**
      * Obtiene las solicitudes por almacén y periodo
      */
-    public function get_solicitudes(int $id_almacen, string $mes, string $yearcito)
+    public static function get_solicitudes(int $id_almacen, string $mes, string $yearcito)
     {
         $data = SolicitudesData::get_resumen_solicitudes($id_almacen, $mes, $yearcito);
         return ApiResponse::success($data);
@@ -24,7 +24,7 @@ class AtencionService
     /**
      * Obtiene los detalles de una solicitud
      */
-    public function get_detalles_solicitud(int $id_solicitud)
+    public static function get_detalles_solicitud(int $id_solicitud)
     {
         $data = SolicitudesDetalleData::get_detalles_by_solicitud($id_solicitud);
         return ApiResponse::success($data);
@@ -33,7 +33,7 @@ class AtencionService
     /**
      * Cambia el estado de un producto (Aprobado/Rechazado) y registra en Timeline.
      */
-    public function cambiar_estado_detalle(int $id_empleado, int $id_detalle, string $nuevo_estado, ?string $comentario_decision = null)
+    public static function update_detalle_estado(int $id_empleado, int $id_detalle, string $nuevo_estado, ?string $comentario_decision = null)
     {
         return DB::transaction(function () use ($id_empleado, $id_detalle, $nuevo_estado, $comentario_decision) {
 
@@ -94,7 +94,7 @@ class AtencionService
     /**
      * Obtiene la trazabilidad de un detalle de solicitud
      */
-    public function obtener_trazabilidad(int $id_detalle)
+    public static function get_trazabilidad(int $id_detalle)
     {
         $data = SolicitudesDetalleData::get_detalle_logs($id_detalle);
         return ApiResponse::success($data);
