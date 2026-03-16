@@ -30,7 +30,7 @@ class EmpresasController extends Controller
             'razon_social' => 'required|string|max:128',
             'nombre_comercial' => 'required|string|max:128',
             'abreviatura' => 'nullable|string|max:24',
-            'path_logo' => 'nullable|string|max:256',
+            'path_logo' => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
         ], [
             'ruc.required' => 'El RUC es obligatorio',
             'ruc.size' => 'El RUC debe tener 11 dígitos',
