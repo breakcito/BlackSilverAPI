@@ -46,4 +46,22 @@ class EmpresasController extends Controller
 
         return response()->json($result);
     }
+
+    /**
+     * Actualizar logo de empresa
+     */
+    public function actualizar_logo(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'path_logo' => 'required|image|mimes:jpg,png,jpeg|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $result = EmpresasService::actualizar_logo($id, $request->file('path_logo'));
+
+        return response()->json($result);
+    }
 }

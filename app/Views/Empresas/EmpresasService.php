@@ -53,4 +53,25 @@ class EmpresasService
 
         return ApiResponse::success($nuevaEmpresa, 'Empresa registrada correctamente');
     }
+
+    /**
+     * Actualizar el logo de una empresa
+     */
+    public static function actualizar_logo(int $id_empresa, $file)
+    {
+        $archivos = ArchivoHelper::guardarArchivos('logos-empresas', [$file]);
+        if (empty($archivos)) {
+            return ApiResponse::error('No se pudo procesar la imagen.');
+        }
+
+        $path_logo = $archivos[0]['relative_path'];
+        EmpresasData::actualizar_logo($id_empresa, $path_logo);
+
+        $empresa = EmpresasData::get_empresa_by_id($id_empresa);
+        if ($empresa && $empresa->path_logo) {
+            $empresa->path_logo = asset('storage/' . $empresa->path_logo);
+        }
+
+        return ApiResponse::success($empresa, 'Logo de empresa actualizado correctamente');
+    }
 }

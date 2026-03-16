@@ -68,4 +68,12 @@ class EmpresasData
     {
         return Empresa::where('ruc', $ruc)->exists();
     }
+
+    /**
+     * Actualizar la ruta del logo de una empresa
+     */
+    public static function actualizar_logo(int $id_empresa, ?string $path_logo): bool
+    {
+        return (bool) Empresa::where('id', $id_empresa)->update(['path_logo' => $path_logo]);
+    }
 }
