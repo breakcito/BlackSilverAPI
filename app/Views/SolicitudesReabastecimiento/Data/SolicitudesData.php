@@ -20,6 +20,7 @@ class SolicitudesData
             sr.id AS id_solicitud,
             sr.id_almacen_solicitante,
             sr.id_requerimiento_almacen,
+            sr.observacion,
             req.correlativo as correlativo_requerimiento,
             alm.nombre AS almacen_solicitante,
             CONCAT(em.nombre, ' ', em.apellido) AS empleado_solicitante,

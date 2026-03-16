@@ -44,6 +44,7 @@ class SolicitudService
                 $fecha_entrega_requerida
             );
 
+            $correlativo_requerimiento = RequerimientosData::get_correlativo_by_requerimiento($id_requerimiento);
             // 4. Procesar los detalles
             foreach ($detalles as $item) {
                 $id_rad = $item['id_requerimiento_almacen_detalle'];
@@ -64,7 +65,7 @@ class SolicitudService
                 SolicitudesData::insert_detalle_log(
                     (int)$id_srd,
                     $id_empleado,
-                    "Solicitud generada a raíz del requerimiento de almacén",
+                    "Solicitud generada a partir del requerimiento de almacén N° {$correlativo_requerimiento->correlativo}",
                     EstadoSolicitudDetalle::EsperandoAprobacion->value
                 );
 

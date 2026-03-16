@@ -81,4 +81,11 @@ class RequerimientosData
                 'estado' => $estado
             ]);
     }
+
+    public static function get_correlativo_by_requerimiento(int $id_requerimiento)
+    {
+        return RequerimientoAlmacen::select('correlativo')
+            ->where('id', $id_requerimiento)
+            ->first();
+    }
 }
