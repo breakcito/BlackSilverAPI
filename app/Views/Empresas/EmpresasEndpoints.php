@@ -17,5 +17,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
         // Crear una nueva empresa
         Route::post('/', 'crear_empresa');
+
+        // Actualizar logo de empresa
+        Route::post('{id}/logo', 'actualizar_logo');
     });
 });

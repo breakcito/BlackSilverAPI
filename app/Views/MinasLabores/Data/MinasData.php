@@ -66,6 +66,12 @@ class MinasData
                 WHERE
                     emi.id_mina = mn.id
             ) as cantidad_empresas_ejecutoras,
+            (
+                SELECT GROUP_CONCAT(a.nombre SEPARATOR ", ")
+                FROM almacen_mina am
+                JOIN almacen a ON a.id = am.id_almacen
+                WHERE am.id_mina = mn.id
+            ) as almacenes_suministradores,
             mn.estado
         FROM
             mina mn

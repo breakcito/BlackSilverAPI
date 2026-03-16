@@ -50,14 +50,14 @@ class EmpresasData
     /**
      * Crear una nueva empresa
      */
-    public static function crear_empresa(array $data)
+    public static function crear_empresa(string $ruc, string $razon_social, string $nombre_comercial, ?string $abreviatura = null, ?string $path_logo = null)
     {
         return Empresa::insertGetId([
-            'ruc' => $data['ruc'],
-            'razon_social' => $data['razon_social'],
-            'nombre_comercial' => $data['nombre_comercial'],
-            'abreviatura' => $data['abreviatura'] ?? null,
-            'path_logo' => $data['path_logo'] ?? null,
+            'ruc' => $ruc,
+            'razon_social' => $razon_social,
+            'nombre_comercial' => $nombre_comercial,
+            'abreviatura' => $abreviatura,
+            'path_logo' => $path_logo,
         ]);
     }
 
@@ -67,5 +67,13 @@ class EmpresasData
     public static function verificar_ruc_duplicado(string $ruc)
     {
         return Empresa::where('ruc', $ruc)->exists();
+    }
+
+    /**
+     * Actualizar la ruta del logo de una empresa
+     */
+    public static function actualizar_logo(int $id_empresa, ?string $path_logo): bool
+    {
+        return (bool) Empresa::where('id', $id_empresa)->update(['path_logo' => $path_logo]);
     }
 }

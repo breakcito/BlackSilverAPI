@@ -39,7 +39,7 @@ class ArchivoHelper
 
             if ($pathRelativo) {
                 $resultados[] = [
-                    'url' => Storage::disk('public')->url($pathRelativo),
+                    'url' => asset('storage/' . $pathRelativo),
                     'relative_path' => $pathRelativo,
                     'filename' => $nombreLimpio,
                     'extension' => $extension,
