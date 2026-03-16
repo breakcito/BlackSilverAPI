@@ -36,12 +36,17 @@ class EmpleadosData
         INNER JOIN empresa emp ON emp.id = e.id_empresa
         INNER JOIN cargo car ON car.id = e.id_cargo
         INNER JOIN area a ON a.id = car.id_area
-        INNER JOIN usuario_empresa usu ON usu.id_empresa = emp.id
-        WHERE
-            usu.id_usuario = :id_usuario
+        WHERE (
+            e.id_empresa IN (SELECT id_empresa FROM usuario_empresa WHERE id_usuario = :id_usuario)
+            OR 
+            e.id_empresa = (SELECT emp_own.id_empresa FROM usuario u_own INNER JOIN empleado emp_own ON emp_own.id = u_own.id_empleado WHERE u_own.id = :id_usuario_own)
+        )
         ';
 
-        $params = ['id_usuario' => $id_usuario];
+        $params = [
+            'id_usuario' => $id_usuario,
+            'id_usuario_own' => $id_usuario
+        ];
 
         if ($id_empresa) {
             $sql .= ' AND e.id_empresa = :id_empresa';
@@ -116,7 +121,18 @@ class EmpleadosData
             FROM empresa e
             INNER JOIN usuario_empresa ue ON ue.id_empresa = e.id
             WHERE ue.id_usuario = :id_usuario
-        ', ['id_usuario' => $id_usuario]);
+
+            UNION
+
+            SELECT e.id AS id_empresa, e.nombre_comercial, e.razon_social
+            FROM empresa e
+            INNER JOIN empleado emp ON emp.id_empresa = e.id
+            INNER JOIN usuario u ON u.id_empleado = emp.id
+            WHERE u.id = :id_usuario2
+        ', [
+            'id_usuario' => $id_usuario,
+            'id_usuario2' => $id_usuario
+        ]);
     }
 
     /**
@@ -138,5 +154,12 @@ class EmpleadosData
             WHERE id_area = :id_area AND estado = "Activo" 
             ORDER BY nombre ASC
         ', ['id_area' => $id_area]);
+    }
+    /**
+     * Actualizar la ruta de la foto de un empleado
+     */
+    public static function actualizar_foto(int $id_empleado, ?string $path_foto): bool
+    {
+        return (bool) Empleado::where('id', $id_empleado)->update(['path_foto' => $path_foto]);
     }
 }

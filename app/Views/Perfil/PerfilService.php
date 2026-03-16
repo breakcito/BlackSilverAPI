@@ -22,6 +22,10 @@ class PerfilService
             return ApiResponse::error('No se pudo encontrar la información del perfil.');
         }
 
+        if ($info->path_foto) {
+            $info->path_foto = asset('storage/' . $info->path_foto);
+        }
+
         return ApiResponse::success($info);
     }
 }

@@ -13,6 +13,7 @@ class PerfilData
     {
         $sql = '
         SELECT 
+            usu.id as id_usuario,
             usu.username,
             emp.nombre, 
             emp.apellido, 
