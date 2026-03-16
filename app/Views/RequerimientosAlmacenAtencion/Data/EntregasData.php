@@ -3,6 +3,7 @@
 namespace App\Views\RequerimientosAlmacenAtencion\Data;
 
 use App\Models\RequerimientoAlmacenEntrega;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoEntrega;
 use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 
@@ -104,7 +105,7 @@ class EntregasData
             'fecha_hora_entrega' => $fecha_hora_entrega,
             'observacion' => $observacion,
             'created_at' => now(),
-            'estado' => 'Procesado'
+            'estado' => EstadoEntrega::Procesada->value
         ]);
     }
 }
