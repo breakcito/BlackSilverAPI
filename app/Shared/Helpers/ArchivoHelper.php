@@ -14,6 +14,8 @@ class ArchivoHelper
      * @param  string  $carpetaDestino  Carpeta dentro de storage/app/public (ej. "pagos").
      * @param  UploadedFile[]  $archivos  Archivos recibidos en el request.
      * @return array Retorna: { url (URL pública), relative_path (ruta para DB), filename, extension }
+     * 
+     * Comando de ayuda: php artisan storage:link
      */
     public static function guardarArchivos(string $carpetaDestino, array $archivos): array
     {
