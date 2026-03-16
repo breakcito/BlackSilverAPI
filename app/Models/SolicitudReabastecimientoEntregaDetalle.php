@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class SolicitudReabastecimientoEntregaDetalle extends Model
 {
-    protected $table = 'reabastecimiento_entrega_detalle';
+    protected $table = 'solicitud_reabastecimiento_entrega_detalle';
 
     public $timestamps = false;
 

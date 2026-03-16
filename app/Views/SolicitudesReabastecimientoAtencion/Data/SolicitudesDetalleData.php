@@ -52,11 +52,11 @@ class SolicitudesDetalleData
         FROM
             solicitud_reabastecimiento_detalle srd
         INNER JOIN producto pr ON pr.id = srd.id_producto
-        LEFT JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
-        LEFT JOIN unidad_medida uni ON uni.id = srd.id_unidad_medida
+        INNER JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
+        INNER JOIN unidad_medida uni ON uni.id = srd.id_unidad_medida
         LEFT JOIN empleado emp ON emp.id = srd.id_empleado_atencion
-        LEFT JOIN solicitud_reabastecimiento src on src.id = srd.id_solicitud_reabastecimiento
-        LEFT JOIN almacen alm on alm.id = src.id_almacen_solicitante
+        INNER JOIN solicitud_reabastecimiento src on src.id = srd.id_solicitud_reabastecimiento
+        INNER JOIN almacen alm on alm.id = src.id_almacen_solicitante
         WHERE 1=1
         ';
 

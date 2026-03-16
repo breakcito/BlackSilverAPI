@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Views/Cuentas/CuentasEndpoints.php');
                 require base_path('app/Views/Perfil/PerfilEndpoints.php');
                 require base_path('app/Views/SolicitudesReabastecimiento/SolicitudesEndpoints.php');
+                require base_path('app/Views/SolicitudesReabastecimientoAtencion/SolicitudesAtencionEndpoints.php');
             });
         },
     )

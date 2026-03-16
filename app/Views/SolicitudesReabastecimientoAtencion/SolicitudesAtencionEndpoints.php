@@ -23,7 +23,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
         });
 
         Route::prefix('auxiliares')->controller(AuxController::class)->group(function () {
-            Route::get('/almacenes', 'get_almacenes'); // listar todos los almacenes para elegir uno de ellos
+            Route::get('/almacenes', 'get_almacenes'); // listar almacenes principales o secundarios
             Route::get('/empleados', 'get_empleados'); // listar empleados para recibir material
             Route::get('/lotes', 'get_lotes_disponibles'); // listar lotes disponibles de un almacen
         });

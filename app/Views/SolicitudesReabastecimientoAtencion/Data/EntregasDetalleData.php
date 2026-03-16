@@ -71,7 +71,7 @@ class EntregasDetalleData
             uni_base.nombre as unidad_base,
             uni_base.abreviatura as unidad_base_abv
         FROM
-            reabastecimiento_entrega_detalle red
+            solicitud_reabastecimiento_entrega_detalle red
         INNER JOIN lote_producto lot ON
             lot.id = red.id_lote_producto
         INNER JOIN solicitud_reabastecimiento_detalle srd ON

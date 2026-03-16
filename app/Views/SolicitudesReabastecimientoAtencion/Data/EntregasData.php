@@ -29,7 +29,7 @@ class EntregasData
             ent.created_at,
             ent.estado
         FROM
-            reabastecimiento_entrega ent
+            solicitud_reabastecimiento_entrega ent
         INNER JOIN almacen alm on alm.id = ent.id_almacen_entrega
         LEFT JOIN empleado emp_ent ON
             emp_ent.id = ent.id_empleado_entrega
@@ -72,7 +72,7 @@ class EntregasData
     {
         return CorrelativoHelper::generar(
             prefijo: 'ENT',
-            tabla: 'reabastecimiento_entrega',
+            tabla: 'solicitud_reabastecimiento_entrega',
             filtros: ['id_almacen_entrega' => $id_almacen_entrega],
         );
     }
