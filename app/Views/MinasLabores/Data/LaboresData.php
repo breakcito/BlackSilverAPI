@@ -86,13 +86,18 @@ class LaboresData
         return TipoLabor::where('id', $id_tipo_labor)->value('codigo') ?? 'LAB';
     }
 
-    public static function get_nuevo_correlativo(int $id_mina, string $prefijo)
+    public static function get_nuevo_correlativo(int $id_mina, int $id_empresa, int $id_tipo_labor, string $prefijo)
     {
         return CorrelativoHelper::generar(
             tabla: 'labor',
             prefijo: $prefijo,
+            filtros: [
+                'id_mina' => $id_mina,
+                'id_empresa' => $id_empresa,
+                'id_tipo_labor' => $id_tipo_labor
+            ],
             longitudCeros: 3,
-            reseteo: Periodo::Ninguno
+            reseteo: Periodo::Anual
         );
     }
 
