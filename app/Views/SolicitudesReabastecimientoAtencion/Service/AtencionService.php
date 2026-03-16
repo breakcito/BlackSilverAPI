@@ -3,66 +3,93 @@
 namespace App\Views\SolicitudesReabastecimientoAtencion\Service;
 
 use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Responses\ApiResponse;
-use App\Views\RequerimientosAlmacenAtencion\Data\AuxData;
-use App\Views\RequerimientosAlmacenAtencion\Data\RequerimientosData;
-use App\Views\RequerimientosAlmacenAtencion\Data\RequerimientosDetalleData;
+use App\Views\SolicitudesReabastecimientoAtencion\Data\AuxData;
+use App\Views\SolicitudesReabastecimientoAtencion\Data\SolicitudesData;
+use App\Views\SolicitudesReabastecimientoAtencion\Data\SolicitudesDetalleData;
 use Illuminate\Support\Facades\DB;
 
 class AtencionService
 {
     /**
-     * Obtiene los almacenes donde el empleado es responsable
+     * Obtiene los almacenes 
      */
-    public function get_almacenes_autorizados(int $id_empleado)
+    public function get_almacenes(bool $es_principal = false)
     {
-        $data = AuxData::get_almacenes($id_empleado);
+        $data = AuxData::get_almacenes($es_principal ? 1 : 0);
         return ApiResponse::success($data);
     }
 
     /**
-     * Obtiene los requerimientos por almacén y periodo
+     * Obtiene las solicitudes por almacén y periodo
      */
-    public function get_requerimientos(int $id_almacen, string $mes, string $yearcito)
+    public function get_solicitudes(int $id_almacen, string $mes, string $yearcito)
     {
-        $data = RequerimientosData::get_resumen_requerimientos($id_almacen, $mes, $yearcito);
-
-        // Adjuntar labores a cada requerimiento
-        foreach ($data as $req) {
-            $req->labores = RequerimientosData::get_labores_by_requerimiento((int) $req->id_requerimiento);
-        }
-
+        $data = SolicitudesData::get_resumen_solicitudes($id_almacen, $mes, $yearcito);
         return ApiResponse::success($data);
     }
 
     /**
-     * Obtiene los detalles de un requerimiento
+     * Obtiene los detalles de una solicitud
      */
-    public function get_detalles_requerimiento(int $id_requerimiento)
+    public function get_detalles_solicitud(int $id_solicitud)
     {
-        $data = RequerimientosDetalleData::get_detalles_by_requerimiento($id_requerimiento);
+        $data = SolicitudesDetalleData::get_detalles_by_solicitud($id_solicitud);
         return ApiResponse::success($data);
     }
 
     /**
-     * Cambia el estado de un producto (Aprobado/Rechazado/Consultar con logistica) y registra en Timeline.
+     * Cambia el estado de un producto (Aprobado/Rechazado) y registra en Timeline.
      */
     public function cambiar_estado_detalle(int $id_empleado, int $id_detalle, string $nuevo_estado, ?string $comentario_decision = null)
     {
         return DB::transaction(function () use ($id_empleado, $id_detalle, $nuevo_estado, $comentario_decision) {
 
-            RequerimientosDetalleData::update_detalle_estado($id_detalle, $nuevo_estado, $id_empleado, $comentario_decision);
+            SolicitudesDetalleData::update_detalle_estado(
+                $id_detalle,
+                $nuevo_estado,
+                $id_empleado,
+                $comentario_decision
+            );
 
             // Determinar el Enum para el log
-            $estadoEnum = EstadoDetalleRequerimiento::from($nuevo_estado);
+            $estadoEnum = EstadoSolicitudDetalle::from($nuevo_estado);
 
-            // Colocar en estado de proceso al requerimiento si uno de sus detalles es aprobado o consultado con logistica
-            if (EstadoDetalleRequerimiento::Aprobado == $nuevo_estado || $nuevo_estado == EstadoDetalleRequerimiento::ConsultaLogistica) {
-                $requerimiento = RequerimientosDetalleData::get_id_requerimiento_by_detalle($id_detalle);
-                RequerimientosData::update_requerimiento_estado((int) $requerimiento->id_requerimiento_almacen, $nuevo_estado);
+            // Colocar en estado de proceso a la solicitudes si uno de sus detalles es aprobado o consultado con logistica
+            if (EstadoSolicitudDetalle::Aprobado == $nuevo_estado) {
+                $solicitud = SolicitudesDetalleData::get_id_solicitud_by_detalle($id_detalle);
+                SolicitudesData::update_solicitud_estado(
+                    (int) $solicitud->id_solicitud_reabastecimiento,
+                    $nuevo_estado
+                );
             }
-            $descripcion = $estadoEnum->getGlosa($comentario_decision);
-            RequerimientosDetalleData::insert_detalle_log(
+
+            // Si el detalle de la solicitud viene por un detalle de requerimiento, actualizamos su estado
+            $detalleData = SolicitudesDetalleData::get_detalle_by_id($id_detalle);
+            if ($detalleData->id_requerimiento_almacen_detalle != null) {
+                $id_detalle_req = (int) $detalleData->id_requerimiento_almacen_detalle;
+                $estadoDetalleReqEnum = EstadoSolicitudDetalle::Aprobado == $nuevo_estado ? EstadoDetalleRequerimiento::AprobadoLogistica : EstadoDetalleRequerimiento::RechazadoLogistica;
+                
+                // actualizamos el estado
+                AuxData::update_detalle_requerimiento_estado(
+                    $id_detalle_req,
+                    $estadoDetalleReqEnum->value,
+                    $id_empleado,
+                    $comentario_decision
+                );
+
+                // insertamos su trazabilidad
+                AuxData::insert_detalle_requerimiento_log(
+                    $id_detalle_req,
+                    $id_empleado,
+                    $estadoDetalleReqEnum->getGlosa(),
+                    $estadoDetalleReqEnum->value
+                );
+            }
+
+            $descripcion = $estadoEnum->getGlosa();
+            SolicitudesDetalleData::insert_detalle_log(
                 $id_detalle,
                 $id_empleado,
                 $comentario_decision ?? $descripcion,
@@ -74,11 +101,11 @@ class AtencionService
     }
 
     /**
-     * Obtiene la trazabilidad de un detalle de requerimiento
+     * Obtiene la trazabilidad de un detalle de solicitud
      */
     public function obtener_trazabilidad(int $id_detalle)
     {
-        $data = RequerimientosDetalleData::get_detalle_logs($id_detalle);
+        $data = SolicitudesDetalleData::get_detalle_logs($id_detalle);
         return ApiResponse::success($data);
     }
 }

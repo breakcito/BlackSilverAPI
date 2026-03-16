@@ -45,7 +45,7 @@ class AtencionService
     }
 
     /**
-     * Cambia el estado de un producto (Aprobado/Rechazado/Consultar con logistica) y registra en Timeline.
+     * Cambia el estado de un producto (Aprobado/Rechazado) y registra en Timeline.
      */
     public function cambiar_estado_detalle(int $id_empleado, int $id_detalle, string $nuevo_estado, ?string $comentario_decision = null)
     {
@@ -61,7 +61,7 @@ class AtencionService
                 $requerimiento = RequerimientosDetalleData::get_id_requerimiento_by_detalle($id_detalle);
                 RequerimientosData::update_requerimiento_estado((int) $requerimiento->id_requerimiento_almacen, $nuevo_estado);
             }
-            $descripcion = $estadoEnum->getGlosa($comentario_decision);
+            $descripcion = $estadoEnum->getGlosa();
             RequerimientosDetalleData::insert_detalle_log(
                 $id_detalle,
                 $id_empleado,

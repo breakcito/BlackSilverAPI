@@ -2,8 +2,6 @@
 
 namespace App\Views\SolicitudesReabastecimientoAtencion\Data;
 
-use App\Models\RequerimientoAlmacenDetalle;
-use App\Models\RequerimientoAlmacenDetalleLog;
 use App\Models\SolicitudReabastecimientoDetalle;
 use App\Models\SolicitudReabastecimientoDetalleLog;
 use Illuminate\Support\Facades\DB;
@@ -156,7 +154,7 @@ class SolicitudesDetalleData
      */
     public static function get_detalle_by_id(int $id_detalle)
     {
-        return SolicitudReabastecimientoDetalle::select('cantidad_entregada_base', 'cantidad_solicitada_base')
+        return SolicitudReabastecimientoDetalle::select('id_requerimiento_almacen_detalle', 'cantidad_entregada_base', 'cantidad_solicitada_base')
             ->where('id', $id_detalle)
             ->first();
     }
