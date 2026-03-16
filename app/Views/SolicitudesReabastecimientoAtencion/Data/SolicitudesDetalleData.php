@@ -111,7 +111,7 @@ class SolicitudesDetalleData
     }
 
     /**
-     * Actualiza el estado de un detalle de requerimiento
+     * Actualiza el estado de un detalle de solicitud
      */
     public static function update_detalle_estado(int $id_detalle, string $estado, int $id_empleado, ?string $comentario = null)
     {

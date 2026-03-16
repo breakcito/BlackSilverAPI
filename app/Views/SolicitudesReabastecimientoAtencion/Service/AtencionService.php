@@ -13,15 +13,6 @@ use Illuminate\Support\Facades\DB;
 class AtencionService
 {
     /**
-     * Obtiene los almacenes 
-     */
-    public function get_almacenes(bool $es_principal = false)
-    {
-        $data = AuxData::get_almacenes($es_principal ? 1 : 0);
-        return ApiResponse::success($data);
-    }
-
-    /**
      * Obtiene las solicitudes por almacén y periodo
      */
     public function get_solicitudes(int $id_almacen, string $mes, string $yearcito)

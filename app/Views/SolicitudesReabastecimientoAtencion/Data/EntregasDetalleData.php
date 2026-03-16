@@ -14,7 +14,7 @@ class EntregasDetalleData
      */
     public static function crear_detalle_entrega(
         int $id_entrega,
-        int $id_requerimiento_detalle,
+        int $id_solicitud_detalle,
         int $id_lote,
         float $cantidad_base,
         float $cantidad_lote,
@@ -22,7 +22,7 @@ class EntregasDetalleData
     ) {
         return SolicitudReabastecimientoEntregaDetalle::insertGetId([
             'id_reabastecimiento_entrega' => $id_entrega,
-            'id_solicitud_reabastecimiento_detalle' => $id_requerimiento_detalle,
+            'id_solicitud_reabastecimiento_detalle' => $id_solicitud_detalle,
             'id_lote_producto' => $id_lote,
             'cantidad_base' => $cantidad_base,
             'cantidad_lote' => $cantidad_lote,
