@@ -103,7 +103,7 @@ class ProductosData
         return DB::select('
             SELECT id AS id_unidad_medida, nombre, abreviatura
             FROM unidad_medida
-            WHERE es_base = 1
+            -- WHERE es_base = 1
             ORDER BY nombre ASC
         ');
     }
