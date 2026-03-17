@@ -23,6 +23,7 @@ class SolicitudesData
             scr.id_requerimiento_almacen,
             alm.nombre as almacen_solicitante,
             scr.correlativo,
+            ra.correlativo as correlativo_requerimiento,
             scr.observacion,
             CONCAT(emp.nombre, " ", emp.apellido) AS solicitante,
             scr.premura,

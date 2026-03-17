@@ -20,16 +20,13 @@ class AuxData
     {
         $sql = '
         SELECT DISTINCT
-            alm.id AS id_almacen,
+            alm.id,
             alm.nombre
         FROM
             almacen alm
-        INNER JOIN responsable_almacen res ON
-            res.id_almacen = alm.id
         WHERE
             alm.estado = "Activo" AND
-            alm.es_principal != :es_principal AND 
-            res.estado = "Activo"
+            alm.es_principal = :es_principal
         ';
 
         return DB::select($sql, ['es_principal' => $es_principal]);

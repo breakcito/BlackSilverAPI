@@ -60,7 +60,7 @@ class AtencionService
             $detalleData = SolicitudesDetalleData::get_detalle_by_id($id_detalle);
             if ($detalleData->id_requerimiento_almacen_detalle != null) {
                 $id_detalle_req = (int) $detalleData->id_requerimiento_almacen_detalle;
-                $estadoDetalleReqEnum = EstadoSolicitudDetalle::Aprobado == $nuevo_estado ? EstadoDetalleRequerimiento::AprobadoLogistica : EstadoDetalleRequerimiento::RechazadoLogistica;
+                $estadoDetalleReqEnum = EstadoSolicitudDetalle::Aprobado->value == $nuevo_estado ? EstadoDetalleRequerimiento::AprobadoLogistica : EstadoDetalleRequerimiento::RechazadoLogistica;
                 
                 // actualizamos el estado
                 AuxData::update_detalle_requerimiento_estado(
