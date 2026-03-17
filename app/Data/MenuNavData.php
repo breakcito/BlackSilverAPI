@@ -9,94 +9,84 @@ class MenuNavData
     /**
      * Obtener los modulos del sistema para el menu de navegacion
      */
-    public static function get_modulos_by_rol(int $id_rol)
+    public static function get_modulos_by_rol(int $id_rol): array
     {
         $sql = '
-        /*
-        Obtener los modulos para el menu
-        de navegacion
-        */
         SELECT DISTINCT
             md.id AS id_modulo,
             md.nombre,
-            md.path
-        FROM
-            modulo md
-        INNER JOIN submodulo sb ON
-            sb.id_modulo = md.id
-        INNER JOIN seccion sc ON
-            sc.id_submodulo = sb.id
-        INNER JOIN seccion_rol scr ON
-            scr.id_seccion = sc.id
+            md.path,
+            md.numero_orden
+        FROM modulo md
+        INNER JOIN submodulo sb ON sb.id_modulo = md.id
+        INNER JOIN seccion sc ON sc.id_submodulo = sb.id
+        INNER JOIN seccion_rol scr ON scr.id_seccion = sc.id
         WHERE
             scr.id_rol = :id_rol AND
             md.estado = "Activo" AND
             sb.estado = "Activo" AND
-            sc.estado = "Activo";
+            sc.estado = "Activo"
+        ORDER BY md.numero_orden ASC;
         ';
 
-        return DB::select($sql, [
-            'id_rol' => $id_rol,
-        ]);
+        return DB::select($sql, ['id_rol' => $id_rol]);
     }
 
     /**
-     * Obtener los submodulos del sistema para el menu de navegacion
+     * Obtener los submodulos filtrados por múltiples IDs de módulos
      */
-    public static function get_submodulos_by_rol_and_modulo(int $id_rol, int $id_modulo): array
+    public static function get_submodulos_by_rol_and_modulos(int $id_rol, array $ids_modulo): array
     {
-        $sql = '
-        /*
-        Obtener los submodulos para el menu
-        de navegacion
-        */
+        if (empty($ids_modulo)) return [];
+
+        $placeholders = implode(',', array_fill(0, count($ids_modulo), '?'));
+
+        $sql = "
         SELECT DISTINCT
             sb.id as id_submodulo,
+            sb.id_modulo,
             sb.nombre,
-            sb.path
-        FROM
-            submodulo sb
-        INNER JOIN seccion sc ON
-            sc.id_submodulo = sb.id
-        INNER JOIN seccion_rol scr ON
-            scr.id_seccion = sc.id
+            sb.path,
+            sb.numero_orden
+        FROM submodulo sb
+        INNER JOIN seccion sc ON sc.id_submodulo = sb.id
+        INNER JOIN seccion_rol scr ON scr.id_seccion = sc.id
         WHERE
-            scr.id_rol = :id_rol AND 
-            sb.id_modulo = :id_modulo;
-        ';
+            scr.id_rol = ? AND 
+            sb.id_modulo IN ($placeholders) AND
+            sb.estado = 'Activo' AND
+            sc.estado = 'Activo'
+        ORDER BY sb.numero_orden ASC;
+        ";
 
-        return DB::select($sql, [
-            'id_rol' => $id_rol,
-            'id_modulo' => $id_modulo,
-        ]);
+        return DB::select($sql, array_merge([$id_rol], $ids_modulo));
     }
 
     /**
-     * Obtener las secciones del sistema para el menu de navegacion
+     * Obtener las secciones filtradas por múltiples IDs de submódulos
      */
-    public static function get_secciones_by_rol_and_submodulo(int $id_rol, int $id_submodulo): array
+    public static function get_secciones_by_rol_and_submodulos(int $id_rol, array $ids_submodulo): array
     {
-        $sql = '
-        /*
-        Obtener las secciones para el menu
-        de navegacion
-        */
+        if (empty($ids_submodulo)) return [];
+
+        $placeholders = implode(',', array_fill(0, count($ids_submodulo), '?'));
+
+        $sql = "
         SELECT DISTINCT
             sc.id AS id_seccion,
+            sc.id_submodulo,
             sc.nombre,
-            sc.path
-        FROM
-            seccion sc
-        INNER JOIN seccion_rol scr ON
-            scr.id_seccion = sc.id
+            sc.path,
+            sc.numero_orden
+        FROM seccion sc
+        INNER JOIN seccion_rol scr ON scr.id_seccion = sc.id
         WHERE
-            scr.id_rol = :id_rol AND
-            sc.id_submodulo = :id_submodulo
-        ';
+            scr.id_rol = ? AND
+            sc.id_submodulo IN ($placeholders) AND
+            sc.estado = 'Activo'
+        ORDER BY sc.numero_orden ASC;
+        ";
 
-        return DB::select($sql, [
-            'id_rol' => $id_rol,
-            'id_submodulo' => $id_submodulo,
-        ]);
+        return DB::select($sql, array_merge([$id_rol], $ids_submodulo));
     }
 }
