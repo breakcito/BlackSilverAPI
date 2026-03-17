@@ -40,7 +40,7 @@ class SolicitudesController extends Controller
             'id_almacen_solicitante' => 'required|integer',
             'premura' => 'required|string',
             'observacion' => 'nullable|string',
-            'fecha_entrega_requerida' => 'required|date',
+            'fecha_entrega_requerida' => 'nullable|string',
             'detalles' => 'required|array|min:1',
             'detalles.*.id_producto' => 'required|integer',
             'detalles.*.id_unidad_medida' => 'required|integer',

@@ -84,9 +84,9 @@ class SolicitudesData
         int $id_empleado_solicitante,
         string $correlativo,
         int $numero_correlativo,
-        string $observacion,
+        ?string $observacion = null,
         string $premura,
-        string $fecha_entrega_requerida,
+        ?string $fecha_entrega_requerida = null,   
     ) {
         return SolicitudReabastecimiento::insertGetId([
             'id_almacen_solicitante' => $id_almacen_solicitante,
