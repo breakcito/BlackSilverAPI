@@ -20,13 +20,40 @@ class CategoriasService
     /**
      * Crear una nueva categoría
      */
-    public static function crear_categoria(array $data)
-    {
-        if (CategoriasData::verificar_nombre_duplicado($data['nombre'])) {
+    public static function crear_categoria(
+        string $nombre,
+        string $tipo_requerimiento,
+        ?string $descripcion = null,
+        ?string $clasificacion_bien = null,
+        bool $es_consumible = false,
+        bool $para_cocina = false,
+        bool $para_mina = false,
+        array $ids_consumidoras = []
+    ) {
+        if (CategoriasData::verificar_nombre_duplicado($nombre)) {
             return ApiResponse::error('Ya existe una categoría con este nombre.');
         }
 
-        $id_categoria = CategoriasData::crear_categoria($data);
+        // Validación de negocio: Al menos una clasificación debe ser seleccionada
+        if (!$para_cocina && !$para_mina) {
+            return ApiResponse::error('Debe seleccionar al menos un área (Mina o Cocina) para la categoría.');
+        }
+
+        $id_categoria = CategoriasData::crear_categoria(
+            $nombre,
+            $tipo_requerimiento,
+            $descripcion,
+            $clasificacion_bien,
+            $es_consumible,
+            $para_cocina,
+            $para_mina
+        );
+
+        // Si es consumible, guardamos sus relaciones
+        if ($es_consumible && !empty($ids_consumidoras)) {
+            CategoriasData::establecer_consumidoras($id_categoria, $ids_consumidoras);
+        }
+
         $nuevaCategoria = CategoriasData::get_categoria_by_id($id_categoria);
 
         return ApiResponse::success($nuevaCategoria, 'Categoría creada correctamente');

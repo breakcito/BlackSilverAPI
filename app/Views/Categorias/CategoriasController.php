@@ -31,8 +31,13 @@ class CategoriasController extends Controller
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:128',
             'descripcion' => 'nullable|string',
-            'tipo_requerimiento' => ['required', new Enum(TipoProducto::class)],
-            'clasificacion_bien' => ['nullable', new Enum(ClasificacionBien::class)],
+            'tipo_requerimiento' => 'required|string|max:64',
+            'clasificacion_bien' => 'nullable|string|max:64',
+            'es_consumible' => 'boolean',
+            'para_cocina' => 'boolean',
+            'para_mina' => 'boolean',
+            'ids_consumidoras' => 'array',
+            'ids_consumidoras.*' => 'integer',
         ], [
             'nombre.required' => 'El nombre es obligatorio',
             'tipo_requerimiento.required' => 'El tipo de requerimiento es obligatorio',
@@ -42,7 +47,16 @@ class CategoriasController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = CategoriasService::crear_categoria($request->all());
+        $result = CategoriasService::crear_categoria(
+            nombre: (string) $request->input('nombre'),
+            tipo_requerimiento: (string) $request->input('tipo_requerimiento'),
+            descripcion: $request->input('descripcion'),
+            clasificacion_bien: $request->input('clasificacion_bien'),
+            es_consumible: (bool) $request->boolean('es_consumible'),
+            para_cocina: (bool) $request->boolean('para_cocina'),
+            para_mina: (bool) $request->boolean('para_mina'),
+            ids_consumidoras: (array) $request->input('ids_consumidoras', [])
+        );
 
         return response()->json($result);
     }
