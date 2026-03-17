@@ -24,6 +24,7 @@ class RequerimientosData
             ra.correlativo,
             ra.observacion,
             m.nombre AS mina,
+            ra.id_empleado_solicitante,
             CONCAT(emp.nombre, " ", emp.apellido) AS solicitante,
             ra.premura,
             ra.fecha_entrega_requerida,
