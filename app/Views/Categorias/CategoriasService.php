@@ -58,4 +58,16 @@ class CategoriasService
 
         return ApiResponse::success($nuevaCategoria, 'Categoría creada correctamente');
     }
+
+    /**
+     * Actualizar las categorías consumidoras para un insumo existente
+     */
+    public static function actualizar_consumidoras(int $id_categoria, array $ids_consumidoras)
+    {
+        // Solo permitimos si la categoría existe y es activa (puedes añadir más validaciones si gustas)
+        CategoriasData::establecer_consumidoras($id_categoria, $ids_consumidoras);
+        $categoria = CategoriasData::get_categoria_by_id($id_categoria);
+
+        return ApiResponse::success($categoria, 'Destinos de consumo actualizados correctamente');
+    }
 }

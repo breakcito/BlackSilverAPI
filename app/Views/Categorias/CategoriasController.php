@@ -60,4 +60,17 @@ class CategoriasController extends Controller
 
         return response()->json($result);
     }
+
+    /**
+     * Actualizar los destinos de consumo de una categoría existente
+     */
+    public function actualizar_consumidoras(Request $request): JsonResponse
+    {
+        $id_categoria = (int) $request->input('id_categoria');
+        $ids_consumidoras = (array) $request->input('ids_consumidoras', []);
+
+        $result = CategoriasService::actualizar_consumidoras($id_categoria, $ids_consumidoras);
+
+        return response()->json($result);
+    }
 }

@@ -17,5 +17,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
         // Crear una nueva categoría
         Route::post('/', 'crear_categoria');
+
+        // Actualizar destinos de consumo de un insumo
+        Route::post('/actualizar-consumidoras', 'actualizar_consumidoras');
     });
 });
