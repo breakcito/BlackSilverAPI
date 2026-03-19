@@ -64,18 +64,36 @@ class AtencionController extends Controller
     }
 
     /**
-     * Aprobar o Rechazar un ítem del requerimiento.
+     * Aprobar o Rechazar uno o varios ítems del requerimiento.
      */
     public function update_estado_detalle_requerimiento(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'id_requerimiento_almacen_detalle' => 'required|integer',
+            'id_requerimiento_almacen_detalle' => 'nullable|integer', // Retrocompatibilidad
+            'ids_detalles' => 'nullable|array',                     // Nuevo: Masivo
+            'ids_detalles.*' => 'integer',
             'nuevo_estado' => 'required|string',
             'comentario_decision' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()), 400);
+        }
+
+        // Normalizar los IDs a un solo arreglo para el servicio
+        $ids = [];
+        if ($request->has('id_requerimiento_almacen_detalle')) {
+            $ids[] = (int) $request->id_requerimiento_almacen_detalle;
+        }
+        if ($request->has('ids_detalles')) {
+            $ids = array_merge($ids, $request->ids_detalles);
+        }
+
+        // Eliminar duplicados si los hubiera
+        $ids = array_unique($ids);
+
+        if (empty($ids)) {
+            return response()->json(ApiResponse::error('Debe proporcionar al menos un ID de detalle'), 400);
         }
 
         $authUser = $request->attributes->get('auth_user');
@@ -85,7 +103,7 @@ class AtencionController extends Controller
 
         $result = $this->atencionService->cambiar_estado_detalle(
             $authUser->id_empleado,
-            (int) $request->id_requerimiento_almacen_detalle,
+            $ids,
             $request->nuevo_estado,
             $request->comentario_decision
         );
