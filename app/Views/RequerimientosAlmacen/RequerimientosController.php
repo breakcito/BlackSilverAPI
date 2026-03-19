@@ -54,6 +54,7 @@ class RequerimientosController extends Controller
             'detalles.*.contenido_por_presentacion' => 'required|numeric|min:0',
             'detalles.*.cantidad_solicitada' => 'required|numeric|min:0.01',
             'detalles.*.comentario' => 'nullable|string',
+            'detalles.*.id_producto_destino' => 'nullable|integer',
         ]);
 
         if ($validator->fails()) {

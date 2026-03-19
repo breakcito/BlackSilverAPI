@@ -13,32 +13,35 @@ class CategoriasData
      */
     public static function get_categorias(?int $id_categoria = null)
     {
-        $sql = '
-        SELECT
-            c.id AS id_categoria,
-            c.nombre,
-            c.descripcion,
-            c.tipo_requerimiento,
-            c.clasificacion_bien,
-            c.estado
-        FROM
-            categoria c
-        WHERE
-            1 = 1
-        ';
+        $query = Categoria::select(
+            'id AS id_categoria',
+            'nombre',
+            'descripcion',
+            'tipo_requerimiento',
+            'clasificacion_bien',
+            'es_consumible',
+            'para_cocina',
+            'para_mina',
+            'estado'
+        )->selectRaw('(
+            SELECT GROUP_CONCAT(c_con.nombre SEPARATOR ", ")
+            FROM categoria_consumible cc
+            JOIN categoria c_con ON c_con.id = cc.id_categoria_consumidora
+            WHERE cc.id_categoria_consumible = categoria.id
+        ) as nombres_consumidoras')
+        ->selectRaw('(
+            SELECT GROUP_CONCAT(cc.id_categoria_consumidora)
+            FROM categoria_consumible cc
+            WHERE cc.id_categoria_consumible = categoria.id
+        ) as ids_consumidoras');
 
-        $params = [];
         if ($id_categoria !== null) {
-            $sql .= ' AND c.id = :id_categoria';
-            $params['id_categoria'] = $id_categoria;
-
-            return DB::selectOne($sql, $params);
+            return $query->where('id', $id_categoria)->first();
         }
 
-        $sql .= ' AND c.estado = :estado ORDER BY c.nombre ASC';
-        $params['estado'] = EstadoBase::Activo->value;
-
-        return DB::select($sql, $params);
+        return $query->where('estado', EstadoBase::Activo->value)
+            ->orderBy('nombre', 'ASC')
+            ->get();
     }
 
     /**
@@ -50,17 +53,48 @@ class CategoriasData
     }
 
     /**
-     * Crear una nueva categoría
+     * Crear una nueva categoría con parámetros explícitos
      */
-    public static function crear_categoria(array $data)
-    {
+    public static function crear_categoria(
+        string $nombre,
+        string $tipo_requerimiento,
+        ?string $descripcion = null,
+        ?string $clasificacion_bien = null,
+        bool $es_consumible = false,
+        bool $para_cocina = false,
+        bool $para_mina = false
+    ) {
         return Categoria::insertGetId([
-            'nombre' => $data['nombre'],
-            'descripcion' => $data['descripcion'] ?? null,
-            'tipo_requerimiento' => $data['tipo_requerimiento'],
-            'clasificacion_bien' => $data['clasificacion_bien'] ?? null,
+            'nombre' => $nombre,
+            'descripcion' => $descripcion,
+            'tipo_requerimiento' => $tipo_requerimiento,
+            'clasificacion_bien' => $clasificacion_bien,
+            'es_consumible' => $es_consumible ? 1 : 0,
+            'para_cocina' => $para_cocina ? 1 : 0,
+            'para_mina' => $para_mina ? 1 : 0,
             'estado' => EstadoBase::Activo->value,
         ]);
+    }
+
+    /**
+     * Establecer las categorías consumidoras para un insumo
+     */
+    public static function establecer_consumidoras(int $id_categoria_consumible, array $ids_consumidoras): void
+    {
+        // Limpiamos relaciones previas
+        DB::table('categoria_consumible')
+            ->where('id_categoria_consumible', $id_categoria_consumible)
+            ->delete();
+
+        if (empty($ids_consumidoras)) return;
+
+        // Insertamos nuevas relaciones
+        $data = array_map(fn($id) => [
+            'id_categoria_consumible' => $id_categoria_consumible,
+            'id_categoria_consumidora' => (int) $id
+        ], $ids_consumidoras);
+
+        DB::table('categoria_consumible')->insert($data);
     }
 
     /**

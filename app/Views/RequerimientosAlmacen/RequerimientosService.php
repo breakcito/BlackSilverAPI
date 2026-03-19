@@ -83,7 +83,8 @@ class RequerimientosService
                     $cantidad,
                     $contenido,
                     $cantidad_base,
-                    $detalle['comentario'] ?? null
+                    $detalle['comentario'] ?? null,
+                    $detalle['id_producto_destino'] ?? null
                 );
 
                 RequerimientosDetalleData::registrar_trazabilidad($id_detalle, $id_empleado_solicitante);

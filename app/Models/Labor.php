@@ -26,7 +26,8 @@ class Labor extends Model
         'alto',
         'nivel',
         'fecha_inicio',
-        'fecha_fin',
+        'fecha_fin_estimada',
+        'fecha_cierre',
         //
         'created_at',
         'estado',

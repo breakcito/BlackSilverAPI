@@ -112,7 +112,7 @@ class MinasLaboresService
         int $id_mina,
         int $id_empresa,
         int $id_tipo_labor,
-        string $nombre,
+        ?string $nombre,
         ?string $descripcion,
         string $tipo_sostenimiento,
         ?string $veta,
@@ -120,7 +120,7 @@ class MinasLaboresService
         ?float $alto,
         ?string $nivel,
         ?string $fecha_inicio,
-        ?string $fecha_fin = null
+        ?string $fecha_fin_estimada = null
     ) {
         $codigo_tipo_labor = LaboresData::get_codigo_tipo_labor($id_tipo_labor);
         $correlativo_data = LaboresData::get_nuevo_correlativo($id_mina, $id_empresa, $id_tipo_labor, $codigo_tipo_labor);
@@ -138,11 +138,19 @@ class MinasLaboresService
             alto: $alto,
             nivel: $nivel,
             fecha_inicio: $fecha_inicio,
-            fecha_fin: $fecha_fin
+            fecha_fin_estimada: $fecha_fin_estimada
         );
 
         $creada = LaboresData::get_labor_by_id($id_labor);
 
         return ApiResponse::success($creada, 'Labor registrada correctamente');
+    }
+
+    public static function finalizar_labor(int $id_labor, string $fecha_cierre): array|object
+    {
+        LaboresData::finalizar_labor($id_labor, $fecha_cierre);
+        $actualizada = LaboresData::get_labor_by_id($id_labor);
+
+        return ApiResponse::success($actualizada, 'Labor finalizada correctamente');
     }
 }

@@ -47,12 +47,15 @@ class RequerimientosDetalleData
                     lot.estado = "Activo" AND 
                     lot.id_almacen = alm.id
             ) as stock_disponible,
+            rad.id_producto_destino,
+            p_dest.nombre AS producto_destino,
             rad.comentario,
             rad.comentario_decision,
             rad.estado
         FROM
             requerimiento_almacen_detalle rad
         INNER JOIN producto pr ON pr.id = rad.id_producto
+        LEFT JOIN producto p_dest ON p_dest.id = rad.id_producto_destino
         LEFT JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
         LEFT JOIN unidad_medida uni ON uni.id = rad.id_unidad_medida
         LEFT JOIN empleado emp ON emp.id = rad.id_empleado_atencion

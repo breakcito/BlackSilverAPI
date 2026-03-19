@@ -45,31 +45,39 @@ class AtencionService
     }
 
     /**
-     * Cambia el estado de un producto (Aprobado/Rechazado) y registra en Timeline.
+     * Cambia el estado de uno o varios productos (Aprobado/Rechazado) y registra en Timeline.
      */
-    public function cambiar_estado_detalle(int $id_empleado, int $id_detalle, string $nuevo_estado, ?string $comentario_decision = null)
+    public function cambiar_estado_detalle(int $id_empleado, array $ids_detalles, string $nuevo_estado, ?string $comentario_decision = null)
     {
-        return DB::transaction(function () use ($id_empleado, $id_detalle, $nuevo_estado, $comentario_decision) {
+        return DB::transaction(function () use ($id_empleado, $ids_detalles, $nuevo_estado, $comentario_decision) {
 
-            RequerimientosDetalleData::update_detalle_estado($id_detalle, $nuevo_estado, $id_empleado, $comentario_decision);
+            foreach ($ids_detalles as $id_detalle) {
+                // 1. Actualizar el estado del detalle
+                RequerimientosDetalleData::update_detalle_estado((int) $id_detalle, $nuevo_estado, $id_empleado, $comentario_decision);
 
-            // Determinar el Enum para el log
-            $estadoEnum = EstadoDetalleRequerimiento::from($nuevo_estado);
+                // 2. Determinar el Enum para el log
+                $estadoEnum = EstadoDetalleRequerimiento::from($nuevo_estado);
 
-            // Colocar en estado de proceso al requerimiento si uno de sus detalles es aprobado o consultado con logistica
-            if (EstadoDetalleRequerimiento::Aprobado == $nuevo_estado || $nuevo_estado == EstadoDetalleRequerimiento::ConsultaLogistica) {
-                $requerimiento = RequerimientosDetalleData::get_id_requerimiento_by_detalle($id_detalle);
-                RequerimientosData::update_requerimiento_estado((int) $requerimiento->id_requerimiento_almacen, $nuevo_estado);
+                // 3. Colocar en estado de proceso al requerimiento si uno de sus detalles es aprobado o consultado con logistica
+                if (EstadoDetalleRequerimiento::Aprobado == $nuevo_estado || $nuevo_estado == EstadoDetalleRequerimiento::ConsultaLogistica) {
+                    $requerimiento = RequerimientosDetalleData::get_id_requerimiento_by_detalle((int) $id_detalle);
+                    RequerimientosData::update_requerimiento_estado((int) $requerimiento->id_requerimiento_almacen, $nuevo_estado);
+                }
+
+                $descripcion = $estadoEnum->getGlosa();
+                RequerimientosDetalleData::insert_detalle_log(
+                    (int) $id_detalle,
+                    $id_empleado,
+                    $comentario_decision ?? $descripcion,
+                    $estadoEnum->value
+                );
             }
-            $descripcion = $estadoEnum->getGlosa();
-            RequerimientosDetalleData::insert_detalle_log(
-                $id_detalle,
-                $id_empleado,
-                $comentario_decision ?? $descripcion,
-                $estadoEnum->value
-            );
 
-            return ApiResponse::success(null, 'Estado del producto actualizado correctamente');
+            $mensaje = count($ids_detalles) > 1 
+                ? 'Estado de los productos actualizado correctamente' 
+                : 'Estado del producto actualizado correctamente';
+
+            return ApiResponse::success(null, $mensaje);
         });
     }
 
