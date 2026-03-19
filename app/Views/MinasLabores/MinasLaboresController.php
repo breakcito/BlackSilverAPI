@@ -164,7 +164,7 @@ class MinasLaboresController extends Controller
             'id_mina' => 'required|integer',
             'id_empresa' => 'required|integer',
             'id_tipo_labor' => 'required|integer',
-            'nombre' => 'required|string|max:128',
+            'nombre' => 'nullable|string|max:128',
             'descripcion' => 'nullable|string',
             'tipo_sostenimiento' => 'required|string',
             'veta' => 'nullable|string|max:45',
