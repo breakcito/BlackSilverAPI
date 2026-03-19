@@ -36,6 +36,8 @@ class RequerimientosDetalleData
         END AS porcentaje_progreso,
         rad.comentario,
         rad.comentario_decision,
+        rad.id_producto_destino,
+        (SELECT pdest.nombre FROM producto pdest WHERE pdest.id = rad.id_producto_destino) as producto_destino,
         rad.estado
     FROM
         requerimiento_almacen_detalle rad
@@ -128,11 +130,20 @@ class RequerimientosDetalleData
             pr.id_unidad_medida_base,
             pr.nombre,
             uni.nombre as unidad_medida_base,
-            uni.abreviatura as unidad_medida_base_abv
+            uni.abreviatura as unidad_medida_base_abv,
+            cat.id as id_categoria,
+            cat.es_consumible,
+            (
+                SELECT GROUP_CONCAT(cc.id_categoria_consumidora)
+                FROM categoria_consumible cc
+                WHERE cc.id_categoria_consumible = cat.id
+            ) as ids_consumidoras
         FROM
             producto pr
         INNER JOIN unidad_medida uni ON
             uni.id = pr.id_unidad_medida_base
+        INNER JOIN categoria cat ON
+            cat.id = pr.id_categoria
         WHERE
             pr.estado = "Activo"
         ORDER BY
@@ -165,7 +176,8 @@ class RequerimientosDetalleData
         float $cantidad,
         float $contenido,
         float $cantidad_base,
-        ?string $comentario = null
+        ?string $comentario = null,
+        ?int $id_producto_destino = null
     ) {
         return RequerimientoAlmacenDetalle::insertGetId([
             'id_requerimiento_almacen'   => $id_requerimiento,
@@ -177,6 +189,7 @@ class RequerimientosDetalleData
             'cantidad_entregada'         => 0,
             'cantidad_entregada_base'    => 0,
             'comentario'                 => $comentario,
+            'id_producto_destino'        => $id_producto_destino,
             'estado'                     => EstadoDetalleRequerimiento::EsperandoAprobacion->value,
         ]);
     }
