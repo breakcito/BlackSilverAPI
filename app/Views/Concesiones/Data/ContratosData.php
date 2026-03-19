@@ -12,7 +12,7 @@ class ContratosData
     /**
      * Obtener las empresas asociadas al usuario para crear contratos
      */
-    public static function get_empresas(int $id_usuario)
+    public static function get_empresas()
     {
         $sql = '
         SELECT DISTINCT
@@ -23,12 +23,9 @@ class ContratosData
             emp.path_logo
         FROM
             empresa emp
-        INNER JOIN usuario_empresa usu ON usu.id_empresa = emp.id
-        WHERE
-            usu.id_usuario = :id_usuario
         ';
 
-        return DB::select($sql, ['id_usuario' => $id_usuario]);
+        return DB::select($sql);
     }
 
     /**

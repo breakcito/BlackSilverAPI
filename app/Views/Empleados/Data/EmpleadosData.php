@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\DB;
 class EmpleadosData
 {
     /**
-     * Listar empleados filtrados por las empresas asociadas al usuario
+     * Listar empleados 
      */
-    public static function get_empleados(int $id_usuario, ?int $id_empresa = null, ?int $id_empleado = null)
+    public static function get_empleados(?int $id_empresa = null, ?int $id_empleado = null)
     {
         $sql = '
         SELECT DISTINCT
@@ -36,22 +36,10 @@ class EmpleadosData
         INNER JOIN empresa emp ON emp.id = e.id_empresa
         INNER JOIN cargo car ON car.id = e.id_cargo
         INNER JOIN area a ON a.id = car.id_area
-        WHERE (
-            e.id_empresa IN (SELECT id_empresa FROM usuario_empresa WHERE id_usuario = :id_usuario)
-            OR 
-            e.id_empresa = (SELECT emp_own.id_empresa FROM usuario u_own INNER JOIN empleado emp_own ON emp_own.id = u_own.id_empleado WHERE u_own.id = :id_usuario_own)
-        )
+        WHERE 1 = 1
         ';
 
-        $params = [
-            'id_usuario' => $id_usuario,
-            'id_usuario_own' => $id_usuario
-        ];
-
-        if ($id_empresa) {
-            $sql .= ' AND e.id_empresa = :id_empresa';
-            $params['id_empresa'] = $id_empresa;
-        }
+        $params = [];
 
         if ($id_empleado) {
             $sql .= ' AND e.id = :id_empleado';
@@ -60,7 +48,12 @@ class EmpleadosData
             return DB::selectOne($sql, $params);
         }
 
-        $sql .= ' ORDER BY emp.nombre_comercial ASC, e.apellido ASC, e.nombre ASC';
+        if ($id_empresa != null) {
+            $sql .= ' AND e.id_empresa = :id_empresa';
+            $params['id_empresa'] = $id_empresa;
+        }
+
+        $sql .= ' ORDER BY e.apellido ASC, e.nombre ASC';
 
         return DB::select($sql, $params);
     }
@@ -68,9 +61,9 @@ class EmpleadosData
     /**
      * Obtener empleado por ID
      */
-    public static function get_empleado_by_id(int $id_usuario, int $id_empleado)
+    public static function get_empleado_by_id(int $id_empleado)
     {
-        return self::get_empleados($id_usuario, null, $id_empleado);
+        return self::get_empleados(id_empleado:$id_empleado);
     }
 
     /**
@@ -112,27 +105,17 @@ class EmpleadosData
     }
 
     /**
-     * Obtener empresas asociadas al usuario
+     * Obtener empresas
      */
-    public static function get_empresas(int $id_usuario)
+    public static function get_empresas()
     {
         return DB::select('
-            SELECT DISTINCT e.id AS id_empresa, e.nombre_comercial, e.razon_social
+            SELECT DISTINCT 
+                e.id AS id_empresa, 
+                e.nombre_comercial, 
+                e.razon_social
             FROM empresa e
-            INNER JOIN usuario_empresa ue ON ue.id_empresa = e.id
-            WHERE ue.id_usuario = :id_usuario
-
-            UNION
-
-            SELECT e.id AS id_empresa, e.nombre_comercial, e.razon_social
-            FROM empresa e
-            INNER JOIN empleado emp ON emp.id_empresa = e.id
-            INNER JOIN usuario u ON u.id_empleado = emp.id
-            WHERE u.id = :id_usuario2
-        ', [
-            'id_usuario' => $id_usuario,
-            'id_usuario2' => $id_usuario
-        ]);
+        ');
     }
 
     /**

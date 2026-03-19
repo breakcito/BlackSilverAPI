@@ -12,11 +12,9 @@ class MinasLaboresController extends Controller
 {
     // ─── Concesiones ──────────────────────────────────────────────────────────
 
-    public function get_concesiones_sesion(Request $request): JsonResponse
+    public function get_concesiones(Request $request): JsonResponse
     {
-        $authUser = $request->attributes->get('auth_user');
-
-        return response()->json(MinasLaboresService::get_concesiones_sesion($authUser->id_usuario));
+        return response()->json(MinasLaboresService::get_concesiones());
     }
 
     // ─── Minas ────────────────────────────────────────────────────────────────
@@ -73,12 +71,9 @@ class MinasLaboresController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()), 400);
         }
 
-        $authUser = $request->attributes->get('auth_user');
-
         return response()->json(MinasLaboresService::get_empresas_disponibles(
             (int) $request->query('id_concesion'),
-            (int) $request->query('id_mina'),
-            (int) $authUser->id_usuario,
+            (int) $request->query('id_mina')
         ));
     }
 
@@ -114,13 +109,11 @@ class MinasLaboresController extends Controller
     public function get_empleados_disponibles(Request $request): JsonResponse
     {
         $id_mina = $request->query('id_mina');
-        if (! $id_mina) {
-            return response()->json(ApiResponse::error('id_mina es requerido'), 400);
+        if (!$id_mina) {
+            return response()->json(ApiResponse::error('id_mina es requerido'));
         }
 
-        $authUser = $request->attributes->get('auth_user');
-
-        return response()->json(MinasLaboresService::get_empleados_disponibles((int) $id_mina, (int) $authUser->id_usuario));
+        return response()->json(MinasLaboresService::get_empleados_disponibles((int) $id_mina));
     }
 
     public function asignar_responsable(Request $request): JsonResponse

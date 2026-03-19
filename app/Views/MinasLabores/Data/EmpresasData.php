@@ -10,7 +10,7 @@ class EmpresasData
     /**
      * Lista de empresas disponibles para ser ejecutoras de una mina
      */
-    public static function get_empresas_disponibles(int $id_concesion, int $id_mina, int $id_usuario)
+    public static function get_empresas_disponibles(int $id_concesion, int $id_mina)
     {
         $sql = '
         SELECT DISTINCT
@@ -19,13 +19,10 @@ class EmpresasData
             em.path_logo
         FROM
             empresa em
-        INNER JOIN usuario_empresa usu ON
-            usu.id_empresa = em.id
         INNER JOIN contrato_concesion ctr ON
             ctr.id_empresa = em.id
         WHERE
             ctr.estado = "Activo" AND
-            usu.id_usuario = :id_usuario AND
             ctr.id_concesion = :id_concesion AND
             -- no listar las empresas que ya son ejecutoras
             em.id NOT IN (
@@ -37,7 +34,6 @@ class EmpresasData
         ';
 
         return DB::select($sql, [
-            'id_usuario' => $id_usuario,
             'id_concesion' => $id_concesion,
             'id_mina' => $id_mina,
         ]);

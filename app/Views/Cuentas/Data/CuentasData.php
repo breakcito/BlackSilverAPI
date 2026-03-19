@@ -2,11 +2,7 @@
 
 namespace App\Views\Cuentas\Data;
 
-use App\Models\Usuario;
-use App\Models\Empleado;
 use App\Models\Rol;
-use App\Models\Empresa;
-use App\Models\UsuarioEmpresa;
 use Illuminate\Support\Facades\DB;
 
 class CuentasData
@@ -28,13 +24,7 @@ class CuentasData
                 e.apellido as apellido_empleado,
                 e.id_empresa as id_empresa_pertenece,
                 e.path_foto,
-                ep.nombre_comercial as empresa_pertenece,
-                (
-                    SELECT GROUP_CONCAT(emp.abreviatura SEPARATOR ', ')
-                    FROM usuario_empresa ue
-                    INNER JOIN empresa emp ON emp.id = ue.id_empresa
-                    WHERE ue.id_usuario = u.id
-                ) as empresas_acceso
+                ep.nombre_comercial as empresa_pertenece
             FROM usuario u
             INNER JOIN empleado e ON e.id = u.id_empleado
             INNER JOIN empresa ep ON ep.id = e.id_empresa
@@ -76,54 +66,5 @@ class CuentasData
             ->orderBy('nombre', 'ASC')
             ->get()
             ->toArray();
-    }
-
-    /**
-     * Obtener las empresas a las que un usuario tiene acceso
-     */
-    public static function get_empresas_usuario(int $id_usuario): array
-    {
-        $sql = "
-            SELECT 
-                e.id as id_empresa,
-                e.razon_social,
-                e.nombre_comercial,
-                e.abreviatura,
-                e.path_logo
-            FROM usuario_empresa ue
-            INNER JOIN empresa e ON e.id = ue.id_empresa
-            WHERE ue.id_usuario = :id_usuario
-        ";
-
-        return DB::select($sql, ['id_usuario' => $id_usuario]);
-    }
-
-    /**
-     * Obtener todas las empresas activas para selección
-     */
-    public static function get_todas_las_empresas(): array
-    {
-        return Empresa::select('id', 'razon_social', 'nombre_comercial', 'abreviatura')
-            ->orderBy('razon_social', 'ASC')
-            ->get()
-            ->toArray();
-    }
-
-    /**
-     * Verificar si un usuario ya tiene acceso a una empresa específica
-     */
-    public static function existe_vinculo_empresa(int $id_usuario, int $id_empresa): bool
-    {
-        return UsuarioEmpresa::where('id_usuario', $id_usuario)
-            ->where('id_empresa', $id_empresa)
-            ->exists();
-    }
-    
-    /**
-     * Contar cuantas empresas tiene asignadas un usuario
-     */
-    public static function contar_empresas_usuario(int $id_usuario): int
-    {
-        return UsuarioEmpresa::where('id_usuario', $id_usuario)->count();
     }
 }

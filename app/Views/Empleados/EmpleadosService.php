@@ -12,9 +12,9 @@ class EmpleadosService
     /**
      * Listar empleados de las empresas del usuario
      */
-    public static function get_empleados(int $id_usuario, ?int $id_empresa = null)
+    public static function get_empleados(?int $id_empresa = null)
     {
-        $empleados = EmpleadosData::get_empleados($id_usuario, $id_empresa);
+        $empleados = EmpleadosData::get_empleados(id_empresa: $id_empresa);
 
         // Convertir path_foto a URL completa
         foreach ($empleados as $empleado) {
@@ -27,11 +27,11 @@ class EmpleadosService
     }
 
     /**
-     * Obtener empresas asociadas al usuario
+     * Obtener empresas
      */
-    public static function get_empresas(int $id_usuario)
+    public static function get_empresas()
     {
-        return ApiResponse::success(EmpleadosData::get_empresas($id_usuario));
+        return ApiResponse::success(EmpleadosData::get_empresas());
     }
 
     /**
@@ -54,7 +54,6 @@ class EmpleadosService
      * Registrar un nuevo empleado
      */
     public static function crear_empleado(
-        int $id_usuario,
         int $id_empresa,
         int $id_cargo,
         string $nombre,
@@ -91,7 +90,7 @@ class EmpleadosService
             $path_foto
         );
 
-        $nuevoEmpleado = EmpleadosData::get_empleado_by_id($id_usuario, $id);
+        $nuevoEmpleado = EmpleadosData::get_empleado_by_id($id);
 
         if ($nuevoEmpleado && $nuevoEmpleado->path_foto) {
             $nuevoEmpleado->path_foto = asset('storage/' . $nuevoEmpleado->path_foto);
@@ -105,7 +104,7 @@ class EmpleadosService
     /**
      * Actualizar la foto de un empleado
      */
-    public static function actualizar_foto(int $id_usuario, int $id_empleado, ?UploadedFile $file)
+    public static function actualizar_foto(int $id_empleado, ?UploadedFile $file)
     {
         $archivos = ArchivoHelper::guardarArchivos('fotos-empleados', [$file]);
         if (empty($archivos)) {
@@ -115,7 +114,7 @@ class EmpleadosService
         $path_foto = $archivos[0]['relative_path'];
         EmpleadosData::actualizar_foto($id_empleado, $path_foto);
 
-        $empleado = EmpleadosData::get_empleado_by_id($id_usuario, $id_empleado);
+        $empleado = EmpleadosData::get_empleado_by_id($id_empleado);
         if ($empleado && $empleado->path_foto) {
             $empleado->path_foto = asset('storage/' . $empleado->path_foto);
         }

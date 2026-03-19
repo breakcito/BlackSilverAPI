@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\DB;
 class MinasData
 {
     /**
-     * Concesiones accesibles por el usuario
+     * Concesiones
      */
-    public static function get_concesiones(int $id_usuario)
+    public static function get_concesiones()
     {
         $sql = '
         SELECT DISTINCT
@@ -23,16 +23,11 @@ class MinasData
             ctr.id_concesion = cn.id
         INNER JOIN empresa emp ON
             emp.id = ctr.id_empresa
-        INNER JOIN usuario_empresa usu ON
-            usu.id_empresa = emp.id
         WHERE
-            ctr.estado = "Activo" AND
-            usu.id_usuario = :id_usuario
+            ctr.estado = "Activo"
         ';
 
-        return DB::select($sql, [
-            'id_usuario' => $id_usuario,
-        ]);
+        return DB::select($sql);
     }
 
     /**

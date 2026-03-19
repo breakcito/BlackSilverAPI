@@ -14,10 +14,8 @@ class EmpleadosController
      */
     public function get_empleados(Request $request): JsonResponse
     {
-        $authUser = $request->attributes->get('auth_user');
-        $id_usuario = $authUser->id_usuario;
         $id_empresa = $request->query('id_empresa') ? (int) $request->query('id_empresa') : null;
-        $result = EmpleadosService::get_empleados($id_usuario, $id_empresa);
+        $result = EmpleadosService::get_empleados($id_empresa);
 
         return response()->json($result);
     }
@@ -27,9 +25,7 @@ class EmpleadosController
      */
     public function get_empresas(Request $request): JsonResponse
     {
-        $authUser = $request->attributes->get('auth_user');
-        $id_usuario = $authUser->id_usuario;
-        $result = EmpleadosService::get_empresas($id_usuario);
+        $result = EmpleadosService::get_empresas();
 
         return response()->json($result);
     }
@@ -76,11 +72,7 @@ class EmpleadosController
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $authUser = $request->attributes->get('auth_user');
-        $id_usuario = $authUser->id_usuario;
-
         $result = EmpleadosService::crear_empleado(
-            id_usuario: $id_usuario,
             id_empresa: (int) $request->input('id_empresa'),
             id_cargo: (int) $request->input('id_cargo'),
             nombre: (string) $request->input('nombre'),
@@ -109,10 +101,7 @@ class EmpleadosController
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $authUser = $request->attributes->get('auth_user');
-        $id_usuario = $authUser->id_usuario;
-
-        $result = EmpleadosService::actualizar_foto($id_usuario, $id_empleado, $request->file('path_foto'));
+        $result = EmpleadosService::actualizar_foto($id_empleado, $request->file('path_foto'));
 
         return response()->json($result);
     }

@@ -12,9 +12,9 @@ class MinasLaboresService
 {
     // ─── Concesiones ──────────────────────────────────────────────────────────
 
-    public static function get_concesiones_sesion(int $id_usuario): array|object
+    public static function get_concesiones(): array|object
     {
-        $concesiones = MinasData::get_concesiones($id_usuario);
+        $concesiones = MinasData::get_concesiones();
 
         return ApiResponse::success($concesiones);
     }
@@ -49,9 +49,9 @@ class MinasLaboresService
         return ApiResponse::success($empresas);
     }
 
-    public static function get_empresas_disponibles(int $id_concesion, int $id_mina, int $id_usuario): array|object
+    public static function get_empresas_disponibles(int $id_concesion, int $id_mina): array|object
     {
-        $empresas = EmpresasData::get_empresas_disponibles($id_concesion, $id_mina, $id_usuario);
+        $empresas = EmpresasData::get_empresas_disponibles($id_concesion, $id_mina);
 
         return ApiResponse::success($empresas);
     }
@@ -77,9 +77,9 @@ class MinasLaboresService
         return ApiResponse::success($historial);
     }
 
-    public static function get_empleados_disponibles(int $id_mina, int $id_usuario): array|object
+    public static function get_empleados_disponibles(int $id_mina): array|object
     {
-        $empleados = ResponsablesData::get_empleados_disponibles($id_usuario, $id_mina);
+        $empleados = ResponsablesData::get_empleados_disponibles($id_mina);
 
         return ApiResponse::success($empleados);
     }

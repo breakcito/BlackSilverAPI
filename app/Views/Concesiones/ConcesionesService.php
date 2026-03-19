@@ -20,9 +20,9 @@ class ConcesionesService
     /**
      * Obtener empresas asociadas al usuario para nuevos contratos
      */
-    public static function get_empresas(int $id_usuario)
+    public static function get_empresas()
     {
-        return ApiResponse::success(ContratosData::get_empresas($id_usuario));
+        return ApiResponse::success(ContratosData::get_empresas());
     }
 
     /**

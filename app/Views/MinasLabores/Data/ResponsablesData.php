@@ -78,7 +78,7 @@ class ResponsablesData
     /**
      * Posibles empleados a elegir para responsable de una mina específica
      */
-    public static function get_empleados_disponibles(int $id_usuario, int $id_mina)
+    public static function get_empleados_disponibles(int $id_mina)
     {
         $sql = '
         SELECT DISTINCT
@@ -88,18 +88,6 @@ class ResponsablesData
             empleado em
         WHERE
             em.estado = "Activo" AND
-            -- solo los empleados que pertenezcan a una de las empresas
-            -- a los que el usuario logueado tiene acceso
-            em.id_empresa IN (
-                SELECT
-                    emp.id
-                FROM
-                    empresa emp
-                INNER JOIN usuario_empresa usem ON
-                    usem.id_empresa = emp.id
-                WHERE
-                    usem.id_usuario = :id_usuario
-            ) AND
             -- que no sean el responsable actual de esta mina
             em.id NOT IN (
                 SELECT
@@ -114,7 +102,6 @@ class ResponsablesData
         ';
 
         return DB::select($sql, [
-            'id_usuario' => $id_usuario,
             'id_mina' => $id_mina,
         ]);
     }

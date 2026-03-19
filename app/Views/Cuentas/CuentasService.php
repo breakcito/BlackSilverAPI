@@ -3,7 +3,6 @@
 namespace App\Views\Cuentas;
 
 use App\Models\Usuario;
-use App\Models\UsuarioEmpresa;
 use App\Models\Empleado;
 use App\Views\Cuentas\Data\CuentasData;
 use App\Shared\Responses\ApiResponse;
@@ -42,16 +41,6 @@ class CuentasService
                 'estado' => 'Activo'
             ]);
 
-            // 2. Obtener la empresa a la que pertenece el empleado para el vínculo automático
-            $empleado = Empleado::find($data['id_empleado']);
-            
-            if ($empleado && $empleado->id_empresa) {
-                UsuarioEmpresa::create([
-                    'id_usuario' => $usuario->id,
-                    'id_empresa' => $empleado->id_empresa
-                ]);
-            }
-
             return ApiResponse::success($usuario, 'Cuenta creada correctamente.');
         });
     }
@@ -80,51 +69,5 @@ class CuentasService
         $usuario->update($updateData);
 
         return ApiResponse::success(null, 'Cuenta actualizada correctamente.');
-    }
-
-    /**
-     * Obtener empresas con acceso y empresas disponibles para vincular
-     */
-    public static function get_gestion_empresas(int $id_usuario): array
-    {
-        return [
-            'asignadas' => CuentasData::get_empresas_usuario($id_usuario),
-            'todas' => CuentasData::get_todas_las_empresas()
-        ];
-    }
-
-    /**
-     * Vincular una empresa a un usuario
-     */
-    public static function vincular_empresa(int $id_usuario, int $id_empresa)
-    {
-        if (CuentasData::existe_vinculo_empresa($id_usuario, $id_empresa)) {
-            return ApiResponse::error('El usuario ya tiene acceso a esta empresa.');
-        }
-
-        UsuarioEmpresa::create([
-            'id_usuario' => $id_usuario,
-            'id_empresa' => $id_empresa
-        ]);
-
-        return ApiResponse::success(null, 'Empresa vinculada correctamente.');
-    }
-
-    /**
-     * Desvincular una empresa asegurando que siempre quede al menos una
-     */
-    public static function desvincular_empresa(int $id_usuario, int $id_empresa)
-    {
-        $conteo = CuentasData::contar_empresas_usuario($id_usuario);
-        
-        if ($conteo <= 1) {
-            return ApiResponse::error('No se puede desvincular. El usuario debe tener al menos una empresa asignada.');
-        }
-
-        UsuarioEmpresa::where('id_usuario', $id_usuario)
-            ->where('id_empresa', $id_empresa)
-            ->delete();
-
-        return ApiResponse::success(null, 'Empresa desvinculada correctamente.');
     }
 }
