@@ -3,7 +3,7 @@ services:
     build: .
     container_name: blacksilver_api
     ports:
-      - "${APP_PORT:-9095}:9095" # si no hay APP_PORT en el .env, usará el 9095 por defecto
+      - "${APP_PORT:-9095}:80" # El contenedor ahora escucha en el nativo 80 de Apache, y expone en 9095 al anfitrión
     volumes:
       - .:/var/www/html
     extra_hosts:
