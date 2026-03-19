@@ -160,7 +160,8 @@ class RequerimientosData
         $sql = '
         SELECT
             lab.id AS id_labor,
-            lab.nombre
+            lab.nombre,
+            lab.correlativo
         FROM
             labor lab
         WHERE
