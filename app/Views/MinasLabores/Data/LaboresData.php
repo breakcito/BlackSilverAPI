@@ -49,7 +49,8 @@ class LaboresData
             lb.alto,
             lb.nivel,
             lb.fecha_inicio,
-            lb.fecha_fin,
+            lb.fecha_fin_estimada,
+            lb.fecha_cierre,
             lb.created_at,
             lb.estado
         FROM
@@ -110,7 +111,7 @@ class LaboresData
         int $id_mina,
         int $id_empresa,
         int $id_tipo_labor,
-        string $nombre,
+        ?string $nombre,
         string $correlativo,
         int $numero_correlativo,
         ?string $descripcion,
@@ -120,7 +121,7 @@ class LaboresData
         ?float $alto,
         ?string $nivel,
         ?string $fecha_inicio,
-        ?string $fecha_fin = null,
+        ?string $fecha_fin_estimada = null,
     ) {
         return Labor::insertGetId([
             'id_mina' => $id_mina,
@@ -136,9 +137,17 @@ class LaboresData
             'alto' => $alto,
             'nivel' => $nivel,
             'fecha_inicio' => $fecha_inicio,
-            'fecha_fin' => $fecha_fin,
+            'fecha_fin_estimada' => $fecha_fin_estimada,
             'estado' => EstadoBase::Activo->value,
             'created_at' => now(),
+        ]);
+    }
+
+    public static function finalizar_labor(int $id_labor, string $fecha_cierre)
+    {
+        return Labor::where('id', $id_labor)->update([
+            'fecha_cierre' => $fecha_cierre,
+            'estado' => EstadoBase::Inactivo->value,
         ]);
     }
 }

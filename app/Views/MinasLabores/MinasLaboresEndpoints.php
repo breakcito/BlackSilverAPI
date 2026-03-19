@@ -29,6 +29,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::get('/tipos', 'get_tipos_labor');
             Route::get('/', 'get_labores');
             Route::post('/', 'crear_labor');
+            Route::post('/finalizar', 'finalizar_labor');
         });
     });
 });

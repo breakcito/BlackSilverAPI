@@ -167,12 +167,12 @@ class MinasLaboresController extends Controller
             'nombre' => 'nullable|string|max:128',
             'descripcion' => 'nullable|string',
             'tipo_sostenimiento' => 'required|string',
-            'veta' => 'nullable|string|max:45',
+            'veta' => 'nullable|string|max:128',
             'ancho' => 'nullable|numeric',
             'alto' => 'nullable|numeric',
-            'nivel' => 'nullable|string|max:45',
+            'nivel' => 'nullable|string|max:64',
             'fecha_inicio' => 'nullable|date',
-            'fecha_fin' => 'nullable|date',
+            'fecha_fin_estimada' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -185,7 +185,7 @@ class MinasLaboresController extends Controller
             id_mina: (int) $v['id_mina'],
             id_empresa: (int) $v['id_empresa'],
             id_tipo_labor: (int) $v['id_tipo_labor'],
-            nombre: (string) $v['nombre'],
+            nombre: isset($v['nombre']) ? (string) $v['nombre'] : null,
             descripcion: isset($v['descripcion']) ? (string) $v['descripcion'] : null,
             tipo_sostenimiento: (string) $v['tipo_sostenimiento'],
             veta: isset($v['veta']) ? (string) $v['veta'] : null,
@@ -193,7 +193,24 @@ class MinasLaboresController extends Controller
             alto: isset($v['alto']) ? (float) $v['alto'] : null,
             nivel: isset($v['nivel']) ? (string) $v['nivel'] : null,
             fecha_inicio: isset($v['fecha_inicio']) ? (string) $v['fecha_inicio'] : null,
-            fecha_fin: isset($v['fecha_fin']) ? (string) $v['fecha_fin'] : null,
+            fecha_fin_estimada: isset($v['fecha_fin_estimada']) ? (string) $v['fecha_fin_estimada'] : null,
+        ));
+    }
+
+    public function finalizar_labor(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_labor' => 'required|integer',
+            'fecha_cierre' => 'required|date',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 400);
+        }
+
+        return response()->json(MinasLaboresService::finalizar_labor(
+            (int) $request->id_labor,
+            (string) $request->fecha_cierre
         ));
     }
 }
