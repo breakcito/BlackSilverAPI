@@ -5,6 +5,7 @@
 use App\Views\SolicitudesReabastecimientoAtencion\Controller\AtencionController;
 use App\Views\SolicitudesReabastecimientoAtencion\Controller\AuxController;
 use App\Views\SolicitudesReabastecimientoAtencion\Controller\EntregaController;
+use App\Views\SolicitudesReabastecimientoAtencion\Controller\PrestamosController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.jwt.custom')->group(function () {
@@ -29,9 +30,14 @@ Route::middleware('auth.jwt.custom')->group(function () {
         });
 
         // Prestamos
-        // Route::controller(SolicitudesController::class)->group(function () {
-        //     Route::post('/save-solicitud-logistica', 'registrar_solicitud');
-        //     Route::get('/solicitudes-logistica', 'get_historial_solicitudes');
-        // });
+        Route::prefix('prestamos')->controller(PrestamosController::class)->group(function () {
+            Route::get('/por-solicitud', 'get_prestamos_por_solicitud');
+            Route::post('/nuevo', 'crear_prestamo');
+            Route::get('/ver', 'obtener_por_id');
+
+            // Auxiliares para prestamos
+            Route::get('/almacenes-con-stock', 'get_almacenes_con_stock_por_producto');
+            Route::get('/lotes-disponibles', 'get_lotes_disponibles_por_almacen_y_producto');
+        });
     });
 });

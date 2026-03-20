@@ -1,0 +1,103 @@
+<?php
+
+namespace App\Views\SolicitudesReabastecimientoAtencion\Service;
+
+use App\Models\SolicitudReabastecimientoDetalle;
+use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamo;
+use App\Shared\Enums\Periodo;
+use App\Shared\Helpers\CorrelativoHelper;
+use App\Shared\Responses\ApiResponse;
+use App\Views\SolicitudesReabastecimientoAtencion\Data\PrestamosData;
+use App\Views\SolicitudesReabastecimientoAtencion\Data\PrestamosDetalleData;
+use Illuminate\Support\Facades\DB;
+
+class PrestamosService
+{
+    public static function get_prestamos_por_solicitud(int $id_solicitud_reabastecimiento)
+    {
+        $data = PrestamosData::get_prestamos_por_solicitud($id_solicitud_reabastecimiento);
+        return ApiResponse::success($data);
+    }
+
+    public static function crear_prestamo(
+        int $id_solicitud_reabastecimiento,
+        int $id_almacen_prestamista,
+        int $id_empleado_registro,
+        string $fecha_limite_devolucion,
+        array $detalles
+    ) {
+        try {
+            DB::beginTransaction();
+
+            $correlativoData = CorrelativoHelper::generar(
+                'prestamo_almacen',
+                'PRST',
+                [],
+                5,
+                Periodo::Anual,
+                'created_at'
+            );
+
+            $id_prestamo = PrestamosData::crear_prestamo_cabecera(
+                $id_solicitud_reabastecimiento,
+                $id_almacen_prestamista,
+                $id_empleado_registro,
+                $correlativoData['correlativo'],
+                $correlativoData['numero_correlativo'],
+                now()->toDateTimeString(),
+                $fecha_limite_devolucion,
+                EstadoPrestamo::Generado->value
+            );
+
+            foreach ($detalles as $detalle) {
+                $srd = SolicitudReabastecimientoDetalle::find($detalle['id_solicitud_reabastecimiento_detalle']);
+                if (!$srd) continue;
+
+                $cantidad_solicitada = (float) $detalle['cantidad_solicitada'];
+                $cantidad_solicitada_base = $cantidad_solicitada * (float) $srd->contenido_por_presentacion;
+
+                PrestamosDetalleData::crear_prestamo_detalle(
+                    (int) $id_prestamo,
+                    (int) $detalle['id_solicitud_reabastecimiento_detalle'],
+                    $cantidad_solicitada,
+                    $cantidad_solicitada_base,
+                    $detalle['comentario'] ?? null,
+                    EstadoDetallePrestamo::Pendiente->value
+                );
+            }
+
+            $prestamoCreado = PrestamosData::get_prestamo_por_id((int) $id_prestamo);
+            $prestamoCreado->detalles = PrestamosDetalleData::get_detalles_por_prestamo((int) $id_prestamo);
+
+            DB::commit();
+
+            return ApiResponse::success($prestamoCreado, 'Préstamo solicitado correctamente');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return ApiResponse::error('Ocurrió un error al procesar el préstamo: ' . $e->getMessage());
+        }
+    }
+
+    public static function get_prestamo_por_id(int $id_prestamo)
+    {
+        $cabecera = PrestamosData::get_prestamo_por_id($id_prestamo);
+        if (!$cabecera) return ApiResponse::error('Préstamo no encontrado');
+
+        $cabecera->detalles = PrestamosDetalleData::get_detalles_por_prestamo($id_prestamo);
+        return ApiResponse::success($cabecera);
+    }
+
+    // Auxiliares movidos aquí o a AuxService
+    public static function get_almacenes_con_stock_por_producto(int $id_producto, int $id_almacen_excluido)
+    {
+        $data = PrestamosData::get_almacenes_con_stock_por_producto($id_producto, $id_almacen_excluido);
+        return ApiResponse::success($data);
+    }
+
+    public static function get_lotes_disponibles_por_almacen_y_producto(int $id_producto, int $id_almacen)
+    {
+        $data = PrestamosData::get_lotes_disponibles_por_almacen_y_producto($id_producto, $id_almacen);
+        return ApiResponse::success($data);
+    }
+}
