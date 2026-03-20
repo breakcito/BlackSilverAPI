@@ -41,12 +41,14 @@ class ConcesionesController
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
+        $v = $validator->validated();
+
         $result = ConcesionesService::crear_concesion(
-            $request->string('nombre'),
-            $request->string('codigo_concesion'),
-            $request->string('codigo_reinfo'),
-            $request->string('ubigeo'),
-            $request->string('tipo_mineral')
+            nombre: (string) $v['nombre'],
+            codigo_concesion: (string) $v['codigo_concesion'],
+            codigo_reinfo: isset($v['codigo_reinfo']) ? (string) $v['codigo_reinfo'] : null,
+            ubigeo: isset($v['ubigeo']) ? (string) $v['ubigeo'] : null,
+            tipo_mineral: (string) $v['tipo_mineral']
         );
 
         return response()->json($result);
@@ -72,11 +74,13 @@ class ConcesionesController
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
+        $v = $validator->validated();
+
         $result = ConcesionesService::crear_contrato(
-            $request->integer('id_concesion'),
-            $request->integer('id_empresa'),
-            $request->string('fecha_inicio'),
-            $request->input('fecha_fin'),
+            id_concesion: (int) $v['id_concesion'],
+            id_empresa: (int) $v['id_empresa'],
+            fecha_inicio: (string) $v['fecha_inicio'],
+            fecha_fin: isset($v['fecha_fin']) ? (string) $v['fecha_fin'] : null,
         );
 
         return response()->json($result);

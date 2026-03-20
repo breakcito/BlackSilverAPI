@@ -12,17 +12,19 @@ class ConcesionesService
     /**
      * Obtener listado de concesiones asociadas a las empresas del usuario
      */
-    public static function get_concesiones(int $id_usuario)
+    public static function get_concesiones(int $id_usuario): array|object
     {
-        return ApiResponse::success(ConcesionesData::get_concesiones(id_usuario: $id_usuario));
+        $concesiones = ConcesionesData::get_concesiones(id_usuario: $id_usuario);
+        return ApiResponse::success($concesiones);
     }
 
     /**
      * Obtener empresas asociadas al usuario para nuevos contratos
      */
-    public static function get_empresas()
+    public static function get_empresas(): array|object
     {
-        return ApiResponse::success(ContratosData::get_empresas());
+        $empresas = ContratosData::get_empresas();
+        return ApiResponse::success($empresas);
     }
 
     /**
@@ -34,7 +36,7 @@ class ConcesionesService
         ?string $codigo_reinfo,
         ?string $ubigeo,
         string|TipoMineral $tipo_mineral
-    ) {
+    ): array|object {
         if (ConcesionesData::existe_nombre($nombre)) {
             return ApiResponse::error('El nombre de la concesión ya existe.');
         }
@@ -43,11 +45,11 @@ class ConcesionesService
         $val_tipo = $tipo_mineral instanceof TipoMineral ? $tipo_mineral->value : $tipo_mineral;
 
         $id = ConcesionesData::crear_concesion(
-            $nombre,
-            $codigo_concesion,
-            $codigo_reinfo,
-            $ubigeo,
-            $val_tipo
+            nombre: $nombre,
+            codigo_concesion: $codigo_concesion,
+            codigo_reinfo: $codigo_reinfo,
+            ubigeo: $ubigeo,
+            tipo_mineral: (string) $val_tipo
         );
 
         return ApiResponse::success(ConcesionesData::get_concesion_by_id($id), 'Concesión creada con éxito');
@@ -56,9 +58,10 @@ class ConcesionesService
     /**
      * Obtener historial de contratos de una concesión
      */
-    public static function get_contratos(int $id_concesion)
+    public static function get_contratos(int $id_concesion): array|object
     {
-        return ApiResponse::success(ContratosData::get_contratos($id_concesion));
+        $contratos = ContratosData::get_contratos($id_concesion);
+        return ApiResponse::success($contratos);
     }
 
     /**
@@ -69,28 +72,29 @@ class ConcesionesService
         int $id_empresa,
         string $fecha_inicio,
         ?string $fecha_fin
-    ) {
+    ): array|object {
         if (ContratosData::verificar_contrato_activo($id_concesion, $id_empresa)) {
             return ApiResponse::error('Esta empresa ya tiene un contrato activo en esta concesión.');
         }
 
-        ContratosData::crear_contrato(
-            $id_concesion,
-            $id_empresa,
-            $fecha_inicio,
-            $fecha_fin
+        $id = ContratosData::crear_contrato(
+            id_concesion: $id_concesion,
+            id_empresa: $id_empresa,
+            fecha_inicio: $fecha_inicio,
+            fecha_fin: $fecha_fin
         );
 
-        return ApiResponse::success(null, 'Contrato registrado correctamente');
+        $nuevo = ContratosData::get_contrato_by_id($id);
+
+        return ApiResponse::success($nuevo, 'Contrato registrado correctamente');
     }
 
     /**
      * Terminar contrato
      */
-    public static function terminar_contrato(int $id_contrato)
+    public static function terminar_contrato(int $id_contrato): array|object
     {
         ContratosData::terminar_contrato($id_contrato);
-
         return ApiResponse::success(null, 'Contrato finalizado correctamente');
     }
 }

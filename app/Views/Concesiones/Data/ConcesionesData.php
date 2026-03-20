@@ -11,7 +11,7 @@ class ConcesionesData
     /**
      * Listar concesiones con conteo de contratos activos, filtrado por usuario si se provee
      */
-    public static function get_concesiones(?int $id_usuario = null, ?int $id_concesion = null)
+    public static function get_concesiones(?int $id_usuario = null, ?int $id_concesion = null): array|object
     {
         $sql = '
         SELECT DISTINCT
@@ -36,15 +36,13 @@ class ConcesionesData
 
         $params = [];
 
-        // Solo unimos si necesitamos filtrar por usuario
-
         $sql .= ' WHERE 1 = 1 ';
 
         if ($id_concesion) {
             $sql .= ' AND cn.id = :id_concesion';
             $params['id_concesion'] = $id_concesion;
 
-            return DB::selectOne($sql, $params);
+            return DB::selectOne($sql, $params) ?? (object) [];
         }
 
         $sql .= ' ORDER BY cn.nombre ASC';
@@ -55,7 +53,7 @@ class ConcesionesData
     /**
      * Obtener una concesion por id
      */
-    public static function get_concesion_by_id(int $id_concesion)
+    public static function get_concesion_by_id(int $id_concesion): array|object
     {
         return self::get_concesiones(id_concesion: $id_concesion);
     }
@@ -69,7 +67,7 @@ class ConcesionesData
         ?string $codigo_reinfo,
         ?string $ubigeo,
         string $tipo_mineral
-    ) {
+    ): int {
         return Concesion::insertGetId([
             'nombre' => $nombre,
             'codigo_concesion' => $codigo_concesion,
