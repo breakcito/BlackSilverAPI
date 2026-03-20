@@ -41,10 +41,12 @@ class MinasLaboresController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()), 400);
         }
 
+        $v = $validator->validated();
+
         return response()->json(MinasLaboresService::crear_mina(
-            $request->id_concesion,
-            $request->nombre,
-            $request->descripcion,
+            id_concesion: (int) $v['id_concesion'],
+            nombre: (string) $v['nombre'],
+            descripcion: isset($v['descripcion']) ? (string) $v['descripcion'] : null,
         ));
     }
 
@@ -71,9 +73,11 @@ class MinasLaboresController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()), 400);
         }
 
+        $v = $validator->validated();
+
         return response()->json(MinasLaboresService::get_empresas_disponibles(
-            (int) $request->query('id_concesion'),
-            (int) $request->query('id_mina')
+            id_concesion: (int) $v['id_concesion'],
+            id_mina: (int) $v['id_mina']
         ));
     }
 
@@ -88,9 +92,11 @@ class MinasLaboresController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()), 400);
         }
 
+        $v = $validator->validated();
+
         return response()->json(MinasLaboresService::asignar_empresa(
-            $request->id_mina,
-            $request->id_empresa,
+            id_mina: (int) $v['id_mina'],
+            id_empresa: (int) $v['id_empresa'],
         ));
     }
 
@@ -110,7 +116,7 @@ class MinasLaboresController extends Controller
     {
         $id_mina = $request->query('id_mina');
         if (!$id_mina) {
-            return response()->json(ApiResponse::error('id_mina es requerido'));
+            return response()->json(ApiResponse::error('id_mina es requerido'), 400);
         }
 
         return response()->json(MinasLaboresService::get_empleados_disponibles((int) $id_mina));
@@ -128,10 +134,12 @@ class MinasLaboresController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()), 400);
         }
 
+        $v = $validator->validated();
+
         return response()->json(MinasLaboresService::asignar_responsable(
-            $request->id_mina,
-            $request->id_empleado,
-            $request->fecha_inicio,
+            id_mina: (int) $v['id_mina'],
+            id_empleado: (int) $v['id_empleado'],
+            fecha_inicio: (string) $v['fecha_inicio'],
         ));
     }
 
@@ -201,9 +209,11 @@ class MinasLaboresController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()), 400);
         }
 
+        $v = $validator->validated();
+
         return response()->json(MinasLaboresService::finalizar_labor(
-            (int) $request->id_labor,
-            (string) $request->fecha_cierre
+            id_labor: (int) $v['id_labor'],
+            fecha_cierre: (string) $v['fecha_cierre']
         ));
     }
 }

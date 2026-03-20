@@ -121,7 +121,7 @@ class MinasLaboresService
         ?string $nivel,
         ?string $fecha_inicio,
         ?string $fecha_fin_estimada = null
-    ) {
+    ): array|object {
         $codigo_tipo_labor = LaboresData::get_codigo_tipo_labor($id_tipo_labor);
         $correlativo_data = LaboresData::get_nuevo_correlativo($id_mina, $id_empresa, $id_tipo_labor, $codigo_tipo_labor);
         $id_labor = LaboresData::crear_labor(
