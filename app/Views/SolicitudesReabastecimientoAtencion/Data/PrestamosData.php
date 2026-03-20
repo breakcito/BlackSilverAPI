@@ -76,36 +76,31 @@ class PrestamosData
         ]);
     }
 
-    public static function get_almacenes_con_stock_por_producto(int $id_producto, int $id_almacen_excluido)
+    public static function get_almacenes_con_stock_multiple_productos(array $ids_productos, int $id_almacen_excluido)
     {
-        $sql = "
-        SELECT
-            a.id AS id_almacen,
-            a.nombre AS nombre_almacen,
-            SUM(lp.stock_actual_base) AS stock_actual_base,
-            um_base.abreviatura AS unidad_medida_base
-        FROM
-            lote_producto lp
-        INNER JOIN almacen a ON a.id = lp.id_almacen
-        INNER JOIN producto p ON p.id = lp.id_producto
-        INNER JOIN unidad_medida um_base ON um_base.id = p.id_unidad_medida_base
-        WHERE
-            lp.id_producto = :id_producto
-            AND a.id != :id_excluido
-            AND a.es_principal = 0
-            AND lp.estado = 'Activo'
-        GROUP BY
-            a.id, a.nombre, um_base.abreviatura
-        HAVING
-            SUM(lp.stock_actual_base) > 0
-        ORDER BY
-            a.nombre ASC
-        ";
+        if (empty($ids_productos)) return [];
 
-        return DB::select($sql, [
-            'id_producto' => $id_producto,
-            'id_excluido' => $id_almacen_excluido
-        ]);
+        return DB::table('lote_producto as lp')
+            ->join('almacen as a', 'a.id', '=', 'lp.id_almacen')
+            ->join('producto as p', 'p.id', '=', 'lp.id_producto')
+            ->join('unidad_medida as um_base', 'um_base.id', '=', 'p.id_unidad_medida_base')
+            ->select(
+                'a.id as id_almacen',
+                'a.nombre as nombre_almacen',
+                'lp.id_producto',
+                'p.nombre as nombre_producto',
+                DB::raw('SUM(lp.stock_actual_base) as stock_actual_base'),
+                'um_base.abreviatura as unidad_medida_base'
+            )
+            ->whereIn('lp.id_producto', $ids_productos)
+            ->where('a.id', '!=', $id_almacen_excluido)
+            ->where('a.es_principal', 0)
+            ->where('lp.estado', 'Activo')
+            ->groupBy('a.id', 'a.nombre', 'lp.id_producto', 'p.nombre', 'um_base.abreviatura')
+            ->havingRaw('SUM(lp.stock_actual_base) > 0')
+            ->orderBy('a.nombre')
+            ->get()
+            ->toArray();
     }
 
     public static function get_lotes_disponibles_por_almacen_y_producto(int $id_producto, int $id_almacen)

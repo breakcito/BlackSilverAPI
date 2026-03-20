@@ -3,8 +3,9 @@
 namespace App\Views\SolicitudesReabastecimientoAtencion\Service;
 
 use App\Models\SolicitudReabastecimientoDetalle;
-use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
-use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamo;
+use App\Shared\Enums\EstadoDetallePrestamo;
+use App\Shared\Enums\EstadoPrestamo;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Enums\Periodo;
 use App\Shared\Helpers\CorrelativoHelper;
 use App\Shared\Responses\ApiResponse;
@@ -53,6 +54,9 @@ class PrestamosService
             foreach ($detalles as $detalle) {
                 $srd = SolicitudReabastecimientoDetalle::find($detalle['id_solicitud_reabastecimiento_detalle']);
                 if (!$srd) continue;
+                
+                $srd->estado = EstadoSolicitudDetalle::SolicitandoPrestamo->value;
+                $srd->save();
 
                 $cantidad_solicitada = (float) $detalle['cantidad_solicitada'];
                 $cantidad_solicitada_base = $cantidad_solicitada * (float) $srd->contenido_por_presentacion;
@@ -89,9 +93,9 @@ class PrestamosService
     }
 
     // Auxiliares movidos aquí o a AuxService
-    public static function get_almacenes_con_stock_por_producto(int $id_producto, int $id_almacen_excluido)
+    public static function get_almacenes_con_stock_multiple_productos(array $ids_productos, int $id_almacen_excluido)
     {
-        $data = PrestamosData::get_almacenes_con_stock_por_producto($id_producto, $id_almacen_excluido);
+        $data = PrestamosData::get_almacenes_con_stock_multiple_productos($ids_productos, $id_almacen_excluido);
         return ApiResponse::success($data);
     }
 

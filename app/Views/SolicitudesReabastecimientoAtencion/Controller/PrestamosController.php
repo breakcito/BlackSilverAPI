@@ -65,16 +65,16 @@ class PrestamosController extends Controller
     }
 
     // Métodos auxiliares
-    public function get_almacenes_con_stock_por_producto(Request $request): JsonResponse
+    public function get_almacenes_con_stock(Request $request): JsonResponse
     {
-        $id_producto = (int) $request->query('id_producto');
+        $ids_productos = (array) $request->query('ids_productos');
         $id_almacen_excluido = (int) $request->query('id_almacen_excluido');
 
-        if (!$id_producto) {
-            return response()->json(ApiResponse::error('El id_producto es requerido'), 400);
+        if (empty($ids_productos)) {
+            return response()->json(ApiResponse::error('ids_productos es requerido'), 400);
         }
 
-        $result = PrestamosService::get_almacenes_con_stock_por_producto($id_producto, $id_almacen_excluido);
+        $result = PrestamosService::get_almacenes_con_stock_multiple_productos($ids_productos, $id_almacen_excluido);
         return response()->json($result);
     }
 

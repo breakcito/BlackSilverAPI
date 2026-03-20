@@ -11,6 +11,7 @@ enum EstadoSolicitudDetalle: string
     case NuevaEntrega = "Nueva entrega"; // solo para la trazabilidad
     case Completado = "Completado"; // estado automatico
     case Cerrado = "Cerrado"; // estado manual - se decidio dejar de realizar entregas
+    case SolicitandoPrestamo = "Solicitando préstamo";
 
     /**
      * Obtiene la glosa estándar para la trazabilidad
@@ -25,6 +26,7 @@ enum EstadoSolicitudDetalle: string
             self::NuevaEntrega => "Se realizó la entrega de {$dinamico} producto(s)",
             self::Completado => 'Tu producto ha sido completamente despachado',
             self::Cerrado => 'El despacho de tu producto ha terminado.',
+            self::SolicitandoPrestamo => 'Se ha solicitado un préstamo entre almacenes para este producto',
         };
     }
 }
