@@ -25,6 +25,7 @@ class SolicitudesData
             scr.correlativo,
             ra.correlativo as correlativo_requerimiento,
             scr.observacion,
+            emp.id as id_empleado_solicitante,
             CONCAT(emp.nombre, " ", emp.apellido) AS solicitante,
             scr.premura,
             scr.fecha_entrega_requerida,

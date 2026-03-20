@@ -42,7 +42,9 @@ class AtencionController extends Controller
     public function update_detalle_estado(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'id_solicitud_detalle' => 'required|integer',
+            'id_solicitud_detalle' => 'nullable|integer',
+            'ids_detalles' => 'nullable|array',
+            'ids_detalles.*' => 'integer',
             'nuevo_estado' => 'required|string',
             'comentario_decision' => 'nullable|string',
         ]);
@@ -51,14 +53,29 @@ class AtencionController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
+        // Normalizar los IDs a un solo arreglo para el servicio
+        $ids = [];
+        if ($request->has('id_solicitud_detalle')) {
+            $ids[] = (int) $request->id_solicitud_detalle;
+        }
+        if ($request->has('ids_detalles')) {
+            $ids = array_merge($ids, $request->ids_detalles);
+        }
+
+        $ids = array_unique($ids);
+
+        if (empty($ids)) {
+            return response()->json(ApiResponse::error('Debe proporcionar al menos un ID de detalle'), 400);
+        }
+
         $authUser = $request->attributes->get('auth_user');
         if (!$authUser) {
-            return response()->json(ApiResponse::error('No autorizado'));
+            return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
         $result = AtencionService::update_detalle_estado(
             $authUser->id_empleado,
-            (int) $request->id_solicitud_detalle,
+            $ids,
             $request->nuevo_estado,
             $request->comentario_decision
         );

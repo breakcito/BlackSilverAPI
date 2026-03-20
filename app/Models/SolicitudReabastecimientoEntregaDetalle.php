@@ -17,7 +17,6 @@ class SolicitudReabastecimientoEntregaDetalle extends Model
         'cantidad_base',
         'cantidad_lote',
         'cantidad_solicitud',
-        'created_at',
         'estado',
     ];
 }
