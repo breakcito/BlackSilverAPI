@@ -67,4 +67,64 @@ class CuentasData
             ->get()
             ->toArray();
     }
+
+    /**
+     * Obtener un usuario por ID
+     */
+    public static function get_usuario_by_id(int $id_usuario)
+    {
+        $sql = "
+            SELECT 
+                u.id as id_usuario,
+                u.username,
+                u.estado,
+                u.id_rol,
+                u.id_empleado,
+                r.nombre as nombre_rol,
+                e.nombre as nombre_empleado,
+                e.apellido as apellido_empleado,
+                e.id_empresa as id_empresa_pertenece,
+                e.path_foto,
+                ep.nombre_comercial as empresa_pertenece
+            FROM usuario u
+            INNER JOIN empleado e ON e.id = u.id_empleado
+            INNER JOIN empresa ep ON ep.id = e.id_empresa
+            INNER JOIN rol r ON r.id = u.id_rol
+            WHERE u.id = :id_usuario
+        ";
+
+        return DB::selectOne($sql, ['id_usuario' => $id_usuario]);
+    }
+
+    /**
+     * Insertar un nuevo usuario
+     */
+    public static function insert_usuario(
+        int $id_rol,
+        int $id_empleado,
+        string $username,
+        string $password_hash,
+        string $estado = 'Activo'
+    ): int {
+        return DB::table('usuario')->insertGetId([
+            'id_rol' => $id_rol,
+            'id_empleado' => $id_empleado,
+            'username' => $username,
+            'password' => $password_hash,
+            'estado' => $estado,
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+    }
+
+    /**
+     * Actualizar datos del usuario
+     */
+    public static function update_usuario(int $id_usuario, array $data): bool
+    {
+        $data['updated_at'] = now();
+        return DB::table('usuario')
+            ->where('id', $id_usuario)
+            ->update($data);
+    }
 }

@@ -58,7 +58,14 @@ class CuentasController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = CuentasService::crear_cuenta($request->all());
+        $v = $validator->validated();
+
+        $result = CuentasService::crear_cuenta(
+            id_rol: (int) $v['id_rol'],
+            id_empleado: (int) $v['id_empleado'],
+            username: (string) $v['username'],
+            password: (string) $v['password']
+        );
         return response()->json($result);
     }
 
@@ -86,7 +93,15 @@ class CuentasController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = CuentasService::actualizar_cuenta($id_usuario, $request->all());
+        $v = $validator->validated();
+
+        $result = CuentasService::actualizar_cuenta(
+            id_usuario: $id_usuario,
+            id_rol: (int) $v['id_rol'],
+            username: (string) $v['username'],
+            password: isset($v['password']) ? (string) $v['password'] : null,
+            estado: isset($v['estado']) ? (string) $v['estado'] : null
+        );
         return response()->json($result);
     }
 }
