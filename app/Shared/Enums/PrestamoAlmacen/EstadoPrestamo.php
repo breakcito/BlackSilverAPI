@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Shared\Enums;
+namespace App\Shared\Enums\PrestamoAlmacen;
 
 enum EstadoPrestamo: string
 {

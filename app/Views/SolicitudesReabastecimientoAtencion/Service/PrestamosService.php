@@ -3,8 +3,9 @@
 namespace App\Views\SolicitudesReabastecimientoAtencion\Service;
 
 use App\Models\SolicitudReabastecimientoDetalle;
-use App\Shared\Enums\EstadoDetallePrestamo;
-use App\Shared\Enums\EstadoPrestamo;
+use App\Models\SolicitudReabastecimientoDetalleLog;
+use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamo;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Enums\Periodo;
 use App\Shared\Helpers\CorrelativoHelper;
@@ -25,7 +26,7 @@ class PrestamosService
         int $id_solicitud_reabastecimiento,
         int $id_almacen_prestamista,
         int $id_empleado_registro,
-        string $fecha_limite_devolucion,
+        ?string $fecha_limite_devolucion,
         array $detalles
     ) {
         try {
@@ -57,6 +58,15 @@ class PrestamosService
                 
                 $srd->estado = EstadoSolicitudDetalle::SolicitandoPrestamo->value;
                 $srd->save();
+
+                // Registrar trazabilidad en la solicitud original
+                SolicitudReabastecimientoDetalleLog::create([
+                    'id_solicitud_reabastecimiento_detalle' => $srd->id,
+                    'id_empleado' => $id_empleado_registro,
+                    'descripcion' => EstadoSolicitudDetalle::SolicitandoPrestamo->getGlosa(),
+                    'estado' => EstadoSolicitudDetalle::SolicitandoPrestamo->value,
+                    'created_at' => now(),
+                ]);
 
                 $cantidad_solicitada = (float) $detalle['cantidad_solicitada'];
                 $cantidad_solicitada_base = $cantidad_solicitada * (float) $srd->contenido_por_presentacion;

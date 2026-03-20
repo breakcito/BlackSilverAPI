@@ -27,7 +27,7 @@ class PrestamosController extends Controller
         $validator = Validator::make($request->all(), [
             'id_solicitud_reabastecimiento' => 'required|integer',
             'id_almacen_prestamista' => 'required|integer',
-            'fecha_limite_devolucion' => 'required|date',
+            'fecha_limite_devolucion' => 'nullable|date',
             'detalles' => 'required|array|min:1',
             'detalles.*.id_solicitud_reabastecimiento_detalle' => 'required|integer',
             'detalles.*.cantidad_solicitada' => 'required|numeric|min:0.01',
@@ -43,11 +43,14 @@ class PrestamosController extends Controller
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
+        $fecha_limite = $request->input('fecha_limite_devolucion');
+        if (empty($fecha_limite)) $fecha_limite = null;
+
         $result = PrestamosService::crear_prestamo(
             (int) $request->input('id_solicitud_reabastecimiento'),
             (int) $request->input('id_almacen_prestamista'),
             (int) $authUser->id_empleado,
-            (string) $request->input('fecha_limite_devolucion'),
+            $fecha_limite,
             (array) $request->input('detalles')
         );
 

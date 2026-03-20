@@ -60,7 +60,7 @@ class PrestamosData
         string $correlativo,
         int $numero_correlativo,
         string $fecha_hora_prestamo,
-        string $fecha_limite_devolucion,
+        ?string $fecha_limite_devolucion,
         string $estado
     ): int {
         return PrestamoAlmacen::insertGetId([
