@@ -93,4 +93,62 @@ class SolicitudesController extends Controller
         $result = SolicitudesService::get_trazabilidad_by_detalle((int) $id_detalle);
         return response()->json($result);
     }
+
+    // Obtener historial de entregas
+    public function get_historial_entregas(Request $request): JsonResponse
+    {
+        $id_solicitud = $request->input('id_solicitud_reabastecimiento');
+        if (!$id_solicitud) {
+            return response()->json(ApiResponse::error('El id_solicitud_reabastecimiento es requerido'), 400);
+        }
+
+        $result = SolicitudesService::get_historial_entregas((int) $id_solicitud);
+        return response()->json($result);
+    }
+
+    // Obtener lotes disponibles en el almacen solicitante para los productos entregados
+    public function get_lotes_destino(Request $request): JsonResponse
+    {
+        $id_entrega = $request->input('id_reabastecimiento_entrega');
+        if (!$id_entrega) {
+            return response()->json(ApiResponse::error('El id_reabastecimiento_entrega es requerido'), 400);
+        }
+
+        $result = SolicitudesService::get_lotes_destino_disponibles((int) $id_entrega);
+        return response()->json($result);
+    }
+
+    // Recibir múltiples detalles de una entrega a la vez
+    public function recibir_entrega_item(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_reabastecimiento_entrega' => 'required|integer',
+            'items' => 'required|array|min:1',
+            'items.*.id_solicitud_reabastecimiento_detalle' => 'required|integer',
+            'items.*.es_nuevo_lote' => 'required|boolean',
+            'items.*.id_lote_existente' => 'nullable|integer',
+            'items.*.codigo_lote' => 'nullable|string',
+            'items.*.fecha_vencimiento' => 'nullable|date',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 400);
+        }
+
+        // Validación condicional dependiendo de 'es_nuevo_lote'
+        foreach ($request->input('items') as $item) {
+            if (!$item['es_nuevo_lote']) {
+                if (empty($item['id_lote_existente'])) {
+                    return response()->json(ApiResponse::error('Debe seleccionar un lote existente para ajustar su stock'), 400);
+                }
+            }
+        }
+
+        $result = SolicitudesService::recibir_entregas(
+            (int) $request->input('id_reabastecimiento_entrega'),
+            $request->input('items')
+        );
+
+        return response()->json($result);
+    }
 }

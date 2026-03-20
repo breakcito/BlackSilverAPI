@@ -21,7 +21,7 @@ class EntregaService
         $data = EntregasData::get_historial_entregas(id_solicitud: $id_solicitud);
 
         foreach ($data as $entrega) {
-            $entrega->detalles = EntregasDetalleData::get_detalles_entrega(id_entrega: (int) $entrega->id_requerimiento_almacen_entrega);
+            $entrega->detalles = EntregasDetalleData::get_detalles_entrega(id_entrega: (int) $entrega->id_reabastecimiento_entrega);
         }
 
         return ApiResponse::success($data);

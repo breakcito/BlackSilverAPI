@@ -33,14 +33,14 @@ class AuxController extends Controller
      */
     public function get_lotes_disponibles(Request $request): JsonResponse
     {
-        $id_producto = $request->input('id_producto');
+        $ids_productos = $request->input('ids_productos');
         $id_almacen = $request->input('id_almacen');
 
-        if (is_null($id_producto) || is_null($id_almacen)) {
-            return response()->json(ApiResponse::error('id_producto e id_almacen son requeridos'));
+        if (is_null($ids_productos) || is_null($id_almacen)) {
+            return response()->json(ApiResponse::error('ids_productos e id_almacen son requeridos'));
         }
 
-        $ids_productos = is_array($id_producto) ? array_map('intval', $id_producto) : [(int) $id_producto];
+        $ids_productos = is_array($ids_productos) ? array_map('intval', $ids_productos) : [(int) $ids_productos];
 
         $result = AuxService::get_lotes_disponibles($ids_productos, (int) $id_almacen);
 
