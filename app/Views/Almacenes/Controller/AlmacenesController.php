@@ -18,7 +18,7 @@ class AlmacenesController extends Controller
         return response()->json($result);
     }
 
-    public function crear_almacen(Request $request)
+    public function crear_almacen(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:128',
@@ -33,10 +33,12 @@ class AlmacenesController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
+        $v = $validator->validated();
+
         $result = AlmacenesService::crear_almacen(
-            $request->nombre,
-            $request->descripcion ?? null,
-            $request->es_principal
+            nombre: (string) $v['nombre'],
+            descripcion: isset($v['descripcion']) ? (string) $v['descripcion'] : null,
+            es_principal: (bool) $v['es_principal']
         );
 
         return response()->json($result);

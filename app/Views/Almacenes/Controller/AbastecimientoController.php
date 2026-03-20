@@ -4,6 +4,7 @@ namespace App\Views\Almacenes\Controller;
 
 use App\Shared\Responses\ApiResponse;
 use App\Views\Almacenes\Service\AbastecimientoService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Validator;
 class AbastecimientoController extends Controller
 {
 
-    public function get_minas_abastecidas(Request $request, $id_almacen)
+    public function get_minas_abastecidas(Request $request, $id_almacen): JsonResponse
     {
         if (! $id_almacen) {
             return response()->json(ApiResponse::error('El almacen es requerido'));
@@ -22,7 +23,7 @@ class AbastecimientoController extends Controller
         return response()->json($result);
     }
 
-    public function nueva_mina_por_abastecer(Request $request)
+    public function nueva_mina_por_abastecer(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'id_almacen' => 'required|integer',
@@ -36,26 +37,28 @@ class AbastecimientoController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
+        $v = $validator->validated();
+
         $result = AbastecimientoService::nueva_mina_por_abastecer(
-            $request->id_almacen,
-            $request->id_mina
+            id_almacen: (int) $v['id_almacen'],
+            id_mina: (int) $v['id_mina']
         );
 
         return response()->json($result);
     }
 
-    public function eliminar_abastecimiento_mina(Request $request, $id_almacen_mina)
+    public function eliminar_abastecimiento_mina(Request $request, $id_almacen_mina): JsonResponse
     {
         if (! $id_almacen_mina) {
             return response()->json(ApiResponse::error('El id_asignacion es requerido'));
         }
 
-        $result = AbastecimientoService::eliminar_abastecimiento_mina($id_almacen_mina);
+        $result = AbastecimientoService::eliminar_abastecimiento_mina((int) $id_almacen_mina);
 
         return response()->json($result);
     }
 
-    public function get_minas(Request $request, $id_almacen)
+    public function get_minas(Request $request, $id_almacen): JsonResponse
     {
         if (! $id_almacen) {
             return response()->json(ApiResponse::error('El almacen es requerido'));

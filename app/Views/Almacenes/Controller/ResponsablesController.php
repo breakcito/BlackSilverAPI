@@ -4,13 +4,14 @@ namespace App\Views\Almacenes\Controller;
 
 use App\Shared\Responses\ApiResponse;
 use App\Views\Almacenes\Service\ResponsablesService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
 
 class ResponsablesController extends Controller
 {
-    public function get_historial_responsables(Request $request, $id_almacen)
+    public function get_historial_responsables(Request $request, $id_almacen): JsonResponse
     {
         if (! $id_almacen) {
             return response()->json(ApiResponse::error('El almacen es requerido'));
@@ -21,7 +22,7 @@ class ResponsablesController extends Controller
         return response()->json($result);
     }
 
-    public function nuevo_responsable(Request $request)
+    public function nuevo_responsable(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'id_almacen' => 'required|integer',
@@ -37,16 +38,18 @@ class ResponsablesController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
+        $v = $validator->validated();
+
         $result = ResponsablesService::nuevo_responsable(
-            $request->id_almacen,
-            $request->id_empleado,
-            $request->fecha_inicio,
+            id_almacen: (int) $v['id_almacen'],
+            id_empleado: (int) $v['id_empleado'],
+            fecha_inicio: (string) $v['fecha_inicio'],
         );
 
         return response()->json($result);
     }
 
-    public function get_empleados(Request $request, $id_almacen)
+    public function get_empleados(Request $request, $id_almacen): JsonResponse
     {
         if (! $id_almacen) {
             return response()->json(ApiResponse::error('El almacen es requerido'));
