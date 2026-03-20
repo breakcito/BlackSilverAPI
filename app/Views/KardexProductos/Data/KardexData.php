@@ -2,19 +2,10 @@
 
 namespace App\Views\KardexProductos\Data;
 
-use App\Models\Almacen;
 use Illuminate\Support\Facades\DB;
 
 class KardexData
 {
-    /**
-     * obtener la lista de almacenes donde el empleado es responsable
-     */
-    public static function get_almacenes(int $id_empleado): array
-    {
-        return Almacen::get_almacenes($id_empleado);
-    }
-
     /**
      * Listar movimientos de kardex por almacén y periodo.
      */
@@ -57,8 +48,8 @@ class KardexData
         ';
 
         return DB::select($sql, [
-            'id_almacen' => $id_almacen, 
-            'mes' => $mes, 
+            'id_almacen' => $id_almacen,
+            'mes' => $mes,
             'yearcito' => $yearcito
         ]);
     }

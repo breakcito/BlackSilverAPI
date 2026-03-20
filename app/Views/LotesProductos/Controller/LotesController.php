@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Views\LotesProductos;
+namespace App\Views\LotesProductos\Controller;
 
 use App\Shared\Responses\ApiResponse;
+use App\Views\LotesProductos\Service\LotesService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -10,22 +11,6 @@ use Illuminate\Support\Facades\Validator;
 
 class LotesController extends Controller
 {
-    public function get_almacenes(Request $request): JsonResponse
-    {
-        $authUser = $request->attributes->get('auth_user');
-        if (!$authUser) {
-            return response()->json(ApiResponse::error('No autorizado'), 401);
-        }
-
-        $result = LotesService::get_almacenes($authUser->id_empleado);
-        return response()->json($result);
-    }
-
-    public function get_unidades_medida(): JsonResponse
-    {
-        $result = LotesService::get_unidades_medida();
-        return response()->json($result);
-    }
 
     public function get_resumen_lotes(Request $request): JsonResponse
     {
@@ -35,13 +20,6 @@ class LotesController extends Controller
         }
 
         $result = LotesService::get_resumen_lotes((int) $id_almacen);
-
-        return response()->json($result);
-    }
-
-    public function get_productos(Request $request): JsonResponse
-    {
-        $result = LotesService::get_productos();
 
         return response()->json($result);
     }

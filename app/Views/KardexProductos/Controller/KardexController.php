@@ -32,8 +32,7 @@ class KardexController extends Controller
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
-        $result = KardexService::get_almacenes((int) $authUser->id_empleado);
-
+        $result = KardexService::get_almacenes($authUser->id_usuario, $authUser->id_empleado);
         return response()->json($result);
     }
 }

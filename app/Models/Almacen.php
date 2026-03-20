@@ -19,15 +19,19 @@ class Almacen extends Model
     ];
 
     /**
-     * obtener la lista simple de almacenes activos
+     * obtener la lista simple de almacenes activos con filtros opcionales
      */
-    public static function get_almacenes(?int $id_responsable = null)
+    public static function get_almacenes(?int $id_responsable = null, ?int $es_principal = null)
     {
         $query = DB::table('almacen as alm')
-            ->select('alm.id as id_almacen', 'alm.nombre')
+            ->select('alm.id', 'alm.id as id_almacen', 'alm.nombre', 'alm.es_principal')
             ->where('alm.estado', 'Activo')
-            ->where('alm.es_principal', '!=', 1)
             ->distinct();
+
+        // filtro por si es o no principal
+        if (!is_null($es_principal)) {
+            $query->where('alm.es_principal', $es_principal);
+        }
 
         // si recibimos el id del responsable
         if (!is_null($id_responsable)) {
