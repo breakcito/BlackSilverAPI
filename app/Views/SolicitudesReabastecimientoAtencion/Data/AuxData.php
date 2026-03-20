@@ -2,6 +2,7 @@
 
 namespace App\Views\SolicitudesReabastecimientoAtencion\Data;
 
+use App\Models\Almacen;
 use App\Models\KardexProducto;
 use App\Models\LoteProducto;
 use App\Models\RequerimientoAlmacenDetalle;
@@ -18,18 +19,7 @@ class AuxData
      */
     public static function get_almacenes(int $es_principal = 0): array
     {
-        $sql = '
-        SELECT DISTINCT
-            alm.id,
-            alm.nombre
-        FROM
-            almacen alm
-        WHERE
-            alm.estado = "Activo" AND
-            alm.es_principal = :es_principal
-        ';
-
-        return DB::select($sql, ['es_principal' => $es_principal]);
+        return Almacen::get_almacenes(es_principal: $es_principal);
     }
 
     // obtener la lista de empleados para indicar quien recibe

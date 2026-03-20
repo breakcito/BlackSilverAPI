@@ -1,12 +1,11 @@
 <?php
 
-namespace App\Views\KardexProductos\Service;
+namespace App\Views\LotesProductos\Service;
 
 use App\Shared\Responses\ApiResponse;
-use App\Views\KardexProductos\Data\AuxData;
-use App\Views\KardexProductos\Data\KardexData;
+use App\Views\LotesProductos\Data\AuxData;
 
-class KardexService
+class AuxService
 {
     /**
      * Listar almacenes.
@@ -23,13 +22,24 @@ class KardexService
         return ApiResponse::success($almacenes);
     }
 
+    /**
+     * Listar productos
+     */
+    public static function get_productos()
+    {
+        $productos = AuxData::get_productos();
+
+        return ApiResponse::success($productos);
+    }
+
 
     /**
-     * Listar movimientos de kardex por almacén.
+     * Listar unidades de meddida
      */
-    public static function get_resumen_kardex(int $id_almacen, int $mes, int $yearcito)
+    public static function get_unidades_medida()
     {
-        $movimientos = KardexData::get_resumen_kardex($id_almacen, $mes, $yearcito);
-        return ApiResponse::success($movimientos);
+        $unidades = AuxData::get_unidades_medida();
+
+        return ApiResponse::success($unidades);
     }
 }

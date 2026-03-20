@@ -1,45 +1,15 @@
 <?php
 
-namespace App\Views\LotesProductos;
+namespace App\Views\LotesProductos\Service;
 
 use App\Shared\Enums\Kardex\TipoMovimiento;
 use App\Shared\Responses\ApiResponse;
+use App\Views\LotesProductos\Data\AuxData;
 use App\Views\LotesProductos\Data\LotesData;
 use Illuminate\Support\Facades\DB;
 
 class LotesService
 {
-    /**
-     * Listar almacenes.
-     */
-    public static function get_almacenes(int $id_empleado)
-    {
-        $almacenes = LotesData::get_almacenes($id_empleado);
-
-        return ApiResponse::success($almacenes);
-    }
-
-    /**
-     * Listar productos
-     */
-    public static function get_productos()
-    {
-        $productos = LotesData::get_productos();
-
-        return ApiResponse::success($productos);
-    }
-
-
-    /**
-     * Listar unidades de meddida
-     */
-    public static function get_unidades_medida()
-    {
-        $unidades = LotesData::get_unidades_medida();
-
-        return ApiResponse::success($unidades);
-    }
-
     /**
      * Listar lotes de un almacén.
      */
@@ -82,7 +52,7 @@ class LotesService
         );
 
         if ($stock_inicial > 0) {
-            LotesData::registrar_log_kardex(
+            AuxData::registrar_log_kardex(
                 $id_lote,
                 $stock_inicial,
                 $stock_actual_base
@@ -114,7 +84,7 @@ class LotesService
             $diferencia_lote = $nuevo_stock - $stock_anterior;
             $tipo_movimiento = $diferencia_base > 0 ? TipoMovimiento::Ingreso : TipoMovimiento::Salida;
 
-            $unidad_base = LotesData::get_abreviatura_unidad_medida($lote['id_unidad_medida']);
+            $unidad_base = AuxData::get_abreviatura_unidad_medida($lote['id_unidad_medida']);
 
             $descripcion_kardex = $motivo;
             if (empty($descripcion_kardex)) {
@@ -130,7 +100,7 @@ class LotesService
             LotesData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
 
             // Registrar movimiento en Kardex
-            LotesData::registrar_ajuste_kardex(
+            AuxData::registrar_ajuste_kardex(
                 $id_lote,
                 $tipo_movimiento->value,
                 $stock_anterior,
