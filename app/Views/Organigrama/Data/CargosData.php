@@ -11,7 +11,7 @@ class CargosData
     /**
      * Listar o obtener un cargo
      */
-    public static function get_cargos(?int $id_area = null, ?int $id_cargo = null)
+    public static function get_cargos(?int $id_area = null, ?int $id_cargo = null): array|object
     {
         $sql = '
         SELECT
@@ -38,7 +38,7 @@ class CargosData
             $sql .= ' AND c.id = :id_cargo';
             $params['id_cargo'] = $id_cargo;
 
-            return DB::selectOne($sql, $params);
+            return DB::selectOne($sql, $params) ?? (object) [];
         }
 
         $sql .= ' ORDER BY c.estado ASC, c.nombre ASC';
@@ -49,7 +49,7 @@ class CargosData
     /**
      * Obtener cargo por ID
      */
-    public static function get_cargo_by_id(int $id_cargo)
+    public static function get_cargo_by_id(int $id_cargo): array|object
     {
         return self::get_cargos(id_cargo: $id_cargo);
     }
@@ -57,7 +57,7 @@ class CargosData
     /**
      * Crear cargo
      */
-    public static function crear_cargo(string $nombre, int $id_area)
+    public static function crear_cargo(string $nombre, int $id_area): int
     {
         return Cargo::insertGetId([
             'nombre' => $nombre,
@@ -69,7 +69,7 @@ class CargosData
     /**
      * Verificar duplicado en la misma área
      */
-    public static function verificar_nombre_duplicado(string $nombre, int $id_area)
+    public static function verificar_nombre_duplicado(string $nombre, int $id_area): bool
     {
         return Cargo::where('nombre', $nombre)
             ->where('id_area', $id_area)
@@ -79,7 +79,7 @@ class CargosData
     /**
      * Alternar estado
      */
-    public static function cambiar_estado(int $id_cargo)
+    public static function cambiar_estado(int $id_cargo): string
     {
         $cargo = Cargo::findOrFail($id_cargo);
         $nuevo_estado = $cargo->estado === EstadoBase::Activo->value

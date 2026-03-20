@@ -11,7 +11,7 @@ class AreasData
     /**
      * Listar o obtener un área
      */
-    public static function get_areas(?int $id_area = null)
+    public static function get_areas(?int $id_area = null): array|object
     {
         $sql = '
         SELECT
@@ -32,7 +32,7 @@ class AreasData
             $sql .= ' AND a.id = :id_area';
             $params['id_area'] = $id_area;
 
-            return DB::selectOne($sql, $params);
+            return DB::selectOne($sql, $params) ?? (object) [];
         }
 
         $sql .= ' AND a.estado = :estado ORDER BY a.nombre ASC';
@@ -44,7 +44,7 @@ class AreasData
     /**
      * Obtener área por ID
      */
-    public static function get_area_by_id(int $id_area)
+    public static function get_area_by_id(int $id_area): array|object
     {
         return self::get_areas(id_area: $id_area);
     }
@@ -52,7 +52,7 @@ class AreasData
     /**
      * Crear área
      */
-    public static function crear_area(string $nombre)
+    public static function crear_area(string $nombre): int
     {
         return Area::insertGetId([
             'nombre' => $nombre,
@@ -63,7 +63,7 @@ class AreasData
     /**
      * Verificar duplicado
      */
-    public static function verificar_nombre_duplicado(string $nombre)
+    public static function verificar_nombre_duplicado(string $nombre): bool
     {
         return Area::where('nombre', $nombre)->exists();
     }
