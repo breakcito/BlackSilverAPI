@@ -46,6 +46,20 @@ class SolicitudesDetalleData
                     lot.estado = "Activo" AND 
                     lot.id_almacen = alm.id
             ) as stock_disponible,
+            (
+                SELECT IFNULL(SUM(pad.cantidad_solicitada), 0)
+                FROM prestamo_almacen_detalle pad
+                INNER JOIN prestamo_almacen pa ON pa.id = pad.id_prestamo_almacen
+                WHERE pad.id_solicitud_reabastecimiento_detalle = srd.id
+                AND pa.estado NOT IN ("Anulado", "Rechazado")
+            ) AS cantidad_prestada_total,
+            (
+                SELECT IFNULL(SUM(pad.cantidad_solicitada_base), 0)
+                FROM prestamo_almacen_detalle pad
+                INNER JOIN prestamo_almacen pa ON pa.id = pad.id_prestamo_almacen
+                WHERE pad.id_solicitud_reabastecimiento_detalle = srd.id
+                AND pa.estado NOT IN ("Anulado", "Rechazado")
+            ) AS cantidad_prestada_total_base,
             srd.comentario,
             srd.comentario_decision,
             srd.estado
