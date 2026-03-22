@@ -78,8 +78,8 @@ class PrestamosData
 
     public static function get_almacenes_con_stock_multiple_productos(array $ids_productos, int $id_almacen_excluido)
     {
-        if (empty($ids_productos)) return [];
-
+        $totalIds = count(array_unique($ids_productos));
+        
         return DB::table('lote_producto as lp')
             ->join('almacen as a', 'a.id', '=', 'lp.id_almacen')
             ->join('producto as p', 'p.id', '=', 'lp.id_producto')
@@ -96,6 +96,15 @@ class PrestamosData
             ->where('a.id', '!=', $id_almacen_excluido)
             ->where('a.es_principal', 0)
             ->where('lp.estado', 'Activo')
+            ->whereIn('a.id', function($query) use ($ids_productos, $totalIds) {
+                $query->select('id_almacen')
+                    ->from('lote_producto')
+                    ->whereIn('id_producto', $ids_productos)
+                    ->where('estado', 'Activo')
+                    ->where('stock_actual_base', '>', 0)
+                    ->groupBy('id_almacen')
+                    ->havingRaw('COUNT(DISTINCT id_producto) = ?', [$totalIds]);
+            })
             ->groupBy('a.id', 'a.nombre', 'lp.id_producto', 'p.nombre', 'um_base.abreviatura')
             ->havingRaw('SUM(lp.stock_actual_base) > 0')
             ->orderBy('a.nombre')
