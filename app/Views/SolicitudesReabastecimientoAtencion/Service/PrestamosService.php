@@ -71,6 +71,19 @@ class PrestamosService
                 $cantidad_solicitada = (float) $detalle['cantidad_solicitada'];
                 $cantidad_solicitada_base = $cantidad_solicitada * (float) $srd->contenido_por_presentacion;
 
+                // VALIDACIÓN DE STOCK EN TIEMPO REAL
+                $lotes_disponibles = PrestamosData::get_lotes_disponibles_por_almacen_y_producto($srd->id_producto, $id_almacen_prestamista);
+                $stock_total_base = 0;
+                foreach ($lotes_disponibles as $lote) {
+                    $stock_total_base += (float)$lote->stock_actual_base;
+                }
+
+                if ($stock_total_base < $cantidad_solicitada_base) {
+                    $nombre_producto = DB::table('producto')->where('id', $srd->id_producto)->value('nombre');
+                    $stock_formateado = round($stock_total_base / $srd->contenido_por_presentacion, 2);
+                    throw new \Exception("¡Ups! El stock de '{$nombre_producto}' ha cambiado. Disponible: {$stock_formateado}, Solicitado: {$cantidad_solicitada}. La operación fue abortada.");
+                }
+
                 PrestamosDetalleData::crear_prestamo_detalle(
                     (int) $id_prestamo,
                     (int) $detalle['id_solicitud_reabastecimiento_detalle'],
