@@ -3,6 +3,7 @@
 namespace App\Views\SolicitudesReabastecimiento\Controller;
 
 use App\Shared\Responses\ApiResponse;
+use App\Views\SolicitudesReabastecimiento\Service\EntregasService;
 use App\Views\SolicitudesReabastecimiento\Service\SolicitudesService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -102,22 +103,9 @@ class SolicitudesController extends Controller
             return response()->json(ApiResponse::error('El id_solicitud_reabastecimiento es requerido'), 400);
         }
 
-        $result = SolicitudesService::get_historial_entregas((int) $id_solicitud);
+        $result = EntregasService::get_historial_entregas((int) $id_solicitud);
         return response()->json($result);
     }
-
-    // Obtener lotes disponibles en el almacen solicitante para los productos entregados
-    public function get_lotes_destino(Request $request): JsonResponse
-    {
-        $id_entrega = $request->input('id_reabastecimiento_entrega');
-        if (!$id_entrega) {
-            return response()->json(ApiResponse::error('El id_reabastecimiento_entrega es requerido'), 400);
-        }
-
-        $result = SolicitudesService::get_lotes_destino_disponibles((int) $id_entrega);
-        return response()->json($result);
-    }
-
     // Recibir múltiples detalles de una entrega a la vez
     public function recibir_entrega_item(Request $request): JsonResponse
     {
@@ -126,29 +114,65 @@ class SolicitudesController extends Controller
             'items' => 'required|array|min:1',
             'items.*.id_solicitud_reabastecimiento_detalle' => 'required|integer',
             'items.*.es_nuevo_lote' => 'required|boolean',
+            'items.*.cantidad_base' => 'required|numeric|min:0.01',
             'items.*.id_lote_existente' => 'nullable|integer',
-            'items.*.codigo_lote' => 'nullable|string',
             'items.*.fecha_vencimiento' => 'nullable|date',
+            'items.*.id_unidad_medida' => 'nullable|integer',
+            'items.*.contenido_por_presentacion' => 'nullable|numeric|min:0.01',
+            'items.*.fecha_ingreso' => 'nullable|date',
+            'items.*.descripcion' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()), 400);
         }
 
-        // Validación condicional dependiendo de 'es_nuevo_lote'
+        // Validación condicional
         foreach ($request->input('items') as $item) {
-            if (!$item['es_nuevo_lote']) {
-                if (empty($item['id_lote_existente'])) {
-                    return response()->json(ApiResponse::error('Debe seleccionar un lote existente para ajustar su stock'), 400);
-                }
+            if (!$item['es_nuevo_lote'] && empty($item['id_lote_existente'])) {
+                return response()->json(ApiResponse::error('Debe seleccionar un lote existente para ajustar su stock'), 400);
             }
         }
 
-        $result = SolicitudesService::recibir_entregas(
+        $result = EntregasService::recibir_entregas(
             (int) $request->input('id_reabastecimiento_entrega'),
             $request->input('items')
         );
 
+        return response()->json($result);
+    }
+
+    public function recibir_entrega_bulk(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'recepciones' => 'required|array|min:1',
+            'recepciones.*.id_reabastecimiento_entrega' => 'required|integer',
+            'recepciones.*.items' => 'required|array|min:1',
+            'recepciones.*.items.*.id_solicitud_reabastecimiento_detalle' => 'required|integer',
+            'recepciones.*.items.*.es_nuevo_lote' => 'required|boolean',
+            'recepciones.*.items.*.cantidad_base' => 'required|numeric|min:0.01',
+            'recepciones.*.items.*.id_lote_existente' => 'nullable|integer',
+            'recepciones.*.items.*.fecha_vencimiento' => 'nullable|date',
+            'recepciones.*.items.*.id_unidad_medida' => 'nullable|integer',
+            'recepciones.*.items.*.contenido_por_presentacion' => 'nullable|numeric|min:0.01',
+            'recepciones.*.items.*.fecha_ingreso' => 'nullable|date',
+            'recepciones.*.items.*.descripcion' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 400);
+        }
+
+        // Validación condicional
+        foreach ($request->input('recepciones') as $recepcion) {
+            foreach ($recepcion['items'] as $item) {
+                if (!$item['es_nuevo_lote'] && empty($item['id_lote_existente'])) {
+                    return response()->json(ApiResponse::error('Debe seleccionar un lote existente para ajustar su stock en el detalle ' . $item['id_solicitud_reabastecimiento_detalle']), 400);
+                }
+            }
+        }
+
+        $result = EntregasService::recibir_entregas_bulk($request->input('recepciones'));
         return response()->json($result);
     }
 }

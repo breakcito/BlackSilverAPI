@@ -20,4 +20,10 @@ class AuxService
             'unidades_medida' => $unidades_medida,
         ]);
     }
+
+    public static function get_lotes_disponibles(int $id_almacen_solicitante, array $id_productos)
+    {
+        $lotes = AuxData::get_lotes_disponibles($id_almacen_solicitante, $id_productos);
+        return ApiResponse::success($lotes);
+    }
 }

@@ -22,15 +22,17 @@ Route::middleware('auth.jwt.custom')->prefix('solicitudes-reabastecimiento')->gr
         Route::get('/trazabilidad-detalle', 'get_trazabilidad_by_detalle');
         // Obtener historial de entregas de una solicitud
         Route::get('/historial-entregas', 'get_historial_entregas');
-        // Obtener los lotes disponibles del almacén para la entrega
-        Route::get('/lotes-destino', 'get_lotes_destino');
         // Recibir un item de una entrega
         Route::post('/recibir-entrega-item', 'recibir_entrega_item');
+        // Recibir múltiples entregas a la vez (Global)
+        Route::post('/recibir-entrega-bulk', 'recibir_entrega_bulk');
     });
 
     Route::controller(AuxController::class)->prefix('catalogos')->group(function () {
         // Obtener la lista de almacenes donde el empleado es responsable,
         // productos y unidades de medida
         Route::get('/', 'get_catalogos');
+        // Obtener los lotes disponibles del almacén solicitante para la recepcion
+        Route::get('/lotes-destino', 'get_lotes_destino');
     });
 });
