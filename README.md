@@ -1,78 +1,107 @@
-# Black Silver - Sistema de Gestión Minera (SaaS)
+# Black Silver - API (Laravel)
 
-Black Silver es una plataforma SaaS diseñada para la gestión integral de operaciones mineras. Este proyecto utiliza un stack moderno y una arquitectura diseñada para la escalabilidad y el mantenimiento independiente de módulos.
-
-## Stack Tecnológico
-
-- **Backend:** Laravel 12 (PHP 8.4)
-- **Frontend:** React.js + Zustand + Material UI
-- **Base de Datos:** MySQL
+Este es el repositorio del backend (API) de **Black Silver**, una plataforma SaaS diseñada para la gestión integral de operaciones mineras. El sistema está construido sobre Laravel 12 y sigue una arquitectura modular orientada a la mantenibilidad.
 
 ---
 
-## Arquitectura de Software: Aislamiento por Vista
+## 🛠️ Stack Tecnológico
 
-El proyecto sigue estrictamente el principio de **Aislamiento por Vista**. Cada módulo o vista debe ser autosuficiente, evitando acoplamientos innecesarios con otros módulos hermanos.
-
-### 1. Backend (API)
-**Ubicación:** `BlackSilverAPI/app/Views/[NombreModulo]`
-
-La lógica de la API se organiza por vistas para garantizar que cada sección del frontend tenga su contraparte específica en el backend. Cada módulo se divide en cuatro capas:
-
-*   **Endpoints:** Define las rutas específicas y accesibles para la vista.
-*   **Controller:** Actúa como un orquestador ligero. Valida la entrada y delega la ejecución al Service.
-*   **Service:** Contiene la lógica de negocio pura. Es el encargado de procesar la información y tomar decisiones.
-*   **Data:** Capa de acceso a datos. Contiene consultas optimizadas (SQL puro o Eloquent) para proveer información al Service.
-
-> [!IMPORTANT]
-> **Regla de Oro:** Si dos vistas requieren datos similares, ambos archivos `Data` deben recurrir a métodos compartidos en los **Modelos de Eloquent** globales. No se permite comunicación directa entre Controllers o Services de distintas vistas.
-
-### 2. Frontend
-**Ubicación:** `blacksilver/src/views/[nombre-modulo]`
-
-El frontend sigue una estructura de tres capas para separar la interfaz de la lógica y el estado:
-
-*   **Presentation:** Contiene el archivo principal `.page.tsx` y sub-componentes visuales. No debe contener lógica compleja, cálculos, ni manejo de estados pesados; solo renderiza datos y emite eventos.
-*   **Hooks:** Centralizan la lógica de la interfaz, el manejo de estados locales, efectos (`useEffect`), validaciones de formularios, y **cualquier cálculo o transformación de datos derivado del estado (ej. `useMemo` para calcular progresos o totales)**.
-*   **Service:** Gestiona la comunicación con la API (Fetch/Axios). Define los **DTOs** (Data Transfer Objects) mediante Zustand para el manejo de estados globales de formularios e **Interfaces** para la comunicación de datos.
+- **Framework:** [Laravel 12](https://laravel.com/) (PHP 8.2+)
+- **Autenticación:** [JWT Auth](https://php-open-source-saver.github.io/jwt-auth/)
+- **Base de Datos:** MySQL / MariaDB
+- **Herramientas de Desarrollo:**
+    - [Sail](https://laravel.com/docs/sail) (Entorno Docker opcional)
+    - [Pint](https://laravel.com/docs/pint) (Estilo de código)
+    - [Artisan](https://laravel.com/docs/artisan) (Línea de comandos)
 
 ---
 
-## Lineamientos de Desarrollo (API)
+## 🏗️ Arquitectura: Aislamiento por Vista
 
-1.  **Prioridad a la Legibilidad:** El código debe ser legible, elegante y simple. La claridad es más importante que la micro-optimización. Documenta el *porqué* de la lógica compleja, no el *qué*.
+Para mantener el sistema desacoplado, la lógica de la API se organiza por "Vistas" (correspondientes a los módulos del frontend). Cada módulo reside en `app/Views/[NombreModulo]`.
 
-2.  **Independencia y Abstracción:**
-    *   Ninguna vista debe importar lógica (`Controller`, `Service`) de otra vista hermana.
-    *   La funcionalidad compartida debe abstraerse en los **Modelos de Eloquent** (`app/Models`). Si dos vistas requieren datos similares, los archivos `Data` deben usar métodos en los modelos.
+### Estructura de Capas por Módulo
 
-3.  **Firmas de Métodos Claras:**
-    *   **No pasar parámetros en un único `array`**. Los métodos en `Services` y archivos `Data` deben tener parámetros explícitos y tipados. Esto clarifica las dependencias de la función.
-    *   Si un parámetro es un array de objetos (ej. detalles de una factura), documenta su estructura con un comentario de bloque. Ejemplo:
-        ```php
-        /**
-         * @param array $detalles // array de objetos ['producto_id' => int, 'cantidad' => int]
-         */
-        public function registrar(array $detalles) { ... }
-        ```
+Cada módulo se divide obligatoriamente en cuatro capas:
 
-4.  **Acceso a Datos:**
-    *   Para entender la estructura de la base de datos, consulta siempre la carpeta `app/Models`.
-    *   Usa **SQL puro** para consultas que involucren `JOINs` complejos. Es más explícito y a menudo más performante que el ORM para estos casos.
-    *   Si diferentes vistas necesitan datos idénticos o muy similares, crea un método reutilizable en el modelo correspondiente. Si los filtros o la información requerida son muy distintos, crea una consulta específica por vista en su archivo `Data`.
+#### 1. Endpoints
+- **Responsabilidad:** Definición de rutas y middleware.
+- **Regla:** Solo deben contener la definición de la ruta y apuntar al método correspondiente del Controller.
 
-5.  **Transacciones de Base de Datos:**
-    *   Cualquier método de servicio que realice múltiples operaciones de escritura (registros, actualizaciones, eliminaciones) **debe** estar envuelto en una transacción (`DB::transaction()`). Esto garantiza la atomicidad y previene datos corruptos en caso de error.
+#### 2. Controller
+- **Responsabilidad:** Orquestación y validación inicial.
+- **Regla:** Debe ser "delgado". Valida la entrada (`Request`) y delega la ejecución al **Service**. Retorna una `ApiResponse`.
 
-6.  **Separación de Responsabilidades:**
-    *   Si una funcionalidad o vista gestiona múltiples procesos (ej. "Requerimientos" y "Entregas"), no aglomeres toda la lógica en un solo `Controller` o `Service`. Sepáralos en archivos distintos para mantener la cohesión y simplicidad (`AprobacionController.php`, `RechazoController.php`).
+#### 3. Service
+- **Responsabilidad:** Lógica de negocio pura.
+- **Regla:** Aquí se toman las decisiones, se procesan datos y se orquestan múltiples llamadas a la capa de **Data**.
+- **Nota:** Si una operación afecta a varias tablas, **debe** usar transacciones.
 
-7.  **Respuestas de API Estandarizadas:**
-    *   Todas las respuestas de la API deben seguir una estructura consistente para éxitos, errores y validaciones, utilizando la clase `App\Shared\Responses\ApiResponse`.
-        ```php
-        // Estructura de éxito
-        ['success' => true, 'data' => [...], 'message' => '...']
+#### 4. Data
+- **Responsabilidad:** Acceso a datos y consultas.
+- **Regla:** No contiene lógica de negocio. Realiza consultas optimizadas usando Eloquent o SQL puro según la complejidad.
 
-        // Estructura de error
-        ['success' => false, 'data' => null, 'message' => 'Error...']
+---
+
+## 📜 Reglas de Oro del Desarrollo
+
+### 1. Independencia Total
+Ninguna vista debe importar lógica (`Controller`, `Service`) de otra vista hermana. Si dos vistas requieren datos similares, la lógica de consulta debe moverse a los **Modelos de Eloquent** globales (`app/Models`).
+
+### 2. Transacciones de Base de Datos
+Cualquier método en un `Service` que realice más de una operación de escritura (insert, update, delete) debe estar envuelto en:
+```php
+DB::transaction(function () {
+    // Lógica de múltiples escrituras
+});
+```
+
+### 3. Firmas de Métodos Explícitas
+No pases parámetros en `arrays` genéricos si puedes evitarlos. Usa parámetros tipados y explícitos.
+```php
+// MAL
+public function crear(array $data) { ... }
+
+// BIEN
+public function crear(int $usuarioId, string $descripcion, float $monto) { ... }
+```
+
+### 4. Consultas de Alto Rendimiento
+Usa **SQL puro** (vía `DB::select`) para consultas con múltiples `JOINs` o que impacten en el rendimiento. Eloquent es excelente para CRUD simple, pero el SQL puro es más explícito para reportes y listados complejos.
+
+---
+
+## 🚀 Workflow: Crear un Nuevo Endpoint
+
+1. **Definir Ruta:** En `app/Views/[Modulo]/Endpoints.php`.
+2. **Crear Data Layer:** Implementa los métodos de consulta necesarios en `[Modulo]Data.php`.
+3. **Desarrollar Service:** Crea la lógica de negocio en `[Modulo]Service.php`.
+4. **Implementar Controller:** Crea el método en `[Modulo]Controller.php` que une todo y valida la entrada.
+5. **Estandarizar Respuesta:** Usa siempre la clase `ApiResponse`:
+```php
+return ApiResponse::success($data, "Operación exitosa");
+```
+
+---
+
+## 🔧 Comandos Útiles
+
+```bash
+# Iniciar entorno de desarrollo
+php artisan serve
+
+# Limpiar caché de configuración
+php artisan config:clear
+
+# Ejecutar linter (Pint)
+./vendor/bin/pint
+```
+
+---
+
+## 🔒 Seguridad
+- Todas las rutas sensibles deben estar protegidas por el middleware `auth:api`.
+- Usa **Form Requests** o validaciones manuales estrictas en cada Controller.
+- Nunca expongas datos sensibles en las respuestas JSON (usa `hidden` en Modelos o filtrado manual).
+cess' => false, 'data' => null, 'message' => 'Error...']
         ```
