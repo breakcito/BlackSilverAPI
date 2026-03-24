@@ -1,0 +1,31 @@
+<?php
+
+use App\Views\PrestamosAlmacenAtencion\Controller\AtencionController;
+use App\Views\PrestamosAlmacenAtencion\Controller\EntregaController;
+use App\Views\PrestamosAlmacenAtencion\Controller\AuxController;
+use Illuminate\Support\Facades\Route;
+
+Route::middleware('auth.jwt.custom')->group(function () {
+    Route::prefix('prestamos-atencion')->group(function () {
+
+        // Auxiliares
+        Route::controller(AuxController::class)->group(function () {
+            Route::get('/almacenes-autorizados', 'get_almacenes_autorizados');
+            Route::get('/empleados',             'get_empleados');
+            Route::get('/lotes',                 'get_lotes_disponibles');
+        });
+
+        // Listado y Detalle (Atención)
+        Route::controller(AtencionController::class)->group(function () {
+            Route::get('/prestamos',    'get_prestamos');
+            Route::get('/ver',          'get_detalles_prestamo');
+            Route::get('/trazabilidad', 'get_trazabilidad_detalle');
+            Route::post('/cambiar-estado', 'cambiar_estado_detalle');
+        });
+
+        // Despacho y Gestión (Entrega)
+        Route::controller(EntregaController::class)->group(function () {
+            Route::post('/despacho', 'registrar_despacho');
+        });
+    });
+});
