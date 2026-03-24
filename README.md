@@ -38,9 +38,41 @@ El frontend sigue una estructura de tres capas para separar la interfaz de la l�
 
 ---
 
-## Lineamientos de Desarrollo
+## Lineamientos de Desarrollo (API)
 
-1.  **Independencia:** Ninguna vista debe importar lógica, servicios o componentes de otra vista hermana.
-2.  **Abstracción:** La funcionalidad compartida debe abstraerse en el directorio `shared` (Front) o en `Models/Shared` (API).
-3.  **Tipado:** Se exige un uso estricto de TypeScript en el Frontend y tipos nativos en PHP 8.4 para asegurar la integridad de los datos. **NUNCA usar arreglos genéricos (como `array $data`) para pasar parámetros a los métodos de Controller/Service; cada parámetro debe estar definido explícitamente y tipado de manera individual.**
-4.  **Flujo de Datos:** El flujo de datos debe ser siempre: `Presentation -> Hook -> Service -> API`.
+1.  **Prioridad a la Legibilidad:** El código debe ser legible, elegante y simple. La claridad es más importante que la micro-optimización. Documenta el *porqué* de la lógica compleja, no el *qué*.
+
+2.  **Independencia y Abstracción:**
+    *   Ninguna vista debe importar lógica (`Controller`, `Service`) de otra vista hermana.
+    *   La funcionalidad compartida debe abstraerse en los **Modelos de Eloquent** (`app/Models`). Si dos vistas requieren datos similares, los archivos `Data` deben usar métodos en los modelos.
+
+3.  **Firmas de Métodos Claras:**
+    *   **No pasar parámetros en un único `array`**. Los métodos en `Services` y archivos `Data` deben tener parámetros explícitos y tipados. Esto clarifica las dependencias de la función.
+    *   Si un parámetro es un array de objetos (ej. detalles de una factura), documenta su estructura con un comentario de bloque. Ejemplo:
+        ```php
+        /**
+         * @param array $detalles // array de objetos ['producto_id' => int, 'cantidad' => int]
+         */
+        public function registrar(array $detalles) { ... }
+        ```
+
+4.  **Acceso a Datos:**
+    *   Para entender la estructura de la base de datos, consulta siempre la carpeta `app/Models`.
+    *   Usa **SQL puro** para consultas que involucren `JOINs` complejos. Es más explícito y a menudo más performante que el ORM para estos casos.
+    *   Si diferentes vistas necesitan datos idénticos o muy similares, crea un método reutilizable en el modelo correspondiente. Si los filtros o la información requerida son muy distintos, crea una consulta específica por vista en su archivo `Data`.
+
+5.  **Transacciones de Base de Datos:**
+    *   Cualquier método de servicio que realice múltiples operaciones de escritura (registros, actualizaciones, eliminaciones) **debe** estar envuelto en una transacción (`DB::transaction()`). Esto garantiza la atomicidad y previene datos corruptos en caso de error.
+
+6.  **Separación de Responsabilidades:**
+    *   Si una funcionalidad o vista gestiona múltiples procesos (ej. "Requerimientos" y "Entregas"), no aglomeres toda la lógica en un solo `Controller` o `Service`. Sepáralos en archivos distintos para mantener la cohesión y simplicidad (`AprobacionController.php`, `RechazoController.php`).
+
+7.  **Respuestas de API Estandarizadas:**
+    *   Todas las respuestas de la API deben seguir una estructura consistente para éxitos, errores y validaciones, utilizando la clase `App\Shared\Responses\ApiResponse`.
+        ```php
+        // Estructura de éxito
+        ['success' => true, 'data' => [...], 'message' => '...']
+
+        // Estructura de error
+        ['success' => false, 'data' => null, 'message' => 'Error...']
+        ```
