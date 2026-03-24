@@ -8,7 +8,7 @@ use App\Models\SolicitudReabastecimientoDetalle;
 use App\Models\SolicitudReabastecimientoDetalleLog;
 use App\Shared\Enums\PrestamoAlmacen\EstadoEntregaPrestamo;
 use App\Shared\Helpers\CorrelativoHelper;
-use App\Shared\Helpers\Periodo;
+use App\Shared\Enums\Periodo;
 use Illuminate\Support\Facades\DB;
 
 class EntregasData
@@ -21,15 +21,15 @@ class EntregasData
     {
         return CorrelativoHelper::generar(
             tabla: 'prestamo_almacen_entrega',
-            alias: 'pae',
             prefijo: 'ENT',
-            longitud: 5,
-            periodo: Periodo::Anual,
+            filtros: ['pa.id_almacen_prestamista' => $id_almacen_prestamista],
+            longitudCeros: 5,
+            reseteo: Periodo::Anual,
+            columnaFecha: 'created_at',
             queryModifier: function ($query) {
                 $query->join('prestamo_almacen as pa', 'pa.id', '=', 'pae.id_prestamo_almacen');
             },
-            filtros: ['pa.id_almacen_prestamista' => $id_almacen_prestamista],
-            campoFecha: 'created_at'
+            alias: 'pae'
         );
     }
 

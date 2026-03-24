@@ -66,7 +66,7 @@ class PrestamosDetalleData
             "id_prestamo_almacen_detalle" => $id_prestamo_detalle,
             "id_empleado" => $id_empleado,
             "estado" => $estado,
-            "comentario" => $comentario,
+            "descripcion" => $comentario,
             "created_at" => now()
         ]);
     }
@@ -78,9 +78,8 @@ class PrestamosDetalleData
     {
         return DB::select('
             SELECT
-                log.id,
                 log.estado,
-                log.comentario,
+                log.descripcion AS comentario,
                 log.created_at,
                 CONCAT(e.nombre, " ", e.apellido) AS nombre_empleado,
                 e.path_foto

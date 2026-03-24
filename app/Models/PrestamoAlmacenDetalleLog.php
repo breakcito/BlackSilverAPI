@@ -14,7 +14,7 @@ class PrestamoAlmacenDetalleLog extends Model
         'id_prestamo_almacen_detalle',
         'id_empleado',
         'estado',
-        'comentario',
+        'descripcion',
         'created_at',
     ];
 

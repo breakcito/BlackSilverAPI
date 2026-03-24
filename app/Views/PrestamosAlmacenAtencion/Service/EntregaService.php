@@ -9,6 +9,7 @@ use App\Views\PrestamosAlmacenAtencion\Data\AuxData;
 use App\Views\PrestamosAlmacenAtencion\Data\EntregasData;
 use App\Views\PrestamosAlmacenAtencion\Data\EntregasDetalleData;
 use App\Views\PrestamosAlmacenAtencion\Data\PrestamosDetalleData;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
 
@@ -33,6 +34,8 @@ class EntregaService
             $observacion,
             $detalles
         ) {
+            $fecha_mysql = Carbon::parse($fecha_hora_entrega)->toDateTimeString();
+
             // 1. Validar Stock General antes de empezar
             foreach ($detalles as $det) {
                 $id_lote = (int) $det['id_lote_salida'];
@@ -60,7 +63,7 @@ class EntregaService
                 $id_empleado_recibe,
                 $correlativoData['correlativo'],
                 $correlativoData['numero_correlativo'],
-                $fecha_hora_entrega,
+                $fecha_mysql,
                 $observacion
             );
 
