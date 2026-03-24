@@ -34,7 +34,9 @@ class EntregaService
             $observacion,
             $detalles
         ) {
-            $fecha_mysql = Carbon::parse($fecha_hora_entrega)->toDateTimeString();
+            $fecha_mysql = ($fecha_hora_entrega && $fecha_hora_entrega !== "null") 
+                ? Carbon::parse($fecha_hora_entrega)->toDateTimeString()
+                : now()->toDateTimeString();
 
             // 1. Validar Stock General antes de empezar
             foreach ($detalles as $det) {
@@ -140,7 +142,8 @@ class EntregaService
                     $prestamoLogGlosa
                 );
 
-                // TODO: Actualizar estado global del item si se completó la cantidad
+                // 4.8 Verificar si se completó la cantidad para cerrar el ítem
+                PrestamosDetalleData::verificar_y_cerrar_detalle($id_prestamo_detalle);
             }
 
             return ApiResponse::success(

@@ -121,4 +121,32 @@ class AuxData
             'created_at'                => now(),
         ]);
     }
+
+    /**
+     * Obtiene los lotes disponibles de varios productos en un almacén.
+     */
+    public static function get_lotes_disponibles_batch(array $ids_productos, int $id_almacen): array
+    {
+        return DB::select("
+            SELECT
+                lp.id AS id_lote,
+                lp.id_producto,
+                lp.correlativo,
+                lp.stock_actual,
+                lp.stock_actual_base,
+                lp.contenido_por_presentacion,
+                um.nombre AS unidad_medida,
+                um.abreviatura AS unidad_medida_abv,
+                lp.fecha_vencimiento,
+                DATEDIFF(lp.fecha_vencimiento, NOW()) AS dias_para_vencer
+            FROM lote_producto lp
+            INNER JOIN unidad_medida um ON um.id = lp.id_unidad_medida
+            WHERE
+                lp.id_producto IN (" . implode(',', array_fill(0, count($ids_productos), '?')) . ")
+                AND lp.id_almacen = ?
+                AND lp.stock_actual_base > 0
+                AND lp.estado = 'Activo'
+            ORDER BY lp.fecha_vencimiento ASC, lp.created_at ASC
+        ", [...$ids_productos, $id_almacen]);
+    }
 }

@@ -102,4 +102,15 @@ class PrestamosDetalleData
             ->where('id', $id_detalle)
             ->first();
     }
+
+    /**
+     * Verifica si un ítem de préstamo ya fue cubierto al 100% y cambia su estado.
+     */
+    public static function verificar_y_cerrar_detalle(int $id_prestamo_detalle): void
+    {
+        $det = PrestamoAlmacenDetalle::find($id_prestamo_detalle);
+        if ($det && $det->cantidad_prestada_base >= $det->cantidad_solicitada_base) {
+            $det->update(['estado' => 'Entrega completa']);
+        }
+    }
 }

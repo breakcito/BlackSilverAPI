@@ -19,7 +19,7 @@ class EntregaController extends Controller
         $validator = Validator::make($request->all(), [
             'id_prestamo'           => 'required|integer',
             'id_empleado_recibe'    => 'required|integer',
-            'fecha_hora_entrega'    => 'required|date',
+            'fecha_hora_entrega'    => 'nullable|date',
             'observacion'           => 'nullable|string|max:255',
             'detalles'              => 'required|array|min:1',
             'detalles.*.id_prestamo_detalle' => 'required|integer',
@@ -48,5 +48,25 @@ class EntregaController extends Controller
         );
 
         return response()->json($result);
+    }
+
+    /**
+     * Obtener lotes disponibles para varios productos (Batch).
+     */
+    public function obtener_lotes_batch(Request $request): JsonResponse
+    {
+        $id_almacen = $request->query('id_almacen');
+        $ids_productos_str = $request->query('ids_productos');
+
+        if (!$id_almacen || !$ids_productos_str) {
+            return response()->json(ApiResponse::error('Faltan parámetros: id_almacen o ids_productos'), 400);
+        }
+
+        $ids_productos = explode(',', $ids_productos_str);
+        $ids_productos = array_map('intval', $ids_productos);
+
+        $lotes = \App\Views\PrestamosAlmacenAtencion\Data\AuxData::get_lotes_disponibles_batch($ids_productos, (int)$id_almacen);
+        
+        return response()->json(ApiResponse::success($lotes));
     }
 }
