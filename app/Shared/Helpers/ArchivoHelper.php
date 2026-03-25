@@ -3,7 +3,6 @@
 namespace App\Shared\Helpers;
 
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ArchivoHelper
@@ -13,7 +12,7 @@ class ArchivoHelper
      *
      * @param  string  $carpetaDestino  Carpeta dentro de storage/app/public (ej. "pagos").
      * @param  UploadedFile[]  $archivos  Archivos recibidos en el request.
-     * @return array Retorna: { url (URL pública), relative_path (ruta para DB), filename, extension }
+     * @return array Retorna: { url (URL pública), nombre_original (nombre original del archivo), extension (docx, jpg, etc) }
      * 
      * Comando de ayuda: php artisan storage:link
      */
@@ -22,10 +21,10 @@ class ArchivoHelper
         $resultados = [];
 
         // Agrupamos los archivos en subcarpetas por fecha (ej. "pagos/28-02-26")
-        $rutaDestino = trim($carpetaDestino, '/').'/'.date('d-m-y');
+        $rutaDestino = trim($carpetaDestino, '/') . '/' . date('d-m-y');
 
         foreach ($archivos as $archivo) {
-            if (! $archivo instanceof UploadedFile || ! $archivo->isValid()) {
+            if (!$archivo instanceof UploadedFile || !$archivo->isValid()) {
                 continue;
             }
 
@@ -40,8 +39,8 @@ class ArchivoHelper
             if ($pathRelativo) {
                 $resultados[] = [
                     'url' => asset('storage/' . $pathRelativo),
-                    // 'relative_path' => $pathRelativo,
-                    'filename' => $nombreLimpio,
+                    'path_relativo' => $pathRelativo,
+                    'nombre_original' => $nombreLimpio,
                     'extension' => $extension,
                 ];
             }

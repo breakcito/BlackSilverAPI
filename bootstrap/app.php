@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware('api')->prefix('api')->group(function () {
                 require base_path('app/Views/Login/LoginEndpoints.php');
                 require base_path('app/Endpoints/MenuNavEndpoints.php');
+                require base_path('app/Endpoints/ArchivoEndpoints.php');
                 require base_path('app/Views/Almacenes/AlmacenesEndpoints.php');
                 require base_path('app/Views/Categorias/CategoriasEndpoints.php');
                 require base_path('app/Views/Empresas/EmpresasEndpoints.php');

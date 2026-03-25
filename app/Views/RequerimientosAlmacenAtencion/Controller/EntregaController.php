@@ -45,6 +45,8 @@ class EntregaController extends Controller
             'id_empleado_recibe' => 'required|integer',
             'fecha_entrega' => 'required|date',
             'observacion' => 'nullable|string',
+            'evidencias' => 'nullable|array',
+            'evidencias.*' => 'file',
             'detalles' => 'required|array|min:1',
             'detalles.*.id_requerimiento_almacen_detalle' => 'required|integer',
             'detalles.*.id_lote_producto' => 'required|integer',
@@ -68,6 +70,7 @@ class EntregaController extends Controller
             (int) $request->id_empleado_recibe,
             $request->fecha_entrega,
             $request->observacion,
+            $request->file('evidencias'),
             $request->detalles
         );
 
@@ -97,4 +100,5 @@ class EntregaController extends Controller
         $result = $this->entregaService->obtener_empleados();
         return response()->json($result);
     }
+
 }

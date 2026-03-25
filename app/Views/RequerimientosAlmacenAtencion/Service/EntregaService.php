@@ -3,6 +3,7 @@
 namespace App\Views\RequerimientosAlmacenAtencion\Service;
 
 use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
+use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Views\RequerimientosAlmacenAtencion\Data\AuxData;
 use App\Views\RequerimientosAlmacenAtencion\Data\EntregasData;
@@ -30,6 +31,7 @@ class EntregaService
         $data = EntregasData::get_historial_entregas(id_requerimiento: $id_requerimiento);
 
         foreach ($data as $entrega) {
+            $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
             $entrega->detalles = EntregasDetalleData::get_detalles_entrega(id_entrega: (int) $entrega->id_requerimiento_almacen_entrega);
         }
 
@@ -45,9 +47,16 @@ class EntregaService
         int $id_empleado_recibe,
         string $fecha_entrega,
         ?string $observacion,
+        ?array $evidencias, // archivos
         array $detalles // {id_requerimiento_almacen_detalle, id_lote_producto, cantidad_base, cantidad_lote, cantidad_requerimiento}
     ) {
-        return DB::transaction(function () use ($id_empleado_entrega, $id_requerimiento, $id_empleado_recibe, $fecha_entrega, $observacion, $detalles) {
+        return DB::transaction(function () use ($id_empleado_entrega, $id_requerimiento, $id_empleado_recibe, $fecha_entrega, $observacion, $evidencias, $detalles) {
+
+            // Procesar Evidencias si existen
+            $evidenciasData = null;
+            if (!empty($evidencias)) {
+                $evidenciasData = ArchivoHelper::guardarArchivos('requerimientos_almacen_entregas', $evidencias);
+            }
 
             // Validar Stock
             foreach ($detalles as $item) {
@@ -70,6 +79,7 @@ class EntregaService
                 $correlativoData['numero_correlativo'],
                 $fecha_entrega,
                 $observacion,
+                $evidenciasData,
             );
 
             foreach ($detalles as $item) {
