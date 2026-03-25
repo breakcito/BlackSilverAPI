@@ -112,8 +112,6 @@ class CuentasData
             'username' => $username,
             'password' => $password_hash,
             'estado' => $estado,
-            'created_at' => now(),
-            'updated_at' => now()
         ]);
     }
 
@@ -122,7 +120,6 @@ class CuentasData
      */
     public static function update_usuario(int $id_usuario, array $data): bool
     {
-        $data['updated_at'] = now();
         return DB::table('usuario')
             ->where('id', $id_usuario)
             ->update($data);

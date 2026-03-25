@@ -23,7 +23,14 @@ class PrestamosData
                 pa.estado,
                 alm_sol.nombre AS almacen_solicitante,
                 alm_sol.id    AS id_almacen_solicitante,
-                CONCAT(e.nombre, " ", e.apellido) AS registrado_por
+                CONCAT(e.nombre, " ", e.apellido) AS registrado_por,
+                (
+                    SELECT ra_sol.id_empleado 
+                    FROM responsable_almacen ra_sol 
+                    WHERE ra_sol.id_almacen = alm_sol.id 
+                    AND ra_sol.estado = "Activo" 
+                    LIMIT 1
+                ) AS id_empleado_recibe_default
             FROM
                 prestamo_almacen pa
             INNER JOIN solicitud_reabastecimiento sr ON sr.id = pa.id_solicitud_reabastecimiento
