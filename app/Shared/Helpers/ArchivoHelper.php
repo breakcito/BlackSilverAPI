@@ -40,7 +40,7 @@ class ArchivoHelper
             if ($pathRelativo) {
                 $resultados[] = [
                     'url' => asset('storage/' . $pathRelativo),
-                    'relative_path' => $pathRelativo,
+                    // 'relative_path' => $pathRelativo,
                     'filename' => $nombreLimpio,
                     'extension' => $extension,
                 ];

@@ -73,7 +73,7 @@ class EmpleadosService
         if ($foto && $foto->isValid()) {
             $archivos = ArchivoHelper::guardarArchivos('fotos-empleados', [$foto]);
             if (!empty($archivos)) {
-                $path_foto = $archivos[0]['relative_path'];
+                $path_foto = $archivos[0]['url'];
             }
         }
 
@@ -92,10 +92,6 @@ class EmpleadosService
 
         $nuevoEmpleado = EmpleadosData::get_empleado_by_id($id);
 
-        if ($nuevoEmpleado && $nuevoEmpleado->path_foto) {
-            $nuevoEmpleado->path_foto = asset('storage/' . $nuevoEmpleado->path_foto);
-        }
-
         return ApiResponse::success(
             $nuevoEmpleado,
             'Empleado registrado correctamente'
@@ -111,13 +107,10 @@ class EmpleadosService
             return ApiResponse::error('No se pudo procesar la imagen.');
         }
 
-        $path_foto = $archivos[0]['relative_path'];
+        $path_foto = $archivos[0]['url'];
         EmpleadosData::actualizar_foto($id_empleado, $path_foto);
 
         $empleado = EmpleadosData::get_empleado_by_id($id_empleado);
-        if ($empleado && $empleado->path_foto) {
-            $empleado->path_foto = asset('storage/' . $empleado->path_foto);
-        }
 
         return ApiResponse::success($empleado, 'Foto de perfil actualizada correctamente');
     }

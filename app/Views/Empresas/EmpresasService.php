@@ -40,16 +40,12 @@ class EmpresasService
         if ($logo && $logo->isValid()) {
             $archivos = ArchivoHelper::guardarArchivos('logos-empresas', [$logo]);
             if (!empty($archivos)) {
-                $path_logo = $archivos[0]['relative_path'];
+                $path_logo = $archivos[0]['url'];
             }
         }
 
         $id_empresa = EmpresasData::crear_empresa($ruc, $razon_social, $nombre_comercial, $abreviatura, $path_logo);
         $nuevaEmpresa = EmpresasData::get_empresa_by_id($id_empresa);
-
-        if ($nuevaEmpresa->path_logo) {
-            $nuevaEmpresa->path_logo = asset('storage/' . $nuevaEmpresa->path_logo);
-        }
 
         return ApiResponse::success($nuevaEmpresa, 'Empresa registrada correctamente');
     }
@@ -68,13 +64,10 @@ class EmpresasService
             return ApiResponse::error('No se pudo procesar la imagen.');
         }
 
-        $path_logo = $archivos[0]['relative_path'];
+        $path_logo = $archivos[0]['url'];
         EmpresasData::actualizar_logo($id_empresa, $path_logo);
 
         $empresa = EmpresasData::get_empresa_by_id($id_empresa);
-        if ($empresa && $empresa->path_logo) {
-            $empresa->path_logo = asset('storage/' . $empresa->path_logo);
-        }
 
         return ApiResponse::success($empresa, 'Logo de empresa actualizado correctamente');
     }
