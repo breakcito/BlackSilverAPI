@@ -84,7 +84,7 @@ class PrestamosService
                     throw new \Exception("¡Ups! El stock de '{$nombre_producto}' ha cambiado. Disponible: {$stock_formateado}, Solicitado: {$cantidad_solicitada}. La operación fue abortada.");
                 }
 
-                PrestamosDetalleData::crear_prestamo_detalle(
+                $id_detalle = PrestamosDetalleData::crear_prestamo_detalle(
                     (int) $id_prestamo,
                     (int) $detalle['id_solicitud_reabastecimiento_detalle'],
                     $cantidad_solicitada,
@@ -92,6 +92,15 @@ class PrestamosService
                     $detalle['comentario'] ?? null,
                     EstadoDetallePrestamo::Pendiente->value
                 );
+
+                // Registrar trazabilidad inicial del préstamo
+                \App\Models\PrestamoAlmacenDetalleLog::create([
+                    'id_prestamo_almacen_detalle' => $id_detalle,
+                    'id_empleado' => $id_empleado_registro,
+                    'descripcion' => EstadoDetallePrestamo::Pendiente->getGlosa(),
+                    'estado' => EstadoDetallePrestamo::Pendiente->value,
+                    'created_at' => now(),
+                ]);
             }
 
             $prestamoCreado = PrestamosData::get_prestamo_por_id((int) $id_prestamo);
