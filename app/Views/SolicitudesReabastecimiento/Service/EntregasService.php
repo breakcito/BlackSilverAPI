@@ -18,6 +18,7 @@ class EntregasService
         $data = EntregasData::get_historial_entregas($id_solicitud);
 
         foreach ($data as $entrega) {
+            $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
             $entrega->detalles = EntregasData::get_detalles_entrega((int) $entrega->id_reabastecimiento_entrega);
         }
 

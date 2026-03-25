@@ -41,6 +41,7 @@ class EntregaController extends Controller
             (int) $request->id_empleado_recibe,
             $request->fecha_hora_entrega,
             $request->observacion,
+            $request->file('evidencias'), // archivos
             $request->detalles
         );
 

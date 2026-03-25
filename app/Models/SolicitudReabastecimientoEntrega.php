@@ -23,4 +23,8 @@ class SolicitudReabastecimientoEntrega extends Model
         'created_at',
         'estado',
     ];
+
+    protected $casts = [
+        'evidencias' => 'array',
+    ];
 }
