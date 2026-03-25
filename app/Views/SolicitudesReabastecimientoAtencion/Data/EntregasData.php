@@ -89,6 +89,7 @@ class EntregasData
         int $numero_correlativo,
         string $fecha_hora_entrega,
         ?string $observacion = null,
+        ?array $evidencias = null,
     ) {
         return SolicitudReabastecimientoEntrega::insertGetId([
             'id_solicitud_reabastecimiento' => $id_solicitud,
@@ -99,6 +100,7 @@ class EntregasData
             'numero_correlativo' => $numero_correlativo,
             'fecha_hora_entrega' => $fecha_hora_entrega,
             'observacion' => $observacion,
+            'evidencias' => $evidencias ? json_encode($evidencias) : null,
             'created_at' => now(),
             'estado' => EstadoEntrega::Procesada->value
         ]);

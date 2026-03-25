@@ -9,6 +9,7 @@ use App\Views\SolicitudesReabastecimientoAtencion\Data\EntregasData;
 use App\Views\SolicitudesReabastecimientoAtencion\Data\EntregasDetalleData;
 use App\Views\SolicitudesReabastecimientoAtencion\Data\SolicitudesDetalleData;
 use Illuminate\Support\Facades\DB;
+use App\Shared\Helpers\ArchivoHelper;
 
 class EntregaService
 {
@@ -21,6 +22,7 @@ class EntregaService
         $data = EntregasData::get_historial_entregas(id_solicitud: $id_solicitud);
 
         foreach ($data as $entrega) {
+            $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
             $entrega->detalles = EntregasDetalleData::get_detalles_entrega(id_entrega: (int) $entrega->id_reabastecimiento_entrega);
         }
 
@@ -37,9 +39,16 @@ class EntregaService
         int $id_empleado_recibe,
         string $fecha_hora_entrega,
         ?string $observacion,
+        ?array $evidencias, // archivos
         array $detalles // {id_solicitud_detalle, id_lote_producto, cantidad_base, cantidad_lote, cantidad_solicitud
     ) {
-        return DB::transaction(function () use ($id_almacen_entrega, $id_empleado_entrega, $id_solicitud, $id_empleado_recibe, $fecha_hora_entrega, $observacion, $detalles) {
+        return DB::transaction(function () use ($id_almacen_entrega, $id_empleado_entrega, $id_solicitud, $id_empleado_recibe, $fecha_hora_entrega, $observacion, $evidencias, $detalles) {
+
+            // Procesar Evidencias si existen
+            $evidenciasData = null;
+            if (!empty($evidencias)) {
+                $evidenciasData = ArchivoHelper::guardarArchivos('reabastecimiento_entregas', $evidencias);
+            }
 
             // Validar Stock
             foreach ($detalles as $item) {
@@ -62,6 +71,7 @@ class EntregaService
                 $correlativoData['numero_correlativo'],
                 $fecha_hora_entrega,
                 $observacion,
+                $evidenciasData,
             );
 
             foreach ($detalles as $item) {
