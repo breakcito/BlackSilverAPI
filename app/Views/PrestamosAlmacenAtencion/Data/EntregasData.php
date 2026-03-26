@@ -43,7 +43,8 @@ class EntregasData
         string $correlativo,
         int $numero_correlativo,
         string $fecha_hora_entrega,
-        ?string $observacion
+        ?string $observacion,
+        ?array $evidencias = null
     ): int {
         return PrestamoAlmacenEntrega::insertGetId([
             'id_prestamo_almacen'   => $id_prestamo_almacen,
@@ -53,6 +54,7 @@ class EntregasData
             'numero_correlativo'    => $numero_correlativo,
             'fecha_hora_entrega'    => $fecha_hora_entrega,
             'observacion'           => $observacion,
+            'evidencias'            => $evidencias ? json_encode($evidencias) : null,
             'created_at'            => now(),
             'estado'                => EstadoEntregaPrestamo::EnDespacho->value,
         ]);
