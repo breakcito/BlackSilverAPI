@@ -40,6 +40,6 @@ class Almacen extends Model
                 ->where('res.id_empleado', $id_responsable);
         }
 
-        return $query->get()->toArray();
+        return $query->orderBy('alm.nombre', 'asc')->get()->toArray();
     }
 }
