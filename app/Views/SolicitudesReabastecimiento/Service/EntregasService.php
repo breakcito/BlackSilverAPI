@@ -62,7 +62,8 @@ class EntregasService
                     $solicitud_vinc = \App\Models\SolicitudReabastecimiento::find($prestamo->id_solicitud_reabastecimiento);
 
                     $correlativo_entrega = $entrega->correlativo;
-                    $correlativo_solicitud = $solicitud_vinc ? $solicitud_vinc->correlativo : $prestamo->correlativo;
+                    // Usar el correlativo del PRÉSTAMO siempre que sea un préstamo, no el de la solicitud vinculada
+                    $correlativo_solicitud = $prestamo->correlativo; 
                     $id_almacen = $solicitud_vinc ? $solicitud_vinc->id_almacen_solicitante : 0; 
 
                     $detalles_entrega = \App\Views\PrestamosAlmacenAtencion\Data\EntregasDetalleData::get_detalles_entrega($id_reabastecimiento_entrega);
