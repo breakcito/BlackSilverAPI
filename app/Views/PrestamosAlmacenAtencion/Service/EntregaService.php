@@ -3,6 +3,7 @@
 namespace App\Views\PrestamosAlmacenAtencion\Service;
 
 use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamo;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Responses\ApiResponse;
 use App\Views\PrestamosAlmacenAtencion\Data\AuxData;
@@ -113,7 +114,22 @@ class EntregaService
                 );
 
                 // 4.5 Actualizar cantidad acumulada en el Préstamo
-                EntregasData::incrementar_despachado_prestamo($id_prestamo_detalle, $cant_base);
+                EntregasData::registrar_incremento_cantidades_prestadas($id_prestamo_detalle, $cant_solicitud, $cant_base);
+
+                // 4.5.1 Transición de estado del ítem a "Despacho iniciado"
+                $updatedItem = DB::table('prestamo_almacen_detalle')
+                    ->where('id', $id_prestamo_detalle)
+                    ->where('estado', EstadoDetallePrestamo::Aprobado->value)
+                    ->update(['estado' => EstadoDetallePrestamo::DespachoIniciado->value]);
+
+                if ($updatedItem) {
+                    PrestamosDetalleData::insert_detalle_log(
+                        $id_prestamo_detalle,
+                        $id_empleado_entrega,
+                        EstadoDetallePrestamo::DespachoIniciado->value,
+                        EstadoDetallePrestamo::DespachoIniciado->getGlosa()
+                    );
+                }
 
                 // 4.6 IMPACTO EN REABASTECIMIENTO (PROGRESO)
                 $vinc = EntregasData::get_ids_vinculados_by_prestamo_detalle($id_prestamo_detalle);
@@ -143,7 +159,13 @@ class EntregaService
                 );
 
                 // 4.8 Verificar si se completó la cantidad para cerrar el ítem
-                PrestamosDetalleData::verificar_y_cerrar_detalle($id_prestamo_detalle);
+                PrestamosDetalleData::verificar_y_cerrar_detalle($id_prestamo_detalle, $id_empleado_entrega);
+
+                // 4.9 Asegurar que la cabecera del préstamo esté "En Proceso"
+                DB::table('prestamo_almacen')
+                    ->where('id', $id_prestamo)
+                    ->where('estado', EstadoPrestamo::Generado->value)
+                    ->update(['estado' => EstadoPrestamo::EnProceso->value]);
             }
 
             return ApiResponse::success(

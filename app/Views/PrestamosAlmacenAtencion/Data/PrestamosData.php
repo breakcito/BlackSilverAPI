@@ -24,6 +24,7 @@ class PrestamosData
                 alm_sol.nombre AS almacen_solicitante,
                 alm_sol.id    AS id_almacen_solicitante,
                 CONCAT(e.nombre, " ", e.apellido) AS registrado_por,
+                sr.correlativo AS solicitud_correlativo,
                 (
                     SELECT ra_sol.id_empleado 
                     FROM responsable_almacen ra_sol 

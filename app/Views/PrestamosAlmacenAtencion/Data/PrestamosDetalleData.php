@@ -4,6 +4,7 @@ namespace App\Views\PrestamosAlmacenAtencion\Data;
 
 use App\Models\PrestamoAlmacenDetalle;
 use App\Models\PrestamoAlmacenDetalleLog;
+use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
 use Illuminate\Support\Facades\DB;
 
 class PrestamosDetalleData
@@ -20,18 +21,21 @@ class PrestamosDetalleData
                 pad.cantidad_solicitada,
                 pad.cantidad_solicitada_base,
                 COALESCE(pad.cantidad_prestada_base, 0) AS cantidad_prestada_base,
-                COALESCE(pad.cantidad_prestada_base / NULLIF(srd.contenido_por_presentacion, 0), 0) AS cantidad_prestada,
+                COALESCE(pad.cantidad_prestada, 0) AS cantidad_prestada,
                 pad.comentario,
                 pad.estado,
                 srd.id_producto,
                 prod.nombre AS producto,
+                prod.stock_minimo,
                 um.nombre AS unidad_medida,
                 um.abreviatura AS unidad_medida_abv,
                 um_base.abreviatura AS unidad_medida_base_abv,
                 srd.id_unidad_medida,
-                srd.contenido_por_presentacion
+                srd.contenido_por_presentacion,
+                (SELECT SUM(stock_actual_base) FROM lote_producto WHERE id_almacen = pa.id_almacen_prestamista AND id_producto = srd.id_producto AND estado = "Activo") as stock_disponible
             FROM
                 prestamo_almacen_detalle pad
+            INNER JOIN prestamo_almacen pa ON pa.id = pad.id_prestamo_almacen
             INNER JOIN solicitud_reabastecimiento_detalle srd ON srd.id = pad.id_solicitud_reabastecimiento_detalle
             INNER JOIN producto prod ON prod.id = srd.id_producto
             INNER JOIN unidad_medida um ON um.id = srd.id_unidad_medida
@@ -58,7 +62,7 @@ class PrestamosDetalleData
      */
     public static function insert_detalle_log(
         int $id_prestamo_detalle,
-        int $id_empleado,
+        ?int $id_empleado,
         string $estado,
         ?string $comentario = null
     ): void {
@@ -106,11 +110,20 @@ class PrestamosDetalleData
     /**
      * Verifica si un ítem de préstamo ya fue cubierto al 100% y cambia su estado.
      */
-    public static function verificar_y_cerrar_detalle(int $id_prestamo_detalle): void
+    public static function verificar_y_cerrar_detalle(int $id_prestamo_detalle, ?int $id_empleado = null): void
     {
         $det = PrestamoAlmacenDetalle::find($id_prestamo_detalle);
         if ($det && $det->cantidad_prestada_base >= $det->cantidad_solicitada_base) {
-            $det->update(['estado' => 'Entrega completa']);
+            $nuevoEstado = EstadoDetallePrestamo::EntregaCompleta;
+            $det->update(['estado' => $nuevoEstado->value]);
+
+            // INSERTAR LOG AUTOMÁTICO DE CIERRE
+            self::insert_detalle_log(
+                $id_prestamo_detalle,
+                $id_empleado,
+                $nuevoEstado->value,
+                $nuevoEstado->getGlosa()
+            );
         }
     }
 }

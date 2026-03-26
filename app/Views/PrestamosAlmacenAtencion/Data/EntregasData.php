@@ -84,14 +84,14 @@ class EntregasData
         ', ['id_prestamo' => $id_prestamo]);
     }
 
-    /**
-     * Actualiza la cantidad despachada en el detalle del préstamo.
-     */
-    public static function incrementar_despachado_prestamo(int $id_prestamo_detalle, float $cantidad_base): void
+    public static function registrar_incremento_cantidades_prestadas(int $id_prestamo_detalle, float $cant_sol, float $cant_base): void
     {
         DB::table("prestamo_almacen_detalle")
             ->where("id", $id_prestamo_detalle)
-            ->increment("cantidad_prestada_base", $cantidad_base);
+            ->incrementEach([
+                "cantidad_prestada" => $cant_sol,
+                "cantidad_prestada_base" => $cant_base
+            ]);
     }
 
     /**
