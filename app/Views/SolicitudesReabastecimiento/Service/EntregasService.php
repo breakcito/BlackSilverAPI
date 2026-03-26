@@ -63,7 +63,7 @@ class EntregasService
 
                     $correlativo_entrega = $entrega->correlativo;
                     $correlativo_solicitud = $solicitud_vinc ? $solicitud_vinc->correlativo : $prestamo->correlativo;
-                    $id_almacen = $prestamo->id_almacen_solicitante; // El que recibe el préstamo
+                    $id_almacen = $solicitud_vinc ? $solicitud_vinc->id_almacen_solicitante : 0; 
 
                     $detalles_entrega = \App\Views\PrestamosAlmacenAtencion\Data\EntregasDetalleData::get_detalles_entrega($id_reabastecimiento_entrega);
                     $detalles_grouped = collect($detalles_entrega)->groupBy('id_solicitud_reabastecimiento_detalle');
@@ -105,22 +105,27 @@ class EntregasService
                     if ($es_nuevo_lote) {
                         $fecha_vencimiento = !empty($item['fecha_vencimiento']) ? date('Y-m-d', strtotime($item['fecha_vencimiento'])) : null;
                         $fecha_ingreso = !empty($item['fecha_ingreso']) ? date('Y-m-d H:i:s', strtotime($item['fecha_ingreso'])) : null;
-                        $descripcion = !empty($item['descripcion']) ? $item['descripcion'] : null;
+                        $descripcion_default = "Lote generado por recepción de entrega " . $correlativo_entrega . " de " . ($tipo_entrega === 'Prestamo' ? 'préstamo' : 'solicitud') . " " . $correlativo_solicitud;
+                        $descripcion_lote = !empty($item['descripcion']) ? $item['descripcion'] : $descripcion_default;
                         
                         $id_unidad_medida_solicitada = !empty($item['id_unidad_medida']) ? (int)$item['id_unidad_medida'] : (int) $detalleBase->id_unidad_medida_solicitada;
                         $contenido_solicitado = !empty($item['contenido_por_presentacion']) ? (float)$item['contenido_por_presentacion'] : (float) $detalleBase->contenido_por_presentacion_solicitado;
 
                         $cantidad_lote_ingresada = $cantidad_base_ingresada / $contenido_solicitado;
 
+                        if (empty($id_almacen)) {
+                            throw new \Exception("No se pudo determinar el almacén de destino para la entrega " . $correlativo_entrega);
+                        }
+
                         $id_lote_producto = RecepcionData::registrar_recepcion_lote_nuevo(
                             $id_producto,
                             $id_unidad_medida_solicitada,
-                            $id_almacen,
+                            (int) $id_almacen,
                             $fecha_vencimiento,
                             $cantidad_lote_ingresada,
                             $cantidad_base_ingresada,
                             $contenido_solicitado,
-                            $descripcion,
+                            $descripcion_lote,
                             $fecha_ingreso
                         );
                         $cantidad_kardex_lote = $cantidad_lote_ingresada;
