@@ -27,6 +27,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::controller(EntregaController::class)->group(function () {
             Route::post('/despacho', 'registrar_despacho');
             Route::get('/lotes-batch', 'obtener_lotes_batch');
+            Route::get('/entregas-solicitud', 'get_entregas_por_solicitud');
         });
     });
 });

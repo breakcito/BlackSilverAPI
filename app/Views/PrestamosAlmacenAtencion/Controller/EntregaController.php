@@ -72,4 +72,18 @@ class EntregaController extends Controller
         
         return response()->json(ApiResponse::success($lotes));
     }
+
+    /**
+     * Obtener historial de entregas por préstamo filtrado por solicitud_reabastecimiento.
+     */
+    public function get_entregas_por_solicitud(Request $request): JsonResponse
+    {
+        $id_solicitud = $request->query('id_solicitud');
+        if (!$id_solicitud) {
+            return response()->json(ApiResponse::error('Falta el parámetro id_solicitud'), 400);
+        }
+
+        $result = EntregaService::get_historial_por_solicitud((int)$id_solicitud);
+        return response()->json($result);
+    }
 }

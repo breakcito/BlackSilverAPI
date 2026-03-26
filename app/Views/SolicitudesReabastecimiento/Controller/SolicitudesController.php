@@ -111,6 +111,7 @@ class SolicitudesController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id_reabastecimiento_entrega' => 'required|integer',
+            'tipo_entrega' => 'nullable|string|in:Solicitud,Prestamo',
             'items' => 'required|array|min:1',
             'items.*.id_solicitud_reabastecimiento_detalle' => 'required|integer',
             'items.*.es_nuevo_lote' => 'required|boolean',
@@ -136,7 +137,8 @@ class SolicitudesController extends Controller
 
         $result = EntregasService::recibir_entregas(
             (int) $request->input('id_reabastecimiento_entrega'),
-            $request->input('items')
+            $request->input('items'),
+            (string) $request->input('tipo_entrega', 'Solicitud')
         );
 
         return response()->json($result);
@@ -147,6 +149,7 @@ class SolicitudesController extends Controller
         $validator = Validator::make($request->all(), [
             'recepciones' => 'required|array|min:1',
             'recepciones.*.id_reabastecimiento_entrega' => 'required|integer',
+            'recepciones.*.tipo_entrega' => 'nullable|string|in:Solicitud,Prestamo',
             'recepciones.*.items' => 'required|array|min:1',
             'recepciones.*.items.*.id_solicitud_reabastecimiento_detalle' => 'required|integer',
             'recepciones.*.items.*.es_nuevo_lote' => 'required|boolean',

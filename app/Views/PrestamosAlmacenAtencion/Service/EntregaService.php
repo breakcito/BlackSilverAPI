@@ -185,4 +185,19 @@ class EntregaService
             );
         });
     }
+
+    /**
+     * Obtiene el historial de entregas de todos los préstamos vinculados a una solicitud, con sus detalles.
+     */
+    public static function get_historial_por_solicitud(int $id_solicitud)
+    {
+        $data = EntregasData::get_entregas_por_solicitud((int) $id_solicitud);
+
+        foreach ($data as $entrega) {
+            $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
+            $entrega->detalles = EntregasDetalleData::get_detalles_entrega((int) $entrega->id_entrega);
+        }
+
+        return ApiResponse::success($data);
+    }
 }
