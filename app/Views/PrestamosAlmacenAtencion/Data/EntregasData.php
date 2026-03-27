@@ -43,7 +43,8 @@ class EntregasData
         string $correlativo,
         int $numero_correlativo,
         string $fecha_hora_entrega,
-        ?string $observacion
+        ?string $observacion,
+        ?array $evidencias = null
     ): int {
         return PrestamoAlmacenEntrega::insertGetId([
             'id_prestamo_almacen'   => $id_prestamo_almacen,
@@ -53,6 +54,7 @@ class EntregasData
             'numero_correlativo'    => $numero_correlativo,
             'fecha_hora_entrega'    => $fecha_hora_entrega,
             'observacion'           => $observacion,
+            'evidencias'            => $evidencias ? json_encode($evidencias) : null,
             'created_at'            => now(),
             'estado'                => EstadoEntregaPrestamo::EnDespacho->value,
         ]);
@@ -129,5 +131,37 @@ class EntregasData
             'estado' => $estado,
             'created_at' => now()
         ]);
+    }
+
+    /**
+     * Obtiene el historial de entregas de todos los préstamos vinculados a una solicitud de reabastecimiento.
+     */
+    public static function get_entregas_por_solicitud(int $id_solicitud): array
+    {
+        return DB::select('
+            SELECT
+                pae.id AS id_entrega,
+                pae.correlativo,
+                pae.numero_correlativo,
+                pae.fecha_hora_entrega,
+                pae.observacion,
+                pae.evidencias,
+                pae.created_at,
+                pae.estado,
+                CONCAT(emp_ent.nombre, " ", emp_ent.apellido) AS empleado_entrega,
+                CONCAT(emp_rec.nombre, " ", emp_rec.apellido) AS empleado_recibe,
+                alm.nombre AS almacen_entrega,
+                pa.correlativo AS correlativo_prestamo,
+                pa.id AS id_prestamo,
+                \'Prestamo\' AS tipo_entrega
+            FROM
+                prestamo_almacen_entrega pae
+            INNER JOIN prestamo_almacen pa ON pa.id = pae.id_prestamo_almacen
+            INNER JOIN almacen alm ON alm.id = pa.id_almacen_prestamista
+            INNER JOIN empleado emp_ent ON emp_ent.id = pae.id_empleado_entrega
+            INNER JOIN empleado emp_rec ON emp_rec.id = pae.id_empleado_recibe
+            WHERE pa.id_solicitud_reabastecimiento = :id_solicitud
+            ORDER BY pae.created_at DESC
+        ', ['id_solicitud' => $id_solicitud]);
     }
 }

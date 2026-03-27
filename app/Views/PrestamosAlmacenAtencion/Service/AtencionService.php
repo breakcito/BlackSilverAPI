@@ -6,6 +6,7 @@ use App\Shared\Responses\ApiResponse;
 use App\Views\PrestamosAlmacenAtencion\Data\PrestamosData;
 use App\Views\PrestamosAlmacenAtencion\Data\PrestamosDetalleData;
 use App\Views\PrestamosAlmacenAtencion\Data\EntregasData;
+use App\Views\PrestamosAlmacenAtencion\Data\EntregasDetalleData;
 use Exception;
 use Illuminate\Support\Facades\DB;
 
@@ -25,9 +26,16 @@ class AtencionService
      */
     public static function get_detalles_prestamo(int $id_prestamo)
     {
+        $entregas = EntregasData::get_entregas_por_prestamo($id_prestamo);
+        
+        foreach ($entregas as $entrega) {
+            $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
+            $entrega->detalles = EntregasDetalleData::get_detalles_entrega((int) $entrega->id_entrega);
+        }
+
         $data = [
             'detalles' => PrestamosDetalleData::get_detalles_prestamo($id_prestamo),
-            'entregas' => EntregasData::get_entregas_por_prestamo($id_prestamo)
+            'entregas' => $entregas
         ];
         return ApiResponse::success($data);
     }

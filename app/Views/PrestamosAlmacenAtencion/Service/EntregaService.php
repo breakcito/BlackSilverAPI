@@ -5,10 +5,12 @@ namespace App\Views\PrestamosAlmacenAtencion\Service;
 use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
 use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamo;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
+use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Views\PrestamosAlmacenAtencion\Data\AuxData;
 use App\Views\PrestamosAlmacenAtencion\Data\EntregasData;
 use App\Views\PrestamosAlmacenAtencion\Data\EntregasDetalleData;
+use App\Views\PrestamosAlmacenAtencion\Data\PrestamosData;
 use App\Views\PrestamosAlmacenAtencion\Data\PrestamosDetalleData;
 use Carbon\Carbon;
 use Exception;
@@ -25,6 +27,7 @@ class EntregaService
         int $id_empleado_recibe,
         string $fecha_hora_entrega,
         ?string $observacion,
+        ?array $evidencias, // Archivos
         array $detalles
     ) {
         return DB::transaction(function () use (
@@ -33,11 +36,18 @@ class EntregaService
             $id_empleado_recibe,
             $fecha_hora_entrega,
             $observacion,
+            $evidencias,
             $detalles
         ) {
             $fecha_mysql = ($fecha_hora_entrega && $fecha_hora_entrega !== "null") 
                 ? Carbon::parse($fecha_hora_entrega)->toDateTimeString()
                 : now()->toDateTimeString();
+
+            // 0. Procesar Evidencias si existen
+            $evidenciasData = null;
+            if (!empty($evidencias)) {
+                $evidenciasData = ArchivoHelper::guardarArchivos('prestamos_almacen_entregas', $evidencias);
+            }
 
             // 1. Validar Stock General antes de empezar
             foreach ($detalles as $det) {
@@ -51,7 +61,7 @@ class EntregaService
             }
 
             // 2. Obtener cabecera del préstamo para el correlativo y datos del Kardex
-            $prestamo = \App\Views\PrestamosAlmacenAtencion\Data\PrestamosData::get_prestamo_header_by_id($id_prestamo);
+            $prestamo = PrestamosData::get_prestamo_header_by_id($id_prestamo);
             if (!$prestamo) {
                 return ApiResponse::error("El préstamo no existe");
             }
@@ -67,11 +77,12 @@ class EntregaService
                 $correlativoData['correlativo'],
                 $correlativoData['numero_correlativo'],
                 $fecha_mysql,
-                $observacion
+                $observacion,
+                $evidenciasData
             );
 
             // Información del almacén destino (Solicitante) para el Kardex
-            $almSol = \App\Views\PrestamosAlmacenAtencion\Data\PrestamosData::get_almacen_solicitante_by_id($id_prestamo);
+            $almSol = PrestamosData::get_almacen_solicitante_by_id($id_prestamo);
             $nombreAlmDestino = $almSol ? $almSol->nombre : 'Desconocido';
 
             // 4. Procesar Detalles y Afectar Stock/Kardex/Vínculos
@@ -173,5 +184,20 @@ class EntregaService
                 "Despacho N° {$correlativoData['correlativo']} registrado exitosamente"
             );
         });
+    }
+
+    /**
+     * Obtiene el historial de entregas de todos los préstamos vinculados a una solicitud, con sus detalles.
+     */
+    public static function get_historial_por_solicitud(int $id_solicitud)
+    {
+        $data = EntregasData::get_entregas_por_solicitud((int) $id_solicitud);
+
+        foreach ($data as $entrega) {
+            $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
+            $entrega->detalles = EntregasDetalleData::get_detalles_entrega((int) $entrega->id_entrega);
+        }
+
+        return ApiResponse::success($data);
     }
 }
