@@ -33,4 +33,22 @@ class AuxService
         $data = AuxData::get_lotes_disponibles($id_producto, $id_almacen);
         return ApiResponse::success($data);
     }
+
+    /**
+     * Obtiene las unidades de medida habilitadas.
+     */
+    public static function get_unidades_medida()
+    {
+        $data = AuxData::get_unidades_medida();
+        return ApiResponse::success($data);
+    }
+
+    /**
+     * Obtiene los lotes disponibles del almacén que recibe (destino) para reposición.
+     */
+    public static function get_lotes_destino(int $id_almacen_solicitante, array $id_productos)
+    {
+        $data = AuxData::get_lotes_disponibles_destino($id_almacen_solicitante, $id_productos);
+        return ApiResponse::success($data);
+    }
 }

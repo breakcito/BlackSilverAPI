@@ -48,4 +48,36 @@ class AuxController extends Controller
         $result = AuxService::get_lotes_disponibles($id_producto, $id_almacen);
         return response()->json($result);
     }
+
+    /**
+     * Obtiene las unidades de medida
+     */
+    public function get_unidades_medida(): JsonResponse
+    {
+        $result = AuxService::get_unidades_medida();
+        return response()->json($result);
+    }
+
+    /**
+     * Obtiene los lotes destino para la recepción de reposición
+     */
+    public function get_lotes_destino(Request $request): JsonResponse
+    {
+        $id_almacen = (int) $request->query('id_almacen');
+        $id_productos = $request->query('id_productos');
+
+        if (!$id_almacen || empty($id_productos)) {
+            return response()->json(ApiResponse::error('id_almacen e id_productos son requeridos'), 400);
+        }
+
+        // Asegurar que id_productos sea un array
+        if (!is_array($id_productos)) {
+            $id_productos = explode(',', $id_productos);
+        }
+
+        $id_productos = array_map('intval', $id_productos);
+
+        $result = AuxService::get_lotes_destino($id_almacen, $id_productos);
+        return response()->json($result);
+    }
 }

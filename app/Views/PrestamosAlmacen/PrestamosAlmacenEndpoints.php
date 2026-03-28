@@ -32,6 +32,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::controller(ReposicionesController::class)->group(function () {
             Route::get('/historial-reposiciones', 'get_historial');
             Route::post('/registrar-reposicion', 'registrar_reposicion');
+            Route::get('/detalles-recepcion-reposicion', 'get_detalles_recepcion');
+            Route::post('/recibir-reposicion', 'recibir_reposicion');
         });
     });
 });

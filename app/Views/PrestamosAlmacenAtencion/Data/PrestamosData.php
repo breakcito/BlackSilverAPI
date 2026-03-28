@@ -21,6 +21,7 @@ class PrestamosData
                 pa.fecha_limite_devolucion,
                 pa.created_at,
                 pa.estado,
+                pa.id_almacen_prestamista AS id_almacen_prestamista,
                 alm_sol.nombre AS almacen_solicitante,
                 alm_sol.id    AS id_almacen_solicitante,
                 CONCAT(e.nombre, " ", e.apellido) AS registrado_por,

@@ -68,4 +68,52 @@ class ReposicionesController extends Controller
 
         return response()->json($result);
     }
+
+    /**
+     * Obtiene los detalles de una reposición para el proceso de recepción.
+     */
+    public function get_detalles_recepcion(Request $request): JsonResponse
+    {
+        $id_reposicion = $request->input('id_reposicion');
+        if (!$id_reposicion) {
+            return response()->json(ApiResponse::error('El id_reposicion es requerido'), 400);
+        }
+
+        $detalles = \App\Views\PrestamosAlmacen\Data\ReposicionesData::get_detalles_entrega_reposicion((int) $id_reposicion);
+        return response()->json(ApiResponse::success($detalles));
+    }
+
+    /**
+     * Registra la recepción masiva de reposiciones.
+     */
+    public function recibir_reposicion(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'recepciones' => 'required|array|min:1',
+            'recepciones.*.id_reabastecimiento_entrega' => 'required|integer',
+            'recepciones.*.items' => 'required|array|min:1',
+            'recepciones.*.items.*.id_solicitud_reabastecimiento_detalle' => 'required|integer',
+            'recepciones.*.items.*.es_nuevo_lote' => 'required|boolean',
+            'recepciones.*.items.*.cantidad_base' => 'required|numeric|min:0.01',
+            'recepciones.*.items.*.id_lote_existente' => 'nullable|integer',
+            'recepciones.*.items.*.fecha_vencimiento' => 'nullable|date',
+            'recepciones.*.items.*.id_unidad_medida' => 'nullable|integer',
+            'recepciones.*.items.*.contenido_por_presentacion' => 'nullable|numeric|min:0.01',
+            'recepciones.*.items.*.fecha_ingreso' => 'nullable|date',
+            'recepciones.*.items.*.descripcion' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 400);
+        }
+
+        // Marcamos el tipo como 'Reposicion' para que el EntregasService sepa cómo procesarlo
+        $recepciones = array_map(function ($r) {
+            $r['tipo_entrega'] = 'Reposicion';
+            return $r;
+        }, $request->input('recepciones'));
+
+        $result = \App\Views\SolicitudesReabastecimiento\Service\EntregasService::recibir_entregas_bulk($recepciones);
+        return response()->json($result);
+    }
 }

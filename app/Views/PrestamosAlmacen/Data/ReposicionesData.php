@@ -175,4 +175,72 @@ class ReposicionesData
             'estado' => EstadoDetalleReposicion::EnDespacho->value,
         ]);
     }
+
+    /**
+     * Obtiene los detalles de una reposición formateados para la pantalla de recepción.
+     */
+    public static function get_detalles_entrega_reposicion(int $id_reposicion): array
+    {
+        return DB::select("
+            SELECT 
+                rd.id AS id_entrega_detalle,
+                rd.id_prestamo_almacen_detalle AS id_solicitud_reabastecimiento_detalle,
+                rd.id_prestamo_almacen_reposicion AS id_reabastecimiento_entrega,
+                rd.cantidad_base,
+                rd.cantidad_lote,
+                rd.cantidad_solicitud,
+                rd.estado AS estado_entrega_detalle,
+                p.id AS id_producto,
+                p.nombre AS producto,
+                p.es_perecible,
+                p.id_unidad_medida_base,
+                um_base.abreviatura AS unidad_base_abv,
+                srd.id_unidad_medida AS id_unidad_medida_solicitada,
+                srd.contenido_por_presentacion AS contenido_por_presentacion_solicitado,
+                um_sol.abreviatura AS unidad_medida_solicitud_abv,
+                -- Campos adicionales para compatibilidad con componente de recepcion
+                rd.id_lote_producto as id_lote_origen,
+                lp.correlativo as correlativo_lote_origen,
+                um_lote.abreviatura as unidad_lote_abv,
+                lp.id_unidad_medida as id_unidad_medida_lote
+            FROM 
+                prestamo_almacen_reposicion_detalle rd
+            INNER JOIN prestamo_almacen_detalle pad ON pad.id = rd.id_prestamo_almacen_detalle
+            INNER JOIN solicitud_reabastecimiento_detalle srd ON srd.id = pad.id_solicitud_reabastecimiento_detalle
+            INNER JOIN producto p ON p.id = srd.id_producto
+            INNER JOIN unidad_medida um_base ON um_base.id = p.id_unidad_medida_base
+            INNER JOIN unidad_medida um_sol ON um_sol.id = srd.id_unidad_medida
+            INNER JOIN lote_producto lp ON lp.id = rd.id_lote_producto
+            INNER JOIN unidad_medida um_lote ON um_lote.id = lp.id_unidad_medida
+            WHERE 
+                rd.id_prestamo_almacen_reposicion = :id_reposicion
+            ORDER BY p.nombre ASC
+        ", ['id_reposicion' => $id_reposicion]);
+    }
+
+    /**
+     * Marca un detalle de reposición como recibido.
+     */
+    public static function marcar_como_recibido(int $id_detalle, int $id_lote_ingreso): bool
+    {
+        return (bool) PrestamoAlmacenReposicionDetalle::where('id', $id_detalle)
+            ->update([
+                'estado' => EstadoDetalleReposicion::Recepcionado->value
+            ]);
+    }
+
+    /**
+     * Verifica si todos los detalles de la reposición están recibidos para cerrar la cabecera.
+     */
+    public static function verificar_y_completar_reposicion(int $id_reposicion): void
+    {
+        $pendientes = PrestamoAlmacenReposicionDetalle::where('id_prestamo_almacen_reposicion', $id_reposicion)
+            ->where('estado', '!=', EstadoDetalleReposicion::Recepcionado->value)
+            ->count();
+
+        if ($pendientes === 0) {
+            PrestamoAlmacenReposicion::where('id', $id_reposicion)
+                ->update(['estado' => EstadoReposicion::Recepcionado->value]);
+        }
+    }
 }

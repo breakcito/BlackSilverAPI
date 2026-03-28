@@ -149,4 +149,81 @@ class AuxData
             ORDER BY lp.fecha_vencimiento ASC, lp.created_at ASC
         ", [...$ids_productos, $id_almacen]);
     }
+
+    /**
+     * Obtiene unidades de medida 
+     */
+    public static function get_unidades_medida(): array
+    {
+        return DB::select('
+            SELECT id AS id_unidad_medida, nombre, abreviatura
+            FROM unidad_medida
+            ORDER BY nombre ASC
+        ');
+    }
+
+    /**
+     * Obtener los lotes disponibles del almacén que recibe (destino) para reposición.
+     */
+    public static function get_lotes_disponibles_destino(int $id_almacen_solicitante, array $id_productos): array
+    {
+        if (empty($id_productos)) {
+            return [];
+        }
+
+        $inQuery = implode(',', array_fill(0, count($id_productos), '?'));
+
+        $sql = "
+            SELECT DISTINCT
+                lp.id AS id_lote,
+                lp.id_producto,
+                lp.id_unidad_medida as id_unidad_medida_lote,
+                p.id_unidad_medida_base,
+                um_base.abreviatura as unidad_medida_base_abv,
+                um_lote.abreviatura AS unidad_medida_lote_abv,
+                lp.descripcion,
+                lp.correlativo,
+                lp.stock_actual,
+                lp.stock_actual_base,
+                lp.contenido_por_presentacion,
+                lp.fecha_hora_ingreso,
+                lp.fecha_vencimiento,
+                lp.estado,
+                p.stock_minimo,
+                p.dias_espera_vencimiento,
+                lp.created_at,
+                /* Cálculo de días restantes */
+                CASE 
+                    WHEN lp.fecha_vencimiento IS NOT NULL THEN 
+                        DATEDIFF(lp.fecha_vencimiento, CURRENT_DATE) 
+                    ELSE NULL
+                END AS dias_para_vencer,
+                /* Determinación del estado de vencimiento */
+                CASE
+                    WHEN p.es_perecible != 1 THEN 'N/A'
+                    WHEN lp.fecha_vencimiento IS NULL THEN 'Sin fecha'
+                    WHEN DATEDIFF(lp.fecha_vencimiento, CURRENT_DATE) < 0 THEN 'Vencido'
+                    WHEN DATEDIFF(lp.fecha_vencimiento, CURRENT_DATE) <= p.dias_espera_vencimiento THEN 'Por vencer'
+                    ELSE 'Vigente'
+                END AS estado_vencimiento
+            FROM
+                lote_producto lp
+            INNER JOIN producto p ON
+                p.id = lp.id_producto
+            LEFT JOIN unidad_medida um_base ON
+                um_base.id = p.id_unidad_medida_base
+            LEFT JOIN unidad_medida um_lote ON
+                um_lote.id = lp.id_unidad_medida
+            WHERE
+                lp.id_almacen = ? AND
+                lp.estado = 'Activo' AND
+                lp.stock_actual_base > 0 AND
+                lp.id_producto IN ($inQuery)
+            HAVING estado_vencimiento != 'Vencido'
+            ORDER BY lp.fecha_hora_ingreso, lp.created_at
+        ";
+
+        $params = array_merge([$id_almacen_solicitante], $id_productos);
+        return DB::select($sql, $params);
+    }
 }
