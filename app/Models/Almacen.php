@@ -40,6 +40,10 @@ class Almacen extends Model
                 ->where('res.id_empleado', $id_responsable);
         }
 
-        return $query->orderBy('alm.nombre', 'asc')->get()->toArray();
+        // Primero ordenamos por es_principal (1 antes que 0) y luego por nombre
+        return $query->orderBy('alm.es_principal', 'desc')
+            ->orderBy('alm.nombre', 'asc')
+            ->get()
+            ->toArray();
     }
 }

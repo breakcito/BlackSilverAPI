@@ -2,6 +2,7 @@
 
 namespace App\Views\Login;
 
+use App\Shared\Enums\EstadoBase;
 use Illuminate\Support\Facades\Hash;
 use App\Shared\Responses\ApiResponse;
 use App\Views\Login\Data\LoginData;
@@ -28,6 +29,14 @@ class LoginService
         $infoUsuario = LoginData::getInfoUsuarioById($user->id);
         if (!$infoUsuario) {
             return ApiResponse::error('Error al obtener información del usuario');
+        }
+
+        if ($infoUsuario->estado_usuario !== EstadoBase::Activo->value) {
+            return ApiResponse::error('Su cuenta de usuario no se encuentra activa');
+        }
+
+        if ($infoUsuario->estado_empleado !== EstadoBase::Activo->value) {
+            return ApiResponse::error('Su estado de empleado no se encuentra activo');
         }
 
         $token = JWTAuth::fromUser($user, [

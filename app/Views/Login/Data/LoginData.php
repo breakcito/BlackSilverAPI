@@ -13,7 +13,6 @@ class LoginData
     public static function get_usuario_by_username(string $username)
     {
         return Usuario::where('username', $username)
-            ->where('estado', EstadoBase::Activo->value)
             ->first(['id', 'password']);
     }
 

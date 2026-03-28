@@ -21,6 +21,7 @@ class PrestamoAlmacenReposicion extends Model
         'id_empleado_registro', // empleado que realiza/registra la reposicion
         'correlativo', // prefijo: RPS
         'numero_correlativo',
+        'observacion',
         'fecha_hora_reposicion', // fecha y hora que el usuario fija en la ui
         'evidencias',
         'created_at', // fecha y hora de registro en el sistema

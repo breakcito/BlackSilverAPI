@@ -4,6 +4,7 @@ namespace App\Middlewares;
 
 use Closure;
 use App\Models\Usuario;
+use App\Shared\Enums\EstadoBase;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\Request;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
@@ -52,6 +53,14 @@ class JwtAuthMiddleware
 
             if (!$infoUsuario) {
                 return response()->json(ApiResponse::error('Usuario no encontrado'), 401);
+            }
+
+            if ($infoUsuario->estado_usuario !== EstadoBase::Activo->value) {
+                return response()->json(ApiResponse::error('Su cuenta de usuario no se encuentra activa'), 401);
+            }
+
+            if ($infoUsuario->estado_empleado !== EstadoBase::Activo->value) {
+                return response()->json(ApiResponse::error('Su estado de empleado no se encuentra activo'), 401);
             }
 
             // Usar attributes para que el controlador pueda acceder

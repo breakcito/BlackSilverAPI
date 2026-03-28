@@ -3,6 +3,7 @@
 use App\Views\PrestamosAlmacen\Controller\PrestamosAlmacenController;
 use App\Views\PrestamosAlmacen\Controller\AuxController;
 use App\Views\PrestamosAlmacen\Controller\EntregasController;
+use App\Views\PrestamosAlmacen\Controller\ReposicionesController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.jwt.custom')->group(function () {
@@ -11,6 +12,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
         // Auxiliares
         Route::controller(AuxController::class)->group(function () {
             Route::get('/almacenes-secundarios', 'get_almacenes_secundarios');
+            Route::get('/almacenes', 'get_almacenes');
+            Route::get('/lotes',      'get_lotes_disponibles');
         });
 
         // Listado y Detalle (Logística)
@@ -23,6 +26,12 @@ Route::middleware('auth.jwt.custom')->group(function () {
         // Entregas
         Route::controller(EntregasController::class)->group(function () {
             Route::get('/historial-entregas', 'get_historial_entregas');
+        });
+
+        // Reposiciones
+        Route::controller(ReposicionesController::class)->group(function () {
+            Route::get('/historial-reposiciones', 'get_historial');
+            Route::post('/registrar-reposicion', 'registrar_reposicion');
         });
     });
 });
