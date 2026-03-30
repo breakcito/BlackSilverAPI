@@ -98,7 +98,9 @@ class EntregaService
                     $id_entrega,
                     $id_prestamo_detalle,
                     $id_lote,
-                    $cant_lote
+                    $cant_lote,
+                    $cant_base,
+                    $det['comentario'] ?? null
                 );
 
                 // 4.2 Cargar Lote para cálculos

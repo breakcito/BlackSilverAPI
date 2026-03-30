@@ -4,10 +4,15 @@ namespace App\Views\SolicitudesReabastecimiento\Service;
 
 use App\Models\SolicitudReabastecimiento;
 use App\Models\SolicitudReabastecimientoEntrega;
+use App\Models\PrestamoAlmacen;
+use App\Models\PrestamoAlmacenEntrega;
+use App\Models\PrestamoAlmacenReposicion;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoDetalleEntrega;
 use App\Shared\Responses\ApiResponse;
 use App\Views\SolicitudesReabastecimiento\Data\EntregasData;
 use App\Views\SolicitudesReabastecimiento\Data\RecepcionData;
+use App\Views\PrestamosAlmacenAtencion\Data\EntregasDetalleData;
+use App\Views\PrestamosAlmacen\Data\ReposicionesData;
 use Illuminate\Support\Facades\DB;
 
 class EntregasService
@@ -54,33 +59,33 @@ class EntregasService
                 $detalles_grouped = null;
 
                 if ($tipo_entrega === 'Prestamo') {
-                    $entrega = \App\Models\PrestamoAlmacenEntrega::find($id_reabastecimiento_entrega);
+                    $entrega = PrestamoAlmacenEntrega::find($id_reabastecimiento_entrega);
                     if (!$entrega) {
                         throw new \Exception("La entrega de préstamo ID {$id_reabastecimiento_entrega} no existe");
                     }
-                    $prestamo = \App\Models\PrestamoAlmacen::find($entrega->id_prestamo_almacen);
-                    $solicitud_vinc = \App\Models\SolicitudReabastecimiento::find($prestamo->id_solicitud_reabastecimiento);
+                    $prestamo = PrestamoAlmacen::find($entrega->id_prestamo_almacen);
+                    $solicitud_vinc = SolicitudReabastecimiento::find($prestamo->id_solicitud_reabastecimiento);
 
                     $correlativo_entrega = $entrega->correlativo;
                     // Usar el correlativo del PRÉSTAMO siempre que sea un préstamo, no el de la solicitud vinculada
                     $correlativo_solicitud = $prestamo->correlativo;
                     $id_almacen = $solicitud_vinc ? $solicitud_vinc->id_almacen_solicitante : 0;
 
-                    $detalles_entrega = \App\Views\PrestamosAlmacenAtencion\Data\EntregasDetalleData::get_detalles_entrega($id_reabastecimiento_entrega);
+                    $detalles_entrega = EntregasDetalleData::get_detalles_entrega($id_reabastecimiento_entrega);
                     $detalles_grouped = collect($detalles_entrega)->groupBy('id_solicitud_reabastecimiento_detalle');
                 } else if ($tipo_entrega === 'Reposicion') {
-                    $reposicion = \App\Models\PrestamoAlmacenReposicion::find($id_reabastecimiento_entrega);
+                    $reposicion = PrestamoAlmacenReposicion::find($id_reabastecimiento_entrega);
                     if (!$reposicion) {
                         throw new \Exception("La reposición ID {$id_reabastecimiento_entrega} no existe");
                     }
-                    $prestamo = \App\Models\PrestamoAlmacen::find($reposicion->id_prestamo_almacen);
+                    $prestamo = PrestamoAlmacen::find($reposicion->id_prestamo_almacen);
                     // Para reposición, el almacén de destino es el ALMACÉN PRESTAMISTA del préstamo original (quien ahora recibe su stock de vuelta)
                     $id_almacen = $prestamo ? $prestamo->id_almacen_prestamista : 0;
 
                     $correlativo_entrega = $reposicion->correlativo;
                     $correlativo_solicitud = $prestamo ? $prestamo->correlativo : "";
 
-                    $detalles_entrega = \App\Views\PrestamosAlmacen\Data\ReposicionesData::get_detalles_entrega_reposicion($id_reabastecimiento_entrega);
+                    $detalles_entrega = ReposicionesData::get_detalles_entrega_reposicion($id_reabastecimiento_entrega);
                     $detalles_grouped = collect($detalles_entrega)->groupBy('id_solicitud_reabastecimiento_detalle');
                 } else {
                     $entrega = SolicitudReabastecimientoEntrega::find($id_reabastecimiento_entrega);
@@ -168,10 +173,10 @@ class EntregasService
                     foreach ($db_detalles as $db_d) {
                         if ($tipo_entrega === 'Prestamo') {
                             if ($db_d->estado_entrega_detalle === \App\Shared\Enums\PrestamoAlmacen\EstadoEntregaPrestamo::Confirmada->value) continue;
-                            \App\Views\PrestamosAlmacenAtencion\Data\EntregasDetalleData::marcar_como_recibido($db_d->id_entrega_detalle, $id_lote_producto);
+                            EntregasDetalleData::marcar_como_recibido($db_d->id_entrega_detalle);
                         } else if ($tipo_entrega === 'Reposicion') {
                             if ($db_d->estado_entrega_detalle === \App\Shared\Enums\PrestamoAlmacen\EstadoDetalleReposicion::Recepcionado->value) continue;
-                            \App\Views\PrestamosAlmacen\Data\ReposicionesData::marcar_como_recibido($db_d->id_entrega_detalle, $id_lote_producto);
+                            ReposicionesData::marcar_como_recibido($db_d->id_entrega_detalle);
                         } else {
                             if ($db_d->estado_entrega_detalle === EstadoDetalleEntrega::Recibido->value) continue;
                             EntregasData::marcar_entrega_detalle_como_recibido($db_d->id_entrega_detalle);
@@ -180,9 +185,9 @@ class EntregasService
                 }
 
                 if ($tipo_entrega === 'Prestamo') {
-                    \App\Views\PrestamosAlmacenAtencion\Data\EntregasDetalleData::verificar_y_completar_entrega($id_reabastecimiento_entrega);
+                    EntregasDetalleData::verificar_y_completar_entrega($id_reabastecimiento_entrega);
                 } else if ($tipo_entrega === 'Reposicion') {
-                    \App\Views\PrestamosAlmacen\Data\ReposicionesData::verificar_y_completar_reposicion($id_reabastecimiento_entrega);
+                    ReposicionesData::verificar_y_completar_reposicion($id_reabastecimiento_entrega);
                 } else {
                     EntregasData::verificar_y_completar_entrega($id_reabastecimiento_entrega);
                 }
