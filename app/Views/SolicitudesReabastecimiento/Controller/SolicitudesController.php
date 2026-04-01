@@ -122,6 +122,11 @@ class SolicitudesController extends Controller
             'items.*.contenido_por_presentacion' => 'nullable|numeric|min:0.01',
             'items.*.fecha_ingreso' => 'nullable|date',
             'items.*.descripcion' => 'nullable|string',
+            // Nuevos campos de cabecera (se aplican a toda la recepción)
+            'con_incidencia' => 'nullable|boolean',
+            'observacion' => 'required_if:con_incidencia,true|nullable|string',
+            'evidencias' => 'required_if:con_incidencia,true|nullable|array',
+            'fecha_hora_recepcion' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -138,7 +143,11 @@ class SolicitudesController extends Controller
         $result = EntregasService::recibir_entregas(
             (int) $request->input('id_reabastecimiento_entrega'),
             $request->input('items'),
-            (string) $request->input('tipo_entrega', 'Solicitud')
+            (string) $request->input('tipo_entrega', 'Solicitud'),
+            (bool) $request->input('con_incidencia', false),
+            $request->input('observacion'),
+            $request->input('evidencias'),
+            $request->input('fecha_hora_recepcion')
         );
 
         return response()->json($result);
@@ -160,6 +169,11 @@ class SolicitudesController extends Controller
             'recepciones.*.items.*.contenido_por_presentacion' => 'nullable|numeric|min:0.01',
             'recepciones.*.items.*.fecha_ingreso' => 'nullable|date',
             'recepciones.*.items.*.descripcion' => 'nullable|string',
+            // Nuevos campos por recepción
+            'recepciones.*.con_incidencia' => 'nullable|boolean',
+            'recepciones.*.observacion' => 'required_if:recepciones.*.con_incidencia,true|nullable|string',
+            'recepciones.*.evidencias' => 'required_if:recepciones.*.con_incidencia,true|nullable|array',
+            'recepciones.*.fecha_hora_recepcion' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -176,6 +190,17 @@ class SolicitudesController extends Controller
         }
 
         $result = EntregasService::recibir_entregas_bulk($request->input('recepciones'));
+        return response()->json($result);
+    }
+
+    public function get_historial_recepciones_entrega(Request $request): JsonResponse
+    {
+        $id_entrega = $request->input('id_reabastecimiento_entrega');
+        if (!$id_entrega) {
+            return response()->json(ApiResponse::error('El id_reabastecimiento_entrega es requerido'), 400);
+        }
+
+        $result = EntregasService::get_historial_recepciones_entrega((int) $id_entrega);
         return response()->json($result);
     }
 }
