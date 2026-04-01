@@ -193,10 +193,10 @@ class EntregasService
     {
         if ($tipo !== 'Solicitud') return null;
 
-        $evidencias = [];
+        $evidenciasData = null;
         $raw = $data['evidencias'] ?? [];
-        if (is_array($raw) && count($raw) > 0) {
-            $evidencias = \App\Shared\Helpers\ArchivoHelper::guardarArchivos('reabastecimiento/recepciones', $raw);
+        if (!empty($raw)) {
+            $evidenciasData = \App\Shared\Helpers\ArchivoHelper::guardarArchivos('reabastecimiento/recepciones', $raw);
         }
 
         $model = SolicitudReabastecimientoRecepcion::create([
@@ -204,8 +204,8 @@ class EntregasService
             'id_empleado_registro' => session('id_empleado') ?? 1,
             'observacion' => $data['observacion'] ?? null,
             'fecha_hora_recepcion' => isset($data['fecha_hora_recepcion']) ? date('Y-m-d H:i:s', strtotime($data['fecha_hora_recepcion'])) : date('Y-m-d H:i:s'),
-            'evidencias' => $evidencias,
-            'con_incidencia' => $data['con_incidencia'] ?? false,
+            'evidencias' => $evidenciasData ? json_encode($evidenciasData) : null,
+            'con_incidencia' => filter_var($data['con_incidencia'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
             'created_at' => date('Y-m-d H:i:s'),
             'estado' => 'Recepcionado',
         ]);

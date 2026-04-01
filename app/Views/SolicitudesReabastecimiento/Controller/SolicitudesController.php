@@ -161,7 +161,7 @@ class SolicitudesController extends Controller
             'recepciones.*.tipo_entrega' => 'nullable|string|in:Solicitud,Prestamo',
             'recepciones.*.items' => 'required|array|min:1',
             'recepciones.*.items.*.id_solicitud_reabastecimiento_detalle' => 'required|integer',
-            'recepciones.*.items.*.es_nuevo_lote' => 'required|boolean',
+            'recepciones.*.items.*.es_nuevo_lote' => 'required|in:0,1,true,false',
             'recepciones.*.items.*.cantidad_base' => 'required|numeric|min:0.01',
             'recepciones.*.items.*.id_lote_existente' => 'nullable|integer',
             'recepciones.*.items.*.fecha_vencimiento' => 'nullable|date',
@@ -170,7 +170,7 @@ class SolicitudesController extends Controller
             'recepciones.*.items.*.fecha_ingreso' => 'nullable|date',
             'recepciones.*.items.*.descripcion' => 'nullable|string',
             // Nuevos campos por recepción
-            'recepciones.*.con_incidencia' => 'nullable|boolean',
+            'recepciones.*.con_incidencia' => 'nullable|in:0,1,true,false',
             'recepciones.*.observacion' => 'required_if:recepciones.*.con_incidencia,true|nullable|string',
             'recepciones.*.evidencias' => 'required_if:recepciones.*.con_incidencia,true|nullable|array',
             'recepciones.*.fecha_hora_recepcion' => 'nullable|date',
