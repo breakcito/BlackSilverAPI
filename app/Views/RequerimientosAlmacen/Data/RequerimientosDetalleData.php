@@ -4,6 +4,7 @@ namespace App\Views\RequerimientosAlmacen\Data;
 
 use App\Models\RequerimientoAlmacenDetalle;
 use App\Models\RequerimientoAlmacenDetalleLog;
+use App\Models\UnidadMedida;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
 use Illuminate\Support\Facades\DB;
 
@@ -158,11 +159,7 @@ class RequerimientosDetalleData
      */
     public static function get_unidades_medida()
     {
-        return DB::select('
-            SELECT id AS id_unidad_medida, nombre, abreviatura
-            FROM unidad_medida
-            ORDER BY nombre ASC
-        ');
+        return UnidadMedida::get_unidades_medida();
     }
 
 

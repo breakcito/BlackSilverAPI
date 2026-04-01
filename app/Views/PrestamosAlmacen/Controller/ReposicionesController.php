@@ -3,6 +3,7 @@
 namespace App\Views\PrestamosAlmacen\Controller;
 
 use App\Shared\Responses\ApiResponse;
+use App\Views\PrestamosAlmacen\Service\EntregasService;
 use App\Views\PrestamosAlmacen\Service\ReposicionesService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,7 +34,6 @@ class ReposicionesController extends Controller
         $validator = Validator::make($request->all(), [
             'id_prestamo_almacen' => 'required|integer',
             'id_almacen_entrega' => 'required|integer',
-            'id_empleado_registro' => 'required|integer',
             'fecha_hora_reposicion' => 'required|date',
             'observacion' => 'nullable|string',
             'items' => 'required', // Puede ser string JSON o array
@@ -43,6 +43,11 @@ class ReposicionesController extends Controller
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()), 400);
+        }
+
+        $authUser = $request->attributes->get('auth_user');
+        if (!$authUser) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
         // Decodificamos el JSON de los items si vienen como string (común en Multipart)
@@ -59,7 +64,7 @@ class ReposicionesController extends Controller
         $result = ReposicionesService::registrar_reposicion(
             (int) $request->input('id_prestamo_almacen'),
             (int) $request->input('id_almacen_entrega'),
-            (int) $request->input('id_empleado_registro'),
+            (int) $authUser->id_empleado,
             $request->input('fecha_hora_reposicion'),
             $request->input('observacion'),
             $items,
@@ -107,13 +112,15 @@ class ReposicionesController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()), 400);
         }
 
-        // Marcamos el tipo como 'Reposicion' para que el EntregasService sepa cómo procesarlo
+        // Mapeamos los datos para el nuevo servicio de Entregas local
         $recepciones = array_map(function ($r) {
-            $r['tipo_entrega'] = 'Reposicion';
-            return $r;
+            return [
+                'id_reposicion' => (int) $r['id_reabastecimiento_entrega'],
+                'items' => $r['items']
+            ];
         }, $request->input('recepciones'));
 
-        $result = \App\Views\SolicitudesReabastecimiento\Service\EntregasService::recibir_entregas_bulk($recepciones);
+        $result = EntregasService::recibir_reposiciones($recepciones);
         return response()->json($result);
     }
 }

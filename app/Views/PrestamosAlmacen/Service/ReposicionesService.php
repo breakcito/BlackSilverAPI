@@ -5,6 +5,7 @@ namespace App\Views\PrestamosAlmacen\Service;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Views\PrestamosAlmacen\Data\AuxData;
+use App\Views\PrestamosAlmacen\Data\LotesData;
 use App\Views\PrestamosAlmacen\Data\ReposicionesData;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
@@ -81,7 +82,7 @@ class ReposicionesService
                 $cantidad_solicitud = (float) $item['cantidad_solicitud'];
 
                 // Validar Stock del lote de origen
-                $lote = AuxData::get_lote_by_id($id_lote_producto);
+                $lote = LotesData::get_lote_by_id($id_lote_producto);
                 if (!$lote) {
                     return ApiResponse::error("El lote solicitado no existe.");
                 }
@@ -102,7 +103,7 @@ class ReposicionesService
                 // B. Actualizar stock del lote (Salida por Reposición)
                 $nuevo_stock = $lote->stock_actual - $cantidad_lote;
                 $nuevo_stock_base = $lote->stock_actual_base - $cantidad_base;
-                AuxData::update_lote_stock($id_lote_producto, $nuevo_stock, $nuevo_stock_base);
+                LotesData::update_stock_lote($id_lote_producto, $nuevo_stock, $nuevo_stock_base);
 
                 // C. Incrementar cantidad repuesta en el detalle del préstamo
                 ReposicionesData::increment_cantidad_repuesta($id_prestamo_detalle, $cantidad_solicitud, $cantidad_base);
@@ -113,7 +114,7 @@ class ReposicionesService
 
                 // E. Registrar movimiento en Kardex
                 $descripcion_kardex = "Salida por reposición de préstamo N° " . $prestamo->correlativo . " (Ref: " . $correlativoData['correlativo'] . ")";
-                AuxData::registrar_kardex(
+                LotesData::registrar_kardex(
                     $id_lote_producto,
                     $id_reposicion,
                     $lote->stock_actual,

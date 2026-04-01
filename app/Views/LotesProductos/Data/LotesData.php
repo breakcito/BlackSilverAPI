@@ -114,33 +114,32 @@ class LotesData
         string $fecha_hora_ingreso,
         ?string $fecha_vencimiento
     ) {
-        return LoteProducto::insertGetId([
-            'id_producto' => $id_producto,
-            'id_unidad_medida' => $id_unidad_medida,
-            'id_almacen' => $id_almacen,
-            'descripcion' => $descripcion,
-            'correlativo' => $correlativo,
-            'numero_correlativo' => $numero_correlativo,
-            'stock_actual' => $stock_inicial,
-            'contenido_por_presentacion' => $contenido_por_presentacion,
-            'stock_actual_base' => $stock_actual_base,
-            'fecha_hora_ingreso' => $fecha_hora_ingreso,
-            'fecha_vencimiento' => $fecha_vencimiento,
-            'created_at' => now(),
-            'estado' => 'Activo',
-        ]);
-    }
-
-    public static function get_lote_simple_by_id(int $id_lote)
-    {
-        return LoteProducto::where('id', $id_lote)->first()?->toArray();
+        return LoteProducto::crear_lote(
+            id_producto: $id_producto,
+            id_unidad_medida: $id_unidad_medida,
+            id_almacen: $id_almacen,
+            descripcion: $descripcion,
+            correlativo: $correlativo,
+            numero_correlativo: $numero_correlativo,
+            stock_inicial: $stock_inicial,
+            contenido_por_presentacion: $contenido_por_presentacion,
+            stock_actual_base: $stock_actual_base,
+            fecha_hora_ingreso: $fecha_hora_ingreso,
+            fecha_vencimiento: $fecha_vencimiento
+        );
     }
 
     public static function update_stock(int $id_lote, float $nuevo_stock, float $nuevo_stock_base)
     {
-        return LoteProducto::where('id', $id_lote)->update([
-            'stock_actual' => $nuevo_stock,
-            'stock_actual_base' => $nuevo_stock_base,
-        ]);
+        return LoteProducto::update_stock(
+            id_lote: $id_lote,
+            nuevo_stock: $nuevo_stock,
+            nuevo_stock_base: $nuevo_stock_base
+        );
+    }
+
+    public static function get_lote_simple_by_id(int $id_lote)
+    {
+        return LoteProducto::get_lote_simple_by_id($id_lote);
     }
 }
