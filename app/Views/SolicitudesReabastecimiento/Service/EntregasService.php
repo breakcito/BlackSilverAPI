@@ -56,7 +56,7 @@ class EntregasService
         ]);
     }
 
-    public static function recibir_entregas_bulk(array $recepciones)
+    public static function recibir_entregas_bulk(array $recepciones, int $idEmpleado = 0, array $evidenciasRaiz = [])
     {
         try {
             DB::beginTransaction();
@@ -67,7 +67,7 @@ class EntregasService
                 $items = $recepcion['items'];
 
                 $info = self::_obtener_info_entrega($id, $tipo);
-                $id_recepcion_header = self::_registrar_header_recepcion($id, $tipo, $recepcion);
+                $id_recepcion_header = self::_registrar_header_recepcion($id, $tipo, $recepcion, $idEmpleado, $evidenciasRaiz);
                 $es_parcial = false;
 
                 foreach ($items as $item) {
@@ -128,7 +128,11 @@ class EntregasService
                         }
 
                         if ($tipo === 'Solicitud') {
-                            $nuevo_estado = ($amount < $cant_shipped) ? 'Recibido Parcialmente' : EstadoDetalleEntrega::Recibido->value;
+                            $ya_recibido = (float) ($db_d->cantidad_recibida_total ?? 0);
+                            $total_acumulado = $ya_recibido + $amount;
+                            $nuevo_estado = ($total_acumulado >= $cant_shipped - 0.0001)
+                                ? EstadoDetalleEntrega::Recibido->value
+                                : 'Recibido Parcialmente';
                             if ($nuevo_estado === 'Recibido Parcialmente') $es_parcial = true;
                             SolicitudReabastecimientoEntregaDetalle::where('id', $db_d->id_entrega_detalle)->update(['estado' => $nuevo_estado]);
                         } else if ($tipo === 'Prestamo') {
@@ -189,22 +193,21 @@ class EntregasService
         ];
     }
 
-    private static function _registrar_header_recepcion(int $id, string $tipo, array $data): ?int
+    private static function _registrar_header_recepcion(int $id, string $tipo, array $data, int $idEmpleado = 0, array $evidenciasRaiz = []): ?int
     {
         if ($tipo !== 'Solicitud') return null;
 
         $evidenciasData = null;
-        $raw = $data['evidencias'] ?? [];
-        if (!empty($raw)) {
-            $evidenciasData = \App\Shared\Helpers\ArchivoHelper::guardarArchivos('reabastecimiento/recepciones', $raw);
+        if (!empty($evidenciasRaiz)) {
+            $evidenciasData = \App\Shared\Helpers\ArchivoHelper::guardarArchivos('reabastecimiento/recepciones', $evidenciasRaiz);
         }
 
         $model = SolicitudReabastecimientoRecepcion::create([
             'id_solicitud_reabastecimiento_entrega' => $id,
-            'id_empleado_registro' => session('id_empleado') ?? 1,
+            'id_empleado_registro' => $idEmpleado > 0 ? $idEmpleado : (session('id_empleado') ?? 1),
             'observacion' => $data['observacion'] ?? null,
             'fecha_hora_recepcion' => isset($data['fecha_hora_recepcion']) ? date('Y-m-d H:i:s', strtotime($data['fecha_hora_recepcion'])) : date('Y-m-d H:i:s'),
-            'evidencias' => $evidenciasData ? json_encode($evidenciasData) : null,
+            'evidencias' => $evidenciasData ?? null,
             'con_incidencia' => filter_var($data['con_incidencia'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
             'created_at' => date('Y-m-d H:i:s'),
             'estado' => 'Recepcionado',
@@ -238,7 +241,12 @@ class EntregasService
         $recepciones = DB::select($sql, ['id_entrega' => $id_entrega]);
 
         foreach ($recepciones as $recepcion) {
-            $recepcion->evidencias = $recepcion->evidencias ? json_decode($recepcion->evidencias) : [];
+            $decoded = $recepcion->evidencias ? json_decode($recepcion->evidencias, true) : null;
+            // Manejo de doble-encode en registros viejos
+            if (is_string($decoded)) {
+                $decoded = json_decode($decoded, true);
+            }
+            $recepcion->evidencias = is_array($decoded) ? $decoded : null;
             $recepcion->detalles = DB::select("
                 SELECT rd.*, p.nombre as producto, u.abreviatura as unidad
                 FROM solicitud_reabastecimiento_recepcion_detalle rd

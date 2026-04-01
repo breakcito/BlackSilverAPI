@@ -169,10 +169,13 @@ class SolicitudesController extends Controller
             'recepciones.*.items.*.contenido_por_presentacion' => 'nullable|numeric|min:0.01',
             'recepciones.*.items.*.fecha_ingreso' => 'nullable|date',
             'recepciones.*.items.*.descripcion' => 'nullable|string',
+            // Campos raíz
+            'id_empleado_registro' => 'required|integer',
+            'evidencias' => 'nullable|array',
+            'evidencias.*' => 'nullable|file',
             // Nuevos campos por recepción
             'recepciones.*.con_incidencia' => 'nullable|in:0,1,true,false',
-            'recepciones.*.observacion' => 'required_if:recepciones.*.con_incidencia,true|nullable|string',
-            'recepciones.*.evidencias' => 'required_if:recepciones.*.con_incidencia,true|nullable|array',
+            'recepciones.*.observacion' => 'nullable|string',
             'recepciones.*.fecha_hora_recepcion' => 'nullable|date',
         ]);
 
@@ -189,7 +192,11 @@ class SolicitudesController extends Controller
             }
         }
 
-        $result = EntregasService::recibir_entregas_bulk($request->input('recepciones'));
+        $result = EntregasService::recibir_entregas_bulk(
+            $request->input('recepciones'),
+            (int) $request->input('id_empleado_registro'),
+            $request->file('evidencias') ?? []
+        );
         return response()->json($result);
     }
 
