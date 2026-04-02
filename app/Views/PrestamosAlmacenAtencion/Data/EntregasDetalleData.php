@@ -16,14 +16,17 @@ class EntregasDetalleData
         int $id_entrega,
         int $id_prestamo_detalle,
         int $id_lote_salida,
-        float $cantidad
+        float $cantidad,
+        float $cantidad_base,
+        ?string $comentario = null
     ): int {
         return PrestamoAlmacenEntregaDetalle::insertGetId([
             'id_prestamo_almacen_entrega' => $id_entrega,
             'id_prestamo_almacen_detalle' => $id_prestamo_detalle,
             'id_lote_salida'              => $id_lote_salida,
-            'id_lote_ingreso'             => null, 
             'cantidad'                    => $cantidad,
+            'cantidad_base'               => $cantidad_base,
+            'comentario'                  => $comentario,
             'estado'                      => EstadoEntregaPrestamo::EnDespacho->value,
         ]);
     }
@@ -77,11 +80,10 @@ class EntregasDetalleData
     /**
      * Marca un detalle como recibido y vincula el lote de ingreso.
      */
-    public static function marcar_como_recibido(int $id_entrega_detalle, int $id_lote_ingreso): bool
+    public static function marcar_como_recibido(int $id_entrega_detalle): bool
     {
         return (bool) PrestamoAlmacenEntregaDetalle::where('id', $id_entrega_detalle)
             ->update([
-                'id_lote_ingreso' => $id_lote_ingreso,
                 'estado'          => EstadoEntregaPrestamo::Confirmada->value
             ]);
     }

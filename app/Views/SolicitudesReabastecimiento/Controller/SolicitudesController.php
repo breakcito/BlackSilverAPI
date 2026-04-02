@@ -122,6 +122,11 @@ class SolicitudesController extends Controller
             'items.*.contenido_por_presentacion' => 'nullable|numeric|min:0.01',
             'items.*.fecha_ingreso' => 'nullable|date',
             'items.*.descripcion' => 'nullable|string',
+            // Nuevos campos de cabecera (se aplican a toda la recepción)
+            'con_incidencia' => 'nullable|boolean',
+            'observacion' => 'required_if:con_incidencia,true|nullable|string',
+            'evidencias' => 'required_if:con_incidencia,true|nullable|array',
+            'fecha_hora_recepcion' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -138,7 +143,11 @@ class SolicitudesController extends Controller
         $result = EntregasService::recibir_entregas(
             (int) $request->input('id_reabastecimiento_entrega'),
             $request->input('items'),
-            (string) $request->input('tipo_entrega', 'Solicitud')
+            (string) $request->input('tipo_entrega', 'Solicitud'),
+            (bool) $request->input('con_incidencia', false),
+            $request->input('observacion'),
+            $request->input('evidencias'),
+            $request->input('fecha_hora_recepcion')
         );
 
         return response()->json($result);
@@ -152,7 +161,7 @@ class SolicitudesController extends Controller
             'recepciones.*.tipo_entrega' => 'nullable|string|in:Solicitud,Prestamo',
             'recepciones.*.items' => 'required|array|min:1',
             'recepciones.*.items.*.id_solicitud_reabastecimiento_detalle' => 'required|integer',
-            'recepciones.*.items.*.es_nuevo_lote' => 'required|boolean',
+            'recepciones.*.items.*.es_nuevo_lote' => 'required|in:0,1,true,false',
             'recepciones.*.items.*.cantidad_base' => 'required|numeric|min:0.01',
             'recepciones.*.items.*.id_lote_existente' => 'nullable|integer',
             'recepciones.*.items.*.fecha_vencimiento' => 'nullable|date',
@@ -160,6 +169,14 @@ class SolicitudesController extends Controller
             'recepciones.*.items.*.contenido_por_presentacion' => 'nullable|numeric|min:0.01',
             'recepciones.*.items.*.fecha_ingreso' => 'nullable|date',
             'recepciones.*.items.*.descripcion' => 'nullable|string',
+            // Campos raíz
+            'id_empleado_registro' => 'required|integer',
+            'evidencias' => 'nullable|array',
+            'evidencias.*' => 'nullable|file',
+            // Nuevos campos por recepción
+            'recepciones.*.con_incidencia' => 'nullable|in:0,1,true,false',
+            'recepciones.*.observacion' => 'nullable|string',
+            'recepciones.*.fecha_hora_recepcion' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -175,7 +192,22 @@ class SolicitudesController extends Controller
             }
         }
 
-        $result = EntregasService::recibir_entregas_bulk($request->input('recepciones'));
+        $result = EntregasService::recibir_entregas_bulk(
+            $request->input('recepciones'),
+            (int) $request->input('id_empleado_registro'),
+            $request->file('evidencias') ?? []
+        );
+        return response()->json($result);
+    }
+
+    public function get_historial_recepciones_entrega(Request $request): JsonResponse
+    {
+        $id_entrega = $request->input('id_reabastecimiento_entrega');
+        if (!$id_entrega) {
+            return response()->json(ApiResponse::error('El id_reabastecimiento_entrega es requerido'), 400);
+        }
+
+        $result = EntregasService::get_historial_recepciones_entrega((int) $id_entrega);
         return response()->json($result);
     }
 }

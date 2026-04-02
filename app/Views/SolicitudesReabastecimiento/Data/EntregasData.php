@@ -63,7 +63,12 @@ class EntregasData
             red.cantidad_solicitud,
             uni_lot.abreviatura as unidad_lote_abv,
             uni_base.abreviatura as unidad_base_abv,
-            red.estado as estado_entrega_detalle
+            red.estado as estado_entrega_detalle,
+            COALESCE((
+                SELECT SUM(rd.cantidad_recepcionada_base)
+                FROM solicitud_reabastecimiento_recepcion_detalle rd
+                WHERE rd.id_solicitud_reabastecimiento_entrega_detalle = red.id
+            ), 0) as cantidad_recibida_total
         FROM
             solicitud_reabastecimiento_entrega_detalle red
         INNER JOIN solicitud_reabastecimiento_detalle srd ON 

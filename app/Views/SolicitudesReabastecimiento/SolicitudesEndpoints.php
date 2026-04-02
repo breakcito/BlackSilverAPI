@@ -26,6 +26,8 @@ Route::middleware('auth.jwt.custom')->prefix('solicitudes-reabastecimiento')->gr
         Route::post('/recibir-entrega-item', 'recibir_entrega_item');
         // Recibir múltiples entregas a la vez (Global)
         Route::post('/recibir-entrega-bulk', 'recibir_entrega_bulk');
+        // Obtener historial de recepciones de una entrega
+        Route::get('/historial-recepciones-entrega', 'get_historial_recepciones_entrega');
     });
 
     Route::controller(AuxController::class)->prefix('catalogos')->group(function () {

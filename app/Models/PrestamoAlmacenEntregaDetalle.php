@@ -15,8 +15,9 @@ class PrestamoAlmacenEntregaDetalle extends Model
         'id_prestamo_almacen_entrega',
         'id_prestamo_almacen_detalle',
         'id_lote_salida',
-        'id_lote_ingreso',
         'cantidad',
+        'cantidad_base',
+        'comentario',
         'estado',
     ];
 

@@ -204,7 +204,7 @@ class ReposicionesData
     /**
      * Marca un detalle de reposición como recibido.
      */
-    public static function marcar_como_recibido(int $id_detalle, int $id_lote_ingreso): bool
+    public static function marcar_como_recibido(int $id_detalle): bool
     {
         return (bool) PrestamoAlmacenReposicionDetalle::where('id', $id_detalle)
             ->update([
