@@ -53,7 +53,7 @@ class EntregasService
                 'evidencias' => $evidencias,
                 'fecha_hora_recepcion' => $fecha_hora_recepcion
             ]
-        ]);
+        ], 0, $evidencias ?: []);
     }
 
     public static function recibir_entregas_bulk(array $recepciones, int $idEmpleado = 0, array $evidenciasRaiz = [])

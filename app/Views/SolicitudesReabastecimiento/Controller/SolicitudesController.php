@@ -146,7 +146,7 @@ class SolicitudesController extends Controller
             (string) $request->input('tipo_entrega', 'Solicitud'),
             (bool) $request->input('con_incidencia', false),
             $request->input('observacion'),
-            $request->input('evidencias'),
+            $request->file('evidencias') ?? [],
             $request->input('fecha_hora_recepcion')
         );
 
