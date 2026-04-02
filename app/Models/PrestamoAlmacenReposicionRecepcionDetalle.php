@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class PrestamoAlmacenRecepcionDetalle extends Model
+class PrestamoAlmacenReposicionRecepcionDetalle extends Model
 {
-    protected $table = 'prestamo_almacen_recepcion_detalle';
+    protected $table = 'prestamo_almacen_reposicion_recepcion_detalle';
 
     public $timestamps = false;
 

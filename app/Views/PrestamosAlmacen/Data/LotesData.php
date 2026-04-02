@@ -2,10 +2,7 @@
 
 namespace App\Views\PrestamosAlmacen\Data;
 
-use App\Models\KardexProducto;
 use App\Models\LoteProducto;
-use App\Shared\Enums\Kardex\OrigenMovimiento;
-use App\Shared\Enums\Kardex\TipoMovimiento;
 
 class LotesData
 {
@@ -33,38 +30,5 @@ class LotesData
     public static function update_stock_lote(int $id_lote, float $stock_nuevo, float $stock_nuevo_base)
     {
         return LoteProducto::update_stock($id_lote, $stock_nuevo, $stock_nuevo_base);
-    }
-
-    /**
-     * Registrar en el kardex
-     */
-    public static function registrar_kardex(
-        int $id_lote,
-        int $id_origen,
-        //
-        string $descripcion,
-        //
-        float $stock_anterior,
-        float $stock_anterior_base,
-        float $cantidad_movimiento,
-        float $cantidad_movimiento_base,
-        float $nuevo_stock,
-        float $nuevo_stock_base,
-    ) {
-        return KardexProducto::registrar_kardex(
-            $id_lote,
-            $id_origen,
-            //
-            TipoMovimiento::Salida,
-            OrigenMovimiento::Entrega,
-            $descripcion,
-            //
-            $stock_anterior,
-            $stock_anterior_base,
-            $cantidad_movimiento,
-            $cantidad_movimiento_base,
-            $nuevo_stock,
-            $nuevo_stock_base,
-        );
     }
 }

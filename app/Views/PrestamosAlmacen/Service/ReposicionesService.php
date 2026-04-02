@@ -5,6 +5,7 @@ namespace App\Views\PrestamosAlmacen\Service;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Views\PrestamosAlmacen\Data\AuxData;
+use App\Views\PrestamosAlmacen\Data\KardexData;
 use App\Views\PrestamosAlmacen\Data\LotesData;
 use App\Views\PrestamosAlmacen\Data\ReposicionesData;
 use Illuminate\Support\Facades\DB;
@@ -114,7 +115,7 @@ class ReposicionesService
 
                 // E. Registrar movimiento en Kardex
                 $descripcion_kardex = "Salida por reposición de préstamo N° " . $prestamo->correlativo . " (Ref: " . $correlativoData['correlativo'] . ")";
-                LotesData::registrar_kardex(
+                KardexData::registrar_kardex(
                     $id_lote_producto,
                     $id_reposicion,
                     $lote->stock_actual,
