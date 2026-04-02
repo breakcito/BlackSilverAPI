@@ -146,7 +146,7 @@ class SolicitudesController extends Controller
             (string) $request->input('tipo_entrega', 'Solicitud'),
             (bool) $request->input('con_incidencia', false),
             $request->input('observacion'),
-            $request->input('evidencias'),
+            $request->file('evidencias') ?? [],
             $request->input('fecha_hora_recepcion')
         );
 
@@ -207,7 +207,8 @@ class SolicitudesController extends Controller
             return response()->json(ApiResponse::error('El id_reabastecimiento_entrega es requerido'), 400);
         }
 
-        $result = EntregasService::get_historial_recepciones_entrega((int) $id_entrega);
+        $tipo_entrega = $request->input('tipo_entrega') ?? 'Solicitud';
+        $result = EntregasService::get_historial_recepciones_entrega((int) $id_entrega, $tipo_entrega);
         return response()->json($result);
     }
 }

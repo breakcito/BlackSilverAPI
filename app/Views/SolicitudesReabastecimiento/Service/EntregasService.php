@@ -53,7 +53,7 @@ class EntregasService
                 'evidencias' => $evidencias,
                 'fecha_hora_recepcion' => $fecha_hora_recepcion
             ]
-        ]);
+        ], 0, $evidencias ?: []);
     }
 
     public static function recibir_entregas_bulk(array $recepciones, int $idEmpleado = 0, array $evidenciasRaiz = [])
@@ -119,24 +119,38 @@ class EntregasService
                         $restante -= $amount;
 
                         if ($id_recepcion_header) {
-                            SolicitudReabastecimientoRecepcionDetalle::create([
-                                'id_solicitud_reabastecimiento_recepcion' => $id_recepcion_header,
-                                'id_solicitud_reabastecimiento_entrega_detalle' => $db_d->id_entrega_detalle,
-                                'cantidad_recepcionada_base' => $amount,
-                                'estado' => $amount < $cant_shipped ? 'Recepcionado Parcialmente' : 'Recepcionado',
-                            ]);
+                            if ($tipo === 'Prestamo') {
+                                \App\Models\PrestamoAlmacenRecepcionDetalle::create([
+                                    'id_prestamo_almacen_recepcion' => $id_recepcion_header,
+                                    'id_prestamo_almacen_entrega_detalle' => $db_d->id_entrega_detalle,
+                                    'cantidad_recepcionada_base' => $amount,
+                                    'estado' => $amount < $cant_shipped ? 'Recepcionado Parcialmente' : 'Recepcionado',
+                                ]);
+                            } else {
+                                SolicitudReabastecimientoRecepcionDetalle::create([
+                                    'id_solicitud_reabastecimiento_recepcion' => $id_recepcion_header,
+                                    'id_solicitud_reabastecimiento_entrega_detalle' => $db_d->id_entrega_detalle,
+                                    'cantidad_recepcionada_base' => $amount,
+                                    'estado' => $amount < $cant_shipped ? 'Recepcionado Parcialmente' : 'Recepcionado',
+                                ]);
+                            }
                         }
 
+                        $ya_recibido = (float) ($db_d->cantidad_recibida_total ?? 0);
+                        $total_acumulado = $ya_recibido + $amount;
+                        
                         if ($tipo === 'Solicitud') {
-                            $ya_recibido = (float) ($db_d->cantidad_recibida_total ?? 0);
-                            $total_acumulado = $ya_recibido + $amount;
                             $nuevo_estado = ($total_acumulado >= $cant_shipped - 0.0001)
                                 ? EstadoDetalleEntrega::Recibido->value
                                 : 'Recibido Parcialmente';
                             if ($nuevo_estado === 'Recibido Parcialmente') $es_parcial = true;
                             SolicitudReabastecimientoEntregaDetalle::where('id', $db_d->id_entrega_detalle)->update(['estado' => $nuevo_estado]);
                         } else if ($tipo === 'Prestamo') {
-                            EntregasDetalleData::marcar_como_recibido($db_d->id_entrega_detalle);
+                            $nuevo_estado = ($total_acumulado >= $cant_shipped - 0.0001)
+                                ? \App\Shared\Enums\PrestamoAlmacen\EstadoEntregaPrestamo::Confirmada->value
+                                : 'Recibido Parcialmente';
+                            if ($nuevo_estado === 'Recibido Parcialmente') $es_parcial = true;
+                            \App\Models\PrestamoAlmacenEntregaDetalle::where('id', $db_d->id_entrega_detalle)->update(['estado' => $nuevo_estado]);
                         } else if ($tipo === 'Reposicion') {
                             ReposicionesData::marcar_como_recibido($db_d->id_entrega_detalle);
                         }
@@ -144,7 +158,11 @@ class EntregasService
                 }
 
                 if ($id_recepcion_header && $es_parcial) {
-                    SolicitudReabastecimientoRecepcion::where('id', $id_recepcion_header)->update(['estado' => 'Recepcionado Parcialmente']);
+                    if ($tipo === 'Prestamo') {
+                        \App\Models\PrestamoAlmacenRecepcion::where('id', $id_recepcion_header)->update(['estado' => 'Recepcionado Parcialmente']);
+                    } else {
+                        SolicitudReabastecimientoRecepcion::where('id', $id_recepcion_header)->update(['estado' => 'Recepcionado Parcialmente']);
+                    }
                 }
 
                 self::_verificar_completar($id, $tipo);
@@ -195,23 +213,42 @@ class EntregasService
 
     private static function _registrar_header_recepcion(int $id, string $tipo, array $data, int $idEmpleado = 0, array $evidenciasRaiz = []): ?int
     {
-        if ($tipo !== 'Solicitud') return null;
+        if (!in_array($tipo, ['Solicitud', 'Prestamo'])) return null;
 
         $evidenciasData = null;
         if (!empty($evidenciasRaiz)) {
-            $evidenciasData = \App\Shared\Helpers\ArchivoHelper::guardarArchivos('reabastecimiento/recepciones', $evidenciasRaiz);
+            $path = $tipo === 'Prestamo' ? 'prestamos/recepciones' : 'reabastecimiento/recepciones';
+            $evidenciasData = \App\Shared\Helpers\ArchivoHelper::guardarArchivos($path, $evidenciasRaiz);
         }
 
-        $model = SolicitudReabastecimientoRecepcion::create([
-            'id_solicitud_reabastecimiento_entrega' => $id,
-            'id_empleado_registro' => $idEmpleado > 0 ? $idEmpleado : (session('id_empleado') ?? 1),
-            'observacion' => $data['observacion'] ?? null,
-            'fecha_hora_recepcion' => isset($data['fecha_hora_recepcion']) ? date('Y-m-d H:i:s', strtotime($data['fecha_hora_recepcion'])) : date('Y-m-d H:i:s'),
-            'evidencias' => $evidenciasData ?? null,
-            'con_incidencia' => filter_var($data['con_incidencia'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
-            'created_at' => date('Y-m-d H:i:s'),
-            'estado' => 'Recepcionado',
-        ]);
+        $empleado_id = $idEmpleado > 0 ? $idEmpleado : (session('id_empleado') ?? 1);
+        $observacion = $data['observacion'] ?? null;
+        $fecha_hora = isset($data['fecha_hora_recepcion']) ? date('Y-m-d H:i:s', strtotime($data['fecha_hora_recepcion'])) : date('Y-m-d H:i:s');
+        $con_incidencia = filter_var($data['con_incidencia'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+
+        if ($tipo === 'Prestamo') {
+            $model = \App\Models\PrestamoAlmacenRecepcion::create([
+                'id_prestamo_almacen_entrega' => $id,
+                'id_empleado_registro' => $empleado_id,
+                'observacion' => $observacion,
+                'fecha_hora_recepcion' => $fecha_hora,
+                'evidencias' => $evidenciasData ?? null,
+                'con_incidencia' => $con_incidencia,
+                'created_at' => date('Y-m-d H:i:s'),
+                'estado' => 'Recepcionado',
+            ]);
+        } else {
+            $model = SolicitudReabastecimientoRecepcion::create([
+                'id_solicitud_reabastecimiento_entrega' => $id,
+                'id_empleado_registro' => $empleado_id,
+                'observacion' => $observacion,
+                'fecha_hora_recepcion' => $fecha_hora,
+                'evidencias' => $evidenciasData ?? null,
+                'con_incidencia' => $con_incidencia,
+                'created_at' => date('Y-m-d H:i:s'),
+                'estado' => 'Recepcionado',
+            ]);
+        }
         return (int) $model->id;
     }
 
@@ -226,36 +263,60 @@ class EntregasService
         }
     }
 
-    public static function get_historial_recepciones_entrega(int $id_entrega)
+    public static function get_historial_recepciones_entrega(int $id_entrega, string $tipo = 'Solicitud')
     {
-        $sql = "
-            SELECT r.*, CONCAT(e.nombre, ' ', e.apellido) as empleado_registro
-            FROM solicitud_reabastecimiento_recer r
-            JOIN empleado e ON e.id = r.id_empleado_registro
-            WHERE r.id_solicitud_reabastecimiento_entrega = :id_entrega
-            ORDER BY r.created_at DESC
-        ";
-        // Correction: table name was typoed in my thought
-        $sql = str_replace('recer', 'recepcion', $sql);
+        if ($tipo === 'Prestamo') {
+            $sql = "
+                SELECT r.*, CONCAT(e.nombre, ' ', e.apellido) as empleado_registro
+                FROM prestamo_almacen_recepcion r
+                JOIN empleado e ON e.id = r.id_empleado_registro
+                WHERE r.id_prestamo_almacen_entrega = :id_entrega
+                ORDER BY r.created_at DESC
+            ";
+            $recepciones = DB::select($sql, ['id_entrega' => $id_entrega]);
 
-        $recepciones = DB::select($sql, ['id_entrega' => $id_entrega]);
+            foreach ($recepciones as $recepcion) {
+                $decoded = $recepcion->evidencias ? json_decode($recepcion->evidencias, true) : null;
+                if (is_string($decoded)) $decoded = json_decode($decoded, true);
+                $recepcion->evidencias = is_array($decoded) ? $decoded : null;
 
-        foreach ($recepciones as $recepcion) {
-            $decoded = $recepcion->evidencias ? json_decode($recepcion->evidencias, true) : null;
-            // Manejo de doble-encode en registros viejos
-            if (is_string($decoded)) {
-                $decoded = json_decode($decoded, true);
+                $recepcion->detalles = DB::select("
+                    SELECT rd.*, p.nombre as producto, u.abreviatura as unidad
+                    FROM prestamo_almacen_recepcion_detalle rd
+                    JOIN prestamo_almacen_entrega_detalle ed ON ed.id = rd.id_prestamo_almacen_entrega_detalle
+                    JOIN prestamo_almacen_detalle pd ON pd.id = ed.id_prestamo_almacen_detalle
+                    JOIN solicitud_reabastecimiento_detalle sd ON sd.id = pd.id_solicitud_reabastecimiento_detalle
+                    JOIN producto p ON p.id = sd.id_producto
+                    JOIN unidad_medida u ON u.id = p.id_unidad_medida_base
+                    WHERE rd.id_prestamo_almacen_recepcion = :id_recepcion
+                ", ['id_recepcion' => $recepcion->id]);
             }
-            $recepcion->evidencias = is_array($decoded) ? $decoded : null;
-            $recepcion->detalles = DB::select("
-                SELECT rd.*, p.nombre as producto, u.abreviatura as unidad
-                FROM solicitud_reabastecimiento_recepcion_detalle rd
-                JOIN solicitud_reabastecimiento_entrega_detalle ed ON ed.id = rd.id_solicitud_reabastecimiento_entrega_detalle
-                JOIN solicitud_reabastecimiento_detalle sd ON sd.id = ed.id_solicitud_reabastecimiento_detalle
-                JOIN producto p ON p.id = sd.id_producto
-                JOIN unidad_medida u ON u.id = p.id_unidad_medida_base
-                WHERE rd.id_solicitud_reabastecimiento_recepcion = :id_recepcion
-            ", ['id_recepcion' => $recepcion->id]);
+        } else {
+            $sql = "
+                SELECT r.*, CONCAT(e.nombre, ' ', e.apellido) as empleado_registro
+                FROM solicitud_reabastecimiento_recepcion r
+                JOIN empleado e ON e.id = r.id_empleado_registro
+                WHERE r.id_solicitud_reabastecimiento_entrega = :id_entrega
+                ORDER BY r.created_at DESC
+            ";
+
+            $recepciones = DB::select($sql, ['id_entrega' => $id_entrega]);
+
+            foreach ($recepciones as $recepcion) {
+                $decoded = $recepcion->evidencias ? json_decode($recepcion->evidencias, true) : null;
+                if (is_string($decoded)) $decoded = json_decode($decoded, true);
+                $recepcion->evidencias = is_array($decoded) ? $decoded : null;
+
+                $recepcion->detalles = DB::select("
+                    SELECT rd.*, p.nombre as producto, u.abreviatura as unidad
+                    FROM solicitud_reabastecimiento_recepcion_detalle rd
+                    JOIN solicitud_reabastecimiento_entrega_detalle ed ON ed.id = rd.id_solicitud_reabastecimiento_entrega_detalle
+                    JOIN solicitud_reabastecimiento_detalle sd ON sd.id = ed.id_solicitud_reabastecimiento_detalle
+                    JOIN producto p ON p.id = sd.id_producto
+                    JOIN unidad_medida u ON u.id = p.id_unidad_medida_base
+                    WHERE rd.id_solicitud_reabastecimiento_recepcion = :id_recepcion
+                ", ['id_recepcion' => $recepcion->id]);
+            }
         }
 
         return ApiResponse::success($recepciones);

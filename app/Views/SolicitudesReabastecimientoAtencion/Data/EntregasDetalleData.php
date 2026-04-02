@@ -58,6 +58,7 @@ class EntregasDetalleData
                 WHEN DATEDIFF(lot.fecha_vencimiento,CURRENT_DATE) <= prod.dias_espera_vencimiento THEN 'Por vencer' 
                 ELSE 'Vigente'
             END AS estado_vencimiento,
+            red.estado as estado_entrega_detalle,
             red.cantidad_base,
             -- en base a la unidad de medida base del producto
             red.cantidad_lote,

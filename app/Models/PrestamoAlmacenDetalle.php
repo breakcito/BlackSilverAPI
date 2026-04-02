@@ -13,6 +13,9 @@ class PrestamoAlmacenDetalle extends Model
     protected $fillable = [
         'id_prestamo_almacen',
         'id_solicitud_reabastecimiento_detalle',
+        'id_producto',
+        'id_unidad_medida',
+        'contenido_por_presentacion',
         'cantidad_solicitada',
         'cantidad_solicitada_base',
         'cantidad_prestada',
@@ -26,6 +29,9 @@ class PrestamoAlmacenDetalle extends Model
     protected $casts = [
         'id_prestamo_almacen' => 'integer',
         'id_solicitud_reabastecimiento_detalle' => 'integer',
+        'id_producto' => 'integer',
+        'id_unidad_medida' => 'integer',
+        'contenido_por_presentacion' => 'float',
         'cantidad_solicitada' => 'float',
         'cantidad_solicitada_base' => 'float',
         'cantidad_prestada' => 'float',

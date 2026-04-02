@@ -41,8 +41,14 @@ class PrestamosService
                 'created_at'
             );
 
+            // Obtener el almacén solicitante de la cabecera de la solicitud
+            $id_almacen_solicitante = (int) DB::table('solicitud_reabastecimiento')
+                ->where('id', $id_solicitud_reabastecimiento)
+                ->value('id_almacen_solicitante');
+
             $id_prestamo = PrestamosData::crear_prestamo_cabecera(
                 $id_solicitud_reabastecimiento,
+                $id_almacen_solicitante,
                 $id_almacen_prestamista,
                 $id_empleado_registro,
                 $correlativoData['correlativo'],
@@ -87,6 +93,9 @@ class PrestamosService
                 $id_detalle = PrestamosDetalleData::crear_prestamo_detalle(
                     (int) $id_prestamo,
                     (int) $detalle['id_solicitud_reabastecimiento_detalle'],
+                    (int) $srd->id_producto,
+                    (int) $srd->id_unidad_medida,
+                    (float) $srd->contenido_por_presentacion,
                     $cantidad_solicitada,
                     $cantidad_solicitada_base,
                     $detalle['comentario'] ?? null,

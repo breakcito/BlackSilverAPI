@@ -39,22 +39,28 @@ class PrestamosDetalleData
     public static function crear_prestamo_detalle(
         int $id_prestamo,
         int $id_solicitud_detalle_original,
+        int $id_producto,
+        int $id_unidad_medida,
+        float $contenido_por_presentacion,
         float $cantidad_solicitada,
         float $cantidad_solicitada_base,
         ?string $comentario,
         string $estado
     ): int {
         return PrestamoAlmacenDetalle::insertGetId([
-            'id_prestamo_almacen' => $id_prestamo,
-            'id_solicitud_reabastecimiento_detalle' => $id_solicitud_detalle_original,
-            'cantidad_solicitada' => $cantidad_solicitada,
-            'cantidad_solicitada_base' => $cantidad_solicitada_base,
-            'cantidad_prestada' => 0,
-            'cantidad_prestada_base' => 0,
-            'cantidad_repuesta' => 0,
-            'cantidad_repuesta_base' => 0,
-            'comentario' => $comentario,
-            'estado' => $estado,
+            'id_prestamo_almacen'                    => $id_prestamo,
+            'id_solicitud_reabastecimiento_detalle'  => $id_solicitud_detalle_original,
+            'id_producto'                            => $id_producto,
+            'id_unidad_medida'                       => $id_unidad_medida,
+            'contenido_por_presentacion'             => $contenido_por_presentacion,
+            'cantidad_solicitada'                    => $cantidad_solicitada,
+            'cantidad_solicitada_base'               => $cantidad_solicitada_base,
+            'cantidad_prestada'                      => 0,
+            'cantidad_prestada_base'                 => 0,
+            'cantidad_repuesta'                      => 0,
+            'cantidad_repuesta_base'                 => 0,
+            'comentario'                             => $comentario,
+            'estado'                                 => $estado,
         ]);
     }
 }
