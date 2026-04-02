@@ -12,6 +12,7 @@ class PrestamoAlmacen extends Model
 
     protected $fillable = [
         'id_solicitud_reabastecimiento',
+        'id_almacen_solicitante',
         'id_almacen_prestamista',
         'id_empleado_registro',
         'correlativo',
@@ -24,6 +25,7 @@ class PrestamoAlmacen extends Model
 
     protected $casts = [
         'id_solicitud_reabastecimiento' => 'integer',
+        'id_almacen_solicitante' => 'integer',
         'id_almacen_prestamista' => 'integer',
         'id_empleado_registro' => 'integer',
         'numero_correlativo' => 'integer',

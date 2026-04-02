@@ -55,6 +55,7 @@ class PrestamosData
 
     public static function crear_prestamo_cabecera(
         int $id_solicitud_reabastecimiento,
+        int $id_almacen_solicitante,
         int $id_almacen_prestamista,
         int $id_empleado_registro,
         string $correlativo,
@@ -65,14 +66,15 @@ class PrestamosData
     ): int {
         return PrestamoAlmacen::insertGetId([
             'id_solicitud_reabastecimiento' => $id_solicitud_reabastecimiento,
-            'id_almacen_prestamista' => $id_almacen_prestamista,
-            'id_empleado_registro' => $id_empleado_registro,
-            'correlativo' => $correlativo,
-            'numero_correlativo' => $numero_correlativo,
-            'fecha_hora_prestamo' => $fecha_hora_prestamo,
-            'fecha_limite_devolucion' => $fecha_limite_devolucion,
-            'created_at' => now(),
-            'estado' => $estado,
+            'id_almacen_solicitante'        => $id_almacen_solicitante,
+            'id_almacen_prestamista'        => $id_almacen_prestamista,
+            'id_empleado_registro'          => $id_empleado_registro,
+            'correlativo'                   => $correlativo,
+            'numero_correlativo'            => $numero_correlativo,
+            'fecha_hora_prestamo'           => $fecha_hora_prestamo,
+            'fecha_limite_devolucion'       => $fecha_limite_devolucion,
+            'created_at'                    => now(),
+            'estado'                        => $estado,
         ]);
     }
 
