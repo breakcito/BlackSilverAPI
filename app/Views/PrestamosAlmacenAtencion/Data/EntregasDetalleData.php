@@ -45,6 +45,11 @@ class EntregasDetalleData
                 paed.cantidad AS cantidad_lote,
                 (paed.cantidad * lote.contenido_por_presentacion) AS cantidad_base,
                 paed.estado AS estado_entrega_detalle,
+                COALESCE((
+                    SELECT SUM(rd.cantidad_recepcionada_base)
+                    FROM prestamo_almacen_recepcion_detalle rd
+                    WHERE rd.id_prestamo_almacen_entrega_detalle = paed.id
+                ), 0) AS cantidad_recibida_total,
                 pad.comentario,
                 lote.id AS id_lote_salida,
                 lote.correlativo AS correlativo_lote,
