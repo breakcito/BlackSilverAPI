@@ -78,11 +78,23 @@ class LoteProducto extends Model
 
     public static function get_lote_simple_by_id(int $id_lote)
     {
-        return self::where('id', $id_lote)->first()?->toArray();
+        return self::where('id', $id_lote)
+            ->first([
+                'id as id_lote',
+                'id_producto',
+                'id_unidad_medida',
+                'id_almacen',
+                'correlativo',
+                'stock_actual',
+                'stock_actual_base',
+                'contenido_por_presentacion'
+            ])?->toArray();
     }
 
-    /**
-     * Obtener los lotes disponibles de un almacen, util para cualquier tipo de entregas o ingresos
+    /**w
+     * Obtener los lotes disponibles de un almacen, util para cualquier 
+     * tipo de entregas o ingresos. Solo se traen lotes activos, con stock y
+     * no vencidos.
      */
     public static function get_lotes_disponibles(int $id_almacen, array $ids_productos)
     {

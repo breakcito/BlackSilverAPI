@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class PrestamoAlmacenEntregaDetalle extends Model
 {
@@ -18,4 +19,62 @@ class PrestamoAlmacenEntregaDetalle extends Model
         'cantidad',
         'estado',
     ];
+
+    /**
+     * Obtiene un solo registro o todos los detalles de una entrega por prestamo
+     */
+    public static function get_detalles(
+        ?int $id_entrega_detalle = null,
+        ?int $id_entrega = null
+    ) {
+        $sql = '
+        SELECT
+            paed.id AS id_entrega_detalle,
+            paed.id_prestamo_almacen_detalle,
+            --
+            prod.id AS id_producto,
+            prod.nombre AS producto,
+            --
+            paed.id_lote_salida,
+            lt.correlativo as lote_salida,
+            -- unidad de medida del prestamo
+            um_pr.id as id_unidad_medida_pr,
+            um_pr.nombre AS unidad_medida_pr,
+            um_pr.abreviatura AS unidad_medida_pr_abv,
+            -- unidad de medida base del producto
+            um_bs.id as id_unidad_medida_base, 
+            um_bs.nombre as unidad_medida_base,
+            um_bs.abreviatura as unidad_medida_base_abv,
+            --
+            paed.cantidad, -- cantidad entregada segun la unidad de medida del prestamo
+            pad.contenido_por_presentacion, -- cuantas unidades base hay por una unidad del detalle del prestamo
+            paed.cantidad_base, -- cantidad entregada segun la unidad de medida base del producto
+            paed.estado
+        FROM
+            prestamo_almacen_entrega_detalle paed
+        INNER JOIN lote_producto lt on lt.id = paed.id_lote_salida
+        INNER JOIN prestamo_almacen_detalle pad ON pad.id = paed.id_prestamo_almacen_detalle
+        INNER JOIN producto prod ON prod.id = pad.id_producto
+        INNER JOIN unidad_medida um_pr ON um_pr.id = pad.id_unidad_medida
+        INNER JOIN unidad_medida um_bs ON um_bs.id = prod.id_unidad_medida_base
+        WHERE 1 = 1
+        ';
+
+        $params = [];
+
+        if ($id_entrega_detalle) {
+            $sql .= ' AND paed.id = :id_entrega_detalle';
+            $params['id_entrega_detalle'] = $id_entrega_detalle;
+            return DB::selectOne($sql, $params);
+        }
+
+        if ($id_entrega) {
+            $sql .= ' AND paed.id_prestamo_almacen_entrega = :id_entrega';
+            $params['id_entrega'] = $id_entrega;
+        }
+
+        $sql .= ' ORDER BY prod.nombre ASC';
+
+        return DB::select($sql, $params);
+    }
 }

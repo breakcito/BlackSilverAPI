@@ -41,6 +41,7 @@ class KardexProducto extends Model
         float $cantidad_movimiento_base,
         float $nuevo_stock,
         float $nuevo_stock_base,
+        ?string $created_at = null
     ) {
         return KardexProducto::insertGetId([
             'id_lote_producto' => $id_lote,
@@ -56,7 +57,7 @@ class KardexProducto extends Model
             'cantidad_movimiento_base' => $cantidad_movimiento_base,
             'stock_resultante' => $nuevo_stock,
             'stock_resultante_base' => $nuevo_stock_base,
-            'created_at' => now(),
+            'created_at' => $created_at ?? now(),
         ]);
     }
 }

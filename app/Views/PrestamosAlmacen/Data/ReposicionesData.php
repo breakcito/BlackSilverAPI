@@ -10,7 +10,6 @@ use App\Models\PrestamoAlmacenDetalleLog;
 use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
 use App\Shared\Enums\PrestamoAlmacen\EstadoDetalleReposicion;
 use App\Shared\Enums\PrestamoAlmacen\EstadoReposicion;
-use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 
 class ReposicionesData
@@ -21,40 +20,15 @@ class ReposicionesData
      */
     public static function get_nuevo_correlativo(int $id_almacen)
     {
-        return CorrelativoHelper::generar(
-            tabla: 'prestamo_almacen_reposicion',
-            prefijo: 'RPS',
-            filtros: ['id_almacen_entrega' => $id_almacen],
-            columnaFecha: 'fecha_hora_reposicion'
-        );
+        return PrestamoAlmacenReposicion::get_nuevo_correlativo($id_almacen);
     }
 
     /**
      * Obtiene el historial de reposiciones de un préstamo.
      */
-    public static function get_historial_reposiciones(int $id_prestamo_almacen): array
+    public static function get_reposiciones_by_prestamo(int $id_prestamo_almacen): array
     {
-        $sql = '
-        SELECT 
-            r.id as id_reposicion,
-            r.correlativo,
-            r.fecha_hora_reposicion,
-            r.created_at,
-            r.estado,
-            r.observacion,
-            r.evidencias,
-            a.nombre AS almacen_entrega,
-            CONCAT(e.nombre, " ", e.apellido) AS registrado_por
-        FROM 
-            prestamo_almacen_reposicion r
-        INNER JOIN almacen a ON a.id = r.id_almacen_entrega
-        INNER JOIN empleado e ON e.id = r.id_empleado_registro
-        WHERE 
-            r.id_prestamo_almacen = :id_prestamo_almacen
-        ORDER BY 
-            r.created_at DESC
-        ';
-        return DB::select($sql, ['id_prestamo_almacen' => $id_prestamo_almacen]);
+        return PrestamoAlmacenReposicion::get_reposiciones(id_prestamo_almacen: $id_prestamo_almacen);
     }
 
     /**
@@ -64,21 +38,30 @@ class ReposicionesData
     {
         return DB::select("
             SELECT 
-                rd.id,
+                rd.id as id_reposicion_detalle,
+                rd.id_prestamo_almacen_detalle,
+                p.id as id_producto,
+                p.nombre AS producto,
+                rd.id_lote_producto, -- lote de salida
+                lt.correlativo AS lote_correlativo,
+                -- unidad de medida del producto
+                p.id_unidad_medida_base,
+                um_bs.nombre as unidad_medida_base,
+                um_bs.abreviatura AS unidad_medida_base_abv,
+                -- unidad de medida del prestamo
+                --
                 rd.cantidad_base,
                 rd.cantidad_lote,
                 rd.cantidad_solicitud,
-                rd.estado,
-                p.nombre AS producto,
-                um.abreviatura AS unidad_medida_base,
-                lp.correlativo AS lote_correlativo
+                --
+                rd.estado
             FROM 
                 prestamo_almacen_reposicion_detalle rd
             INNER JOIN prestamo_almacen_detalle pd ON pd.id = rd.id_prestamo_almacen_detalle
-            INNER JOIN solicitud_reabastecimiento_detalle srd ON srd.id = pd.id_solicitud_reabastecimiento_detalle
-            INNER JOIN producto p ON p.id = srd.id_producto
-            INNER JOIN unidad_medida um ON um.id = p.id_unidad_medida_base
-            INNER JOIN lote_producto lp ON lp.id = rd.id_lote_producto
+            INNER JOIN producto p ON p.id = pd.id_producto
+            INNER JOIN unidad_medida um_bs ON um_bs.id = p.id_unidad_medida_base
+            INNER JOIN lote_producto lt ON lt.id = rd.id_lote_producto
+            INNER JOIN unidad_medida um_lt ON um_lt.id = lt.id_unidad_medida
             WHERE 
                 rd.id_prestamo_almacen_reposicion = :id_reposicion
             ORDER BY p.nombre ASC

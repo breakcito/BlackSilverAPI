@@ -4,7 +4,7 @@ namespace App\Views\PrestamosAlmacen\Data;
 
 use App\Models\Almacen;
 
-class AuxData
+class AlmacenesData
 {
     /**
      * Obtiene los almacenes.

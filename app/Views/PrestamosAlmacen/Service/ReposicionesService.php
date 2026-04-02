@@ -17,7 +17,7 @@ class ReposicionesService
      */
     public static function get_historial(int $id_prestamo_almacen)
     {
-        $data = ReposicionesData::get_historial_reposiciones($id_prestamo_almacen);
+        $data = ReposicionesData::get_reposiciones_by_prestamo($id_prestamo_almacen);
         foreach ($data as $repo) {
             $repo->evidencias = $repo->evidencias ? json_decode($repo->evidencias) : null;
             $repo->detalles = ReposicionesData::get_detalles_reposicion((int) $repo->id_reposicion);

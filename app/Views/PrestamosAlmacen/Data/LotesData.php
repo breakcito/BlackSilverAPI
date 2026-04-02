@@ -21,7 +21,7 @@ class LotesData
     /**
      * Obtener datos basicos de un lote por su id
      */
-    public static function get_lote_by_id(int $id_lote)
+    public static function get_lote_simple_by_id(int $id_lote)
     {
         return LoteProducto::get_lote_simple_by_id($id_lote);
     }
