@@ -26,6 +26,7 @@ class PrestamosAlmacenController extends Controller
         $result = PrestamosService::get_prestamos_por_almacen($id_almacen, $mes, $yearcito);
         return response()->json($result);
     }
+
     /**
      * Obtener detalles de un préstamo
      */

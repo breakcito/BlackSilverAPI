@@ -11,15 +11,6 @@ use Illuminate\Routing\Controller;
 class AuxController extends Controller
 {
     /**
-     * Obtiene los almacenes secundarios
-     */
-    public function get_almacenes_secundarios(Request $request): JsonResponse
-    {
-        $result = AuxService::get_almacenes(false);
-        return response()->json($result);
-    }
-
-    /**
      * Obtiene los almacenes (principales o secundarios)
      */
     public function get_almacenes(Request $request): JsonResponse
@@ -30,7 +21,7 @@ class AuxController extends Controller
     }
 
     /**
-     * Obtener lotes disponibles para productos en un almacén.
+     * Obtener lotes disponibles para ciertos productos de un almacén.
      */
     public function get_lotes_disponibles(Request $request): JsonResponse
     {
@@ -43,7 +34,7 @@ class AuxController extends Controller
 
         $ids_productos = is_array($ids_productos) ? array_map('intval', $ids_productos) : [(int) $ids_productos];
 
-        $result = AuxService::get_lotes_disponibles($ids_productos, (int) $id_almacen);
+        $result = AuxService::get_lotes_disponibles((int) $id_almacen, $ids_productos);
 
         return response()->json($result);
     }

@@ -11,7 +11,7 @@ use Illuminate\Routing\Controller;
 class EntregasController extends Controller
 {
     /**
-     * Obtiene los almacenes secundarios
+     * Obtiene el historial de entregas de un préstamo
      */
     public function get_historial_entregas(Request $request): JsonResponse
     {

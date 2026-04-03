@@ -8,7 +8,7 @@ class EntregasData
 {
 
     /**
-     * Obtiene el historial de entregas de un préstamo con sus detalles.
+     * Obtiene el historial de entregas de un préstamo
      */
     public static function get_entregas_por_prestamo(int $id_prestamo): array
     {

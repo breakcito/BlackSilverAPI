@@ -29,16 +29,6 @@ class PrestamoAlmacen extends Model
         'estado',
     ];
 
-    protected $casts = [
-        'id_solicitud_reabastecimiento' => 'integer',
-        'id_almacen_prestamista' => 'integer',
-        'id_empleado_registro' => 'integer',
-        'numero_correlativo' => 'integer',
-        'fecha_hora_prestamo' => 'datetime',
-        'fecha_limite_devolucion' => 'datetime',
-        'created_at' => 'datetime',
-    ];
-
     /**
      * Obtiene un prestamo o el historial completo en base al almacen prestamista, mes y año
      */

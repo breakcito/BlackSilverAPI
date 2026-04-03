@@ -76,7 +76,7 @@ class LoteProducto extends Model
         ]);
     }
 
-    public static function get_lote_simple_by_id(int $id_lote)
+    public static function get_lote_simple_by_id(int $id_lote): array
     {
         return self::where('id', $id_lote)
             ->first([

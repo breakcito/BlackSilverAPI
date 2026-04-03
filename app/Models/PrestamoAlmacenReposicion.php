@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Shared\Enums\PrestamoAlmacen\EstadoReposicion;
 use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,7 @@ class PrestamoAlmacenReposicion extends Model
     protected $fillable = [
         'id_prestamo_almacen', // el prestamo que se esta reponiendo
         'id_almacen_entrega', // uno de los almacenes principales
-        'id_empleado_registro', // empleado que realiza/registra la reposicion
+        'id_empleado_entrega', // empleado que hace la reposicion
         'correlativo', // prefijo: RPS
         'numero_correlativo',
         'observacion',
@@ -41,6 +42,33 @@ class PrestamoAlmacenReposicion extends Model
             filtros: ['id_almacen_entrega' => $id_almacen],
             columnaFecha: 'fecha_hora_reposicion'
         );
+    }
+
+    /**
+     * Metodos de ayuda para registrar una reposicion por prestamo
+     */
+    public static function crear_reposicion(
+        int $id_prestamo_almacen,
+        int $id_almacen_entrega,
+        int $id_empleado_entrega,
+        string $correlativo,
+        int $numero_correlativo,
+        string $fecha_hora_reposicion,
+        ?string $observacion = null,
+        ?string $evidencias = null
+    ) {
+        return self::insertGetId([
+            'id_prestamo_almacen' => $id_prestamo_almacen,
+            'id_almacen_entrega' => $id_almacen_entrega,
+            'id_empleado_entrega' => $id_empleado_entrega,
+            'correlativo' => $correlativo,
+            'numero_correlativo' => $numero_correlativo,
+            'fecha_hora_reposicion' => $fecha_hora_reposicion,
+            'observacion' => $observacion,
+            'evidencias' => $evidencias ? json_encode($evidencias) : null,
+            'estado' => EstadoReposicion::EnDespacho->value,
+            'created_at' => now(),
+        ]);
     }
 
     /**
@@ -66,7 +94,7 @@ class PrestamoAlmacenReposicion extends Model
         FROM 
             prestamo_almacen_reposicion r
         INNER JOIN almacen a ON a.id = r.id_almacen_entrega
-        INNER JOIN empleado e ON e.id = r.id_empleado_registro
+        INNER JOIN empleado e ON e.id = r.id_empleado_entrega
         WHERE 
             r.id_prestamo_almacen = :id_prestamo_almacen
         ';
