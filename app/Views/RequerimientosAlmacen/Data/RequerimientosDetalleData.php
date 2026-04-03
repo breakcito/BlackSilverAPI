@@ -159,7 +159,7 @@ class RequerimientosDetalleData
      */
     public static function get_unidades_medida()
     {
-        return UnidadMedida::get_unidades_medida();
+        return UnidadMedida::get_unidades();
     }
 
 

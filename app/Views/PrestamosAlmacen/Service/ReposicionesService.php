@@ -2,14 +2,13 @@
 
 namespace App\Views\PrestamosAlmacen\Service;
 
+use App\Data\KardexData;
+use App\Data\LotesData;
+use App\Shared\Enums\Kardex\OrigenMovimiento;
+use App\Shared\Enums\Kardex\TipoMovimiento;
 use App\Shared\Responses\ApiResponse;
 use App\Views\PrestamosAlmacen\Data\PrestamosData;
-use App\Views\PrestamosAlmacen\Data\KardexData;
-use App\Views\PrestamosAlmacen\Data\LotesData;
-use App\Views\PrestamosAlmacen\Data\PrestamosDetalleData;
-use App\Views\PrestamosAlmacen\Data\PrestamosDetalleLogData;
 use App\Views\PrestamosAlmacen\Data\ReposicionesData;
-use App\Views\PrestamosAlmacen\Data\ReposicionesDetalleData;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 
@@ -23,7 +22,7 @@ class ReposicionesService
         $data = ReposicionesData::get_reposiciones_by_prestamo($id_prestamo_almacen);
         foreach ($data as $repo) {
             $repo->evidencias = $repo->evidencias ? json_decode($repo->evidencias) : null;
-            $repo->detalles = ReposicionesDetalleData::get_detalles_reposicion((int) $repo->id_reposicion);
+            $repo->detalles = ReposicionesData::get_detalles_reposicion((int) $repo->id_reposicion);
         }
         return ApiResponse::success($data);
     }
@@ -91,7 +90,7 @@ class ReposicionesService
                 }
 
                 // A. Insertar detalle de la reposición
-                ReposicionesDetalleData::crear_detalle_reposicion(
+                ReposicionesData::crear_detalle_reposicion(
                     $id_reposicion,
                     $id_prestamo_detalle,
                     $id_lote_producto,
@@ -106,17 +105,19 @@ class ReposicionesService
                 LotesData::update_stock_lote($id_lote_producto, $nuevo_stock, $nuevo_stock_base);
 
                 // C. Incrementar cantidad repuesta en el detalle del préstamo
-                PrestamosDetalleData::incrementar_cantidad_repuesta($id_prestamo_detalle, $cantidad_prestamo, $cantidad_base);
+                PrestamosData::incrementar_cantidad_repuesta($id_prestamo_detalle, $cantidad_prestamo, $cantidad_base);
 
                 // D. Registrar Log de trazabilidad en el detalle del préstamo
                 $glosa = "Reposición N° " . $correlativoData['correlativo'] . " registrada por " . $cantidad_prestamo . " productos";
-                PrestamosDetalleLogData::crear_log($id_prestamo_detalle, $id_empleado_entrega, $glosa);
+                PrestamosData::crear_log($id_prestamo_detalle, $id_empleado_entrega, $glosa);
 
                 // E. Registrar movimiento en Kardex
                 $descripcion_kardex = "Salida por reposición de préstamo N° " . $prestamo->correlativo . " (Ref: " . $correlativoData['correlativo'] . ")";
                 KardexData::registrar_kardex(
                     $id_lote_producto,
                     $id_reposicion,
+                    TipoMovimiento::Salida,
+                    OrigenMovimiento::Reposicion,
                     $descripcion_kardex,
                     $lote['stock_actual'],
                     $lote['stock_actual_base'],

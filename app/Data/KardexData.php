@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Views\PrestamosAlmacen\Data;
+namespace App\Data;
 
 use App\Models\KardexProducto;
 use App\Shared\Enums\Kardex\OrigenMovimiento;
@@ -9,13 +9,14 @@ use App\Shared\Enums\Kardex\TipoMovimiento;
 class KardexData
 {
     /**
-     * Registrar en el kardex tras una reposicion por prestamos
-     * realizada por logistica al almacen prestamista
+     * Metodo generico para realizar un registro en el kardex
      */
     public static function registrar_kardex(
         int $id_lote,
         int $id_origen,
         //
+        TipoMovimiento $tipo_movimiento,
+        OrigenMovimiento $tipo_origen,
         string $descripcion,
         //
         float $stock_anterior,
@@ -29,8 +30,8 @@ class KardexData
             $id_lote,
             $id_origen,
             //
-            TipoMovimiento::Salida,
-            OrigenMovimiento::Entrega,
+            $tipo_movimiento,
+            $tipo_origen,
             $descripcion,
             //
             $stock_anterior,

@@ -91,7 +91,7 @@ class LoteProducto extends Model
             ])?->toArray();
     }
 
-    /**w
+    /**
      * Obtener los lotes disponibles de un almacen, util para cualquier 
      * tipo de entregas o ingresos. Solo se traen lotes activos, con stock y
      * no vencidos.

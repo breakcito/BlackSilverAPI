@@ -4,7 +4,6 @@ namespace App\Views\PrestamosAlmacen\Service;
 
 use App\Shared\Responses\ApiResponse;
 use App\Views\PrestamosAlmacen\Data\PrestamosData;
-use App\Views\PrestamosAlmacen\Data\PrestamosDetalleData;
 
 class PrestamosService
 {
@@ -22,7 +21,7 @@ class PrestamosService
      */
     public static function get_detalles_prestamo(int $id_prestamo)
     {
-        $data = PrestamosDetalleData::get_detalles_prestamo($id_prestamo);
+        $data = PrestamosData::get_detalles_prestamo($id_prestamo);
         return ApiResponse::success($data);
     }
 
@@ -31,7 +30,7 @@ class PrestamosService
      */
     public static function get_trazabilidad(int $id_detalle)
     {
-        $data = PrestamosDetalleData::get_detalle_logs($id_detalle);
+        $data = PrestamosData::get_detalle_logs($id_detalle);
         return ApiResponse::success($data);
     }
 }

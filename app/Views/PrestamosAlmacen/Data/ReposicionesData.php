@@ -3,6 +3,7 @@
 namespace App\Views\PrestamosAlmacen\Data;
 
 use App\Models\PrestamoAlmacenReposicion;
+use App\Models\PrestamoAlmacenReposicionDetalle;
 use App\Shared\Helpers\ArchivoHelper;
 
 class ReposicionesData
@@ -52,7 +53,47 @@ class ReposicionesData
     /**
      * Metodo que guarda las evidencias de una reposicion
      */
-    public static function guardar_evidencias(array $evidencias){
+    public static function guardar_evidencias(array $evidencias)
+    {
         return ArchivoHelper::guardarArchivos('prestamos_almacen_reposiciones', $evidencias);
+    }
+
+
+
+    /**
+     * ------------------------------------------------
+     * METODOS PARA LOS DETALLES DE UNA REPOSICION
+     * ------------------------------------------------
+     */
+
+
+
+    /**
+     * Obtiene los detalles de una reposición.
+     */
+    public static function get_detalles_reposicion(int $id_reposicion): array
+    {
+        return PrestamoAlmacenReposicionDetalle::get_detalles(id_reposicion: $id_reposicion);
+    }
+
+    /**
+     * Registrar un detalle de una reposicion
+     */
+    public static function crear_detalle_reposicion(
+        int $id_reposicion,
+        int $id_prestamo_detalle,
+        int $id_lote_producto,
+        float $cantidad_base,
+        float $cantidad_lote,
+        float $cantidad_prestamo,
+    ): bool {
+        return PrestamoAlmacenReposicionDetalle::crear_detalle(
+            $id_reposicion,
+            $id_prestamo_detalle,
+            $id_lote_producto,
+            $cantidad_base,
+            $cantidad_lote,
+            $cantidad_prestamo,
+        );
     }
 }

@@ -1,14 +1,15 @@
 <?php
 
-namespace App\Views\PrestamosAlmacen\Data;
+namespace App\Data;
 
 use App\Models\LoteProducto;
 
 class LotesData
 {
     /**
-     * Obtiene los lotes disponibles del almacen prestamista con la intencion de
-     * poder ajustar su stock luego de que logistica le haya repuesto el stock prestado.
+     * Obtener los lotes disponibles de un almacen, util para cualquier 
+     * tipo de entregas o ingresos. Solo se traen lotes activos, con stock y
+     * no vencidos.
      */
     public static function get_lotes_disponibles(int $id_almacen, array $ids_productos)
     {
