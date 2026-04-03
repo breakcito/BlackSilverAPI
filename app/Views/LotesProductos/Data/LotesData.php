@@ -2,8 +2,6 @@
 
 namespace App\Views\LotesProductos\Data;
 
-use App\Models\LoteProducto;
-use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 
 class LotesData
@@ -89,57 +87,5 @@ class LotesData
     public static function get_lote_by_id(int $id_lote)
     {
         return self::get_resumen_lotes(id_lote: $id_lote);
-    }
-
-    public static function get_nuevo_correlativo(int $id_almacen)
-    {
-        return CorrelativoHelper::generar(
-            tabla: 'lote_producto',
-            prefijo: 'LOT',
-            filtros: ['id_almacen' => $id_almacen],
-            columnaFecha: 'fecha_hora_ingreso'
-        );
-    }
-
-    public static function crear_lote(
-        int $id_producto,
-        int $id_unidad_medida,
-        int $id_almacen,
-        ?string $descripcion,
-        string $correlativo,
-        int $numero_correlativo,
-        float $stock_inicial,
-        float $contenido_por_presentacion,
-        float $stock_actual_base,
-        string $fecha_hora_ingreso,
-        ?string $fecha_vencimiento
-    ) {
-        return LoteProducto::crear_lote(
-            id_producto: $id_producto,
-            id_unidad_medida: $id_unidad_medida,
-            id_almacen: $id_almacen,
-            descripcion: $descripcion,
-            correlativo: $correlativo,
-            numero_correlativo: $numero_correlativo,
-            stock_inicial: $stock_inicial,
-            contenido_por_presentacion: $contenido_por_presentacion,
-            stock_actual_base: $stock_actual_base,
-            fecha_hora_ingreso: $fecha_hora_ingreso,
-            fecha_vencimiento: $fecha_vencimiento
-        );
-    }
-
-    public static function update_stock(int $id_lote, float $nuevo_stock, float $nuevo_stock_base)
-    {
-        return LoteProducto::update_stock(
-            id_lote: $id_lote,
-            nuevo_stock: $nuevo_stock,
-            nuevo_stock_base: $nuevo_stock_base
-        );
-    }
-
-    public static function get_lote_simple_by_id(int $id_lote)
-    {
-        return LoteProducto::get_lote_simple_by_id($id_lote);
     }
 }

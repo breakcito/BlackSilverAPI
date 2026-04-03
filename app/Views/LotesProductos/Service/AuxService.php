@@ -2,6 +2,8 @@
 
 namespace App\Views\LotesProductos\Service;
 
+use App\Data\AlmacenesData;
+use App\Data\UnidadesMedidaData;
 use App\Shared\Responses\ApiResponse;
 use App\Views\LotesProductos\Data\AuxData;
 
@@ -17,7 +19,7 @@ class AuxService
 
         // si puede ver todos, no filtramos nada
         // si NO puede ver todos, filtramos por los almacenes donde es responsable
-        $almacenes = AuxData::get_almacenes($puede_ver_todos ? null : $id_empleado);
+        $almacenes = AlmacenesData::get_almacenes($puede_ver_todos ? null : $id_empleado);
 
         return ApiResponse::success($almacenes);
     }
@@ -38,7 +40,7 @@ class AuxService
      */
     public static function get_unidades_medida()
     {
-        $unidades = AuxData::get_unidades_medida();
+        $unidades = UnidadesMedidaData::get_unidades();
 
         return ApiResponse::success($unidades);
     }

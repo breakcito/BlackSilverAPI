@@ -2,9 +2,7 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class Concesion extends Model
 {

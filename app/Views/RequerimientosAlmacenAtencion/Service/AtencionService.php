@@ -2,6 +2,7 @@
 
 namespace App\Views\RequerimientosAlmacenAtencion\Service;
 
+use App\Data\AlmacenesData;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
 use App\Shared\Responses\ApiResponse;
 use App\Views\RequerimientosAlmacenAtencion\Data\AuxData;
@@ -16,7 +17,7 @@ class AtencionService
      */
     public function get_almacenes_autorizados(int $id_empleado)
     {
-        $data = AuxData::get_almacenes($id_empleado);
+        $data = AlmacenesData::get_almacenes($id_empleado);
         return ApiResponse::success($data);
     }
 

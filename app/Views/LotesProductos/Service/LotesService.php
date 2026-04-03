@@ -2,6 +2,9 @@
 
 namespace App\Views\LotesProductos\Service;
 
+use App\Data\KardexProductosData;
+use App\Data\LotesProductosData;
+use App\Shared\Enums\Kardex\OrigenMovimiento;
 use App\Shared\Enums\Kardex\TipoMovimiento;
 use App\Shared\Responses\ApiResponse;
 use App\Views\LotesProductos\Data\AuxData;
@@ -33,11 +36,11 @@ class LotesService
         string $fecha_hora_ingreso,
         ?string $fecha_vencimiento
     ) {
-        $correlativoData = LotesData::get_nuevo_correlativo($id_almacen);
+        $correlativoData = LotesProductosData::get_nuevo_correlativo($id_almacen);
 
         $stock_actual_base = $stock_inicial * $contenido_por_presentacion;
 
-        $id_lote = LotesData::crear_lote(
+        $id_lote = LotesProductosData::crear_lote(
             id_producto: $id_producto,
             id_unidad_medida: $id_unidad_medida,
             id_almacen: $id_almacen,
@@ -52,10 +55,15 @@ class LotesService
         );
 
         if ($stock_inicial > 0) {
-            AuxData::registrar_log_kardex(
-                $id_lote,
-                $stock_inicial,
-                $stock_actual_base
+            KardexProductosData::registrar_kardex(
+                id_lote: $id_lote,
+                tipo_movimiento: TipoMovimiento::Ingreso,
+                tipo_origen: OrigenMovimiento::NuevoLote,
+                descripcion: 'Ingreso por nuevo lote al almacén',
+                cantidad_movimiento: $stock_inicial,
+                cantidad_movimiento_base: $stock_actual_base,
+                nuevo_stock: $stock_inicial,
+                nuevo_stock_base: $stock_actual_base
             );
         }
 
@@ -68,7 +76,7 @@ class LotesService
     public static function ajustar_stock(int $id_lote, float $nuevo_stock, float $nuevo_stock_base, ?string $motivo = null)
     {
         return DB::transaction(function () use ($id_lote, $nuevo_stock, $nuevo_stock_base, $motivo) {
-            $lote = LotesData::get_lote_simple_by_id($id_lote);
+            $lote = LotesProductosData::get_lote_simple_by_id($id_lote);
 
             if (!$lote) {
                 return ApiResponse::error('Lote no encontrado');
@@ -97,19 +105,20 @@ class LotesService
             }
 
             // Actualizar lote
-            LotesData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
+            LotesProductosData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
 
             // Registrar movimiento en Kardex
-            AuxData::registrar_ajuste_kardex(
-                $id_lote,
-                $tipo_movimiento->value,
-                $stock_anterior,
-                $stock_anterior_base,
-                abs($diferencia_lote),
-                abs($diferencia_base),
-                $nuevo_stock,
-                $nuevo_stock_base,
-                $descripcion_kardex
+            KardexProductosData::registrar_kardex(
+                id_lote: $id_lote,
+                tipo_movimiento: $tipo_movimiento,
+                tipo_origen: OrigenMovimiento::AjusteStock,
+                descripcion: $descripcion_kardex,
+                stock_anterior: $stock_anterior,
+                stock_anterior_base: $stock_anterior_base,
+                cantidad_movimiento: abs($diferencia_lote),
+                cantidad_movimiento_base: abs($diferencia_base),
+                nuevo_stock: $nuevo_stock,
+                nuevo_stock_base: $nuevo_stock_base
             );
 
             return ApiResponse::success(LotesData::get_lote_by_id(id_lote: $id_lote), 'Stock del lote ajustado correctamente');

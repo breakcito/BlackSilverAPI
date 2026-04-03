@@ -20,10 +20,4 @@ class Categoria extends Model
         'para_mina',
         'estado',
     ];
-
-    protected $casts = [
-        'es_consumible' => 'boolean',
-        'para_cocina' => 'boolean',
-        'para_mina' => 'boolean',
-    ];
 }

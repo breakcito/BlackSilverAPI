@@ -25,9 +25,4 @@ class PrestamoAlmacenRecepcion extends Model
         'created_at',
         'estado',
     ];
-
-    protected $casts = [
-        'evidencias' => 'array',
-        'con_incidencia' => 'boolean',
-    ];
 }

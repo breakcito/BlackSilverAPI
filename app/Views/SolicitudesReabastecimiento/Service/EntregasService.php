@@ -2,6 +2,8 @@
 
 namespace App\Views\SolicitudesReabastecimiento\Service;
 
+use App\Data\KardexProductosData;
+use App\Data\LotesProductosData;
 use App\Models\SolicitudReabastecimiento;
 use App\Models\SolicitudReabastecimientoEntrega;
 use App\Models\SolicitudReabastecimientoEntregaDetalle;
@@ -10,10 +12,11 @@ use App\Models\SolicitudReabastecimientoRecepcionDetalle;
 use App\Models\PrestamoAlmacen;
 use App\Models\PrestamoAlmacenEntrega;
 use App\Models\PrestamoAlmacenReposicion;
+use App\Shared\Enums\Kardex\OrigenMovimiento;
+use App\Shared\Enums\Kardex\TipoMovimiento;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoDetalleEntrega;
 use App\Shared\Responses\ApiResponse;
 use App\Views\SolicitudesReabastecimiento\Data\EntregasData;
-use App\Views\SolicitudesReabastecimiento\Data\RecepcionData;
 use App\Views\PrestamosAlmacenAtencion\Data\EntregasDetalleData;
 use App\Views\PrestamosAlmacen\Data\ReposicionesData;
 use Illuminate\Support\Facades\DB;
@@ -86,28 +89,45 @@ class EntregasService
                     $id_lote_producto = null;
                     $cantidad_kardex_lote = 0;
 
+                    $correlativo_data = LotesProductosData::get_nuevo_correlativo((int) $info['id_almacen']);
                     if ($es_nuevo_lote) {
-                        $id_lote_producto = RecepcionData::registrar_recepcion_lote_nuevo(
-                            $id_producto,
-                            !empty($item['id_unidad_medida']) ? (int)$item['id_unidad_medida'] : (int) $detalleBase->id_unidad_medida_solicitada,
-                            (int) $info['id_almacen'],
-                            !empty($item['fecha_vencimiento']) ? date('Y-m-d', strtotime($item['fecha_vencimiento'])) : null,
-                            $cantidad_base_ingresada / (!empty($item['contenido_por_presentacion']) ? (float)$item['contenido_por_presentacion'] : (float) $detalleBase->contenido_por_presentacion_solicitado),
-                            $cantidad_base_ingresada,
-                            !empty($item['contenido_por_presentacion']) ? (float)$item['contenido_por_presentacion'] : (float) $detalleBase->contenido_por_presentacion_solicitado,
-                            !empty($item['descripcion']) ? $item['descripcion'] : null,
-                            !empty($item['fecha_ingreso']) ? date('Y-m-d H:i:s', strtotime($item['fecha_ingreso'])) : null
+                        $id_lote_producto = LotesProductosData::crear_lote(
+                            id_producto: $id_producto,
+                            id_unidad_medida: !empty($item['id_unidad_medida']) ? (int)$item['id_unidad_medida'] : (int) $detalleBase->id_unidad_medida_solicitada,
+                            id_almacen: (int) $info['id_almacen'],
+                            descripcion: !empty($item['descripcion']) ? $item['descripcion'] : null,
+                            correlativo: $correlativo_data['correlativo'],
+                            numero_correlativo: $correlativo_data['numero_correlativo'],
+                            stock_inicial: $cantidad_base_ingresada,
+                            contenido_por_presentacion: !empty($item['contenido_por_presentacion']) ? (float)$item['contenido_por_presentacion'] : (float) $detalleBase->contenido_por_presentacion_solicitado,
+                            stock_actual_base: $cantidad_base_ingresada,
+                            fecha_hora_ingreso: !empty($item['fecha_ingreso']) ? date('Y-m-d H:i:s', strtotime($item['fecha_ingreso'])) : null,
+                            fecha_vencimiento: !empty($item['fecha_vencimiento']) ? date('Y-m-d', strtotime($item['fecha_vencimiento'])) : null,
                         );
                         $loteTemp = \App\Models\LoteProducto::find($id_lote_producto);
                         $cantidad_kardex_lote = $loteTemp ? $loteTemp->stock_actual : 0;
                     } else {
-                        $resultado_existente = RecepcionData::registrar_recepcion_lote_existente((int) $item['id_lote_existente'], $cantidad_base_ingresada);
+                        $lote_actual = LotesProductosData::get_lote_simple_by_id((int) $item['id_lote_existente']);
+                        $nuevo_stock = $lote_actual['stock_actual'] + $cantidad_base_ingresada;
+                        $nuevo_stock_base = $lote_actual['stock_actual_base'] + $cantidad_base_ingresada;
+                        $resultado_existente = LotesProductosData::update_stock((int) $item['id_lote_existente'], $nuevo_stock, $nuevo_stock_base);
+
                         if (!$resultado_existente) throw new \Exception('Error al ajustar lote existente');
                         $id_lote_producto = (int) $item['id_lote_existente'];
                         $cantidad_kardex_lote = $resultado_existente['cantidad_lote_ingresada'];
                     }
 
-                    RecepcionData::registrar_kardex_recepcion($id_lote_producto, $id, $cantidad_kardex_lote, $cantidad_base_ingresada, $desc_kardex);
+                    KardexProductosData::registrar_kardex(
+                        id_lote: $id_lote_producto,
+                        id_origen: $id,
+                        tipo_movimiento: TipoMovimiento::Ingreso,
+                        tipo_origen: OrigenMovimiento::Recepcion,
+                        descripcion: $desc_kardex,
+                        cantidad_movimiento: $cantidad_kardex_lote,
+                        cantidad_movimiento_base: $cantidad_base_ingresada,
+                        nuevo_stock: $loteTemp->stock_actual,
+                        nuevo_stock_base: $loteTemp->stock_actual_base,
+                    );
 
                     $restante = $cantidad_base_ingresada;
                     foreach ($db_detalles as $db_d) {
@@ -138,7 +158,7 @@ class EntregasService
 
                         $ya_recibido = (float) ($db_d->cantidad_recibida_total ?? 0);
                         $total_acumulado = $ya_recibido + $amount;
-                        
+
                         if ($tipo === 'Solicitud') {
                             $nuevo_estado = ($total_acumulado >= $cant_shipped - 0.0001)
                                 ? EstadoDetalleEntrega::Recibido->value

@@ -2,6 +2,7 @@
 
 namespace App\Views\SolicitudesReabastecimientoAtencion\Service;
 
+use App\Data\LotesProductosData;
 use App\Models\SolicitudReabastecimientoDetalle;
 use App\Models\SolicitudReabastecimientoDetalleLog;
 use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
@@ -61,7 +62,7 @@ class PrestamosService
             foreach ($detalles as $detalle) {
                 $srd = SolicitudReabastecimientoDetalle::find($detalle['id_solicitud_reabastecimiento_detalle']);
                 if (!$srd) continue;
-                
+
                 $srd->estado = EstadoSolicitudDetalle::SolicitandoPrestamo->value;
                 $srd->save();
 
@@ -78,7 +79,7 @@ class PrestamosService
                 $cantidad_solicitada_base = $cantidad_solicitada * (float) $srd->contenido_por_presentacion;
 
                 // VALIDACIÓN DE STOCK EN TIEMPO REAL
-                $lotes_disponibles = PrestamosData::get_lotes_disponibles_por_almacen_y_producto($srd->id_producto, $id_almacen_prestamista);
+                $lotes_disponibles = LotesProductosData::get_lotes_disponibles($id_almacen_prestamista, $srd->id_producto);
                 $stock_total_base = 0;
                 foreach ($lotes_disponibles as $lote) {
                     $stock_total_base += (float)$lote->stock_actual_base;
@@ -140,9 +141,9 @@ class PrestamosService
         return ApiResponse::success($data);
     }
 
-    public static function get_lotes_disponibles_por_almacen_y_producto(int $id_producto, int $id_almacen)
+    public static function get_lotes_disponibles_por_almacen_y_producto(int $id_almacen, array $ids_productos)
     {
-        $data = PrestamosData::get_lotes_disponibles_por_almacen_y_producto($id_producto, $id_almacen);
+        $data = LotesProductosData::get_lotes_disponibles($id_almacen, $ids_productos);
         return ApiResponse::success($data);
     }
 }

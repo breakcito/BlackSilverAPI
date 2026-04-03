@@ -2,10 +2,14 @@
 
 namespace App\Views\RequerimientosAlmacenAtencion\Service;
 
+use App\Data\EmpleadosData;
+use App\Data\KardexProductosData;
+use App\Data\LotesProductosData;
+use App\Shared\Enums\Kardex\OrigenMovimiento;
+use App\Shared\Enums\Kardex\TipoMovimiento;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
-use App\Views\RequerimientosAlmacenAtencion\Data\AuxData;
 use App\Views\RequerimientosAlmacenAtencion\Data\EntregasData;
 use App\Views\RequerimientosAlmacenAtencion\Data\EntregasDetalleData;
 use App\Views\RequerimientosAlmacenAtencion\Data\RequerimientosData;
@@ -17,9 +21,9 @@ class EntregaService
     /**
      * Obtiene los lotes disponibles para una lista de productos de un almacén.
      */
-    public function obtener_lotes_disponibles(array $ids_productos, int $id_almacen)
+    public function obtener_lotes_disponibles(int $id_almacen, array $ids_productos)
     {
-        $data = AuxData::get_lotes_disponibles($ids_productos, $id_almacen);
+        $data = LotesProductosData::get_lotes_disponibles($id_almacen, $ids_productos);
         return ApiResponse::success($data);
     }
 
@@ -60,9 +64,9 @@ class EntregaService
 
             // Validar Stock
             foreach ($detalles as $item) {
-                $lote = AuxData::get_lote_by_id($item['id_lote_producto']);
-                if (!$lote || $lote->stock_actual_base < $item['cantidad_base']) {
-                    return ApiResponse::error("Stock insuficiente en el lote: " . $lote->correlativo);
+                $lote = LotesProductosData::get_lote_simple_by_id($item['id_lote_producto']);
+                if (!$lote || $lote['stock_actual_base'] < $item['cantidad_base']) {
+                    return ApiResponse::error("Stock insuficiente en el lote: " . $lote['correlativo']);
                 }
             }
 
@@ -97,26 +101,28 @@ class EntregaService
                 );
 
                 // Cargar Lote para Kardex
-                $lote = AuxData::get_lote_by_id($id_lote);
-                $stock_anterior = $lote->stock_actual;
-                $stock_anterior_base = $lote->stock_actual_base;
+                $lote = LotesProductosData::get_lote_simple_by_id($id_lote);
+                $stock_anterior = $lote['stock_actual'];
+                $stock_anterior_base = $lote['stock_actual_base'];
                 $nuevo_stock = $stock_anterior - $item['cantidad_lote'];
                 $nuevo_stock_base = $stock_anterior_base - $item['cantidad_base'];
 
                 // Actualizar Stock del Lote
-                AuxData::update_lote_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
+                LotesProductosData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
 
                 // Registrar Kardex (Salida)
-                AuxData::registrar_kardex(
-                    $id_lote,
-                    $id_detalle_entrega,
-                    $stock_anterior,
-                    $stock_anterior_base,
-                    $item['cantidad_lote'],
-                    $item['cantidad_base'],
-                    $nuevo_stock,
-                    $nuevo_stock_base,
-                    "Salida por entrega N° {$correlativoData['correlativo']}"
+                KardexProductosData::registrar_kardex(
+                    id_lote: $id_lote,
+                    id_origen: $id_detalle_entrega,
+                    tipo_movimiento: TipoMovimiento::Salida,
+                    tipo_origen: OrigenMovimiento::Entrega,
+                    descripcion: "Salida por entrega N° {$correlativoData['correlativo']}",
+                    stock_anterior: $stock_anterior,
+                    stock_anterior_base: $stock_anterior_base,
+                    cantidad_movimiento: $item['cantidad_lote'],
+                    cantidad_movimiento_base: $item['cantidad_base'],
+                    nuevo_stock: $nuevo_stock,
+                    nuevo_stock_base: $nuevo_stock_base
                 );
 
                 // Actualizar Requerimiento Detalle
@@ -159,7 +165,7 @@ class EntregaService
      */
     public function obtener_empleados()
     {
-        $data = AuxData::get_empleados();
+        $data = EmpleadosData::get_empleados();
         return ApiResponse::success($data);
     }
 }

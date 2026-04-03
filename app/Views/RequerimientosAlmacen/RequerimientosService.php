@@ -2,6 +2,7 @@
 
 namespace App\Views\RequerimientosAlmacen;
 
+use App\Data\UnidadesMedidaData;
 use App\Shared\Responses\ApiResponse;
 use App\Views\RequerimientosAlmacen\Data\RequerimientosData;
 use App\Views\RequerimientosAlmacen\Data\RequerimientosDetalleData;
@@ -144,7 +145,7 @@ class RequerimientosService
 
     public function get_unidades_medida(): array
     {
-        $data = RequerimientosDetalleData::get_unidades_medida();
+        $data = UnidadesMedidaData::get_unidades();
         return ApiResponse::success($data);
     }
 
@@ -152,7 +153,7 @@ class RequerimientosService
     {
         $minas = RequerimientosData::get_minas($id_empleado);
         $productos = RequerimientosDetalleData::get_productos();
-        $unidades = RequerimientosDetalleData::get_unidades_medida();
+        $unidades = UnidadesMedidaData::get_unidades();
 
         return ApiResponse::success([
             'minas' => $minas,

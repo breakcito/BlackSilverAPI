@@ -2,9 +2,9 @@
 
 namespace App\Views\RequerimientosAlmacen\Data;
 
+use App\Data\UnidadesMedidaData;
 use App\Models\RequerimientoAlmacenDetalle;
 use App\Models\RequerimientoAlmacenDetalleLog;
-use App\Models\UnidadMedida;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
 use Illuminate\Support\Facades\DB;
 
@@ -19,34 +19,35 @@ class RequerimientosDetalleData
     ) {
         // 1. Definimos la base de la consulta (sin WHERE ni ORDER BY aún)
         $sql = '
-    SELECT
-        rad.id AS id_requerimiento_almacen_detalle,
-        CONCAT(emp.nombre, " ", emp.apellido) AS empleado_atencion,
-        pr.nombre AS producto,
-        unib.abreviatura AS unidad_medida_base,
-        uni.abreviatura AS unidad_medida,
-        rad.contenido_por_presentacion,
-        rad.cantidad_solicitada,
-        rad.cantidad_solicitada_base,
-        rad.cantidad_entregada,
-        rad.cantidad_entregada_base,
-        CASE 
-            WHEN rad.cantidad_solicitada_base > 0 THEN 
-                ROUND(((rad.cantidad_entregada_base / rad.cantidad_solicitada_base) * 100 ), 0)
-            ELSE 0 
-        END AS porcentaje_progreso,
-        rad.comentario,
-        rad.comentario_decision,
-        rad.id_producto_destino,
-        (SELECT pdest.nombre FROM producto pdest WHERE pdest.id = rad.id_producto_destino) as producto_destino,
-        rad.estado
-    FROM
-        requerimiento_almacen_detalle rad
-    INNER JOIN producto pr ON pr.id = rad.id_producto
-    LEFT JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
-    LEFT JOIN unidad_medida uni ON uni.id = rad.id_unidad_medida
-    LEFT JOIN empleado emp ON emp.id = rad.id_empleado_atencion
-    WHERE 1=1';
+        SELECT
+            rad.id AS id_requerimiento_almacen_detalle,
+            CONCAT(emp.nombre, " ", emp.apellido) AS empleado_atencion,
+            pr.nombre AS producto,
+            unib.abreviatura AS unidad_medida_base,
+            uni.abreviatura AS unidad_medida,
+            rad.contenido_por_presentacion,
+            rad.cantidad_solicitada,
+            rad.cantidad_solicitada_base,
+            rad.cantidad_entregada,
+            rad.cantidad_entregada_base,
+            CASE 
+                WHEN rad.cantidad_solicitada_base > 0 THEN 
+                    ROUND(((rad.cantidad_entregada_base / rad.cantidad_solicitada_base) * 100 ), 0)
+                ELSE 0 
+            END AS porcentaje_progreso,
+            rad.comentario,
+            rad.comentario_decision,
+            rad.id_producto_destino,
+            (SELECT pdest.nombre FROM producto pdest WHERE pdest.id = rad.id_producto_destino) as producto_destino,
+            rad.estado
+        FROM
+            requerimiento_almacen_detalle rad
+        INNER JOIN producto pr ON pr.id = rad.id_producto
+        LEFT JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
+        LEFT JOIN unidad_medida uni ON uni.id = rad.id_unidad_medida
+        LEFT JOIN empleado emp ON emp.id = rad.id_empleado_atencion
+        WHERE 1=1
+        ';
 
         $params = [];
 
@@ -152,14 +153,6 @@ class RequerimientosDetalleData
         ';
 
         return DB::select($sql, []);
-    }
-
-    /**
-     * Obtener unidades de medida para elegir en el detalle
-     */
-    public static function get_unidades_medida()
-    {
-        return UnidadMedida::get_unidades();
     }
 
 

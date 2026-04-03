@@ -90,7 +90,7 @@ class PrestamosController extends Controller
             return response()->json(ApiResponse::error('El id_producto e id_almacen son requeridos'), 400);
         }
 
-        $result = PrestamosService::get_lotes_disponibles_por_almacen_y_producto($id_producto, $id_almacen);
+        $result = PrestamosService::get_lotes_disponibles_por_almacen_y_producto($id_almacen, [$id_producto]);
         return response()->json($result);
     }
 }

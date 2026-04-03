@@ -30,7 +30,7 @@ class EntregaController extends Controller
         // Handle both single int and array of ints for backwards compatibility and new batch feature
         $ids_productos = is_array($id_producto) ? array_map('intval', $id_producto) : [(int) $id_producto];
 
-        $result = $this->entregaService->obtener_lotes_disponibles($ids_productos, (int) $id_almacen);
+        $result = $this->entregaService->obtener_lotes_disponibles((int) $id_almacen, $ids_productos);
 
         return response()->json($result);
     }
@@ -100,5 +100,4 @@ class EntregaController extends Controller
         $result = $this->entregaService->obtener_empleados();
         return response()->json($result);
     }
-
 }

@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class RequerimientoAlmacenDetalle extends Model
 {
@@ -27,77 +26,4 @@ class RequerimientoAlmacenDetalle extends Model
         //
         'estado',
     ];
-
-    public static function get_detalles_by_requerimiento(int $id_requerimiento)
-    {
-        $sql = "
-        SELECT
-            rad.id AS id_requerimiento_detalle,
-            rad.id_producto,
-            p.nombre AS producto,
-            p.es_fiscalizado,
-            p.es_perecible,
-            rad.id_unidad_medida,
-            um.abreviatura AS unidad_medida,
-            umb.abreviatura AS unidad_medida_base,
-            rad.cantidad_solicitada,
-            rad.contenido_por_presentacion,
-            rad.cantidad_solicitada_base,
-            rad.cantidad_entregada AS cantidad_atendida,
-            rad.cantidad_entregada_base AS cantidad_atendida_base,
-            rad.comentario,
-            rad.comentario_decision,
-            rad.estado,
-            (SELECT IFNULL(SUM(lp.stock_actual), 0) 
-             FROM lote_producto lp 
-             WHERE lp.id_producto = rad.id_producto 
-             AND lp.id_almacen = ra.id_almacen_destino 
-             AND lp.estado = 'Activo'
-            ) as stock_disponible
-        FROM
-            requerimiento_almacen_detalle rad
-        INNER JOIN requerimiento_almacen ra ON ra.id = rad.id_requerimiento_almacen
-        INNER JOIN producto p ON p.id = rad.id_producto
-        INNER JOIN unidad_medida um ON um.id = rad.id_unidad_medida
-        INNER JOIN unidad_medida umb ON umb.id = p.id_unidad_medida_base
-        WHERE
-            rad.id_requerimiento_almacen = :id_requerimiento
-        ";
-
-        $detalles = DB::select($sql, ['id_requerimiento' => $id_requerimiento]);
-
-        return array_map(function ($detalle) {
-            $detalle->es_fiscalizado = (bool) $detalle->es_fiscalizado;
-            $detalle->es_perecible = (bool) $detalle->es_perecible;
-
-            return $detalle;
-        }, $detalles);
-    }
-    /**
-     * Obtener productos de un requerimiento listos para atención.
-     */
-    public static function get_detalles_para_atencion(int $id_requerimiento)
-    {
-        return DB::select("
-            SELECT 
-                rad.id AS id_requerimiento_detalle,
-                rad.id_producto,
-                p.nombre AS producto,
-                p.es_perecible,
-                p.dias_espera_vencimiento,
-                um.nombre AS unidad_medida,
-                umb.nombre AS unidad_medida_base,
-                rad.cantidad_solicitada,
-                rad.cantidad_solicitada_base,
-                rad.cantidad_entregada_base,
-                (rad.cantidad_solicitada_base - rad.cantidad_entregada_base) AS pendiente_base,
-                rad.estado
-            FROM requerimiento_almacen_detalle rad
-            INNER JOIN producto p ON p.id = rad.id_producto
-            INNER JOIN unidad_medida um ON um.id = rad.id_unidad_medida
-            LEFT JOIN unidad_medida umb ON umb.id = p.id_unidad_medida_base
-            WHERE rad.id_requerimiento_almacen = :id_req
-            AND rad.estado NOT IN ('Rechazado - Logística', 'Anulada')
-        ", ['id_req' => $id_requerimiento]);
-    }
 }

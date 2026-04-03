@@ -3,7 +3,7 @@
 namespace App\Views\PrestamosAlmacen\Service;
 
 use App\Data\AlmacenesData;
-use App\Data\LotesData as DataLotesData;
+use App\Data\LotesProductosData;
 use App\Shared\Responses\ApiResponse;
 
 class AuxService
@@ -22,7 +22,7 @@ class AuxService
      */
     public static function get_lotes_disponibles(int $id_almacen, array $ids_productos)
     {
-        $data = DataLotesData::get_lotes_disponibles($id_almacen, $ids_productos);
+        $data = LotesProductosData::get_lotes_disponibles($id_almacen, $ids_productos);
         return ApiResponse::success($data);
     }
 }

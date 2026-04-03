@@ -2,7 +2,6 @@
 
 namespace App\Views\KardexProductos\Data;
 
-use App\Models\Almacen;
 use Illuminate\Support\Facades\DB;
 
 class AuxData
@@ -27,13 +26,5 @@ class AuxData
         $result = DB::selectOne($sql, ['id_usuario' => $id_usuario]);
 
         return $result ? true : false;
-    }
-
-    /**
-     * obtener la lista de almacenes donde el empleado es responsable
-     */
-    public static function get_almacenes(?int $id_empleado = null): array
-    {
-        return Almacen::get_almacenes(id_responsable: $id_empleado);
     }
 }

@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\Kardex\OrigenMovimiento;
-use App\Shared\Enums\Kardex\TipoMovimiento;
 use Illuminate\Database\Eloquent\Model;
 
 class KardexProducto extends Model
@@ -26,38 +24,4 @@ class KardexProducto extends Model
         'stock_resultante_base', // cuanto hay ahora en base a la unidad de medida del producto
         'created_at', // cuando se registro el movimiento
     ];
-
-    public static function registrar_kardex(
-        int $id_lote,
-        int $id_origen,
-        //
-        TipoMovimiento $tipo_movimiento,
-        OrigenMovimiento $tipo_origen,
-        string $descripcion,
-        //
-        float $stock_anterior,
-        float $stock_anterior_base,
-        float $cantidad_movimiento,
-        float $cantidad_movimiento_base,
-        float $nuevo_stock,
-        float $nuevo_stock_base,
-        ?string $created_at = null
-    ) {
-        return KardexProducto::insertGetId([
-            'id_lote_producto' => $id_lote,
-            'id_origen' => $id_origen,
-            //
-            'tipo_movimiento' => $tipo_movimiento->value,
-            'tipo_origen' => $tipo_origen->value,
-            'descripcion' => $descripcion,
-            //
-            'stock_anterior' => $stock_anterior,
-            'stock_anterior_base' => $stock_anterior_base,
-            'cantidad_movimiento' => $cantidad_movimiento,
-            'cantidad_movimiento_base' => $cantidad_movimiento_base,
-            'stock_resultante' => $nuevo_stock,
-            'stock_resultante_base' => $nuevo_stock_base,
-            'created_at' => $created_at ?? now(),
-        ]);
-    }
 }

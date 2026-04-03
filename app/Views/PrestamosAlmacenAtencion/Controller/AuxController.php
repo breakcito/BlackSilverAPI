@@ -45,7 +45,7 @@ class AuxController extends Controller
             return response()->json(ApiResponse::error('id_producto e id_almacen son requeridos'), 400);
         }
 
-        $result = AuxService::get_lotes_disponibles($id_producto, $id_almacen);
+        $result = AuxService::get_lotes_disponibles($id_almacen, $id_producto);
         return response()->json($result);
     }
 

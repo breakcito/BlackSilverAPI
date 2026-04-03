@@ -2,8 +2,8 @@
 
 namespace App\Views\PrestamosAlmacen\Service;
 
-use App\Data\KardexData;
-use App\Data\LotesData;
+use App\Data\KardexProductosData;
+use App\Data\LotesProductosData;
 use App\Shared\Enums\Kardex\OrigenMovimiento;
 use App\Shared\Enums\Kardex\TipoMovimiento;
 use App\Shared\Responses\ApiResponse;
@@ -84,7 +84,7 @@ class ReposicionesService
                 $cantidad_prestamo = (float) $item['cantidad_prestamo'];
 
                 // Validar Stock del lote de origen
-                $lote = LotesData::get_lote_simple_by_id($id_lote_producto);
+                $lote = LotesProductosData::get_lote_simple_by_id($id_lote_producto);
                 if ($lote['stock_actual_base'] < $cantidad_base) {
                     return ApiResponse::error("Stock insuficiente en el lote " . $lote['correlativo']);
                 }
@@ -102,7 +102,7 @@ class ReposicionesService
                 // B. Actualizar stock del lote (Salida por Reposición)
                 $nuevo_stock = $lote['stock_actual'] - $cantidad_lote;
                 $nuevo_stock_base = $lote['stock_actual_base'] - $cantidad_base;
-                LotesData::update_stock_lote($id_lote_producto, $nuevo_stock, $nuevo_stock_base);
+                LotesProductosData::update_stock($id_lote_producto, $nuevo_stock, $nuevo_stock_base);
 
                 // C. Incrementar cantidad repuesta en el detalle del préstamo
                 PrestamosData::incrementar_cantidad_repuesta($id_prestamo_detalle, $cantidad_prestamo, $cantidad_base);
@@ -113,18 +113,18 @@ class ReposicionesService
 
                 // E. Registrar movimiento en Kardex
                 $descripcion_kardex = "Salida por reposición de préstamo N° " . $prestamo->correlativo . " (Ref: " . $correlativoData['correlativo'] . ")";
-                KardexData::registrar_kardex(
-                    $id_lote_producto,
-                    $id_reposicion,
-                    TipoMovimiento::Salida,
-                    OrigenMovimiento::Reposicion,
-                    $descripcion_kardex,
-                    $lote['stock_actual'],
-                    $lote['stock_actual_base'],
-                    $cantidad_lote,
-                    $cantidad_base,
-                    $nuevo_stock,
-                    $nuevo_stock_base,
+                KardexProductosData::registrar_kardex(
+                    id_lote: $id_lote_producto,
+                    id_origen: $id_reposicion,
+                    tipo_movimiento: TipoMovimiento::Salida,
+                    tipo_origen: OrigenMovimiento::Reposicion,
+                    descripcion: $descripcion_kardex,
+                    stock_anterior: $lote['stock_actual'],
+                    stock_anterior_base: $lote['stock_actual_base'],
+                    cantidad_movimiento: $cantidad_lote,
+                    cantidad_movimiento_base: $cantidad_base,
+                    nuevo_stock: $nuevo_stock,
+                    nuevo_stock_base: $nuevo_stock_base,
                 );
             }
 

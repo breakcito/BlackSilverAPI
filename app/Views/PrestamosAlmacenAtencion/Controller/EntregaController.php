@@ -68,7 +68,7 @@ class EntregaController extends Controller
         $ids_productos = explode(',', $ids_productos_str);
         $ids_productos = array_map('intval', $ids_productos);
 
-        $lotes = \App\Views\PrestamosAlmacenAtencion\Data\AuxData::get_lotes_disponibles_batch($ids_productos, (int)$id_almacen);
+        $lotes = EntregaService::get_lotes_disponibles((int)$id_almacen, $ids_productos);
         
         return response()->json(ApiResponse::success($lotes));
     }

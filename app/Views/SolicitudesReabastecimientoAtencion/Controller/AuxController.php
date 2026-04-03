@@ -42,7 +42,7 @@ class AuxController extends Controller
 
         $ids_productos = is_array($ids_productos) ? array_map('intval', $ids_productos) : [(int) $ids_productos];
 
-        $result = AuxService::get_lotes_disponibles($ids_productos, (int) $id_almacen);
+        $result = AuxService::get_lotes_disponibles((int) $id_almacen, $ids_productos);
 
         return response()->json($result);
     }

@@ -96,19 +96,6 @@ class ProductosData
     }
 
     /**
-     * Obtener unidades de medida base
-     */
-    public static function get_unidades_medida()
-    {
-        return DB::select('
-            SELECT id AS id_unidad_medida, nombre, abreviatura
-            FROM unidad_medida
-            WHERE es_base = 1
-            ORDER BY nombre ASC
-        ');
-    }
-
-    /**
      * Obtener categorías de tipo "Bien" internas para esta vista
      */
     public static function get_categorias()

@@ -7,7 +7,6 @@ use App\Views\PrestamosAlmacenAtencion\Data\PrestamosData;
 use App\Views\PrestamosAlmacenAtencion\Data\PrestamosDetalleData;
 use App\Views\PrestamosAlmacenAtencion\Data\EntregasData;
 use App\Views\PrestamosAlmacenAtencion\Data\EntregasDetalleData;
-use Exception;
 use Illuminate\Support\Facades\DB;
 
 class AtencionService

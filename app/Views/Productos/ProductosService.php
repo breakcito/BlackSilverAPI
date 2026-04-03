@@ -2,6 +2,7 @@
 
 namespace App\Views\Productos;
 
+use App\Data\UnidadesMedidaData;
 use App\Shared\Responses\ApiResponse;
 use App\Views\Productos\Data\ProductosData;
 
@@ -22,7 +23,7 @@ class ProductosService
      */
     public static function get_unidades_medida()
     {
-        return ApiResponse::success(ProductosData::get_unidades_medida());
+        return ApiResponse::success(UnidadesMedidaData::get_unidades());
     }
 
     /**

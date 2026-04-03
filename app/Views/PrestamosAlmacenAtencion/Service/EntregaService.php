@@ -2,18 +2,20 @@
 
 namespace App\Views\PrestamosAlmacenAtencion\Service;
 
+use App\Data\KardexProductosData;
+use App\Data\LotesProductosData;
+use App\Shared\Enums\Kardex\OrigenMovimiento;
+use App\Shared\Enums\Kardex\TipoMovimiento;
 use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
 use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamo;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
-use App\Views\PrestamosAlmacenAtencion\Data\AuxData;
 use App\Views\PrestamosAlmacenAtencion\Data\EntregasData;
 use App\Views\PrestamosAlmacenAtencion\Data\EntregasDetalleData;
 use App\Views\PrestamosAlmacenAtencion\Data\PrestamosData;
 use App\Views\PrestamosAlmacenAtencion\Data\PrestamosDetalleData;
 use Carbon\Carbon;
-use Exception;
 use Illuminate\Support\Facades\DB;
 
 class EntregaService
@@ -39,7 +41,7 @@ class EntregaService
             $evidencias,
             $detalles
         ) {
-            $fecha_mysql = ($fecha_hora_entrega && $fecha_hora_entrega !== "null") 
+            $fecha_mysql = ($fecha_hora_entrega && $fecha_hora_entrega !== "null")
                 ? Carbon::parse($fecha_hora_entrega)->toDateTimeString()
                 : now()->toDateTimeString();
 
@@ -54,9 +56,9 @@ class EntregaService
                 $id_lote = (int) $det['id_lote_salida'];
                 $cant_base = (float) $det['cantidad_base'];
 
-                $lote = AuxData::get_lote_by_id($id_lote);
-                if (!$lote || $lote->stock_actual_base < $cant_base) {
-                    return ApiResponse::error("Stock insuficiente en el lote: " . ($lote->correlativo ?? 'ID: ' . $id_lote));
+                $lote = LotesProductosData::get_lote_simple_by_id($id_lote);
+                if (!$lote || $lote['stock_actual_base'] < $cant_base) {
+                    return ApiResponse::error("Stock insuficiente en el lote: " . ($lote['correlativo'] ?? 'ID: ' . $id_lote));
                 }
             }
 
@@ -104,26 +106,28 @@ class EntregaService
                 );
 
                 // 4.2 Cargar Lote para cálculos
-                $lote = AuxData::get_lote_by_id($id_lote);
-                $stock_anterior = $lote->stock_actual;
-                $stock_anterior_base = $lote->stock_actual_base;
+                $lote = LotesProductosData::get_lote_simple_by_id($id_lote);
+                $stock_anterior = $lote['stock_actual'];
+                $stock_anterior_base = $lote['stock_actual_base'];
                 $nuevo_stock = $stock_anterior - $cant_lote;
                 $nuevo_stock_base = $stock_anterior_base - $cant_base;
 
                 // 4.3 Actualizar Stock del Lote
-                AuxData::update_lote_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
+                LotesProductosData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
 
                 // 4.4 Registrar Kardex (Salida)
-                AuxData::registrar_kardex(
-                    $id_lote,
-                    $id_det_entrega,
-                    $stock_anterior,
-                    $stock_anterior_base,
-                    $cant_lote,
-                    $cant_base,
-                    $nuevo_stock,
-                    $nuevo_stock_base,
-                    "Salida por Préstamo al Almacén: {$nombreAlmDestino} - Entrega {$correlativoData['correlativo']}"
+                KardexProductosData::registrar_kardex(
+                    id_lote: $id_lote,
+                    id_origen: $id_det_entrega,
+                    tipo_movimiento: TipoMovimiento::Salida,
+                    tipo_origen: OrigenMovimiento::Entrega,
+                    descripcion: "Entrega N° {$correlativoData['correlativo']} al almacén {$nombreAlmDestino}",
+                    stock_anterior: $stock_anterior,
+                    stock_anterior_base: $stock_anterior_base,
+                    cantidad_movimiento: $cant_lote,
+                    cantidad_movimiento_base: $cant_base,
+                    nuevo_stock: $nuevo_stock,
+                    nuevo_stock_base: $nuevo_stock_base,
                 );
 
                 // 4.5 Actualizar cantidad acumulada en el Préstamo
@@ -148,20 +152,20 @@ class EntregaService
                 $vinc = EntregasData::get_ids_vinculados_by_prestamo_detalle($id_prestamo_detalle);
                 if ($vinc && $vinc->id_solicitud_reabastecimiento_detalle) {
                     $id_sol_det = (int) $vinc->id_solicitud_reabastecimiento_detalle;
-                    
+
                     // Incrementamos la cantidad entregada en la solicitud de reabastecimiento
                     EntregasData::incrementar_entregado_reabastecimiento($id_sol_det, $cant_solicitud, $cant_base);
 
                     // LOG DE REABASTECIMIENTO (Original)
                     $reabastecimientoLogGlosa = EstadoSolicitudDetalle::NuevaEntrega->getGlosa((string)$cant_solicitud);
                     EntregasData::insertar_log_reabastecimiento(
-                        $id_sol_det, 
-                        $id_empleado_entrega, 
-                        $reabastecimientoLogGlosa, 
+                        $id_sol_det,
+                        $id_empleado_entrega,
+                        $reabastecimientoLogGlosa,
                         EstadoSolicitudDetalle::NuevaEntrega->value
                     );
                 }
-                
+
                 // 4.7 LOG DE TRAZABILIDAD DEL PRÉSTAMO
                 $prestamoLogGlosa = EstadoDetallePrestamo::NuevaEntrega->getGlosa((string)$cant_lote);
                 PrestamosDetalleData::insert_detalle_log(
@@ -201,5 +205,10 @@ class EntregaService
         }
 
         return ApiResponse::success($data);
+    }
+
+    public static function get_lotes_disponibles(int $id_almacen_solicitante, array $id_productos): array
+    {
+        return LotesProductosData::get_lotes_disponibles($id_almacen_solicitante, $id_productos);
     }
 }

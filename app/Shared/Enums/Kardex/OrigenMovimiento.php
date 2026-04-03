@@ -37,6 +37,7 @@ enum OrigenMovimiento: string
      * Cuando se realiza una entrega por:
      * - un requerimiento de almacen (el almacen pequeño entrega al minero solicitante)
      * - una solicitud de reabastecimiento (el almacen principal entrega al almacen pequeño)
+     * - un prestamo de almacen (el almacen principal entrega al almacen pequeño)
      */
     case Entrega = 'Entrega';
 

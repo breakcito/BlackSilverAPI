@@ -114,33 +114,5 @@ class PrestamosData
             ->toArray();
     }
 
-    public static function get_lotes_disponibles_por_almacen_y_producto(int $id_producto, int $id_almacen)
-    {
-        $sql = "
-        SELECT
-            lp.id AS id_lote,
-            lp.descripcion AS lote,
-            lp.correlativo,
-            lp.numero_correlativo,
-            lp.stock_actual,
-            lp.stock_actual_base,
-            um.abreviatura AS unidad_medida,
-            lp.fecha_vencimiento
-        FROM
-            lote_producto lp
-        INNER JOIN unidad_medida um ON um.id = lp.id_unidad_medida
-        WHERE
-            lp.id_producto = :id_producto
-            AND lp.id_almacen = :id_almacen
-            AND lp.stock_actual > 0
-            AND lp.estado = 'Activo'
-        ORDER BY
-            lp.fecha_vencimiento ASC
-        ";
 
-        return DB::select($sql, [
-            'id_producto' => $id_producto,
-            'id_almacen' => $id_almacen
-        ]);
-    }
 }

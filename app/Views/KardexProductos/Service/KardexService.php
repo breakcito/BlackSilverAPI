@@ -2,6 +2,7 @@
 
 namespace App\Views\KardexProductos\Service;
 
+use App\Data\AlmacenesData;
 use App\Shared\Responses\ApiResponse;
 use App\Views\KardexProductos\Data\AuxData;
 use App\Views\KardexProductos\Data\KardexData;
@@ -18,7 +19,7 @@ class KardexService
 
         // si puede ver todos, no filtramos nada
         // si NO puede ver todos, filtramos por los almacenes donde es responsable
-        $almacenes = AuxData::get_almacenes($puede_ver_todos ? null : $id_empleado);
+        $almacenes = AlmacenesData::get_almacenes($puede_ver_todos ? null : $id_empleado);
 
         return ApiResponse::success($almacenes);
     }
