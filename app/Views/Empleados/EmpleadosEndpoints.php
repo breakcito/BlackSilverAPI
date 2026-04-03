@@ -9,6 +9,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::get('/', 'get_empleados');
         Route::post('/', 'crear_empleado');
         Route::get('/empresas', 'get_empresas');
+        Route::get('/minas', 'get_minas');
         Route::get('/areas', 'get_areas');
         Route::get('/cargos/{id_area}', 'get_cargos');
         Route::post('/foto/{id_empleado}', 'actualizar_foto');

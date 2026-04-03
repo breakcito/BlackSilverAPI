@@ -11,7 +11,7 @@ class EmpleadosData
     /**
      * Listar empleados 
      */
-    public static function get_empleados(?int $id_empresa = null, ?int $id_empleado = null)
+    public static function get_empleados(?int $id_mina = null, ?int $id_empleado = null)
     {
         $sql = '
         SELECT DISTINCT
@@ -30,7 +30,13 @@ class EmpleadosData
             e.pasaporte,
             e.fecha_nacimiento,
             e.path_foto,
-            e.estado
+            e.estado,
+            COALESCE((
+                SELECT GROUP_CONCAT(m.nombre SEPARATOR " | ")
+                FROM empresa_mina em
+                INNER JOIN mina m ON m.id = em.id_mina
+                WHERE em.id_empresa = e.id_empresa
+            ), "Por asignar") AS minas_asignadas
         FROM
             empleado e
         INNER JOIN empresa emp ON emp.id = e.id_empresa
@@ -48,9 +54,13 @@ class EmpleadosData
             return DB::selectOne($sql, $params);
         }
 
-        if ($id_empresa != null) {
-            $sql .= ' AND e.id_empresa = :id_empresa';
-            $params['id_empresa'] = $id_empresa;
+        if ($id_mina != null) {
+            $sql .= ' AND EXISTS (
+                SELECT 1 FROM empresa_mina em2 
+                WHERE em2.id_empresa = e.id_empresa 
+                AND em2.id_mina = :id_mina
+            )';
+            $params['id_mina'] = $id_mina;
         }
 
         $sql .= ' ORDER BY e.apellido ASC, e.nombre ASC';
@@ -102,6 +112,18 @@ class EmpleadosData
     public static function existe_dni(string $dni): bool
     {
         return Empleado::where('dni', $dni)->exists();
+    }
+
+    /**
+     * Obtener minas
+     */
+    public static function get_minas()
+    {
+        return DB::select('
+            SELECT id AS id_mina, nombre 
+            FROM mina 
+            ORDER BY nombre ASC
+        ');
     }
 
     /**
