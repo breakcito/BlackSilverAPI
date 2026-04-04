@@ -36,8 +36,8 @@ class CategoriasController extends Controller
             'es_consumible' => 'boolean',
             'para_cocina' => 'boolean',
             'para_mina' => 'boolean',
-            'ids_consumidoras' => 'array',
-            'ids_consumidoras.*' => 'integer',
+            'ids_categorias_consumidoras' => 'array',
+            'ids_categorias_consumidoras.*' => 'integer',
         ], [
             'nombre.required' => 'El nombre es obligatorio',
             'tipo_requerimiento.required' => 'El tipo de requerimiento es obligatorio',
@@ -55,7 +55,7 @@ class CategoriasController extends Controller
             es_consumible: (bool) $request->boolean('es_consumible'),
             para_cocina: (bool) $request->boolean('para_cocina'),
             para_mina: (bool) $request->boolean('para_mina'),
-            ids_consumidoras: (array) $request->input('ids_consumidoras', [])
+            ids_categorias_consumidoras: (array) $request->input('ids_categorias_consumidoras', [])
         );
 
         return response()->json($result);
@@ -67,9 +67,9 @@ class CategoriasController extends Controller
     public function actualizar_consumidoras(Request $request): JsonResponse
     {
         $id_categoria = (int) $request->input('id_categoria');
-        $ids_consumidoras = (array) $request->input('ids_consumidoras', []);
+        $ids_categorias_consumidoras = (array) $request->input('ids_categorias_consumidoras', []);
 
-        $result = CategoriasService::actualizar_consumidoras($id_categoria, $ids_consumidoras);
+        $result = CategoriasService::actualizar_consumidoras($id_categoria, $ids_categorias_consumidoras);
 
         return response()->json($result);
     }

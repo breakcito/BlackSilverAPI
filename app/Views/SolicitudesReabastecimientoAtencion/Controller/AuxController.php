@@ -46,4 +46,17 @@ class AuxController extends Controller
 
         return response()->json($result);
     }
+
+    public function get_almacenes_con_stock(Request $request): JsonResponse
+    {
+        $ids_productos = (array) $request->query('ids_productos');
+        $id_almacen_excluido = (int) $request->query('id_almacen_excluido');
+
+        if (empty($ids_productos)) {
+            return response()->json(ApiResponse::error('ids_productos es requerido'), 400);
+        }
+
+        $result = AuxService::get_almacenes_con_stock($id_almacen_excluido, $ids_productos);
+        return response()->json($result);
+    }
 }

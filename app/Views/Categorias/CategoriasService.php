@@ -28,7 +28,7 @@ class CategoriasService
         bool $es_consumible = false,
         bool $para_cocina = false,
         bool $para_mina = false,
-        array $ids_consumidoras = []
+        array $ids_categorias_consumidoras = []
     ) {
         if (CategoriasData::verificar_nombre_duplicado($nombre)) {
             return ApiResponse::error('Ya existe una categoría con este nombre.');
@@ -50,8 +50,8 @@ class CategoriasService
         );
 
         // Si es consumible, guardamos sus relaciones
-        if ($es_consumible && !empty($ids_consumidoras)) {
-            CategoriasData::establecer_consumidoras($id_categoria, $ids_consumidoras);
+        if ($es_consumible && !empty($ids_categorias_consumidoras)) {
+            CategoriasData::establecer_consumidoras($id_categoria, $ids_categorias_consumidoras);
         }
 
         $nuevaCategoria = CategoriasData::get_categoria_by_id($id_categoria);
@@ -62,10 +62,10 @@ class CategoriasService
     /**
      * Actualizar las categorías consumidoras para un insumo existente
      */
-    public static function actualizar_consumidoras(int $id_categoria, array $ids_consumidoras)
+    public static function actualizar_consumidoras(int $id_categoria, array $ids_categorias_consumidoras)
     {
         // Solo permitimos si la categoría existe y es activa (puedes añadir más validaciones si gustas)
-        CategoriasData::establecer_consumidoras($id_categoria, $ids_consumidoras);
+        CategoriasData::establecer_consumidoras($id_categoria, $ids_categorias_consumidoras);
         $categoria = CategoriasData::get_categoria_by_id($id_categoria);
 
         return ApiResponse::success($categoria, 'Destinos de consumo actualizados correctamente');

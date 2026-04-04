@@ -143,6 +143,7 @@ class RequerimientosData
         WHERE
             al.es_principal != 1 AND
             ami.id_mina = :id_mina
+        ORDER BY al.nombre ASC
         ';
 
         $params = [

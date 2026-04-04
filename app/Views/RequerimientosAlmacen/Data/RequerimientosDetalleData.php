@@ -2,7 +2,6 @@
 
 namespace App\Views\RequerimientosAlmacen\Data;
 
-use App\Data\UnidadesMedidaData;
 use App\Models\RequerimientoAlmacenDetalle;
 use App\Models\RequerimientoAlmacenDetalleLog;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
@@ -129,17 +128,23 @@ class RequerimientosDetalleData
         $sql = '
         SELECT
             pr.id AS id_producto,
-            pr.id_unidad_medida_base,
             pr.nombre,
+            pr.es_fiscalizado,
+            pr.es_perecible,
+			--
+            pr.id_unidad_medida_base,
             uni.nombre as unidad_medida_base,
             uni.abreviatura as unidad_medida_base_abv,
+            --
             cat.id as id_categoria,
+            cat.nombre as categoria,
             cat.es_consumible,
+            --
             (
                 SELECT GROUP_CONCAT(cc.id_categoria_consumidora)
                 FROM categoria_consumible cc
                 WHERE cc.id_categoria_consumible = cat.id
-            ) as ids_consumidoras
+            ) as ids_categorias_consumidoras
         FROM
             producto pr
         INNER JOIN unidad_medida uni ON

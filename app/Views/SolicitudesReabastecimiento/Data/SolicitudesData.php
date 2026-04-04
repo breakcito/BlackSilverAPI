@@ -3,8 +3,6 @@
 namespace App\Views\SolicitudesReabastecimiento\Data;
 
 use App\Models\SolicitudReabastecimiento;
-use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitud;
-use Illuminate\Support\Facades\DB;
 
 class SolicitudesData
 {
@@ -15,60 +13,12 @@ class SolicitudesData
         ?int $mes = null,
         ?int $yearcito = null,
     ) {
-        $sql = "
-        SELECT
-            sr.id AS id_solicitud,
-            sr.id_almacen_solicitante,
-            sr.id_requerimiento_almacen,
-            sr.observacion,
-            req.correlativo as correlativo_requerimiento,
-            alm.nombre AS almacen_solicitante,
-            CONCAT(em.nombre, ' ', em.apellido) AS empleado_solicitante,
-            sr.correlativo,
-            sr.premura,
-            sr.fecha_entrega_requerida,
-            sr.created_at,
-            sr.estado
-        FROM
-            solicitud_reabastecimiento sr
-        INNER JOIN empleado em ON
-            em.id = sr.id_empleado_solicitante
-        INNER JOIN almacen alm ON
-            alm.id = sr.id_almacen_solicitante
-        LEFT JOIN requerimiento_almacen req on req.id = sr.id_requerimiento_almacen
-        WHERE
-            1 = 1
-        ";
-
-        $params = [];
-
-        // Si se busca por id, devolvemos solo ese registro
-        if ($id_solicitud !== null) {
-            $sql .= ' AND sr.id = :id_solicitud_reabastecimiento';
-            $params['id_solicitud_reabastecimiento'] = $id_solicitud;
-            return DB::selectOne($sql, $params);
-        }
-
-        // Por empleado
-        if ($id_empleado !== null) {
-            $sql .= ' AND sr.id_empleado_solicitante = :id_empleado';
-            $params['id_empleado'] = $id_empleado;
-        }
-
-        // Por periodo
-        if ($mes !== null) {
-            $sql .= ' AND MONTH(sr.created_at) = :mes';
-            $params['mes'] = $mes;
-        }
-
-        if ($yearcito !== null) {
-            $sql .= ' AND YEAR(sr.created_at) = :yearcito';
-            $params['yearcito'] = $yearcito;
-        }
-
-        $sql .= ' ORDER BY sr.created_at DESC';
-
-        return DB::select($sql, $params);
+        return SolicitudReabastecimiento::get_solicitudes(
+            id_solicitud: $id_solicitud,
+            id_empleado_solicitante: $id_empleado,
+            mes: $mes,
+            yearcito: $yearcito
+        );
     }
 
     // Obtener una solicitud
@@ -84,22 +34,19 @@ class SolicitudesData
         int $id_empleado_solicitante,
         string $correlativo,
         int $numero_correlativo,
-        ?string $observacion = null,
         string $premura,
+        ?string $observacion = null,
         ?string $fecha_entrega_requerida = null,
     ) {
-        return SolicitudReabastecimiento::insertGetId([
-            'id_almacen_solicitante' => $id_almacen_solicitante,
-            'id_empleado_solicitante' => $id_empleado_solicitante,
-            'id_requerimiento_almacen' => null,
-            'correlativo' => $correlativo,
-            'numero_correlativo' => $numero_correlativo,
-            'observacion' => $observacion,
-            'premura' => $premura,
-            'fecha_entrega_requerida' => $fecha_entrega_requerida,
-            'created_at' => now(),
-            'estado' => EstadoSolicitud::Generada->value,
-        ]);
+        return SolicitudReabastecimiento::crear_solicitud(
+            id_almacen_solicitante: $id_almacen_solicitante,
+            id_empleado_solicitante: $id_empleado_solicitante,
+            correlativo: $correlativo,
+            numero_correlativo: $numero_correlativo,
+            premura: $premura,
+            observacion: $observacion,
+            fecha_entrega_requerida: $fecha_entrega_requerida,
+        );
     }
 
 

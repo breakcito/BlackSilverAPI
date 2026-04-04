@@ -29,11 +29,11 @@ class CategoriasData
             JOIN categoria c_con ON c_con.id = cc.id_categoria_consumidora
             WHERE cc.id_categoria_consumible = categoria.id
         ) as nombres_consumidoras')
-        ->selectRaw('(
+            ->selectRaw('(
             SELECT GROUP_CONCAT(cc.id_categoria_consumidora)
             FROM categoria_consumible cc
             WHERE cc.id_categoria_consumible = categoria.id
-        ) as ids_consumidoras');
+        ) as ids_categorias_consumidoras');
 
         if ($id_categoria !== null) {
             return $query->where('id', $id_categoria)->first();
@@ -79,20 +79,20 @@ class CategoriasData
     /**
      * Establecer las categorías consumidoras para un insumo
      */
-    public static function establecer_consumidoras(int $id_categoria_consumible, array $ids_consumidoras): void
+    public static function establecer_consumidoras(int $id_categoria_consumible, array $ids_categorias_consumidoras): void
     {
         // Limpiamos relaciones previas
         DB::table('categoria_consumible')
             ->where('id_categoria_consumible', $id_categoria_consumible)
             ->delete();
 
-        if (empty($ids_consumidoras)) return;
+        if (empty($ids_categorias_consumidoras)) return;
 
         // Insertamos nuevas relaciones
         $data = array_map(fn($id) => [
             'id_categoria_consumible' => $id_categoria_consumible,
             'id_categoria_consumidora' => (int) $id
-        ], $ids_consumidoras);
+        ], $ids_categorias_consumidoras);
 
         DB::table('categoria_consumible')->insert($data);
     }

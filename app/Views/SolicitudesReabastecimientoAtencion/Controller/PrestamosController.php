@@ -50,8 +50,9 @@ class PrestamosController extends Controller
             (int) $request->input('id_solicitud_reabastecimiento'),
             (int) $request->input('id_almacen_prestamista'),
             (int) $authUser->id_empleado,
+            (array) $request->input('detalles'),
             $fecha_limite,
-            (array) $request->input('detalles')
+            (string) $request->input('observacion')
         );
 
         return response()->json($result);
@@ -64,33 +65,6 @@ class PrestamosController extends Controller
             return response()->json(ApiResponse::error('El id_prestamo es requerido'), 400);
         }
         $result = PrestamosService::get_prestamo_por_id($id_prestamo);
-        return response()->json($result);
-    }
-
-    // Métodos auxiliares
-    public function get_almacenes_con_stock(Request $request): JsonResponse
-    {
-        $ids_productos = (array) $request->query('ids_productos');
-        $id_almacen_excluido = (int) $request->query('id_almacen_excluido');
-
-        if (empty($ids_productos)) {
-            return response()->json(ApiResponse::error('ids_productos es requerido'), 400);
-        }
-
-        $result = PrestamosService::get_almacenes_con_stock_multiple_productos($id_almacen_excluido, $ids_productos);
-        return response()->json($result);
-    }
-
-    public function get_lotes_disponibles_por_almacen_y_producto(Request $request): JsonResponse
-    {
-        $id_producto = (int) $request->query('id_producto');
-        $id_almacen = (int) $request->query('id_almacen');
-
-        if (!$id_producto || !$id_almacen) {
-            return response()->json(ApiResponse::error('El id_producto e id_almacen son requeridos'), 400);
-        }
-
-        $result = PrestamosService::get_lotes_disponibles_por_almacen_y_producto($id_almacen, [$id_producto]);
         return response()->json($result);
     }
 }

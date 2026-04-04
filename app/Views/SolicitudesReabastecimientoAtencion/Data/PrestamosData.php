@@ -2,11 +2,24 @@
 
 namespace App\Views\SolicitudesReabastecimientoAtencion\Data;
 
-use Illuminate\Support\Facades\DB;
 use App\Models\PrestamoAlmacen;
+use App\Models\PrestamoAlmacenDetalle;
+use App\Models\PrestamoAlmacenDetalleLog;
+use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
 
 class PrestamosData
 {
+    /**
+     * ----------------------------------------
+     * Metodos para la cabecera del prestamo
+     * ----------------------------------------
+     */
+
+    public static function get_nuevo_correlativo(int $id_almacen_prestamista)
+    {
+        return PrestamoAlmacen::get_nuevo_correlativo($id_almacen_prestamista);
+    }
+
     public static function get_prestamos_por_solicitud(int $id_solicitud_reabastecimiento)
     {
         return PrestamoAlmacen::get_prestamos(
@@ -45,43 +58,52 @@ class PrestamosData
         );
     }
 
+
+
     /**
-     * Obtiene los almacenes que tienen stock de los productos solicitados
+     * ----------------------------------------
+     * Metodos para el detalle del prestamo
+     * ----------------------------------------
      */
-    public static function get_almacenes_con_stock_multiple_productos(int $id_almacen_excluido, array $ids_productos)
+
+
+
+    public static function get_detalles_por_prestamo(int $id_prestamo)
     {
-        // Validamos que el array no venga vacío para evitar errores de sintaxis en SQL
-        if (empty($ids_productos)) {
-            return [];
-        }
+        return PrestamoAlmacenDetalle::get_detalles(id_prestamo: $id_prestamo);
+    }
 
-        // Creamos un string con tantos "?" como IDs haya en el array: "?, ?, ?"
-        $placeholders = implode(',', array_fill(0, count($ids_productos), '?'));
+    public static function crear_detalle(
+        int $id_prestamo,
+        int $id_solicitud_reabastecimiento_detalle,
+        int $id_producto,
+        int $id_unidad_medida,
+        float $contenido_por_presentacion,
+        float $cantidad_solicitada,
+        float $cantidad_solicitada_base,
+        ?string $comentario
+    ): int {
+        return PrestamoAlmacenDetalle::crear_detalle(
+            id_prestamo_almacen: $id_prestamo,
+            id_solicitud_reabastecimiento_detalle: $id_solicitud_reabastecimiento_detalle,
+            id_producto: $id_producto,
+            id_unidad_medida: $id_unidad_medida,
+            contenido_por_presentacion: $contenido_por_presentacion,
+            cantidad_solicitada: $cantidad_solicitada,
+            cantidad_solicitada_base: $cantidad_solicitada_base,
+            comentario: $comentario,
+        );
+    }
 
-        $sql = "
-        SELECT
-            alm.id AS id_almacen,
-            alm.nombre
-        FROM
-            almacen alm
-        INNER JOIN 
-            lote_producto lot ON lot.id_almacen = alm.id
-        WHERE
-            alm.es_principal = 0 AND 
-            alm.estado = 'Activo' AND
-            alm.id != ? AND -- excluir a un almacen
-            lot.id_producto IN ($placeholders) AND
-            (lot.fecha_vencimiento > NOW() OR lot.fecha_vencimiento IS NULL) -- aceptar fechas nulas pero no aceptar vencidos
-        GROUP BY
-            alm.id,
-            alm.nombre
-        HAVING
-            SUM(lot.stock_actual_base) > 0;
-        ";
-
-        // Unimos el ID excluido con el array de IDs de productos para enviarlos en orden
-        $bindings = array_merge([$id_almacen_excluido], $ids_productos);
-
-        return DB::select($sql, $bindings);
+    public static function crear_detalle_log(
+        int $id_prestamo_detalle,
+        int $id_empleado,
+    ) {
+        return PrestamoAlmacenDetalleLog::crear_log(
+            id_prestamo_almacen_detalle: $id_prestamo_detalle,
+            id_empleado: $id_empleado,
+            descripcion: EstadoDetallePrestamo::Pendiente->getGlosa(),
+            estado: EstadoDetallePrestamo::Pendiente,
+        );
     }
 }

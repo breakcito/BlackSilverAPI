@@ -17,7 +17,7 @@ class KardexData
             k.id_lote_producto,
             lp.id_producto,
             cat.nombre as categoria,
-            CONCAT(p.nombre, " ", um_base.abreviatura) AS producto,
+            p.nombre AS producto,
             lp.correlativo,
             um_lote.nombre as unidad_lote,
             um_lote.abreviatura as unidad_lote_abv,

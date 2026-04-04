@@ -4,7 +4,6 @@ namespace App\Views\SolicitudesReabastecimiento\Data;
 
 use App\Models\SolicitudReabastecimientoDetalle;
 use App\Models\SolicitudReabastecimientoDetalleLog;
-use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use Illuminate\Support\Facades\DB;
 
 class SolicitudesDetalleData
@@ -13,35 +12,9 @@ class SolicitudesDetalleData
     // Obtener el detalle de una solicitud
     public static function get_detalles_solicitud(int $id_solicitud_reabastecimiento)
     {
-        $sql = '
-        SELECT
-            srd.id AS id_solicitud_detalle,
-            pr.nombre as producto, -- manzana
-            pr.id_unidad_medida_base,
-            srd.id_unidad_medida as id_unidad_medida_sol,
-            uni_p.abreviatura as unidad_medida_base_abv, -- kilo
-            uni_s.abreviatura as unidad_medida_solicitud_abv, -- caja
-            pr.es_fiscalizado,
-            pr.es_perecible,
-            srd.cantidad_solicitada, -- 2 cajas
-            srd.contenido_por_presentacion, -- 10 kilos
-            srd.cantidad_solicitada_base, -- 20 kilos
-            srd.cantidad_entregada, -- 1/2 caja
-            srd.cantidad_entregada_base, -- 5 kilos
-            srd.comentario,
-            srd.estado
-        FROM
-            solicitud_reabastecimiento_detalle srd
-        INNER JOIN producto pr ON
-            pr.id = srd.id_producto
-        INNER JOIN unidad_medida uni_s ON
-            uni_s.id = srd.id_unidad_medida
-        INNER JOIN unidad_medida uni_p ON
-            uni_p.id = pr.id_unidad_medida_base
-        WHERE srd.id_solicitud_reabastecimiento = :id_solicitud_reabastecimiento
-        ';
-
-        return DB::select($sql, ['id_solicitud_reabastecimiento' => $id_solicitud_reabastecimiento]);
+        return SolicitudReabastecimientoDetalle::get_detalles_solicitud(
+            id_solicitud_reabastecimiento: $id_solicitud_reabastecimiento
+        );
     }
 
     // Funcion helpder que ayuda a crear un detalle de solicitud
@@ -54,18 +27,16 @@ class SolicitudesDetalleData
         float $cantidad_solicitada_base,
         ?string $comentario
     ) {
-        return SolicitudReabastecimientoDetalle::insertGetId([
-            'id_solicitud_reabastecimiento' => $id_solicitud,
-            'id_producto' => $id_producto,
-            'id_unidad_medida' => $id_unidad_medida,
-            'cantidad_solicitada' => $cantidad_solicitada,
-            'contenido_por_presentacion' => $contenido_por_presentacion,
-            'cantidad_solicitada_base' => $cantidad_solicitada_base,
-            'cantidad_entregada' => 0,
-            'cantidad_entregada_base' => 0,
-            'comentario' => $comentario,
-            'estado' => EstadoSolicitudDetalle::EsperandoAprobacion->value,
-        ]);
+        return SolicitudReabastecimientoDetalle::crear_detalle(
+            id_solicitud_reabastecimiento: $id_solicitud,
+            id_producto: $id_producto,
+            id_unidad_medida: $id_unidad_medida,
+            cantidad_solicitada: $cantidad_solicitada,
+            contenido_por_presentacion: $contenido_por_presentacion,
+            cantidad_solicitada_base: $cantidad_solicitada_base,
+            id_requerimiento_almacen_detalle: null,
+            comentario: $comentario
+        );
     }
 
     // Registrar en trazabilidad el cambio de estado de un detalle de solicitud de reabastecimiento

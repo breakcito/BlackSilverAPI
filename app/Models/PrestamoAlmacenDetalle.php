@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -35,6 +36,33 @@ class PrestamoAlmacenDetalle extends Model
         'comentario',
         'estado',
     ];
+
+    public static function crear_detalle(
+        int $id_prestamo_almacen,
+        int $id_solicitud_reabastecimiento_detalle,
+        int $id_producto,
+        int $id_unidad_medida,
+        float $contenido_por_presentacion,
+        float $cantidad_solicitada,
+        float $cantidad_solicitada_base,
+        ?string $comentario,
+    ): int {
+        return PrestamoAlmacenDetalle::insertGetId([
+            'id_prestamo_almacen'                    => $id_prestamo_almacen,
+            'id_solicitud_reabastecimiento_detalle'  => $id_solicitud_reabastecimiento_detalle,
+            'id_producto'                            => $id_producto,
+            'id_unidad_medida'                       => $id_unidad_medida,
+            'contenido_por_presentacion'             => $contenido_por_presentacion,
+            'cantidad_solicitada'                    => $cantidad_solicitada,
+            'cantidad_solicitada_base'               => $cantidad_solicitada_base,
+            'cantidad_prestada'                      => 0,
+            'cantidad_prestada_base'                 => 0,
+            'cantidad_repuesta'                      => 0,
+            'cantidad_repuesta_base'                 => 0,
+            'comentario'                             => $comentario,
+            'estado'                                 => EstadoDetallePrestamo::Pendiente->value,
+        ]);
+    }
 
     /**
      * Obtiene uno o todos los detalles de un prestamo

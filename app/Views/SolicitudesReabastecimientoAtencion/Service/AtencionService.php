@@ -85,7 +85,7 @@ class AtencionService
                     (int) $id_detalle,
                     $id_empleado,
                     $comentario_decision ?? $descripcion,
-                    $estadoEnum->value
+                    $estadoEnum
                 );
             }
 

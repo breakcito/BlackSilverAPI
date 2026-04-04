@@ -66,7 +66,7 @@ class SolicitudService
                     (int)$id_srd,
                     $id_empleado,
                     "Solicitud generada a partir del requerimiento de almacén N° {$correlativo_requerimiento->correlativo}",
-                    EstadoSolicitudDetalle::EsperandoAprobacion->value
+                    EstadoSolicitudDetalle::EsperandoAprobacion
                 );
 
                 // c) Actualizar estado en el detalle del requerimiento de almacén

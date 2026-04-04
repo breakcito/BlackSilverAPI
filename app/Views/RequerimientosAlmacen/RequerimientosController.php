@@ -111,53 +111,6 @@ class RequerimientosController extends Controller
         return response()->json($result);
     }
 
-    public function get_minas(Request $request): JsonResponse
-    {
-        $authUser = $request->attributes->get('auth_user');
-
-        $result = $this->requerimientoService->get_minas($authUser->id_empleado);
-
-        return response()->json($result);
-    }
-
-    public function get_almacenes_by_mina(Request $request): JsonResponse
-    {
-        $id_mina = $request->query('id_mina');
-        if (! $id_mina) {
-            return response()->json(ApiResponse::error('Mina requerida'), 400);
-        }
-
-        $result = $this->requerimientoService->get_almacenes_by_mina((int) $id_mina);
-
-        return response()->json($result);
-    }
-
-    public function get_labores_by_mina(Request $request): JsonResponse
-    {
-        $id_mina = $request->query('id_mina');
-        if (! $id_mina) {
-            return response()->json(ApiResponse::error('Mina requerida'), 400);
-        }
-
-        $result = $this->requerimientoService->get_labores_by_mina((int) $id_mina);
-
-        return response()->json($result);
-    }
-
-    public function get_productos(): JsonResponse
-    {
-        $result = $this->requerimientoService->get_productos();
-
-        return response()->json($result);
-    }
-
-    public function get_unidades_medida(): JsonResponse
-    {
-        $result = $this->requerimientoService->get_unidades_medida();
-
-        return response()->json($result);
-    }
-
     public function get_data_to_registro(Request $request): JsonResponse
     {
         $authUser = $request->attributes->get('auth_user');

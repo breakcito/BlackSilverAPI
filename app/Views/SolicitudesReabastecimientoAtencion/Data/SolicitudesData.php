@@ -16,47 +16,11 @@ class SolicitudesData
         string $mes,
         string $yearcito,
     ) {
-        $sql = '
-        SELECT
-            scr.id AS id_solicitud,
-            scr.id_almacen_solicitante,
-            scr.id_requerimiento_almacen,
-            alm.nombre as almacen_solicitante,
-            scr.correlativo,
-            ra.correlativo as correlativo_requerimiento,
-            scr.observacion,
-            emp.id as id_empleado_solicitante,
-            CONCAT(emp.nombre, " ", emp.apellido) AS solicitante,
-            scr.premura,
-            scr.fecha_entrega_requerida,
-            scr.estado,
-            scr.created_at
-        FROM
-            solicitud_reabastecimiento scr
-        INNER JOIN empleado emp ON emp.id = scr.id_empleado_solicitante
-        INNER JOIN almacen alm on alm.id = scr.id_almacen_solicitante
-        LEFT JOIN requerimiento_almacen ra on ra.id = scr.id_requerimiento_almacen
-        WHERE
-            scr.id_almacen_solicitante = :id_almacen_solicitante AND
-            MONTH(scr.created_at) = :mes AND YEAR(scr.created_at) = :yearcito
-        ORDER BY 
-        	CASE scr.estado
-                WHEN "Generada"  THEN 1
-                WHEN "En Proceso" THEN 2
-                WHEN "Cerrada" THEN 3
-                WHEN "Anulada" THEN 4
-            	ELSE 5 
-            END ASC,
-        	scr.created_at DESC
-        ';
-
-        $params = [
-            'id_almacen_solicitante' => $id_almacen,
-            'mes' => $mes,
-            'yearcito' => $yearcito,
-        ];
-
-        return DB::select($sql, $params);
+        return SolicitudReabastecimiento::get_solicitudes(
+            id_almacen: $id_almacen,
+            mes: $mes,
+            yearcito: $yearcito
+        );
     }
 
     public static function update_solicitud_estado(int $id_solicitud, string $estado)

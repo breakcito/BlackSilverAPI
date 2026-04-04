@@ -133,14 +133,29 @@ class EntregaService
 
                 //  Log de Trazabilidad ---
                 if ($ya_entregado_antes == 0) { // si es la primera entrega
-                    SolicitudesDetalleData::insert_detalle_log($id_detalle_sol, $id_empleado_entrega, EstadoSolicitudDetalle::EnDespacho->getGlosa(), EstadoSolicitudDetalle::EnDespacho->value);
+                    SolicitudesDetalleData::insert_detalle_log(
+                        $id_detalle_sol,
+                        $id_empleado_entrega,
+                        EstadoSolicitudDetalle::EnDespacho->getGlosa(),
+                        EstadoSolicitudDetalle::EnDespacho
+                    );
                 }
 
                 // Por nueva entrega
-                SolicitudesDetalleData::insert_detalle_log($id_detalle_sol, $id_empleado_entrega, EstadoSolicitudDetalle::NuevaEntrega->getGlosa((string)$item['cantidad_solicitud']), EstadoSolicitudDetalle::NuevaEntrega->value);
+                SolicitudesDetalleData::insert_detalle_log(
+                    $id_detalle_sol,
+                    $id_empleado_entrega,
+                    EstadoSolicitudDetalle::NuevaEntrega->getGlosa((string)$item['cantidad_solicitud']),
+                    EstadoSolicitudDetalle::NuevaEntrega
+                );
 
                 if ($finalizo_item) { // si ya finalizo
-                    SolicitudesDetalleData::insert_detalle_log($id_detalle_sol, $id_empleado_entrega, EstadoSolicitudDetalle::Completado->getGlosa(), EstadoSolicitudDetalle::Completado->value);
+                    SolicitudesDetalleData::insert_detalle_log(
+                        $id_detalle_sol,
+                        $id_empleado_entrega,
+                        EstadoSolicitudDetalle::Completado->getGlosa(),
+                        EstadoSolicitudDetalle::Completado
+                    );
                 }
             }
 

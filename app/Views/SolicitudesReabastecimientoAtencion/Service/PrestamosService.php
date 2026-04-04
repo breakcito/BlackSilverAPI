@@ -2,16 +2,13 @@
 
 namespace App\Views\SolicitudesReabastecimientoAtencion\Service;
 
+use App\Data\AlmacenesData;
 use App\Data\LotesProductosData;
 use App\Models\SolicitudReabastecimientoDetalle;
 use App\Models\SolicitudReabastecimientoDetalleLog;
-use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
-use App\Shared\Enums\Periodo;
-use App\Shared\Helpers\CorrelativoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Views\SolicitudesReabastecimientoAtencion\Data\PrestamosData;
-use App\Views\SolicitudesReabastecimientoAtencion\Data\PrestamosDetalleData;
 use Illuminate\Support\Facades\DB;
 
 class PrestamosService
@@ -33,19 +30,13 @@ class PrestamosService
         try {
             DB::beginTransaction();
 
-            $correlativoData = CorrelativoHelper::generar(
-                'prestamo_almacen',
-                'PRST',
-                [],
-                5,
-                Periodo::Anual,
-                'created_at'
-            );
+            $correlativoData = PrestamosData::get_nuevo_correlativo($id_almacen_prestamista);
 
             // Obtener el almacén solicitante de la cabecera de la solicitud
-            $id_almacen_solicitante = (int) DB::table('solicitud_reabastecimiento')
-                ->where('id', $id_solicitud_reabastecimiento)
-                ->value('id_almacen_solicitante');
+            $almacen_solicitante = AlmacenesData::get_almacenes(
+                id_almacen: $id_solicitud_reabastecimiento
+            );
+            $id_almacen_solicitante = $almacen_solicitante['id_almacen'];
 
             $id_prestamo = PrestamosData::crear_prestamo(
                 $id_solicitud_reabastecimiento,
@@ -91,7 +82,7 @@ class PrestamosService
                     throw new \Exception("¡Ups! El stock de '{$nombre_producto}' ha cambiado. Disponible: {$stock_formateado}, Solicitado: {$cantidad_solicitada}. La operación fue abortada.");
                 }
 
-                $id_detalle = PrestamosDetalleData::crear_prestamo_detalle(
+                $id_detalle = PrestamosData::crear_detalle(
                     (int) $id_prestamo,
                     (int) $detalle['id_solicitud_reabastecimiento_detalle'],
                     (int) $srd->id_producto,
@@ -100,21 +91,17 @@ class PrestamosService
                     $cantidad_solicitada,
                     $cantidad_solicitada_base,
                     $detalle['comentario'] ?? null,
-                    EstadoDetallePrestamo::Pendiente->value
                 );
 
                 // Registrar trazabilidad inicial del préstamo
-                \App\Models\PrestamoAlmacenDetalleLog::create([
-                    'id_prestamo_almacen_detalle' => $id_detalle,
-                    'id_empleado' => $id_empleado_registro,
-                    'descripcion' => EstadoDetallePrestamo::Pendiente->getGlosa(),
-                    'estado' => EstadoDetallePrestamo::Pendiente->value,
-                    'created_at' => now(),
-                ]);
+                PrestamosData::crear_detalle_log(
+                    id_prestamo_detalle: $id_detalle,
+                    id_empleado: $id_empleado_registro,
+                );
             }
 
             $prestamoCreado = PrestamosData::get_prestamo_por_id((int) $id_prestamo);
-            $prestamoCreado['detalles'] = PrestamosDetalleData::get_detalles_por_prestamo((int) $id_prestamo);
+            $prestamoCreado['detalles'] = PrestamosData::get_detalles_por_prestamo((int) $id_prestamo);
 
             DB::commit();
 
@@ -130,20 +117,7 @@ class PrestamosService
         $cabecera = PrestamosData::get_prestamo_por_id($id_prestamo);
         if (!$cabecera) return ApiResponse::error('Préstamo no encontrado');
 
-        $cabecera['detalles'] = PrestamosDetalleData::get_detalles_por_prestamo($id_prestamo);
+        $cabecera['detalles'] = PrestamosData::get_detalles_por_prestamo($id_prestamo);
         return ApiResponse::success($cabecera);
-    }
-
-    // Auxiliares movidos aquí o a AuxService
-    public static function get_almacenes_con_stock_multiple_productos(int $id_almacen_excluido, array $ids_productos)
-    {
-        $data = PrestamosData::get_almacenes_con_stock_multiple_productos($id_almacen_excluido, $ids_productos);
-        return ApiResponse::success($data);
-    }
-
-    public static function get_lotes_disponibles_por_almacen_y_producto(int $id_almacen, array $ids_productos)
-    {
-        $data = LotesProductosData::get_lotes_disponibles($id_almacen, $ids_productos);
-        return ApiResponse::success($data);
     }
 }

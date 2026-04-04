@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamo;
 use App\Shared\Enums\PrestamoAlmacen\EstadoReposicion;
+use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -30,6 +31,18 @@ class PrestamoAlmacen extends Model
         // Generado / En proceso (a penas se realiza una entrega) / Completado / Cerrado / Anulado
         'estado',
     ];
+
+    /**
+     * Obtener un nuevo correlativo para un prestamo
+     */
+    public static function get_nuevo_correlativo(int $id_almacen_prestamista)
+    {
+        return CorrelativoHelper::generar(
+            'prestamo_almacen',
+            'PRT',
+            ['id_almacen_prestamista' => $id_almacen_prestamista]
+        );
+    }
 
     /**
      * Obtiene un prestamo o el historial completo en base al almacen prestamista, mes y año

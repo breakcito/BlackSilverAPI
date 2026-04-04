@@ -119,36 +119,6 @@ class RequerimientosService
         return ApiResponse::success($data);
     }
 
-    public function get_minas(int $id_empleado): array
-    {
-        $data = RequerimientosData::get_minas($id_empleado);
-        return ApiResponse::success($data);
-    }
-
-    public function get_almacenes_by_mina(int $id_mina): array
-    {
-        $data = RequerimientosData::get_almacenes_by_mina($id_mina);
-        return ApiResponse::success($data);
-    }
-
-    public function get_labores_by_mina(int $id_mina): array
-    {
-        $data = RequerimientosData::get_labores($id_mina);
-        return ApiResponse::success($data);
-    }
-
-    public function get_productos(): array
-    {
-        $data = RequerimientosDetalleData::get_productos();
-        return ApiResponse::success($data);
-    }
-
-    public function get_unidades_medida(): array
-    {
-        $data = UnidadesMedidaData::get_unidades();
-        return ApiResponse::success($data);
-    }
-
     public function get_data_to_registro(int $id_empleado): array
     {
         $minas = RequerimientosData::get_minas($id_empleado);
