@@ -20,6 +20,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
         // Entregas
         Route::prefix('entregas')->controller(EntregaController::class)->group(function () {
             Route::get('/', 'get_historial_entregas'); // listar entregas en base a una solicitud
+            Route::get('/recepciones', 'get_historial_recepciones'); // listar recepciones en base a una entrega
             Route::post('/', 'crear_entrega'); // registrar una entrega
         });
 

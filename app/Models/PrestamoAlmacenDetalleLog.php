@@ -24,8 +24,8 @@ class PrestamoAlmacenDetalleLog extends Model
         int $id_prestamo_almacen_detalle,
         int $id_empleado,
         string $descripcion,
-        ?string $created_at = null,
         EstadoDetallePrestamo $estado,
+        ?string $created_at = null,
     ) {
         return self::insertGetId([
             'id_prestamo_almacen_detalle' => $id_prestamo_almacen_detalle,

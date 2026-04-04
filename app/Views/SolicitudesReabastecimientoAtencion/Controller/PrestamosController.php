@@ -61,7 +61,7 @@ class PrestamosController extends Controller
     {
         $id_prestamo = (int) $request->query('id_prestamo');
         if (!$id_prestamo) {
-             return response()->json(ApiResponse::error('El id_prestamo es requerido'), 400);
+            return response()->json(ApiResponse::error('El id_prestamo es requerido'), 400);
         }
         $result = PrestamosService::get_prestamo_por_id($id_prestamo);
         return response()->json($result);
@@ -77,7 +77,7 @@ class PrestamosController extends Controller
             return response()->json(ApiResponse::error('ids_productos es requerido'), 400);
         }
 
-        $result = PrestamosService::get_almacenes_con_stock_multiple_productos($ids_productos, $id_almacen_excluido);
+        $result = PrestamosService::get_almacenes_con_stock_multiple_productos($id_almacen_excluido, $ids_productos);
         return response()->json($result);
     }
 

@@ -6,7 +6,6 @@ use App\Data\LotesProductosData;
 use App\Models\SolicitudReabastecimientoDetalle;
 use App\Models\SolicitudReabastecimientoDetalleLog;
 use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
-use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamo;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Enums\Periodo;
 use App\Shared\Helpers\CorrelativoHelper;
@@ -27,8 +26,9 @@ class PrestamosService
         int $id_solicitud_reabastecimiento,
         int $id_almacen_prestamista,
         int $id_empleado_registro,
+        array $detalles,
         ?string $fecha_limite_devolucion,
-        array $detalles
+        ?string $observacion,
     ) {
         try {
             DB::beginTransaction();
@@ -47,7 +47,7 @@ class PrestamosService
                 ->where('id', $id_solicitud_reabastecimiento)
                 ->value('id_almacen_solicitante');
 
-            $id_prestamo = PrestamosData::crear_prestamo_cabecera(
+            $id_prestamo = PrestamosData::crear_prestamo(
                 $id_solicitud_reabastecimiento,
                 $id_almacen_solicitante,
                 $id_almacen_prestamista,
@@ -56,7 +56,7 @@ class PrestamosService
                 $correlativoData['numero_correlativo'],
                 now()->toDateTimeString(),
                 $fecha_limite_devolucion,
-                EstadoPrestamo::Generado->value
+                $observacion
             );
 
             foreach ($detalles as $detalle) {
@@ -114,7 +114,7 @@ class PrestamosService
             }
 
             $prestamoCreado = PrestamosData::get_prestamo_por_id((int) $id_prestamo);
-            $prestamoCreado->detalles = PrestamosDetalleData::get_detalles_por_prestamo((int) $id_prestamo);
+            $prestamoCreado['detalles'] = PrestamosDetalleData::get_detalles_por_prestamo((int) $id_prestamo);
 
             DB::commit();
 
@@ -130,14 +130,14 @@ class PrestamosService
         $cabecera = PrestamosData::get_prestamo_por_id($id_prestamo);
         if (!$cabecera) return ApiResponse::error('Préstamo no encontrado');
 
-        $cabecera->detalles = PrestamosDetalleData::get_detalles_por_prestamo($id_prestamo);
+        $cabecera['detalles'] = PrestamosDetalleData::get_detalles_por_prestamo($id_prestamo);
         return ApiResponse::success($cabecera);
     }
 
     // Auxiliares movidos aquí o a AuxService
-    public static function get_almacenes_con_stock_multiple_productos(array $ids_productos, int $id_almacen_excluido)
+    public static function get_almacenes_con_stock_multiple_productos(int $id_almacen_excluido, array $ids_productos)
     {
-        $data = PrestamosData::get_almacenes_con_stock_multiple_productos($ids_productos, $id_almacen_excluido);
+        $data = PrestamosData::get_almacenes_con_stock_multiple_productos($id_almacen_excluido, $ids_productos);
         return ApiResponse::success($data);
     }
 

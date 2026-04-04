@@ -3,7 +3,6 @@
 namespace App\Views\PrestamosAlmacenAtencion\Data;
 
 use App\Models\PrestamoAlmacenEntrega;
-use App\Models\PrestamoAlmacenEntregaDetalle;
 use App\Models\SolicitudReabastecimientoDetalle;
 use App\Models\SolicitudReabastecimientoDetalleLog;
 use App\Shared\Enums\PrestamoAlmacen\EstadoEntregaPrestamo;

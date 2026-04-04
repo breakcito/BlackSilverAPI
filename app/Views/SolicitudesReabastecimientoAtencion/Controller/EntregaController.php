@@ -4,6 +4,7 @@ namespace App\Views\SolicitudesReabastecimientoAtencion\Controller;
 
 use App\Shared\Responses\ApiResponse;
 use App\Views\SolicitudesReabastecimientoAtencion\Service\EntregaService;
+use App\Views\SolicitudesReabastecimientoAtencion\Service\RecepcionesService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -56,6 +57,18 @@ class EntregaController extends Controller
         }
 
         $result = EntregaService::obtener_historial_entregas((int) $id_solicitud);
+
+        return response()->json($result);
+    }
+
+    public function get_historial_recepciones(Request $request): JsonResponse
+    {
+        $id_entrega = $request->input('id_entrega');
+        if (!$id_entrega) {
+            return response()->json(ApiResponse::error('El id_entrega es requerido'), 400);
+        }
+
+        $result = RecepcionesService::get_historial_recepciones((int) $id_entrega);
 
         return response()->json($result);
     }

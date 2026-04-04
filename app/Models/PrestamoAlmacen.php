@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamo;
+use App\Shared\Enums\PrestamoAlmacen\EstadoReposicion;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -36,22 +38,28 @@ class PrestamoAlmacen extends Model
         ?int $id_prestamo = null,
         ?int $id_almacen_prestamista = null,
         ?int $mes = null,
-        ?int $yearcito = null
+        ?int $yearcito = null,
+        ?int $id_solicitud_rebastecimiento = null,
     ): array {
         $sql = '
         SELECT
             pa.id AS id_prestamo,
             pa.correlativo,
+            --
             pa.id_almacen_solicitante,
             alm_sol.nombre as almacen_solicitante,
+            --
             pa.id_almacen_prestamista,
             alm_pr.nombre as almacen_prestamista,
+            --
             pa.id_solicitud_reabastecimiento,
             sr.correlativo as solicitud_reabastecimiento,
+            --
             pa.fecha_hora_prestamo,
             pa.fecha_limite_devolucion,
             pa.observacion,
             CONCAT(e.nombre, " ", e.apellido) AS registrado_por,    
+            --
             pa.created_at,
             pa.estado_reposicion,
             pa.estado
@@ -91,8 +99,40 @@ class PrestamoAlmacen extends Model
             $params['yearcito'] = $yearcito;
         }
 
+        if ($id_solicitud_rebastecimiento) {
+            $sql .= "AND pa.id_solicitud_reabastecimiento = :id_solicitud_rebastecimiento";
+            $params['id_solicitud_reabastecimiento'] = $id_solicitud_rebastecimiento;
+        }
+
         $sql .= "ORDER BY pa.fecha_hora_prestamo DESC;";
 
         return DB::select($sql, $params);
+    }
+
+    public static function crear_prestamo(
+        int $id_solicitud_reabastecimiento,
+        int $id_almacen_solicitante,
+        int $id_almacen_prestamista,
+        int $id_empleado_registro,
+        string $correlativo,
+        int $numero_correlativo,
+        string $fecha_hora_prestamo,
+        ?string $fecha_limite_devolucion,
+        ?string $observacion,
+    ): int {
+        return self::insertGetId([
+            'id_solicitud_reabastecimiento' => $id_solicitud_reabastecimiento,
+            'id_almacen_solicitante'        => $id_almacen_solicitante,
+            'id_almacen_prestamista'        => $id_almacen_prestamista,
+            'id_empleado_registro'          => $id_empleado_registro,
+            'correlativo'                   => $correlativo,
+            'numero_correlativo'            => $numero_correlativo,
+            'fecha_hora_prestamo'           => $fecha_hora_prestamo,
+            'fecha_limite_devolucion'       => $fecha_limite_devolucion,
+            'observacion'                   => $observacion,
+            'created_at'                    => now(),
+            'estado_reposicion'             => EstadoReposicion::SinReposicion->value,
+            'estado'                        => EstadoPrestamo::Generado->value,
+        ]);
     }
 }

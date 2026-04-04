@@ -37,71 +37,10 @@ class EntregasDetalleData
      */
     public static function get_detalles_entrega(?int $id_entrega = null, ?int $id_detalle_entrega = null)
     {
-        $sql = "
-        SELECT
-            red.id AS id_entrega_detalle,
-            red.id_solicitud_reabastecimiento_detalle,
-            lot.correlativo,
-            lot.fecha_vencimiento,
-            prod.nombre as producto,
-            /* Cálculo de días restantes */
-            CASE WHEN lot.fecha_vencimiento IS NOT NULL THEN DATEDIFF(
-                lot.fecha_vencimiento,
-                CURRENT_DATE
-            ) ELSE NULL
-            END AS dias_para_vencer,
-            /* Determinación del estado de vencimiento */
-            CASE 
-                WHEN prod.es_perecible != 1 THEN 'N/A' 
-                WHEN lot.fecha_vencimiento IS NULL THEN 'Sin fecha' 
-                WHEN DATEDIFF(lot.fecha_vencimiento,CURRENT_DATE) < 0 THEN 'Vencido' 
-                WHEN DATEDIFF(lot.fecha_vencimiento,CURRENT_DATE) <= prod.dias_espera_vencimiento THEN 'Por vencer' 
-                ELSE 'Vigente'
-            END AS estado_vencimiento,
-            red.estado as estado_entrega_detalle,
-            red.cantidad_base,
-            -- en base a la unidad de medida base del producto
-            red.cantidad_lote,
-            -- en base a la unidad de medida base del lote
-            red.cantidad_solicitud,
-            lot.id_unidad_medida as id_unidad_medida_lote, 
-            prod.id_unidad_medida_base,
-            uni_lot.nombre as unidad_lote,
-            uni_lot.abreviatura as unidad_lote_abv,
-            uni_base.nombre as unidad_base,
-            uni_base.abreviatura as unidad_base_abv
-        FROM
-            solicitud_reabastecimiento_entrega_detalle red
-        INNER JOIN lote_producto lot ON
-            lot.id = red.id_lote_producto
-        INNER JOIN solicitud_reabastecimiento_detalle srd ON
-            srd.id = red.id_solicitud_reabastecimiento_detalle
-        INNER JOIN producto prod ON
-            prod.id = lot.id_producto
-        INNER JOIN unidad_medida uni_base ON
-            uni_base.id = prod.id_unidad_medida_base
-        INNER JOIN unidad_medida uni_lot ON
-            uni_lot.id = lot.id_unidad_medida
-        WHERE 1 = 1
-        ";
-
-        $params = [];
-
-        // Si buscamos un detalle específico, devolvemos un único objeto
-        if ($id_detalle_entrega) {
-            $sql .= ' AND red.id = :id_detalle_entrega';
-            $params['id_detalle_entrega'] = $id_detalle_entrega;
-            return DB::selectOne($sql, $params);
-        }
-
-        if ($id_entrega) {
-            $sql .= ' AND red.id_reabastecimiento_entrega = :id_entrega';
-            $params['id_entrega'] = $id_entrega;
-        }
-
-        $sql .= ' ORDER BY lot.correlativo DESC;';
-
-        return DB::select($sql, $params);
+        return SolicitudReabastecimientoEntregaDetalle::get_detalles(
+            id_entrega: $id_entrega,
+            id_detalle_entrega: $id_detalle_entrega
+        );
     }
 
     /**

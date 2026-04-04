@@ -13,7 +13,7 @@ class AlmacenesData
     public static function get_almacenes(?int $id_responsable = null, ?int $es_principal = null)
     {
         $query = DB::table('almacen as alm')
-            ->select('alm.id', 'alm.id as id_almacen', 'alm.nombre', 'alm.es_principal')
+            ->select('alm.id as id_almacen', 'alm.nombre', 'alm.es_principal')
             ->where('alm.estado', 'Activo')
             ->distinct();
 

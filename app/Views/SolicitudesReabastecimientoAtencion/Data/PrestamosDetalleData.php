@@ -2,38 +2,15 @@
 
 namespace App\Views\SolicitudesReabastecimientoAtencion\Data;
 
-use Illuminate\Support\Facades\DB;
 use App\Models\PrestamoAlmacenDetalle;
+use App\Models\PrestamoAlmacenDetalleLog;
+use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
 
 class PrestamosDetalleData
 {
     public static function get_detalles_por_prestamo(int $id_prestamo)
     {
-        $sql = "
-        SELECT
-            pad.id,
-            pad.id_prestamo_almacen,
-            pad.id_solicitud_reabastecimiento_detalle,
-            pad.cantidad_solicitada,
-            pad.cantidad_solicitada_base,
-            pad.cantidad_prestada,
-            pad.cantidad_prestada_base,
-            pad.cantidad_repuesta,
-            pad.cantidad_repuesta_base,
-            pad.comentario,
-            pad.estado,
-            p.nombre AS producto,
-            um.abreviatura AS unidad_medida
-        FROM
-            prestamo_almacen_detalle pad
-        INNER JOIN solicitud_reabastecimiento_detalle srd ON srd.id = pad.id_solicitud_reabastecimiento_detalle
-        INNER JOIN producto p ON p.id = srd.id_producto
-        INNER JOIN unidad_medida um ON um.id = srd.id_unidad_medida
-        WHERE
-            pad.id_prestamo_almacen = :id_prestamo
-        ";
-
-        return DB::select($sql, ['id_prestamo' => $id_prestamo]);
+        return PrestamoAlmacenDetalle::get_detalles(id_prestamo: $id_prestamo);
     }
 
     public static function crear_prestamo_detalle(
@@ -62,5 +39,21 @@ class PrestamosDetalleData
             'comentario'                             => $comentario,
             'estado'                                 => $estado,
         ]);
+    }
+
+    public static function crear_log(
+        int $id_prestamo_detalle,
+        int $id_empleado,
+        string $descripcion,
+        EstadoDetallePrestamo $estado,
+        ?string $created_at = null,
+    ) {
+        return PrestamoAlmacenDetalleLog::crear_log(
+            id_prestamo_almacen_detalle: $id_prestamo_detalle,
+            id_empleado: $id_empleado,
+            descripcion: $descripcion,
+            estado: $estado,
+            created_at: $created_at
+        );
     }
 }

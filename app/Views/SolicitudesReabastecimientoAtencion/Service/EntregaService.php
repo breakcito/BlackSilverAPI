@@ -2,9 +2,12 @@
 
 namespace App\Views\SolicitudesReabastecimientoAtencion\Service;
 
+use App\Data\KardexProductosData;
+use App\Data\LotesProductosData;
+use App\Shared\Enums\Kardex\OrigenMovimiento;
+use App\Shared\Enums\Kardex\TipoMovimiento;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Responses\ApiResponse;
-use App\Views\SolicitudesReabastecimientoAtencion\Data\AuxData;
 use App\Views\SolicitudesReabastecimientoAtencion\Data\EntregasData;
 use App\Views\SolicitudesReabastecimientoAtencion\Data\EntregasDetalleData;
 use App\Views\SolicitudesReabastecimientoAtencion\Data\SolicitudesDetalleData;
@@ -52,9 +55,9 @@ class EntregaService
 
             // Validar Stock
             foreach ($detalles as $item) {
-                $lote = AuxData::get_lote_by_id($item['id_lote_producto']);
-                if (!$lote || $lote->stock_actual_base < $item['cantidad_base']) {
-                    return ApiResponse::error("Stock insuficiente en el lote: " . $lote->correlativo);
+                $lote = LotesProductosData::get_lote_simple_by_id($item['id_lote_producto']);
+                if (!$lote || $lote['stock_actual_base'] < $item['cantidad_base']) {
+                    return ApiResponse::error("Stock insuficiente en el lote: " . $lote['correlativo']);
                 }
             }
 
@@ -89,26 +92,28 @@ class EntregaService
                 );
 
                 // Cargar Lote para Kardex
-                $lote = AuxData::get_lote_by_id($id_lote);
-                $stock_anterior = $lote->stock_actual;
-                $stock_anterior_base = $lote->stock_actual_base;
+                $lote = LotesProductosData::get_lote_simple_by_id($id_lote);
+                $stock_anterior = $lote['stock_actual'];
+                $stock_anterior_base = $lote['stock_actual_base'];
                 $nuevo_stock = $stock_anterior - $item['cantidad_lote'];
                 $nuevo_stock_base = $stock_anterior_base - $item['cantidad_base'];
 
                 // Actualizar Stock del Lote
-                AuxData::update_lote_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
+                LotesProductosData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
 
                 // Registrar Kardex (Salida)
-                AuxData::registrar_kardex(
+                KardexProductosData::registrar_kardex(
                     $id_lote,
-                    $id_detalle_entrega,
-                    $stock_anterior,
-                    $stock_anterior_base,
+                    TipoMovimiento::Salida,
+                    OrigenMovimiento::Entrega,
+                    "Salida por entrega N° {$correlativoData['correlativo']} debido a una solicitud de reabastecimiento",
                     $item['cantidad_lote'],
                     $item['cantidad_base'],
                     $nuevo_stock,
                     $nuevo_stock_base,
-                    "Salida por entrega N° {$correlativoData['correlativo']}"
+                    $id_detalle_entrega,
+                    $stock_anterior,
+                    $stock_anterior_base,
                 );
 
                 // Actualizar el Detalle de la solicitud

@@ -13,7 +13,7 @@ class AuxService
      */
     public static function get_almacenes(bool $es_principal = false)
     {
-        $data = AlmacenesData::get_almacenes($es_principal);
+        $data = AlmacenesData::get_almacenes(es_principal: $es_principal ? 1 : 0);
         return ApiResponse::success($data);
     }
 

@@ -17,7 +17,7 @@ class AtencionService
      */
     public function get_almacenes_autorizados(int $id_empleado)
     {
-        $data = AlmacenesData::get_almacenes($id_empleado);
+        $data = AlmacenesData::get_almacenes(id_responsable: $id_empleado);
         return ApiResponse::success($data);
     }
 

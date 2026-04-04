@@ -13,7 +13,8 @@ class PrestamoAlmacenEntrega extends Model
 
     protected $fillable = [
         'id_prestamo_almacen',
-        'id_empleado_entrega',
+        'id_empleado_entrega', // quien registra la entrega
+        'id_empleado_recibe', // el empleado que recibe los productos para el envio
         'correlativo',
         'numero_correlativo',
         'fecha_hora_entrega',
@@ -34,6 +35,7 @@ class PrestamoAlmacenEntrega extends Model
             pae.id AS id_entrega,
             pae.id_prestamo_almacen,
             CONCAT(emp_ent.nombre, " ", emp_ent.apellido) AS empleado_entrega,
+            CONCAT(emp_rec.nombre, " ", emp_rec.apellido) AS empleado_recibe,
             pae.correlativo,
             pae.fecha_hora_entrega,
             pae.observacion,
@@ -43,6 +45,7 @@ class PrestamoAlmacenEntrega extends Model
         FROM
             prestamo_almacen_entrega pae
         INNER JOIN empleado emp_ent ON emp_ent.id = pae.id_empleado_entrega
+        INNER JOIN empleado emp_rec ON emp_rec.id = pae.id_empleado_recibe
         WHERE 
             1 = 1
         ';
