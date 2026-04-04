@@ -12,7 +12,7 @@ class KardexProducto extends Model
 
     protected $fillable = [
         'id_lote_producto',
-        'id_origen',
+        'id_origen', // el registro por el cual se hizo el movimiento
         'tipo_movimiento', // Ingreso | Salida
         'tipo_origen', // titulo breve (Nuevo lote, recepcion, entrega, etc)
         'descripcion', // descripcion breve del movimiento relacionada al tipo de origen

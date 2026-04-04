@@ -37,8 +37,6 @@ class UnidadesMedidaData
         }
 
         $sql .= " ORDER BY nombre ASC";
-        return DB::select('
-            
-        ');
+        return DB::select($sql, $params);
     }
 }

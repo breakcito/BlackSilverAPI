@@ -14,7 +14,6 @@ class PrestamoAlmacenEntrega extends Model
     protected $fillable = [
         'id_prestamo_almacen',
         'id_empleado_entrega',
-        'id_empleado_recibe',
         'correlativo',
         'numero_correlativo',
         'fecha_hora_entrega',

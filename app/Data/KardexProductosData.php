@@ -13,18 +13,19 @@ class KardexProductosData
      */
     public static function registrar_kardex(
         int $id_lote,
-        ?int $id_origen = null,
         //
         TipoMovimiento $tipo_movimiento,
         OrigenMovimiento $tipo_origen,
         string $descripcion,
         //
-        ?float $stock_anterior = null,
-        ?float $stock_anterior_base = null,
         float $cantidad_movimiento,
         float $cantidad_movimiento_base,
         float $nuevo_stock,
         float $nuevo_stock_base,
+        //
+        ?int $id_origen = null,
+        ?float $stock_anterior = null,
+        ?float $stock_anterior_base = null,
         ?string $created_at = null
     ) {
         return KardexProducto::insertGetId([
