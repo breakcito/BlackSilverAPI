@@ -2,6 +2,7 @@
 
 use App\Views\SolicitudesReabastecimiento\Controller\SolicitudesController;
 use App\Views\SolicitudesReabastecimiento\Controller\AuxController;
+use App\Views\SolicitudesReabastecimiento\Controller\EntregasController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -20,14 +21,11 @@ Route::middleware('auth.jwt.custom')->prefix('solicitudes-reabastecimiento')->gr
         Route::get('/detalles-solicitud', 'get_detalles_solicitud');
         // Obtener la trazabilidad de un detalle de solicitud
         Route::get('/trazabilidad-detalle', 'get_trazabilidad_by_detalle');
+    });
+
+    Route::controller(EntregasController::class)->prefix('entregas')->group(function () {
         // Obtener historial de entregas de una solicitud
-        Route::get('/historial-entregas', 'get_historial_entregas');
-        // Recibir un item de una entrega
-        Route::post('/recibir-entrega-item', 'recibir_entrega_item');
-        // Recibir múltiples entregas a la vez (Global)
-        Route::post('/recibir-entrega-bulk', 'recibir_entrega_bulk');
-        // Obtener historial de recepciones de una entrega
-        Route::get('/historial-recepciones-entrega', 'get_historial_recepciones_entrega');
+        Route::get('/', 'get_historial_entregas');
     });
 
     Route::controller(AuxController::class)->prefix('catalogos')->group(function () {

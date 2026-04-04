@@ -20,7 +20,11 @@ class AuxController extends Controller
         return response()->json($result);
     }
 
-    // Obtener lotes disponibles en el almacen solicitante para los productos entregados
+    /**
+     * Obtener lotes disponibles en el almacen solicitante para recepcionar 
+     * (registrar nuevos lotes o ajustar stock de los existentes) los 
+     * productos entregados
+     */
     public function get_lotes_destino(Request $request): JsonResponse
     {
         $id_almacen_solicitante = $request->input('id_almacen_solicitante');

@@ -34,6 +34,7 @@ class SolicitudReabastecimientoEntregaDetalle extends Model
             --
             srd.id_producto,
             prod.nombre AS producto,
+            --
             -- el lote tomado para la entrega
             red.id_lote_producto,
             lot.correlativo as lote_correlativo,

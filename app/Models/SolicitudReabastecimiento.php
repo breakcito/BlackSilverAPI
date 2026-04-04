@@ -95,9 +95,7 @@ class SolicitudReabastecimiento extends Model
         INNER JOIN empleado emp ON emp.id = scr.id_empleado_solicitante
         INNER JOIN almacen alm on alm.id = scr.id_almacen_solicitante
         LEFT JOIN requerimiento_almacen ra on ra.id = scr.id_requerimiento_almacen
-        WHERE
-            scr.id_almacen_solicitante = :id_almacen_solicitante AND
-            MONTH(scr.created_at) = :mes AND YEAR(scr.created_at) = :yearcito
+        WHERE 1 = 1
         ';
 
         $params = [];

@@ -6,7 +6,9 @@ use App\Models\SolicitudReabastecimiento;
 
 class SolicitudesData
 {
-    // Obtener una o toda la lista de solicitudes hechas por un usuario
+    /**
+     * Obtener una o toda la lista de solicitudes hechas por un usuario
+     */
     public static function get_solicitudes(
         ?int $id_solicitud = null,
         ?int $id_empleado = null,
@@ -21,14 +23,18 @@ class SolicitudesData
         );
     }
 
-    // Obtener una solicitud
+    /**
+     * Obtener una solicitud
+     */
     public static function get_solicitud_by_id(int $id_solicitud)
     {
         return self::get_solicitudes(id_solicitud: $id_solicitud);
     }
 
 
-    // Funcion helpder que ayuda a crear la cabecera de la solicitud
+    /**
+     * Funcion helper que ayuda a crear la cabecera de la solicitud
+     */
     public static function crear_solicitud(
         int $id_almacen_solicitante,
         int $id_empleado_solicitante,
@@ -50,7 +56,9 @@ class SolicitudesData
     }
 
 
-    // Helper que ayuda a calcular el siguiente correlativo - reseteo anual
+    /**
+     * Helper que ayuda a calcular el siguiente correlativo - reseteo anual
+     */
     public static function get_nuevo_correlativo(int $id_almacen_solicitante)
     {
         return SolicitudReabastecimiento::get_nuevo_correlativo($id_almacen_solicitante);

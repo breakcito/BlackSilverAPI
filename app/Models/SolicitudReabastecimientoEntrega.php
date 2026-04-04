@@ -36,10 +36,13 @@ class SolicitudReabastecimientoEntrega extends Model
         SELECT DISTINCT
             ent.id AS id_reabastecimiento_entrega,
             ent.id_solicitud_reabastecimiento,
+            --
             ent.id_almacen_entrega,
             alm.nombre as almacen_entrega,
+            --
             CONCAT(emp_ent.nombre," ",emp_ent.apellido) AS empleado_entrega,
             CONCAT(emp_rec.nombre," ",emp_rec.apellido) AS empleado_recibe,
+            --
             ent.correlativo,
             ent.fecha_hora_entrega,
             ent.observacion,
@@ -49,9 +52,9 @@ class SolicitudReabastecimientoEntrega extends Model
         FROM
             solicitud_reabastecimiento_entrega ent
         INNER JOIN almacen alm on alm.id = ent.id_almacen_entrega
-        LEFT JOIN empleado emp_ent ON
+        INNER JOIN empleado emp_ent ON
             emp_ent.id = ent.id_empleado_entrega
-        LEFT JOIN empleado emp_rec ON
+        INNER JOIN empleado emp_rec ON
             emp_rec.id = ent.id_empleado_recibe
         WHERE 1 = 1
         ';

@@ -18,10 +18,10 @@ class SolicitudService
     public function registrarSolicitudLogistica(
         int $id_requerimiento,
         int $id_empleado,
-        ?string $observacion,
         string $premura,
         string $fecha_entrega_requerida,
-        array $detalles // {id_requerimiento_almacen_detalle, id_producto, id_unidad_medida, cantidad_solicitada, contenido_por_presentacion, cantidad_solicitada_base, comentario}
+        array $detalles, // {id_requerimiento_almacen_detalle, id_producto, id_unidad_medida, cantidad_solicitada, contenido_por_presentacion, cantidad_solicitada_base, comentario}
+        ?string $observacion = null
     ) {
         return DB::transaction(function () use ($id_requerimiento, $id_empleado, $observacion, $premura, $fecha_entrega_requerida, $detalles) {
 
@@ -39,7 +39,7 @@ class SolicitudService
                 $id_empleado,
                 $correlativoData['correlativo'],
                 $correlativoData['numero_correlativo'],
-                $observacion ?? '',
+                $observacion,
                 $premura,
                 $fecha_entrega_requerida
             );

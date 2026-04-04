@@ -4,7 +4,7 @@ namespace App\Views\SolicitudesReabastecimiento\Data;
 
 use App\Models\SolicitudReabastecimientoDetalle;
 use App\Models\SolicitudReabastecimientoDetalleLog;
-use Illuminate\Support\Facades\DB;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 
 class SolicitudesDetalleData
 {
@@ -44,15 +44,14 @@ class SolicitudesDetalleData
         int $id_solicitud_detalle,
         int $id_empleado,
         string $descripcion,
-        string $estado
+        EstadoSolicitudDetalle $estado
     ) {
-        return SolicitudReabastecimientoDetalleLog::insert([
-            'id_solicitud_reabastecimiento_detalle' => $id_solicitud_detalle,
-            'id_empleado' => $id_empleado,
-            'descripcion' => $descripcion,
-            'estado' => $estado,
-            'created_at' => now(),
-        ]);
+        return SolicitudReabastecimientoDetalleLog::crear_log(
+            id_solicitud_detalle: $id_solicitud_detalle,
+            id_empleado: $id_empleado,
+            descripcion: $descripcion,
+            estado: $estado
+        );
     }
 
     /**
@@ -60,35 +59,8 @@ class SolicitudesDetalleData
      */
     public static function get_trazabilidad_by_detalle(int $id_detalle)
     {
-        $sql = '
-            SELECT DISTINCT
-                srd.id AS id_trazabilidad,
-                CASE
-                    WHEN srd.id_empleado IS NOT NULL THEN (
-                        SELECT CONCAT(emp.nombre, " ", emp.apellido)
-                        FROM empleado emp
-                        WHERE emp.id = srd.id_empleado
-                    )
-                    ELSE NULL
-                END AS empleado,
-                srd.descripcion,
-                srd.created_at,
-                srd.estado
-            FROM
-                solicitud_reabastecimiento_detalle_log srd
-            WHERE
-            1=1
-        ';
-
-        $params = [];
-
-        if ($id_detalle !== null) {
-            $sql .= ' AND srd.id_solicitud_reabastecimiento_detalle = :id_detalle';
-            $params['id_detalle'] = $id_detalle;
-        }
-
-        $sql .= ' ORDER BY srd.created_at DESC';
-
-        return DB::select($sql, $params);
+        return SolicitudReabastecimientoDetalleLog::get_logs(
+            id_solicitud_detalle: $id_detalle
+        );
     }
 }

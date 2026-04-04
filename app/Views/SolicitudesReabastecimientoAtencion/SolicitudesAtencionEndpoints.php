@@ -2,7 +2,7 @@
 
 <?php
 
-use App\Views\SolicitudesReabastecimientoAtencion\Controller\AtencionController;
+use App\Views\SolicitudesReabastecimientoAtencion\Controller\SolicitudesController;
 use App\Views\SolicitudesReabastecimientoAtencion\Controller\AuxController;
 use App\Views\SolicitudesReabastecimientoAtencion\Controller\EntregaController;
 use App\Views\SolicitudesReabastecimientoAtencion\Controller\PrestamosController;
@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.jwt.custom')->group(function () {
     Route::prefix('solicitudes-atencion')->group(function () {
-        Route::controller(AtencionController::class)->group(function () {
+        Route::controller(SolicitudesController::class)->group(function () {
             Route::get('/', 'get_solicitudes'); // obtener las solicitudes hechas por un almacen
             Route::get('/detalles-by-solicitud', 'get_detalles_solicitud');
             Route::put('/save-decision-detalle', 'update_detalle_estado');

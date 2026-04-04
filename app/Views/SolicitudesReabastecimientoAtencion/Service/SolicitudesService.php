@@ -10,7 +10,7 @@ use App\Views\SolicitudesReabastecimientoAtencion\Data\SolicitudesData;
 use App\Views\SolicitudesReabastecimientoAtencion\Data\SolicitudesDetalleData;
 use Illuminate\Support\Facades\DB;
 
-class AtencionService
+class SolicitudesService
 {
     /**
      * Obtiene las solicitudes por almacén y periodo

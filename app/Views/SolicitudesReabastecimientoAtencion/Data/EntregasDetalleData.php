@@ -4,7 +4,6 @@ namespace App\Views\SolicitudesReabastecimientoAtencion\Data;
 
 use App\Models\SolicitudReabastecimientoEntregaDetalle;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoDetalleEntrega;
-use Illuminate\Support\Facades\DB;
 
 class EntregasDetalleData
 {

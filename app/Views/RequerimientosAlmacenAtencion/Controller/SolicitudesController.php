@@ -47,10 +47,10 @@ class SolicitudesController extends Controller
         $result = $this->solicitudService->registrarSolicitudLogistica(
             (int) $request->id_requerimiento,
             (int) $authUser->id_empleado,
-            $request->observacion,
             $request->premura,
             $request->fecha_entrega_requerida,
-            $request->detalles
+            $request->detalles,
+            $request->observacion
         );
 
         return response()->json($result);

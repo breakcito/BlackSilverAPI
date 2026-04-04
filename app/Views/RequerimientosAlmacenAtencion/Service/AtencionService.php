@@ -5,7 +5,6 @@ namespace App\Views\RequerimientosAlmacenAtencion\Service;
 use App\Data\AlmacenesData;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
 use App\Shared\Responses\ApiResponse;
-use App\Views\RequerimientosAlmacenAtencion\Data\AuxData;
 use App\Views\RequerimientosAlmacenAtencion\Data\RequerimientosData;
 use App\Views\RequerimientosAlmacenAtencion\Data\RequerimientosDetalleData;
 use Illuminate\Support\Facades\DB;

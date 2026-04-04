@@ -3,13 +3,13 @@
 namespace App\Views\SolicitudesReabastecimientoAtencion\Controller;
 
 use App\Shared\Responses\ApiResponse;
-use App\Views\SolicitudesReabastecimientoAtencion\Service\AtencionService;
+use App\Views\SolicitudesReabastecimientoAtencion\Service\SolicitudesService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
 
-class AtencionController extends Controller
+class SolicitudesController extends Controller
 {
 
     public function get_solicitudes(Request $request): JsonResponse
@@ -22,7 +22,7 @@ class AtencionController extends Controller
             return response()->json(ApiResponse::error('id_almacen, mes y yearcito son requeridos'));
         }
 
-        $result = AtencionService::get_solicitudes((int) $id_almacen, $mes, $yearcito);
+        $result = SolicitudesService::get_solicitudes((int) $id_almacen, $mes, $yearcito);
 
         return response()->json($result);
     }
@@ -34,7 +34,7 @@ class AtencionController extends Controller
             return response()->json(ApiResponse::error('El id_solicitud es requerido'));
         }
 
-        $result = AtencionService::get_detalles_solicitud((int) $id);
+        $result = SolicitudesService::get_detalles_solicitud((int) $id);
 
         return response()->json($result);
     }
@@ -73,7 +73,7 @@ class AtencionController extends Controller
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
-        $result = AtencionService::update_detalle_estado(
+        $result = SolicitudesService::update_detalle_estado(
             $authUser->id_empleado,
             $ids,
             $request->nuevo_estado,
@@ -90,7 +90,7 @@ class AtencionController extends Controller
             return response()->json(ApiResponse::error('El id_solicitud_detalle es requerido'));
         }
 
-        $result = AtencionService::get_trazabilidad((int) $id_detalle);
+        $result = SolicitudesService::get_trazabilidad((int) $id_detalle);
 
         return response()->json($result);
     }

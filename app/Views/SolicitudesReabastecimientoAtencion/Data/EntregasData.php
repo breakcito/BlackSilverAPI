@@ -21,14 +21,6 @@ class EntregasData
     }
 
     /**
-     * Obtener una entrega
-     */
-    public static function get_entrega_by_id(int $id_entrega)
-    {
-        return self::get_historial_entregas(id_entrega: $id_entrega);
-    }
-
-    /**
      * Obtener el nuevo correlativo para un entrega en
      * base al almacen que entrega
      */

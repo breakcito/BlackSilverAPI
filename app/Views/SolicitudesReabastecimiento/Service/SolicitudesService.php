@@ -10,7 +10,9 @@ use App\Views\SolicitudesReabastecimiento\Data\SolicitudesDetalleData;
 class SolicitudesService
 {
 
-    // Obtener todas la lista de solicitudes hechas por el empleado
+    /**
+     * Obtener todas la lista de solicitudes hechas por el empleado
+     */
     public static function get_solicitudes(int $id_empleado, int $mes, int $yearcito)
     {
         $data = SolicitudesData::get_solicitudes(
@@ -22,17 +24,19 @@ class SolicitudesService
         return ApiResponse::success($data);
     }
 
-    // Registrar una solicitud y sus detalles
+    /**
+     * Registrar una solicitud y sus detalles
+     */
     public static function crear_solicitud(
         int $id_almacen_solicitante,
         int $id_empleado_solicitante,
         string $premura,
-        ?string $observacion,
-        ?string $fecha_entrega_requerida,
         // id_producto, id_unidad_medida, cantidad_solicitada, 
         // contenido_por_presentacion 
         // comentario
-        array $detalles
+        array $detalles,
+        ?string $observacion,
+        ?string $fecha_entrega_requerida,
     ) {
         // 1. Generar Correlativo
         $correlativoData = SolicitudesData::get_nuevo_correlativo($id_almacen_solicitante);
@@ -45,8 +49,8 @@ class SolicitudesService
             $id_empleado_solicitante,
             $correlativo,
             $numero_correlativo,
-            $observacion,
             $premura,
+            $observacion,
             $fecha_entrega_requerida
         );
 
@@ -74,7 +78,7 @@ class SolicitudesService
                 (int)$id_solicitud_detalle,
                 $id_empleado_solicitante,
                 $estadoEnum->getGlosa($comentario),
-                $estadoEnum->value
+                $estadoEnum
             );
         }
 
@@ -84,7 +88,9 @@ class SolicitudesService
         );
     }
 
-    // Obtener los detalles de una solicitud
+    /**
+     * Obtener los detalles de una solicitud
+     */
     public static function get_detalles_solicitud(int $id_solicitud)
     {
         $detalles = SolicitudesDetalleData::get_detalles_solicitud($id_solicitud);
@@ -92,7 +98,9 @@ class SolicitudesService
     }
 
 
-    // Obtener la trazabildiad de un detalle
+    /**
+     * Obtener la trazabildiad de un detalle
+     */
     public static function get_trazabilidad_by_detalle(int $id_solicitud_detalle)
     {
         $detalles = SolicitudesDetalleData::get_trazabilidad_by_detalle($id_solicitud_detalle);

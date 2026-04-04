@@ -31,25 +31,42 @@ class PrestamoAlmacenEntregaDetalle extends Model
         $sql = '
         SELECT
             paed.id AS id_entrega_detalle,
+            paed.id_prestamo_almacen_entrega,
             paed.id_prestamo_almacen_detalle,
             --
             prod.id AS id_producto,
             prod.nombre AS producto,
             --
-            paed.id_lote_salida,
-            lt.correlativo as lote_salida,
-            -- unidad de medida del prestamo
-            um_pr.id as id_unidad_medida_pr,
-            um_pr.nombre AS unidad_medida_pr,
-            um_pr.abreviatura AS unidad_medida_pr_abv,
+            -- el lote tomado para la entrega
+            paed.id_lote_salida as id_lote_producto,
+            lt.correlativo as lote_correlativo,
+            --
             -- unidad de medida base del producto
             um_bs.id as id_unidad_medida_base, 
-            um_bs.nombre as unidad_medida_base,
             um_bs.abreviatura as unidad_medida_base_abv,
-            --
-            paed.cantidad, -- cantidad entregada segun la unidad de medida del prestamo
-            pad.contenido_por_presentacion, -- cuantas unidades base hay por una unidad del detalle del prestamo
             paed.cantidad_base, -- cantidad entregada segun la unidad de medida base del producto
+            --
+            -- unidad de medida del lote de donde salio
+            lt.id_unidad_medida as id_unidad_medida_lot,
+            um_lt.abreviatura AS unidad_medida_lot_abv,
+            lt.contenido_por_presentacion as contenido_por_presentacion_lot, -- cuantas unidades de medida base tiene la unidad del lote
+            (paed.cantidad_base / lt.contenido_por_presentacion), -- cuanto representa lo entregado para el lote
+            --
+            -- unidad de medida del prestamo
+            um_pr.id as id_unidad_medida_pr,
+            um_pr.abreviatura AS unidad_medida_pr_abv,
+            pad.contenido_por_presentacion as contenido_por_presentacion_pr, -- cuantas unidades base hay por una unidad del detalle del prestamo
+            paed.cantidad as cantidad_prestamo, -- cantidad entregada segun la unidad de medida del prestamo
+            --
+            COALESCE((
+                SELECT
+                    SUM(rd.cantidad_recepcionada_base)
+                FROM
+                    prestamo_almacen_recepcion_detalle rd
+                WHERE
+                    rd.id_prestamo_almacen_entrega_detalle = paed.id
+            ),0) AS cantidad_recibida_total_base,
+            --
             paed.estado
         FROM
             prestamo_almacen_entrega_detalle paed
@@ -58,6 +75,7 @@ class PrestamoAlmacenEntregaDetalle extends Model
         INNER JOIN producto prod ON prod.id = pad.id_producto
         INNER JOIN unidad_medida um_pr ON um_pr.id = pad.id_unidad_medida
         INNER JOIN unidad_medida um_bs ON um_bs.id = prod.id_unidad_medida_base
+        INNER JOIN unidad_medida um_lt on um_lt.id = lt.id_unidad_medida
         WHERE 1 = 1
         ';
 
