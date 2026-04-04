@@ -12,9 +12,9 @@ class EmpleadosService
     /**
      * Listar empleados de las empresas del usuario
      */
-    public static function get_empleados(?int $id_empresa = null)
+    public static function get_empleados(?int $id_mina = null)
     {
-        $empleados = EmpleadosData::get_empleados(id_empresa: $id_empresa);
+        $empleados = EmpleadosData::get_empleados(id_mina: $id_mina);
 
         // Convertir path_foto a URL completa
         foreach ($empleados as $empleado) {
@@ -24,6 +24,14 @@ class EmpleadosService
         }
 
         return ApiResponse::success($empleados);
+    }
+
+    /**
+     * Obtener minas
+     */
+    public static function get_minas()
+    {
+        return ApiResponse::success(EmpleadosData::get_minas());
     }
 
     /**

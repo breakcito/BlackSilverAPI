@@ -14,8 +14,18 @@ class EmpleadosController
      */
     public function get_empleados(Request $request): JsonResponse
     {
-        $id_empresa = $request->query('id_empresa') ? (int) $request->query('id_empresa') : null;
-        $result = EmpleadosService::get_empleados($id_empresa);
+        $id_mina = $request->query('id_mina') ? (int) $request->query('id_mina') : null;
+        $result = EmpleadosService::get_empleados($id_mina);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Obtener minas
+     */
+    public function get_minas(Request $request): JsonResponse
+    {
+        $result = EmpleadosService::get_minas();
 
         return response()->json($result);
     }
