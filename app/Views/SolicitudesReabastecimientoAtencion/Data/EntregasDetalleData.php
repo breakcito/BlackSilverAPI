@@ -2,6 +2,7 @@
 
 namespace App\Views\SolicitudesReabastecimientoAtencion\Data;
 
+use App\Models\PrestamoAlmacenEntregaDetalle;
 use App\Models\SolicitudReabastecimientoEntregaDetalle;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoDetalleEntrega;
 
@@ -34,7 +35,7 @@ class EntregasDetalleData
     /**
      * Obtener los detalles de una entrega
      */
-    public static function get_detalles_entrega(?int $id_entrega = null, ?int $id_detalle_entrega = null)
+    public static function get_detalles_entrega_logistica(?int $id_entrega = null, ?int $id_detalle_entrega = null)
     {
         return SolicitudReabastecimientoEntregaDetalle::get_detalles(
             id_entrega: $id_entrega,
@@ -42,11 +43,9 @@ class EntregasDetalleData
         );
     }
 
-    /**
-     * Obtener un detalle de entrega específico
-     */
-    public static function get_detalle_entrega_by_id(int $id_detalle_entrega)
+    // Obtener detalles de una entrega por prestamo
+    public static function get_detalles_entrega_prestamo(int $id_entrega)
     {
-        return self::get_detalles_entrega(id_detalle_entrega: $id_detalle_entrega);
+        return PrestamoAlmacenEntregaDetalle::get_detalles(id_entrega: $id_entrega);
     }
 }

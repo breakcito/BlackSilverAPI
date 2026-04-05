@@ -55,11 +55,9 @@ class SolicitudReabastecimientoDetalle extends Model
     }
 
     /**
-     * Obtener los detalles de una solicitud de reabastecimiento, esto se utiliza de
-     * la misma manera en las vistas de Atencion de Requerimientos de Almacen (cuando se
-     * ha hecha una solicitud desde ahi mismo) y desde la vista de Solicitud de 
-     * Reabastecimiento, que es la vista para el almacenero que ha hecho esta solicitud
-     * de reabastecimiento.
+     * Obtener los detalles de una solicitud de reabastecimiento, esto se utiliza desde
+     * la vista de Solicitud de Reabastecimiento, que es la vista para el almacenero 
+     * que ha hecho esta solicitud de reabastecimiento.
      */
     public static function get_detalles_solicitud(int $id_solicitud_reabastecimiento)
     {

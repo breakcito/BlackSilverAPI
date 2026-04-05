@@ -11,7 +11,8 @@ class SolicitudesDetalleData
 {
 
     /**
-     * Obtiene los detalles de una solicitud de reabastecimiento
+     * Obtiene los detalles de una solicitud de reabastecimiento desde el 
+     * punto de vista del area de logistica
      */
     public static function get_detalles_by_solicitud(
         int $id_solicitud
@@ -47,18 +48,25 @@ class SolicitudesDetalleData
                 ELSE 0 
             END AS porcentaje_progreso,
             -- 
-            -- devolver la cantidad de stock disponible base
+            -- devolver la cantidad de stock disponible base en los almacenes principales
             (
                 SELECT
                     SUM(lot.stock_actual_base)
                 FROM
                     lote_producto lot
                 WHERE
-                	lot.id_almacen = alm.id AND
                     lot.id_producto = pr.id AND 
                     lot.estado = "Activo" AND 
                 	lot.stock_actual_base > 0 AND
-            		(lot.fecha_vencimiento > NOW() OR lot.fecha_vencimiento IS NULL)
+            		(lot.fecha_vencimiento > NOW() OR lot.fecha_vencimiento IS NULL) AND
+                    lot.id_almacen IN (
+                        SELECT
+                        	almp.id
+                        FROM almacen almp
+                        WHERE 
+                        	almp.es_principal = 1 AND
+                        	almp.estado = "Activo"
+                    )
             ) as stock_disponible_base,
             -- 
             -- la cantidad total que se ha sido pedida en un prestamo
@@ -163,11 +171,33 @@ class SolicitudesDetalleData
     }
 
     /**
-     * Obtener detalle por id
+     * Obtener detalle por id para procesos de entrega
      */
     public static function get_detalle_by_id(int $id_detalle)
     {
-        return SolicitudReabastecimientoDetalle::select('id_requerimiento_almacen_detalle', 'cantidad_entregada_base', 'cantidad_solicitada_base')
+        return SolicitudReabastecimientoDetalle::select(
+            'id',
+            'id_requerimiento_almacen_detalle',
+            'cantidad_entregada_base',
+            'cantidad_solicitada_base'
+        )
+            ->where('id', $id_detalle)
+            ->first();
+    }
+
+    /**
+     * Obtener detalle por id simplificado para préstamos
+     */
+    public static function get_detalle_para_prestamo(int $id_detalle)
+    {
+        return SolicitudReabastecimientoDetalle::select(
+            'id',
+            'id_producto',
+            'id_unidad_medida',
+            'contenido_por_presentacion',
+            'cantidad_solicitada',
+            'cantidad_entregada'
+        )
             ->where('id', $id_detalle)
             ->first();
     }

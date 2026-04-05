@@ -103,7 +103,8 @@ class PrestamoAlmacenDetalle extends Model
         if ($id_prestamo_detalle) {
             $sql .= " AND pad.id = :id_prestamo_detalle";
             $params['id_prestamo_detalle'] = $id_prestamo_detalle;
-            return DB::selectOne($sql, $params);
+            $res = DB::selectOne($sql, $params);
+            return $res ? (array) $res : [];
         }
 
         if ($id_prestamo) {

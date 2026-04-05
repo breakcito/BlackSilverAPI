@@ -38,6 +38,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
             // Auxiliares para prestamos
             Route::get('/almacenes-con-stock', 'get_almacenes_con_stock');
+            Route::get('/stock-total-almacen', 'get_stock_total_almacen_por_productos');
             Route::get('/lotes-disponibles', 'get_lotes_disponibles_por_almacen_y_producto');
         });
     });

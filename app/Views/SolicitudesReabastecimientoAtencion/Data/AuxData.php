@@ -4,6 +4,7 @@ namespace App\Views\SolicitudesReabastecimientoAtencion\Data;
 
 use App\Models\RequerimientoAlmacenDetalle;
 use App\Models\RequerimientoAlmacenDetalleLog;
+use App\Models\SolicitudReabastecimiento;
 use Illuminate\Support\Facades\DB;
 
 class AuxData
@@ -101,9 +102,11 @@ class AuxData
         $sql = "
         SELECT
             lp.id_producto,
+            pr.stock_minimo,
             SUM(lp.stock_actual_base) AS stock_total_base
         FROM
             lote_producto lp
+        INNER JOIN producto pr on pr.id = lp.id_producto
         WHERE
             lp.id_almacen = ? AND 
             lp.id_producto IN ($placeholders) AND 
@@ -118,5 +121,36 @@ class AuxData
         $params = array_merge([$id_almacen], $ids_productos);
 
         return DB::select($sql, $params);
+    }
+
+    /**
+     * Obtiene el almacén solicitante de una solicitud de reabastecimiento
+     */
+    public static function get_almacen_solicitante_by_id_solicitud(int $id_solicitud_reabastecimiento)
+    {
+        return SolicitudReabastecimiento::where('id', $id_solicitud_reabastecimiento)
+            ->value('id_almacen_solicitante');
+    }
+
+    /**
+     * Obtiene el nombre de un producto
+     */
+    public static function get_nombre_producto(int $id_producto): ?string
+    {
+        return DB::table('producto')->where('id', $id_producto)->value('nombre');
+    }
+
+    /**
+     * Obtiene el stock total base de un producto en un almacén
+     * Envuelve a LotesProductosData::get_lotes_disponibles para cumplir con la arquitectura
+     */
+    public static function get_stock_total_base_por_producto(int $id_almacen, int $id_producto): float
+    {
+        $lotes = \App\Data\LotesProductosData::get_lotes_disponibles($id_almacen, [$id_producto]);
+        $totalStock = 0;
+        foreach ($lotes as $lote) {
+            $totalStock += (float) $lote->stock_actual_base;
+        }
+        return $totalStock;
     }
 }

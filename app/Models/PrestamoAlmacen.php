@@ -94,7 +94,8 @@ class PrestamoAlmacen extends Model
         if ($id_prestamo) {
             $sql .= "AND pa.id = :id_prestamo";
             $params['id_prestamo'] = $id_prestamo;
-            return DB::selectOne($sql, $params);
+            $res = DB::selectOne($sql, $params);
+            return $res ? (array) $res : [];
         }
 
         if ($id_almacen_prestamista) {

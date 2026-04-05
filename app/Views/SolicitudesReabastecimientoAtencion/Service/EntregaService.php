@@ -16,20 +16,30 @@ use App\Shared\Helpers\ArchivoHelper;
 
 class EntregaService
 {
-
     /**
-     * Obtiene el historial de entregas de una solicitud y sus detalles.
+     * Obtener el historial de entregas y sus detalles de una solicitud 
+     * hechas por logistica o por un prestamo
      */
     public static function obtener_historial_entregas(int $id_solicitud)
     {
-        $data = EntregasData::get_historial_entregas(id_solicitud: $id_solicitud);
+        $data_logistica = EntregasData::get_historial_entregas_logistica(id_solicitud: $id_solicitud);
 
-        foreach ($data as $entrega) {
+        foreach ($data_logistica as $entrega) {
             $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
-            $entrega->detalles = EntregasDetalleData::get_detalles_entrega(id_entrega: (int) $entrega->id_reabastecimiento_entrega);
+            $entrega->detalles = EntregasDetalleData::get_detalles_entrega_logistica((int) $entrega->id_reabastecimiento_entrega);
         }
 
-        return ApiResponse::success($data);
+        $data_prestamo = EntregasData::get_historial_entregas_prestamo($id_solicitud);
+
+        foreach ($data_prestamo as $entrega) {
+            $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
+            $entrega->detalles = EntregasDetalleData::get_detalles_entrega_prestamo((int) $entrega->id_reabastecimiento_entrega);
+        }
+
+        return ApiResponse::success([
+            'logistica' => $data_logistica,
+            'prestamo' => $data_prestamo
+        ]);
     }
 
     /**

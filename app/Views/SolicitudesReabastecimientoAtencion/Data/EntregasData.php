@@ -2,6 +2,7 @@
 
 namespace App\Views\SolicitudesReabastecimientoAtencion\Data;
 
+use App\Models\PrestamoAlmacenEntrega;
 use App\Models\SolicitudReabastecimientoEntrega;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoEntrega;
 use App\Shared\Helpers\CorrelativoHelper;
@@ -12,11 +13,19 @@ class EntregasData
     /**
      * Obtener el historial de entregas en base a una solicitud
      */
-    public static function get_historial_entregas(?int $id_solicitud = null, ?int $id_entrega = null)
+    public static function get_historial_entregas_logistica(?int $id_solicitud = null, ?int $id_entrega = null)
     {
         return SolicitudReabastecimientoEntrega::get_entregas(
             id_entrega: $id_entrega,
             id_solicitud: $id_solicitud
+        );
+    }
+
+    // Obtener el historial de entregas por prestamo para una solicitud
+    public static function get_historial_entregas_prestamo(int $id_solicitud)
+    {
+        return PrestamoAlmacenEntrega::get_entregas(
+            id_solicitud_reabastecimiento: $id_solicitud
         );
     }
 
