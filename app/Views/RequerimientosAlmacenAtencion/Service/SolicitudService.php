@@ -39,9 +39,9 @@ class SolicitudService
                 $id_empleado,
                 $correlativoData['correlativo'],
                 $correlativoData['numero_correlativo'],
-                $observacion,
                 $premura,
-                $fecha_entrega_requerida
+                $fecha_entrega_requerida,
+                $observacion
             );
 
             $correlativo_requerimiento = RequerimientosData::get_correlativo_by_requerimiento($id_requerimiento);
