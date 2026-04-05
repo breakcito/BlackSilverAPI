@@ -28,39 +28,37 @@ class PrestamoAlmacenRecepcionDetalle extends Model
         $sql = '
         SELECT
             rd.id AS id_recepcion_detalle,
-            rd.id_solicitud_reabastecimiento_entrega_detalle,
-            rd.id_solicitud_reabastecimiento_recepcion,
-            sd.id_producto,
+            rd.id_prestamo_almacen_entrega_detalle,
+            rd.id_prestamo_almacen_recepcion,
+            pad.id_producto,
             p.nombre AS producto,
             -- unidad de medida base
             p.id_unidad_medida_base,
             ub.abreviatura AS unidad_medida_base_abv,
             rd.cantidad_recepcionada_base,
             -- cuantas unidades base hay en la unidad de la solicitud
-            sd.contenido_por_presentacion,
+            pad.contenido_por_presentacion,
             -- unidad de medida de la solicitud
             us.id as id_unidad_medida_sol,
             us.abreviatura as unidad_medida_sol_abv,
-            (rd.cantidad_recepcionada_base / sd.contenido_por_presentacion) as cantidad_recepcionada_sol,
+            (rd.cantidad_recepcionada_base / pad.contenido_por_presentacion) as cantidad_recepcionada_sol,
             --
             rd.estado
         FROM
-            solicitud_reabastecimiento_recepcion_detalle rd
-        INNER JOIN solicitud_reabastecimiento_entrega_detalle ed ON
-            ed.id = rd.id_solicitud_reabastecimiento_entrega_detalle
-        INNER JOIN solicitud_reabastecimiento_detalle sd ON
-            sd.id = ed.id_solicitud_reabastecimiento_detalle
+            prestamo_almacen_recepcion_detalle rd
+        INNER JOIN prestamo_almacen_entrega_detalle ed ON
+            ed.id = rd.id_prestamo_almacen_entrega_detalle
+        INNER JOIN prestamo_almacen_detalle pad ON
+            pad.id = ed.id_prestamo_almacen_detalle
         INNER JOIN producto p ON
-            p.id = sd.id_producto
+            p.id = pad.id_producto
         INNER JOIN unidad_medida ub ON
             ub.id = p.id_unidad_medida_base
         INNER JOIN unidad_medida us ON
-            us.id = sd.id_unidad_medida
+            us.id = pad.id_unidad_medida
         WHERE
-            rd.id_solicitud_reabastecimiento_recepcion = :id_recepcion
-        
+            rd.id_prestamo_almacen_recepcion = :id_recepcion
         ';
-
 
         $params = [];
         if ($id_detalle !== null) {
@@ -70,7 +68,7 @@ class PrestamoAlmacenRecepcionDetalle extends Model
         }
 
         if ($id_recepcion !== null) {
-            $sql .= " AND rd.id_solicitud_reabastecimiento_recepcion = :id_recepcion";
+            $sql .= " AND rd.id_prestamo_almacen_recepcion = :id_recepcion";
             $params['id_recepcion'] = $id_recepcion;
         }
 

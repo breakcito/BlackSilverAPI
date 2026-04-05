@@ -3,6 +3,7 @@
 use App\Views\SolicitudesReabastecimiento\Controller\SolicitudesController;
 use App\Views\SolicitudesReabastecimiento\Controller\AuxController;
 use App\Views\SolicitudesReabastecimiento\Controller\EntregasController;
+use App\Views\SolicitudesReabastecimiento\Controller\RecepcionesController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -26,6 +27,13 @@ Route::middleware('auth.jwt.custom')->prefix('solicitudes-reabastecimiento')->gr
     Route::controller(EntregasController::class)->prefix('entregas')->group(function () {
         // Obtener historial de entregas de una solicitud
         Route::get('/', 'get_historial_entregas');
+    });
+
+    Route::controller(RecepcionesController::class)->prefix('recepciones')->group(function () {
+        // Registrar una recepcion de stock para una entrega especifica
+        Route::post('/registrar-recepcion', 'registrar_recepcion');
+        // Obtener el historial de recepciones de una entrega
+        Route::get('/historial-recepciones-entrega', 'get_historial_recepciones_entrega');
     });
 
     Route::controller(AuxController::class)->prefix('catalogos')->group(function () {

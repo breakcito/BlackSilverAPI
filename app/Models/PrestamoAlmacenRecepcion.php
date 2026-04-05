@@ -32,7 +32,7 @@ class PrestamoAlmacenRecepcion extends Model
         $sql = '
         SELECT
             r.id as id_recepcion,
-            r.id_solicitud_reabastecimiento_entrega,
+            r.id_prestamo_almacen_entrega,
             r.id_empleado_registro,
             CONCAT(e.nombre, " ", e.apellido) AS empleado_registro,
             r.observacion,
@@ -42,7 +42,7 @@ class PrestamoAlmacenRecepcion extends Model
             r.created_at,
             r.estado
         FROM
-            solicitud_reabastecimiento_recepcion r
+            prestamo_almacen_recepcion r
         JOIN empleado e ON
             e.id = r.id_empleado_registro
         WHERE 1 = 1

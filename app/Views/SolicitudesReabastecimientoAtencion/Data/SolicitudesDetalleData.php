@@ -177,6 +177,8 @@ class SolicitudesDetalleData
     {
         return SolicitudReabastecimientoDetalle::select(
             'id',
+            'id_solicitud_reabastecimiento',
+            'id_producto',
             'id_requerimiento_almacen_detalle',
             'cantidad_entregada_base',
             'cantidad_solicitada_base'
