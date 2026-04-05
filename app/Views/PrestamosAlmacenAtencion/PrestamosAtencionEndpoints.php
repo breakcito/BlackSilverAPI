@@ -21,6 +21,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::controller(AtencionController::class)->group(function () {
             Route::get('/prestamos',    'get_prestamos');
             Route::get('/ver',          'get_detalles_prestamo');
+            Route::get('/historial-entregas', 'get_historial_entregas');
             Route::get('/trazabilidad', 'get_trazabilidad_detalle');
             Route::post('/cambiar-estado', 'cambiar_estado_detalle');
         });

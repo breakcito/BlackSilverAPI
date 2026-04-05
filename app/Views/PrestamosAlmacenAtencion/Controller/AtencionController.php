@@ -29,7 +29,7 @@ class AtencionController extends Controller
     }
 
     /**
-     * Obtener detalles de un préstamo específico e historial de entregas
+     * Obtener detalles de un préstamo específico
      */
     public function get_detalles_prestamo(Request $request): JsonResponse
     {
@@ -39,6 +39,20 @@ class AtencionController extends Controller
         }
 
         $result = AtencionService::get_detalles_prestamo($id_prestamo);
+        return response()->json($result);
+    }
+
+    /**
+     * Obtener historial de entregas de un préstamo
+     */
+    public function get_historial_entregas(Request $request): JsonResponse
+    {
+        $id_prestamo = (int) $request->query('id_prestamo');
+        if (!$id_prestamo) {
+            return response()->json(ApiResponse::error('id_prestamo es requerido'), 400);
+        }
+
+        $result = AtencionService::get_historial_entregas($id_prestamo);
         return response()->json($result);
     }
 

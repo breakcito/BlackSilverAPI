@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Shared\Enums\PrestamoAlmacen\EstadoDetalleReposicion;
 use App\Shared\Enums\PrestamoAlmacen\EstadoReposicion;
 use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Database\Eloquent\Model;
@@ -95,8 +96,7 @@ class PrestamoAlmacenReposicion extends Model
             prestamo_almacen_reposicion r
         INNER JOIN almacen a ON a.id = r.id_almacen_entrega
         INNER JOIN empleado e ON e.id = r.id_empleado_entrega
-        WHERE 
-            r.id_prestamo_almacen = :id_prestamo_almacen
+        WHERE 1 = 1
         ';
 
         $params = [];

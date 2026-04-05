@@ -5,8 +5,8 @@ namespace App\Views\PrestamosAlmacenAtencion\Service;
 use App\Shared\Responses\ApiResponse;
 use App\Views\PrestamosAlmacenAtencion\Data\PrestamosData;
 use App\Views\PrestamosAlmacenAtencion\Data\PrestamosDetalleData;
-use App\Views\PrestamosAlmacenAtencion\Data\EntregasData;
-use App\Views\PrestamosAlmacenAtencion\Data\EntregasDetalleData;
+use App\Models\PrestamoAlmacenEntrega;
+use App\Models\PrestamoAlmacenEntregaDetalle;
 use Illuminate\Support\Facades\DB;
 
 class AtencionService
@@ -21,22 +21,30 @@ class AtencionService
     }
 
     /**
-     * Obtiene los detalles de un préstamo e historial de entregas
+     * Obtiene los detalles de un préstamo
      */
     public static function get_detalles_prestamo(int $id_prestamo)
     {
-        $entregas = EntregasData::get_entregas_por_prestamo($id_prestamo);
-        
-        foreach ($entregas as $entrega) {
-            $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
-            $entrega->detalles = EntregasDetalleData::get_detalles_entrega((int) $entrega->id_entrega);
-        }
-
         $data = [
             'detalles' => PrestamosDetalleData::get_detalles_prestamo($id_prestamo),
-            'entregas' => $entregas
         ];
+
         return ApiResponse::success($data);
+    }
+
+    /**
+     * Obtiene el historial de entregas de un préstamo
+     */
+    public static function get_historial_entregas(int $id_prestamo)
+    {
+        $entregas = PrestamoAlmacenEntrega::get_entregas(id_prestamo: $id_prestamo);
+
+        foreach ($entregas as $entrega) {
+            $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
+            $entrega->detalles = PrestamoAlmacenEntregaDetalle::get_detalles(id_entrega: (int) $entrega->id_prestamo_entrega);
+        }
+
+        return ApiResponse::success($entregas);
     }
 
     /**
