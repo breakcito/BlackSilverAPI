@@ -3,115 +3,24 @@
 namespace App\Views\PrestamosAlmacenAtencion\Data;
 
 use App\Models\PrestamoAlmacenEntrega;
-use App\Models\SolicitudReabastecimientoDetalle;
-use App\Models\SolicitudReabastecimientoDetalleLog;
-use App\Shared\Enums\PrestamoAlmacen\EstadoEntregaPrestamo;
-use App\Shared\Helpers\CorrelativoHelper;
-use App\Shared\Enums\Periodo;
+use App\Models\PrestamoAlmacenEntregaDetalle;
 use Illuminate\Support\Facades\DB;
 
 class EntregasData
 {
     /**
-     * Genera el correlativo para una nueva entrega de préstamo.
-     * Se filtra por almacén prestamista para tener una secuencia independiente por almacén (ENT-XXXXX).
+     * Obtener el historial de entregas de un préstamo
      */
-    public static function get_nuevo_correlativo(int $id_almacen_prestamista): array
+    public static function get_entregas_by_prestamo(int $id_prestamo)
     {
-        return CorrelativoHelper::generar(
-            tabla: 'prestamo_almacen_entrega',
-            prefijo: 'ENT',
-            filtros: ['pa.id_almacen_prestamista' => $id_almacen_prestamista],
-            longitudCeros: 5,
-            reseteo: Periodo::Anual,
-            columnaFecha: 'created_at',
-            queryModifier: function ($query) {
-                $query->join('prestamo_almacen as pa', 'pa.id', '=', 'pae.id_prestamo_almacen');
-            },
-            alias: 'pae'
-        );
+        return PrestamoAlmacenEntrega::get_entregas(id_prestamo: $id_prestamo);
     }
 
     /**
-     * Crea la cabecera de una entrega de préstamo.
+     * Obtener los detalles de una entrega específica
      */
-    public static function crear_entrega(
-        int $id_prestamo_almacen,
-        int $id_empleado_entrega,
-        int $id_empleado_recibe,
-        string $correlativo,
-        int $numero_correlativo,
-        string $fecha_hora_entrega,
-        ?string $observacion,
-        ?array $evidencias = null
-    ): int {
-        return PrestamoAlmacenEntrega::insertGetId([
-            'id_prestamo_almacen'   => $id_prestamo_almacen,
-            'id_empleado_entrega'   => $id_empleado_entrega,
-            'id_empleado_recibe'    => $id_empleado_recibe,
-            'correlativo'           => $correlativo,
-            'numero_correlativo'    => $numero_correlativo,
-            'fecha_hora_entrega'    => $fecha_hora_entrega,
-            'observacion'           => $observacion,
-            'evidencias'            => $evidencias ? json_encode($evidencias) : null,
-            'created_at'            => now(),
-            'estado'                => EstadoEntregaPrestamo::EnDespacho->value,
-        ]);
-    }
-
-
-    public static function registrar_incremento_cantidades_prestadas(int $id_prestamo_detalle, float $cant_sol, float $cant_base): void
+    public static function get_detalles_entrega(int $id_entrega)
     {
-        DB::table("prestamo_almacen_detalle")
-            ->where("id", $id_prestamo_detalle)
-            ->incrementEach([
-                "cantidad_prestada" => $cant_sol,
-                "cantidad_prestada_base" => $cant_base
-            ]);
-    }
-
-    /**
-     * Actualiza la cantidad entregada en la solicitud de reabastecimiento vinculada.
-     */
-    public static function incrementar_entregado_reabastecimiento(int $id_solicitud_detalle, float $cantidad_sol, float $cantidad_base): void
-    {
-        SolicitudReabastecimientoDetalle::where('id', $id_solicitud_detalle)
-            ->incrementEach([
-                'cantidad_entregada' => $cantidad_sol,
-                'cantidad_entregada_base' => $cantidad_base
-            ]);
-    }
-
-    /**
-     * Obtiene los IDs vinculados para saber a qué solicitud afecta.
-     */
-    public static function get_ids_vinculados_by_prestamo_detalle(int $id_prestamo_detalle)
-    {
-        return DB::table('prestamo_almacen_detalle')
-            ->select('id_solicitud_reabastecimiento_detalle')
-            ->where('id', $id_prestamo_detalle)
-            ->first();
-    }
-
-    /**
-     * Inserta un log en la solicitud de reabastecimiento vinculada.
-     */
-    public static function insertar_log_reabastecimiento(int $id_solicitud_detalle, int $id_empleado, string $descripcion, string $estado): void
-    {
-        SolicitudReabastecimientoDetalleLog::insert([
-            'id_solicitud_reabastecimiento_detalle' => $id_solicitud_detalle,
-            'id_empleado' => $id_empleado,
-            'descripcion' => $descripcion,
-            'estado' => $estado,
-            'created_at' => now()
-        ]);
-    }
-
-    /**
-     * Obtiene el historial de entregas de todos los préstamos vinculados a una solicitud de reabastecimiento.
-     */
-    public static function get_entregas_por_solicitud(int $id_solicitud): array
-    {
-        return PrestamoAlmacenEntrega::get_entregas(id_solicitud_reabastecimiento: $id_solicitud);
+        return PrestamoAlmacenEntregaDetalle::get_detalles(id_entrega: $id_entrega);
     }
 }

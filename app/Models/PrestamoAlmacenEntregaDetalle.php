@@ -32,6 +32,7 @@ class PrestamoAlmacenEntregaDetalle extends Model
         SELECT
             paed.id AS id_entrega_detalle,
             paed.id_prestamo_almacen_entrega,
+            pad.id_solicitud_reabastecimiento_detalle,
             paed.id_prestamo_almacen_detalle,
             --
             prod.id AS id_producto,
@@ -50,7 +51,7 @@ class PrestamoAlmacenEntregaDetalle extends Model
             lt.id_unidad_medida as id_unidad_medida_lot,
             um_lt.abreviatura AS unidad_medida_lot_abv,
             lt.contenido_por_presentacion as contenido_por_presentacion_lot, -- cuantas unidades de medida base tiene la unidad del lote
-            (paed.cantidad_base / lt.contenido_por_presentacion), -- cuanto representa lo entregado para el lote
+            (paed.cantidad_base / lt.contenido_por_presentacion) AS cantidad_lot, -- cuanto representa lo entregado para el lote
             --
             -- unidad de medida del prestamo
             um_pr.id as id_unidad_medida_pr,

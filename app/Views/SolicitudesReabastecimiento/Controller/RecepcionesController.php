@@ -11,28 +11,61 @@ use Illuminate\Http\JsonResponse;
 class RecepcionesController extends Controller
 {
     /**
-     * Registrar una recepción de stock para una entrega específica.
+     * Registrar una recepción de stock para una entrega de LOGÍSTICA.
      */
-    public function registrar_recepcion(Request $request): JsonResponse
+    public function registrar_recepcion_logistica(Request $request): JsonResponse
     {
         $data = $request->all();
         $id_empleado_registro = $data['id_empleado_registro'] ?? null;
         $recepcion = $data['recepcion'] ?? null;
         $evidencias = $request->file('evidencias') ?? [];
 
-        // Los datos de la recepción vienen en formato JSON dentro del campo 'recepcion' 
-        // si se envía con MultipartForm, o directamente si es JSON.
         if (is_string($recepcion)) {
             $recepcion = json_decode($recepcion, true);
         }
 
         if (!$id_empleado_registro || !$recepcion || !is_array($recepcion)) {
-            return response()->json(ApiResponse::error('Datos incompletos para el registro de la recepción'), 400);
+            return response()->json(ApiResponse::error('Datos incompletos para el registro de la recepción logística'), 400);
         }
 
-        $result = RecepcionesService::registrar_recepcion(
+        $result = RecepcionesService::registrar_recepcion_logistica(
+            (int) ($recepcion['id_reabastecimiento_entrega'] ?? 0),
             (int) $id_empleado_registro,
-            $recepcion,
+            (bool) ($recepcion['con_incidencia'] ?? false),
+            $recepcion['observacion'] ?? null,
+            $recepcion['fecha_hora_recepcion'] ?? null,
+            $recepcion['items'] ?? [],
+            $evidencias
+        );
+
+        return response()->json($result);
+    }
+
+    /**
+     * Registrar una recepción de stock para una entrega de PRÉSTAMO.
+     */
+    public function registrar_recepcion_prestamo(Request $request): JsonResponse
+    {
+        $data = $request->all();
+        $id_empleado_registro = $data['id_empleado_registro'] ?? null;
+        $recepcion = $data['recepcion'] ?? null;
+        $evidencias = $request->file('evidencias') ?? [];
+
+        if (is_string($recepcion)) {
+            $recepcion = json_decode($recepcion, true);
+        }
+
+        if (!$id_empleado_registro || !$recepcion || !is_array($recepcion)) {
+            return response()->json(ApiResponse::error('Datos incompletos para el registro de la recepción de préstamo'), 400);
+        }
+
+        $result = RecepcionesService::registrar_recepcion_prestamo(
+            (int) ($recepcion['id_reabastecimiento_entrega'] ?? 0),
+            (int) $id_empleado_registro,
+            (bool) ($recepcion['con_incidencia'] ?? false),
+            $recepcion['observacion'] ?? null,
+            $recepcion['fecha_hora_recepcion'] ?? null,
+            $recepcion['items'] ?? [],
             $evidencias
         );
 

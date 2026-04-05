@@ -2,6 +2,7 @@
 
 namespace App\Views\SolicitudesReabastecimientoAtencion\Data;
 
+use App\Models\SolicitudReabastecimiento;
 use App\Models\SolicitudReabastecimientoDetalle;
 use App\Models\SolicitudReabastecimientoDetalleLog;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
@@ -202,5 +203,28 @@ class SolicitudesDetalleData
         )
             ->where('id', $id_detalle)
             ->first();
+    }
+
+    /**
+     * Obtener el ID del almacén solicitante de una solicitud
+     */
+    public static function get_almacen_solicitante_id_by_solic_id(int $id_solicitud)
+    {
+        return SolicitudReabastecimiento::where('id', $id_solicitud)
+            ->value('id_almacen_solicitante');
+    }
+
+    /**
+     * Inserta un log de trazabilidad con estado como string (para procesos externos)
+     */
+    public static function insert_log_simple(int $id_detalle, int $id_empleado, string $estado, string $descripcion)
+    {
+        return SolicitudReabastecimientoDetalleLog::insert([
+            'id_solicitud_reabastecimiento_detalle' => $id_detalle,
+            'id_empleado' => $id_empleado,
+            'estado' => $estado,
+            'descripcion' => $descripcion,
+            'created_at' => now(),
+        ]);
     }
 }

@@ -57,12 +57,14 @@ class AtencionController extends Controller
     }
 
     /**
-     * Cambiar estado de un ítem (Aprobado/Rechazado)
+     * Cambiar estado de uno o varios ítems (Aprobado/Rechazado)
      */
     public function cambiar_estado_detalle(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'id_prestamo_detalle' => 'required|integer',
+            'id_prestamo_detalle' => 'nullable|integer',
+            'ids_detalles'        => 'nullable|array',
+            'ids_detalles.*'      => 'integer',
             'nuevo_estado'        => 'required|string',
             'comentario'          => 'nullable|string',
         ]);
@@ -71,13 +73,27 @@ class AtencionController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()), 400);
         }
 
+        // Normalizar IDs
+        $ids = [];
+        if ($request->has('id_prestamo_detalle')) {
+            $ids[] = (int) $request->input('id_prestamo_detalle');
+        }
+        if ($request->has('ids_detalles')) {
+            $ids = array_merge($ids, $request->input('ids_detalles'));
+        }
+        $ids = array_unique($ids);
+
+        if (empty($ids)) {
+            return response()->json(ApiResponse::error('Debe proporcionar al menos un ID de detalle'), 400);
+        }
+
         $authUser = $request->attributes->get('auth_user');
         if (!$authUser) {
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
         $result = AtencionService::cambiar_estado_detalle(
-            (int) $request->input('id_prestamo_detalle'),
+            $ids,
             (int) $authUser->id_empleado,
             (string) $request->input('nuevo_estado'),
             (string) $request->input('comentario')

@@ -30,8 +30,10 @@ Route::middleware('auth.jwt.custom')->prefix('solicitudes-reabastecimiento')->gr
     });
 
     Route::controller(RecepcionesController::class)->prefix('recepciones')->group(function () {
-        // Registrar una recepcion de stock para una entrega especifica
-        Route::post('/registrar-recepcion', 'registrar_recepcion');
+        // Registrar una recepcion de stock para una entrega de logistica
+        Route::post('/registrar-recepcion-logistica', 'registrar_recepcion_logistica');
+        // Registrar una recepcion de stock para una entrega de prestamo
+        Route::post('/registrar-recepcion-prestamo', 'registrar_recepcion_prestamo');
         // Obtener el historial de recepciones de una entrega
         Route::get('/historial-recepciones-entrega', 'get_historial_recepciones_entrega');
     });

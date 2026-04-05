@@ -126,4 +126,11 @@ class PrestamosDetalleData
             );
         }
     }
+    /**
+     * Obtener un detalle de préstamo por ID.
+     */
+    public static function get_detalle_by_id(int $id_prestamo_detalle)
+    {
+        return PrestamoAlmacenDetalle::find($id_prestamo_detalle);
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Views\PrestamosAlmacenAtencion\Data;
 
+use App\Models\PrestamoAlmacen;
 use Illuminate\Support\Facades\DB;
 
 class PrestamosData
@@ -51,8 +52,7 @@ class PrestamosData
      */
     public static function get_id_solicitud_by_prestamo(int $id_prestamo)
     {
-        return DB::table('prestamo_almacen')
-            ->select('id_solicitud_reabastecimiento')
+        return PrestamoAlmacen::select('id_solicitud_reabastecimiento')
             ->where('id', $id_prestamo)
             ->first();
     }
@@ -62,7 +62,7 @@ class PrestamosData
      */
     public static function get_almacen_solicitante_by_id(int $id_prestamo)
     {
-        return DB::table('prestamo_almacen as pa')
+        return PrestamoAlmacen::from('prestamo_almacen as pa')
             ->join('solicitud_reabastecimiento as sr', 'sr.id', '=', 'pa.id_solicitud_reabastecimiento')
             ->join('almacen as alm', 'alm.id', '=', 'sr.id_almacen_solicitante')
             ->select('alm.nombre')
@@ -75,8 +75,15 @@ class PrestamosData
      */
     public static function get_prestamo_header_by_id(int $id_prestamo)
     {
-        return DB::table('prestamo_almacen')
-            ->where('id', $id_prestamo)
+        return PrestamoAlmacen::where('id', $id_prestamo)
             ->first();
+    }
+    /**
+     * Obtiene el correlativo de un préstamo.
+     */
+    public static function get_correlativo(int $id_prestamo): ?string
+    {
+        return PrestamoAlmacen::where('id', $id_prestamo)
+            ->value('correlativo');
     }
 }
