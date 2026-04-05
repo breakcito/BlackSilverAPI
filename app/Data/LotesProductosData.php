@@ -23,17 +23,18 @@ class LotesProductosData
             lp.id AS id_lote,
             lp.id_producto,
             lp.correlativo,
-            lp.stock_actual,
-            lp.stock_actual_base,
-            lp.contenido_por_presentacion,
             --
-            uni.id as id_unidad_medida_lote,
-            uni.nombre AS unidad_medida_lote,
-            uni.abreviatura AS unidad_medida_lote_abv,
+            lp.stock_actual,
+            lp.contenido_por_presentacion,
+            lp.stock_actual_base,
             --
             unib.id as id_unidad_medida_base,
             unib.nombre AS unidad_medida_base,
             unib.abreviatura AS unidad_medida_base_abv,
+            --
+            uni.id as id_unidad_medida_lote,
+            uni.nombre AS unidad_medida_lote,
+            uni.abreviatura AS unidad_medida_lote_abv,
             --
             lp.fecha_hora_ingreso,
             lp.fecha_vencimiento,

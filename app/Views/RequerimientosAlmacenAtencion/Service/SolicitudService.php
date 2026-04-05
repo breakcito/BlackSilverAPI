@@ -82,7 +82,7 @@ class SolicitudService
                     $id_rad,
                     $id_empleado,
                     EstadoDetalleRequerimiento::ConsultaLogistica->getGlosa($correlativoData['correlativo']),
-                    EstadoDetalleRequerimiento::ConsultaLogistica->value
+                    EstadoDetalleRequerimiento::ConsultaLogistica
                 );
             }
 

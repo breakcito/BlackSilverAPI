@@ -18,32 +18,45 @@ class RequerimientosDetalleData
     ) {
         // 1. Definimos la base de la consulta (sin WHERE ni ORDER BY aún)
         $sql = '
-        SELECT
+        SELECT DISTINCT
             rad.id AS id_requerimiento_almacen_detalle,
+            --
             CONCAT(emp.nombre, " ", emp.apellido) AS empleado_atencion,
+            --
+            pr.id AS id_producto,
             pr.nombre AS producto,
-            unib.abreviatura AS unidad_medida_base,
-            uni.abreviatura AS unidad_medida,
-            rad.contenido_por_presentacion,
-            rad.cantidad_solicitada,
+            pr.stock_minimo,
+            --
+            -- que producto va a consumir lo que se esta pidiendo: Tractor consume Gasolina
+            rad.id_producto_destino,
+            p_dest.nombre AS producto_destino,
+            --
+            pr.id_unidad_medida_base,
+            unib.abreviatura AS unidad_medida_base_abv,
+            rad.contenido_por_presentacion, -- cuantas unidades base hay en una unidad del detalle del requerimiento
             rad.cantidad_solicitada_base,
-            rad.cantidad_entregada,
             rad.cantidad_entregada_base,
+            --
+            rad.id_unidad_medida as id_unidad_medida_req, 
+            uni.abreviatura AS unidad_medida_req_abv,
+            rad.cantidad_solicitada,
+            rad.cantidad_entregada,
+            --
             CASE 
                 WHEN rad.cantidad_solicitada_base > 0 THEN 
                     ROUND(((rad.cantidad_entregada_base / rad.cantidad_solicitada_base) * 100 ), 0)
                 ELSE 0 
             END AS porcentaje_progreso,
+            --
             rad.comentario,
             rad.comentario_decision,
-            rad.id_producto_destino,
-            (SELECT pdest.nombre FROM producto pdest WHERE pdest.id = rad.id_producto_destino) as producto_destino,
             rad.estado
         FROM
             requerimiento_almacen_detalle rad
         INNER JOIN producto pr ON pr.id = rad.id_producto
-        LEFT JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
-        LEFT JOIN unidad_medida uni ON uni.id = rad.id_unidad_medida
+        INNER JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
+        INNER JOIN unidad_medida uni ON uni.id = rad.id_unidad_medida
+        LEFT JOIN producto p_dest ON p_dest.id = rad.id_producto_destino
         LEFT JOIN empleado emp ON emp.id = rad.id_empleado_atencion
         WHERE 1=1
         ';
@@ -73,41 +86,10 @@ class RequerimientosDetalleData
 
     public static function get_trazabilidad_by_detalle(?int $id_detalle = null, ?int $id_trazabilidad = null)
     {
-        $sql = '
-            SELECT DISTINCT
-                trz.id AS id_trazabilidad,
-                CASE
-                    WHEN trz.id_empleado IS NOT NULL THEN (
-                        SELECT CONCAT(emp.nombre, " ", emp.apellido)
-                        FROM empleado emp
-                        WHERE emp.id = trz.id_empleado
-                    )
-                    ELSE NULL
-                END AS empleado,
-                trz.descripcion,
-                trz.created_at,
-                trz.estado
-            FROM
-                requerimiento_almacen_detalle_log trz
-            WHERE
-            1=1
-        ';
-
-        $params = [];
-        if ($id_trazabilidad !== null) {
-            $sql .= ' AND trz.id = :id_trazabilidad';
-            $params['id_trazabilidad'] = $id_trazabilidad;
-            return DB::selectOne($sql, $params);
-        }
-
-        if ($id_detalle !== null) {
-            $sql .= ' AND trz.id_requerimiento_almacen_detalle = :id_detalle';
-            $params['id_detalle'] = $id_detalle;
-        }
-
-        $sql .= ' ORDER BY trz.created_at';
-
-        return DB::select($sql, $params);
+        return RequerimientoAlmacenDetalleLog::get_logs(
+            id_requerimiento_detalle: $id_detalle,
+            id_log: $id_trazabilidad
+        );
     }
 
     public static function get_trazabilidad_by_id(int $id_trazabilidad)
@@ -196,12 +178,11 @@ class RequerimientosDetalleData
         int $id_detalle,
         int $id_empleado_solicitante
     ) {
-        return RequerimientoAlmacenDetalleLog::insertGetId([
-            'id_requerimiento_almacen_detalle' => (int) $id_detalle,
-            'id_empleado' => $id_empleado_solicitante,
-            'estado' => EstadoDetalleRequerimiento::EsperandoAprobacion->value,
-            'descripcion' => EstadoDetalleRequerimiento::EsperandoAprobacion->getGlosa(),
-            'created_at' => now(),
-        ]);
+        return RequerimientoAlmacenDetalleLog::crear_log(
+            id_requerimiento_detalle: $id_detalle,
+            id_empleado: $id_empleado_solicitante,
+            descripcion: EstadoDetalleRequerimiento::EsperandoAprobacion->getGlosa(),
+            estado: EstadoDetalleRequerimiento::EsperandoAprobacion
+        );
     }
 }

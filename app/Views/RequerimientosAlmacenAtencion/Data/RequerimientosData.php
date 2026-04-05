@@ -4,7 +4,6 @@ namespace App\Views\RequerimientosAlmacenAtencion\Data;
 
 use App\Models\Labor;
 use App\Models\RequerimientoAlmacen;
-use Illuminate\Support\Facades\DB;
 
 class RequerimientosData
 {
@@ -17,44 +16,11 @@ class RequerimientosData
         string $mes,
         string $yearcito,
     ) {
-        $sql = '
-        SELECT
-            ra.id AS id_requerimiento,
-            ra.id_almacen_destino,
-            ra.correlativo,
-            ra.observacion,
-            m.nombre AS mina,
-            ra.id_empleado_solicitante,
-            CONCAT(emp.nombre, " ", emp.apellido) AS solicitante,
-            ra.premura,
-            ra.fecha_entrega_requerida,
-            ra.estado,
-            ra.created_at
-        FROM
-            requerimiento_almacen ra
-        INNER JOIN empleado emp ON emp.id = ra.id_empleado_solicitante
-        INNER JOIN mina m ON m.id = ra.id_mina
-        WHERE
-            ra.id_almacen_destino = :id_almacen_destino AND
-            MONTH(ra.created_at) = :mes AND YEAR(ra.created_at) = :yearcito
-        ORDER BY 
-        	CASE ra.estado
-                WHEN "Generado"  THEN 1
-                WHEN "En Proceso" THEN 2
-                WHEN "Cerrado" THEN 3
-                WHEN "Anulado" THEN 4
-            	ELSE 5 
-            END ASC,
-        	ra.created_at DESC
-        ';
-
-        $params = [
-            'id_almacen_destino' => $id_almacen,
-            'mes' => $mes,
-            'yearcito' => $yearcito,
-        ];
-
-        return DB::select($sql, $params);
+        return RequerimientoAlmacen::get_requerimientos(
+            id_almacen_destino: $id_almacen,
+            mes: $mes,
+            yearcito: $yearcito
+        );
     }
 
     /**

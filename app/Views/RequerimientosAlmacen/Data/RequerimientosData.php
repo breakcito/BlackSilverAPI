@@ -20,48 +20,12 @@ class RequerimientosData
         ?string $mes = null,
         ?string $yearcito = null
     ) {
-        $sql = '
-        SELECT
-            ra.id AS id_requerimiento,
-            ra.id_mina,
-            ra.id_almacen_destino,
-            ra.correlativo,
-            ra.observacion,
-            m.nombre AS mina,
-            alm.nombre AS almacen_destino,
-            ra.premura,
-            ra.fecha_entrega_requerida,
-            ra.estado,
-            ra.created_at
-        FROM
-            requerimiento_almacen ra
-        INNER JOIN mina m ON m.id = ra.id_mina
-        INNER JOIN almacen alm ON alm.id = ra.id_almacen_destino
-        WHERE 1=1
-        ';
-
-        $params = [];
-        if ($id_requerimiento !== null) {
-            $sql .= ' AND ra.id = :id_requerimiento';
-            $params['id_requerimiento'] = $id_requerimiento;
-
-            return DB::selectOne($sql, $params);
-        }
-
-        if ($id_empleado_solicitante !== null) {
-            $sql .= ' AND ra.id_empleado_solicitante = :id_empleado_solicitante';
-            $params['id_empleado_solicitante'] = $id_empleado_solicitante;
-        }
-
-        if ($mes && $yearcito) {
-            $sql .= ' AND MONTH(ra.created_at) = :mes AND YEAR(ra.created_at) = :yearcito';
-            $params['mes'] = $mes;
-            $params['yearcito'] = $yearcito;
-        }
-
-        $sql .= ' ORDER BY ra.created_at DESC';
-
-        return DB::select($sql, $params);
+        return RequerimientoAlmacen::get_requerimientos(
+            id_requerimiento: $id_requerimiento,
+            id_empleado_solicitante: $id_empleado_solicitante,
+            mes: $mes,
+            yearcito: $yearcito
+        );
     }
 
     public static function get_requerimiento_by_id(int $id_requerimiento)
@@ -110,12 +74,12 @@ class RequerimientosData
             mn.nombre
         FROM
             mina mn
-        LEFT JOIN responsable_mina res ON
-            res.id_mina = mn.id AND 
+        INNER JOIN responsable_mina res ON
+            res.id_mina = mn.id
+        WHERE
+            res.id_empleado = :id_empleado AND
             res.estado = "Activo" AND 
             res.fecha_fin IS NULL
-        WHERE
-            res.id_empleado = :id_empleado
         ORDER BY
             mn.nombre ASC
         ';

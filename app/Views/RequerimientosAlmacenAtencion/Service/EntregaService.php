@@ -142,14 +142,14 @@ class EntregaService
 
                 //  Log de Trazabilidad ---
                 if ($ya_entregado_antes == 0) { // si es la primera entrega
-                    RequerimientosDetalleData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::EnDespacho->getGlosa(), EstadoDetalleRequerimiento::EnDespacho->value);
+                    RequerimientosDetalleData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::EnDespacho->getGlosa(), EstadoDetalleRequerimiento::EnDespacho);
                 }
 
                 // Por nueva entrega
-                RequerimientosDetalleData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::NuevaEntrega->getGlosa((string)$item['cantidad_requerimiento']), EstadoDetalleRequerimiento::NuevaEntrega->value);
+                RequerimientosDetalleData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::NuevaEntrega->getGlosa((string)$item['cantidad_requerimiento']), EstadoDetalleRequerimiento::NuevaEntrega);
 
                 if ($finalizo_item) { // si ya finalizo
-                    RequerimientosDetalleData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::Completado->getGlosa(), EstadoDetalleRequerimiento::Completado->value);
+                    RequerimientosDetalleData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::Completado->getGlosa(), EstadoDetalleRequerimiento::Completado);
                 }
             }
 

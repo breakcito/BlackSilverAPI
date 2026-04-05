@@ -15,6 +15,7 @@ class EmpleadosData
         SELECT DISTINCT
             emp.id AS id_empleado,
             CONCAT(emp.nombre, " ", emp.apellido) AS nombre_completo,
+            emp.dni,
             emp.path_foto
         FROM
             empleado emp
