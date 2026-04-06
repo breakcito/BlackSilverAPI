@@ -1,6 +1,12 @@
+Entendido. Corrección aplicada. Cada vista mantiene el control de su consulta en este caso específico sin centralizarla.
+
+Aquí tienes el documento actualizado:
+
+---
+
 # Black Silver - API (Laravel)
 
-Este es el repositorio del backend (API) de **Black Silver**, una plataforma SaaS diseñada para la gestión integral de operaciones mineras. El sistema está construido sobre Laravel 12 y sigue una arquitectura modular orientada a la mantenibilidad.
+Este es el repositorio del backend (API) de **Black Silver**, una plataforma SaaS diseñada para la gestión integral de operaciones mineras. El sistema está construido sobre Laravel 12 y sigue una arquitectura estricta de **Aislamiento por Vista** orientada a la mantenibilidad.
 
 ---
 
@@ -9,99 +15,108 @@ Este es el repositorio del backend (API) de **Black Silver**, una plataforma Saa
 - **Framework:** [Laravel 12](https://laravel.com/) (PHP 8.2+)
 - **Autenticación:** [JWT Auth](https://php-open-source-saver.github.io/jwt-auth/)
 - **Base de Datos:** MySQL / MariaDB
-- **Herramientas de Desarrollo:**
-    - [Sail](https://laravel.com/docs/sail) (Entorno Docker opcional)
-    - [Pint](https://laravel.com/docs/pint) (Estilo de código)
-    - [Artisan](https://laravel.com/docs/artisan) (Línea de comandos)
+- **Herramientas de Desarrollo:** Sail, Pint, Artisan
 
 ---
 
 ## 🏗️ Arquitectura: Aislamiento por Vista
 
-Para mantener el sistema desacoplado, la lógica de la API se organiza por "Vistas" (correspondientes a los módulos del frontend). Cada módulo reside en `app/Views/[NombreModulo]`.
+La lógica de la API se organiza por **Vistas** (correspondientes exactamente a las vistas del frontend). Cada vista reside en `app/Views/[NombreVista]`.
 
-### Estructura de Capas por Módulo
+El flujo debe partir estrictamente en esta dirección: **Endpoints -> Controller -> Service -> Data**.
 
-Cada módulo se divide obligatoriamente en cuatro capas:
+### Estructura de Capas por Vista
 
 #### 1. Endpoints
+
 - **Responsabilidad:** Definición de rutas y middleware.
-- **Regla:** Solo deben contener la definición de la ruta y apuntar al método correspondiente del Controller.
+- **Ubicación:** `app/Views/[Vista]/[Vista]Endpoints.php`
+- **Regla:** Solo deben contener la definición de la ruta y apuntar al método correspondiente del Controller. Cero lógica.
 
-#### 2. Controller
-- **Responsabilidad:** Orquestación y validación inicial.
-- **Regla:** Debe ser "delgado". Valida la entrada (`Request`) y delega la ejecución al **Service**. Retorna una `ApiResponse`.
+#### 2. Controller (Por Caso de Uso / Proceso)
 
-#### 3. Service
-- **Responsabilidad:** Lógica de negocio pura.
-- **Regla:** Aquí se toman las decisiones, se procesan datos y se orquestan múltiples llamadas a la capa de **Data**.
-- **Nota:** Si una operación afecta a varias tablas, **debe** usar transacciones.
+- **Responsabilidad:** Puerta de entrada, orquestación y validación inicial estricta.
+- **Regla de Creación:** Se debe crear **un Controller por cada proceso o caso de uso** (Ej: `RegistroEntregaController.php`), no un solo controller gigante por vista.
+- **Validación:** Debe validar obligatoriamente que las entradas (`Request`) tengan la forma y tipos correctos.
+- **Flujo de Datos al Service:** **PROHIBIDO pasar un array genérico de `data`** al Service. Los datos de cabecera deben extraerse y pasarse como parámetros explícitos. _Excepción:_ Se permite enviar un array para "detalles" (ej. lista de items), pero el Service debe documentarlo.
+- **Autenticación y Contexto:** Extraer el usuario autenticado así:
+    ```php
+    $authUser = $request->attributes->get('auth_user');
+    ```
+    _(Contiene: `id_usuario`, `id_rol`, `id_empleado`, `nombre`, `apellido`, `dni`, `ruc`, `carnet_extranjeria`, `pasaporte`, `fecha_nacimiento`, `path_foto`, `estado_empleado`, `estado_usuario`)_
+- **Salida:** Retorna siempre una `ApiResponse`.
+
+#### 3. Service (Por Caso de Uso / Proceso)
+
+- **Responsabilidad:** Orquestación absoluta de la lógica de negocio pura.
+- **Regla de Creación:** Se debe crear **un Service por cada proceso o caso de uso**, a la par de su Controller (Ej: `RegistroEntregaService.php`).
+- **Regla Estricta:** **NO DEBE HACER USO DE MODELOS**. El Service ignora Eloquent. Solo usa la capa de `Data` para la base de datos.
+- **Documentación de Arrays:** Si recibe un array de "detalles", documentar obligatoriamente mediante un DocBlock (`/** ... */`) qué llaves contiene.
+- **Transacciones:** Operaciones que afecten a múltiples tablas **deben** usar `DB::transaction()`.
 
 #### 4. Data
-- **Responsabilidad:** Acceso a datos y consultas.
-- **Regla:** No contiene lógica de negocio. Realiza consultas optimizadas usando Eloquent o SQL puro según la complejidad.
+
+- **Responsabilidad:** Acceso a datos e interacción exclusiva con la base de datos.
+- **Ubicación:** `app/Views/[Vista]/[Vista]Data.php`
+- **Regla:** **Métodos tontos.** Cero lógica de negocio.
+- **Uso de ORM vs SQL:** Eloquent solo para consultas simples. **PROHIBIDO usar sintaxis ORM** si las consultas usan joins, subconsultas o agrupaciones complejas. Usar **SQL puro** obligatoriamente.
 
 ---
 
 ## 📜 Reglas de Oro del Desarrollo
 
-### 1. Independencia Total
-Ninguna vista debe importar lógica (`Controller`, `Service`) de otra vista hermana. Si dos vistas requieren datos similares, la lógica de consulta debe moverse a los **Modelos de Eloquent** globales (`app/Models`).
+### 1. Independencia Total y Reutilización de Consultas
 
-### 2. Transacciones de Base de Datos
-Cualquier método en un `Service` que realice más de una operación de escritura (insert, update, delete) debe estar envuelto en:
-```php
-DB::transaction(function () {
-    // Lógica de múltiples escrituras
-});
-```
+Ninguna vista debe importar lógica (`Controller`, `Service`) de otra. Para consultas en la capa `Data`:
+
+- **Uso exacto en 2 Vistas:** Mover la consulta al **Modelo** correspondiente para que la capa Data de ambas vistas la reutilice.
+- **Uso exacto en >2 Vistas:** Crear un archivo dedicado en una **Capa de Data Compartida**.
+- **Consultas con Diferente Profundidad:** Si una consulta en una vista es base para otra, pero una de ellas requiere obtener más información (más joins, subconsultas, agrupaciones), **NO se extrae al modelo**. Ambas vistas tendrán esa consulta directamente ahí mismo en su propia capa de `Data`. La diferencia es que la capa Data de una vista añadirá esa información extra en su propia consulta, mientras que la otra mantendrá la versión base.
+
+### 2. Uso Estricto de Enums
+
+Evitar _strings_ planos o números mágicos para estados. **Uso obligatorio de Enums** para garantizar la trazabilidad del código.
 
 ### 3. Firmas de Métodos Explícitas
-No pases parámetros en `arrays` genéricos si puedes evitarlos. Usa parámetros tipados y explícitos.
+
+No pasar `arrays` genéricos en los Services. Usar parámetros tipados:
+
 ```php
 // MAL
-public function crear(array $data) { ... }
+public function registrar(array $data) { ... }
 
 // BIEN
-public function crear(int $usuarioId, string $descripcion, float $monto) { ... }
+public function registrar(int $usuarioId, string $descripcion, array $lotes) {
+    // Nota: El array $lotes debe estar documentado en el DocBlock
+}
 ```
-
-### 4. Consultas de Alto Rendimiento
-Usa **SQL puro** (vía `DB::select`) para consultas con múltiples `JOINs` o que impacten en el rendimiento. Eloquent es excelente para CRUD simple, pero el SQL puro es más explícito para reportes y listados complejos.
 
 ---
 
-## 🚀 Workflow: Crear un Nuevo Endpoint
+## 🚀 Workflow: Crear un Nuevo Proceso
 
-1. **Definir Ruta:** En `app/Views/[Modulo]/Endpoints.php`.
-2. **Crear Data Layer:** Implementa los métodos de consulta necesarios en `[Modulo]Data.php`.
-3. **Desarrollar Service:** Crea la lógica de negocio en `[Modulo]Service.php`.
-4. **Implementar Controller:** Crea el método en `[Modulo]Controller.php` que une todo y valida la entrada.
-5. **Estandarizar Respuesta:** Usa siempre la clase `ApiResponse`:
-```php
-return ApiResponse::success($data, "Operación exitosa");
-```
+1. **Definir Ruta:** En `[Vista]Endpoints.php`.
+2. **Data Layer:** Implementa los métodos SQL tontos en `[Vista]Data.php`.
+3. **Desarrollar Service:** Crea `[Proceso]Service.php`, documenta arrays, inyecta la capa Data y programa la lógica pura.
+4. **Implementar Controller:** Crea `[Proceso]Controller.php` para validar la entrada, extraer `$authUser`, y pasar parámetros explícitos al Service.
+5. **Respuesta Estandarizada:** ```php
+   return ApiResponse::success($data, "Operación exitosa");
+
+````
 
 ---
 
 ## 🔧 Comandos Útiles
 
 ```bash
-# Iniciar entorno de desarrollo
 php artisan serve
-
-# Limpiar caché de configuración
 php artisan config:clear
-
-# Ejecutar linter (Pint)
-./vendor/bin/pint
-```
+````
 
 ---
 
 ## 🔒 Seguridad
-- Todas las rutas sensibles deben estar protegidas por el middleware `auth:api`.
-- Usa **Form Requests** o validaciones manuales estrictas en cada Controller.
-- Nunca expongas datos sensibles en las respuestas JSON (usa `hidden` en Modelos o filtrado manual).
-cess' => false, 'data' => null, 'message' => 'Error...']
-        ```
+
+- Rutas sensibles protegidas por el middleware `auth:api`.
+- Validaciones estrictas en cada Controller.
+- Nunca exponer datos sensibles en las respuestas JSON.

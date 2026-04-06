@@ -2,6 +2,7 @@
 
 use App\Views\PrestamosAlmacenAtencion\Controller\AtencionController;
 use App\Views\PrestamosAlmacenAtencion\Controller\EntregaController;
+use App\Views\PrestamosAlmacenAtencion\Controller\RecepcionesController;
 use App\Views\PrestamosAlmacenAtencion\Controller\AuxController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +32,11 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::post('/despacho', 'registrar_despacho');
             Route::get('/lotes-batch', 'obtener_lotes_batch');
             Route::get('/entregas-solicitud', 'get_entregas_por_solicitud');
+        });
+
+        // Recepciones
+        Route::controller(RecepcionesController::class)->prefix('recepciones')->group(function () {
+            Route::get('/', 'get_historial_recepciones_entrega');
         });
     });
 });

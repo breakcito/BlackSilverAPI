@@ -201,7 +201,7 @@ class EntregaService
 
         foreach ($data as $entrega) {
             $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
-            $entrega->detalles = EntregasDetalleData::get_detalles_entrega((int) $entrega->id_entrega);
+            $entrega->detalles = EntregasData::get_detalles_entrega((int) $entrega->id_entrega);
         }
 
         return ApiResponse::success($data);
