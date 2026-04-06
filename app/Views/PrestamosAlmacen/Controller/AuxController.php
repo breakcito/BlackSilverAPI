@@ -21,6 +21,24 @@ class AuxController extends Controller
     }
 
     /**
+     * Obtiene los almacenes secundarios (prestamistas posibles)
+     */
+    public function get_almacenes_secundarios(): JsonResponse
+    {
+        $result = AuxService::get_almacenes(false);
+        return response()->json($result);
+    }
+
+    /**
+     * Obtiene los almacenes principales (logistica)
+     */
+    public function get_almacenes_principales(): JsonResponse
+    {
+        $result = AuxService::get_almacenes(true);
+        return response()->json($result);
+    }
+
+    /**
      * Obtener lotes disponibles para ciertos productos de un almacén.
      */
     public function get_lotes_disponibles(Request $request): JsonResponse

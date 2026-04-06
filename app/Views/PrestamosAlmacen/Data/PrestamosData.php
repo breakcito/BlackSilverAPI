@@ -24,7 +24,7 @@ class PrestamosData
 
     public static function get_correlativo_by_id(int $id_prestamo_almacen)
     {
-        return PrestamoAlmacen::where('id_prestamo_almacen', $id_prestamo_almacen)
+        return PrestamoAlmacen::where('id', $id_prestamo_almacen)
             ->first(
                 [
                     'correlativo',

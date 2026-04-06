@@ -29,8 +29,10 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
         // Auxiliares
         Route::controller(AuxController::class)->group(function () {
-            Route::get('/almacenes', 'get_almacenes');
-            Route::get('/lotes',      'get_lotes_disponibles');
+            Route::get('/almacenes',             'get_almacenes');
+            Route::get('/almacenes-secundarios',  'get_almacenes_secundarios');
+            Route::get('/almacenes-principales', 'get_almacenes_principales');
+            Route::get('/lotes',                  'get_lotes_disponibles');
         });
     });
 });

@@ -56,7 +56,7 @@ class PrestamoAlmacenReposicion extends Model
         int $numero_correlativo,
         string $fecha_hora_reposicion,
         ?string $observacion = null,
-        ?string $evidencias = null
+        $evidencias = null
     ) {
         return self::insertGetId([
             'id_prestamo_almacen' => $id_prestamo_almacen,
@@ -65,7 +65,7 @@ class PrestamoAlmacenReposicion extends Model
             'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
             'fecha_hora_reposicion' => $fecha_hora_reposicion,
-            'observacion' => $observacion,
+            'observacion' => $observacion ?? '',
             'evidencias' => $evidencias ? json_encode($evidencias) : null,
             'estado' => EstadoReposicion::EnDespacho->value,
             'created_at' => now(),

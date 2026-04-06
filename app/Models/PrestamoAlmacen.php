@@ -92,33 +92,33 @@ class PrestamoAlmacen extends Model
         $params = [];
 
         if ($id_prestamo) {
-            $sql .= "AND pa.id = :id_prestamo";
+            $sql .= " AND pa.id = :id_prestamo";
             $params['id_prestamo'] = $id_prestamo;
             $res = DB::selectOne($sql, $params);
             return $res ? (array) $res : [];
         }
 
         if ($id_almacen_prestamista) {
-            $sql .= "AND pa.id_almacen_prestamista = :id_almacen_prestamista";
+            $sql .= " AND pa.id_almacen_prestamista = :id_almacen_prestamista";
             $params['id_almacen_prestamista'] = $id_almacen_prestamista;
         }
 
         if ($mes) {
-            $sql .= "AND MONTH(pa.created_at) = :mes";
+            $sql .= " AND MONTH(pa.created_at) = :mes";
             $params['mes'] = $mes;
         }
 
         if ($yearcito) {
-            $sql .= "AND YEAR(pa.created_at) = :yearcito";
+            $sql .= " AND YEAR(pa.created_at) = :yearcito";
             $params['yearcito'] = $yearcito;
         }
 
         if ($id_solicitud_rebastecimiento) {
-            $sql .= "AND pa.id_solicitud_reabastecimiento = :id_solicitud_rebastecimiento";
+            $sql .= " AND pa.id_solicitud_reabastecimiento = :id_solicitud_rebastecimiento";
             $params['id_solicitud_reabastecimiento'] = $id_solicitud_rebastecimiento;
         }
 
-        $sql .= "ORDER BY pa.fecha_hora_prestamo DESC;";
+        $sql .= " ORDER BY pa.fecha_hora_prestamo DESC;";
 
         return DB::select($sql, $params);
     }

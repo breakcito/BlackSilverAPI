@@ -81,7 +81,7 @@ class ReposicionesService
                 $id_lote_producto = (int) $item['id_lote_producto'];
                 $cantidad_base = (float) $item['cantidad_base'];
                 $cantidad_lote = (float) $item['cantidad_lote'];
-                $cantidad_prestamo = (float) $item['cantidad_prestamo'];
+                $cantidad_prestamo = (float) $item['cantidad_solicitud'];
 
                 // Validar Stock del lote de origen
                 $lote = LotesProductosData::get_lote_simple_by_id($id_lote_producto);

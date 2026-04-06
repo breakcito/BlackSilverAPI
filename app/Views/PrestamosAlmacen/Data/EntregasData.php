@@ -23,4 +23,20 @@ class EntregasData
     {
         return PrestamoAlmacenEntregaDetalle::get_detalles(id_entrega: $id_entrega);
     }
+
+    /**
+     * Obtiene las recepciones de una entrega específica
+     */
+    public static function get_recepciones_por_entrega(int $id_entrega)
+    {
+        return \App\Models\PrestamoAlmacenRecepcion::get_recepciones(id_entrega: $id_entrega);
+    }
+
+    /**
+     * Obtiene los detalles técnicos de una recepción específica
+     */
+    public static function get_detalles_recepcion(int $id_recepcion)
+    {
+        return \App\Models\PrestamoAlmacenRecepcionDetalle::get_detalles(id_recepcion: $id_recepcion);
+    }
 }

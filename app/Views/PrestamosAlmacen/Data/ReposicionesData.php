@@ -34,9 +34,9 @@ class ReposicionesData
         int $id_empleado_entrega,
         string $correlativo,
         int $numero_correlativo,
-        string $fecha_hora_reposicion,
+        ?string $fecha_hora_reposicion,
         ?string $observacion = null,
-        ?string $evidencias = null
+        ?array $evidencias = null
     ): int {
         return PrestamoAlmacenReposicion::crear_reposicion(
             id_prestamo_almacen: $id_prestamo_almacen,
