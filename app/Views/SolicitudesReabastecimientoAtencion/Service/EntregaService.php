@@ -30,10 +30,9 @@ class EntregaService
         }
 
         $data_prestamo = EntregasData::get_historial_entregas_prestamo($id_solicitud);
-
         foreach ($data_prestamo as $entrega) {
             $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
-            $entrega->detalles = EntregasDetalleData::get_detalles_entrega_prestamo((int) $entrega->id_reabastecimiento_entrega);
+            $entrega->detalles = EntregasDetalleData::get_detalles_entrega_prestamo((int) $entrega->id_prestamo_entrega);
         }
 
         return ApiResponse::success([
