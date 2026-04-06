@@ -361,7 +361,7 @@ class RecepcionesService
         $todos_recibidos = $todos_detalles->every(fn($d) => $d->state === 'Recibido' || $d->estado === 'Recibido');
         $algun_recibido = $todos_detalles->contains(fn($d) => in_array($d->estado ?? $d->state, ['Recibido', 'Recibido Parcialmente']));
 
-        $nuevo_estado_cab = $todos_recibidos ? 'Recibida' : ($algun_recibido ? 'Recepcionado Parcialmente' : 'Procesada');
+        $nuevo_estado_cab = $todos_recibidos ? 'Entrega confirmada' : ($algun_recibido ? 'Recibido Parcialmente' : 'En despacho');
         RecepcionesPrestamoData::update_entrega_estado($id_entrega, $nuevo_estado_cab);
     }
 }

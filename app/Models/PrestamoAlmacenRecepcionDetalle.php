@@ -57,7 +57,7 @@ class PrestamoAlmacenRecepcionDetalle extends Model
         INNER JOIN unidad_medida us ON
             us.id = pad.id_unidad_medida
         WHERE
-            rd.id_prestamo_almacen_recepcion = :id_recepcion
+            1 = 1
         ';
 
         $params = [];
