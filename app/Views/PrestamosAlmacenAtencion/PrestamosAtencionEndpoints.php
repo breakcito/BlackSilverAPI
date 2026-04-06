@@ -4,6 +4,7 @@ use App\Views\PrestamosAlmacenAtencion\Controller\AtencionController;
 use App\Views\PrestamosAlmacenAtencion\Controller\EntregaController;
 use App\Views\PrestamosAlmacenAtencion\Controller\RecepcionesController;
 use App\Views\PrestamosAlmacenAtencion\Controller\AuxController;
+use App\Views\PrestamosAlmacenAtencion\Controller\RecepcionesReposicionController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.jwt.custom')->group(function () {
@@ -37,6 +38,13 @@ Route::middleware('auth.jwt.custom')->group(function () {
         // Recepciones
         Route::controller(RecepcionesController::class)->prefix('recepciones')->group(function () {
             Route::get('/', 'get_historial_recepciones_entrega');
+        });
+
+        // Recepciones de Reposiciones
+        Route::controller(RecepcionesReposicionController::class)->prefix('recepciones-reposicion')->group(function () {
+            Route::post('/', 'registrar_recepcion');
+            Route::get('/historial', 'get_historial');
+            Route::get('/detalles', 'get_detalles_para_recepcion');
         });
     });
 });

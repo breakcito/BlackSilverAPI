@@ -61,13 +61,16 @@ class PrestamoAlmacenReposicionDetalle extends Model
             rd.id_prestamo_almacen_detalle,
             p.id as id_producto,
             p.nombre AS producto,
+            p.es_perecible,
             rd.id_lote_producto, -- lote de salida
             lt.correlativo AS lote_correlativo,
-            -- unidad de medida del producto
+            -- unidad de medida del producto (base)
             p.id_unidad_medida_base,
             um_bs.nombre as unidad_medida_base,
             um_bs.abreviatura AS unidad_medida_base_abv,
-            -- unidad de medida del prestamo
+            -- unidad de medida del prestamo (solicitada)
+            pd.id_unidad_medida as id_unidad_medida_solicitada,
+            -- unidad de medida del lote usado para la entrega de reposicion
             um_lt.id as id_unidad_medida_lote,
             um_lt.nombre as unidad_medida_lote,
             um_lt.abreviatura as unidad_medida_lote_abv,

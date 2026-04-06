@@ -9,6 +9,7 @@ use App\Shared\Enums\Kardex\TipoMovimiento;
 use App\Shared\Responses\ApiResponse;
 use App\Views\PrestamosAlmacen\Data\PrestamosData;
 use App\Views\PrestamosAlmacen\Data\ReposicionesData;
+use App\Views\PrestamosAlmacenAtencion\Service\RecepcionesReposicionService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 
@@ -23,6 +24,10 @@ class ReposicionesService
         foreach ($data as $repo) {
             $repo->evidencias = $repo->evidencias ? json_decode($repo->evidencias) : null;
             $repo->detalles = ReposicionesData::get_detalles_reposicion((int) $repo->id_reposicion);
+
+            // Obtener recepciones de esta reposicion
+            $recepcionesResponse = RecepcionesReposicionService::get_historial((int) $repo->id_reposicion);
+            $repo->recepciones = $recepcionesResponse['success'] ? $recepcionesResponse['data'] : [];
         }
         return ApiResponse::success($data);
     }
