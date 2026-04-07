@@ -124,4 +124,12 @@ class LotesService
             return ApiResponse::success(LotesData::get_lote_by_id(id_lote: $id_lote), 'Stock del lote ajustado correctamente');
         });
     }
+    /**
+     * Obtener información de lotes para impresión de tickets.
+     */
+    public static function get_info_to_tickets(array $ids_lotes)
+    {
+        $info = LotesProductosData::get_info_to_ticket(ids_lotes: $ids_lotes);
+        return ApiResponse::success($info);
+    }
 }

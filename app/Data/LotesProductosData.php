@@ -143,4 +143,40 @@ class LotesProductosData
             'estado' => 'Activo',
         ]);
     }
+
+    /**
+     * Obtiene informacion de lotes para la impresion de tickets
+     */
+    public static function get_info_to_ticket(
+        ?int $id_lote = null,
+        array $ids_lotes = []
+    ) {
+        if ($id_lote) {
+            $ids_lotes = [$id_lote];
+        }
+
+        if (empty($ids_lotes)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids_lotes), '?'));
+        $sql = "
+        SELECT
+            lot.id,
+            pr.nombre AS producto,
+            lot.correlativo AS lote,
+            alm.nombre AS almacen,
+            lot.descripcion,
+            DATE(lot.fecha_hora_ingreso) AS fecha_ingreso
+        FROM
+            lote_producto lot
+        INNER JOIN producto pr ON
+            pr.id = lot.id_producto
+        INNER JOIN almacen alm ON
+            alm.id = lot.id_almacen
+        WHERE lot.id IN ($placeholders)
+        ";
+
+        return DB::select($sql, $ids_lotes);
+    }
 }

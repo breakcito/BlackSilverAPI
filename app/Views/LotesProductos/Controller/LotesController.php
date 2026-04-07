@@ -89,4 +89,20 @@ class LotesController extends Controller
 
         return response()->json($result);
     }
+    public function get_info_to_tickets(Request $request): JsonResponse
+    {
+        $ids_lotes = $request->query('ids');
+
+        if (!$ids_lotes) {
+            return response()->json(ApiResponse::error('Los IDs de lotes son requeridos'), 400);
+        }
+
+        // Convertir string "1,2,3" a array [1, 2, 3] si es necesario
+        $ids_array = is_array($ids_lotes) ? $ids_lotes : explode(',', $ids_lotes);
+        $ids_array = array_map('intval', $ids_array);
+
+        $result = LotesService::get_info_to_tickets($ids_array);
+
+        return response()->json($result);
+    }
 }
