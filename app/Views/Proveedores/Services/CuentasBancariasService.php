@@ -2,24 +2,41 @@
 
 namespace App\Views\Proveedores\Services;
 
+use App\Models\CuentaBancariaProveedor;
+use App\Shared\Responses\ApiResponse;
 use App\Views\Proveedores\Data\CuentasBancariasData;
 
 class CuentasBancariasService
 {
-    protected CuentasBancariasData $data;
-
-    public function __construct(CuentasBancariasData $data)
+    public static function get_cuentas_bancarias(int $idProveedor): array
     {
-        $this->data = $data;
+        $data = CuentasBancariasData::get_cuentas_bancarias($idProveedor);
+        return ApiResponse::success($data, "Cuentas bancarias obtenidas correctamente");
     }
 
-    public function get_cuentas_bancarias(int $idProveedor): array
-    {
-        return $this->data->get_cuentas_bancarias($idProveedor);
-    }
+    public static function crear_cuenta_bancaria(
+        int $idProveedor,
+        int $idBanco,
+        string $moneda,
+        string $numeroCuenta,
+        ?string $cci,
+        int $esParaDetraccion
+    ): array {
+        $existe = CuentasBancariasData::existe_cuenta_bancaria($idProveedor, $idBanco, $numeroCuenta);
 
-    public function crear_cuenta_bancaria(int $idProveedor, int $idBanco, string $moneda, string $numeroCuenta, ?string $cci, int $esParaDetraccion): int
-    {
-        return $this->data->crear_cuenta_bancaria($idProveedor, $idBanco, $moneda, $numeroCuenta, $cci, $esParaDetraccion);
+        if ($existe) {
+            return ApiResponse::error("Esta cuenta bancaria ya está registrada para este proveedor");
+        }
+
+        $id = CuentasBancariasData::crear_cuenta_bancaria(
+            $idProveedor,
+            $idBanco,
+            $moneda,
+            $numeroCuenta,
+            $cci,
+            $esParaDetraccion
+        );
+        $nuevaCuenta = CuentasBancariasData::get_cuenta_bancaria_by_id($id);
+        return ApiResponse::success($nuevaCuenta, "Cuenta bancaria registrada correctamente");
     }
 }

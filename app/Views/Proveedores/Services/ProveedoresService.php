@@ -2,24 +2,62 @@
 
 namespace App\Views\Proveedores\Services;
 
+use App\Shared\Responses\ApiResponse;
+use App\Views\Proveedores\Data\CuentasBancariasData;
 use App\Views\Proveedores\Data\ProveedoresData;
+use Illuminate\Support\Facades\DB;
 
 class ProveedoresService
 {
-    protected ProveedoresData $data;
 
-    public function __construct(ProveedoresData $data)
+    public static function get_proveedores(): array
     {
-        $this->data = $data;
+        $data = ProveedoresData::get_proveedores();
+        return ApiResponse::success($data, "Proveedores obtenidos correctamente");
     }
 
-    public function get_proveedores(): array
-    {
-        return $this->data->get_proveedores();
-    }
+    /**
+     * @param array $cuentas Listado de cuentas bancarias (opcional)
+     * - id_banco (int)
+     * - moneda (string)
+     * - numero_cuenta (string)
+     * - cci (string|null)
+     * - es_para_detraccion (int)
+     */
+    public static function crear_proveedor(
+        string $tipoEntidad,
+        ?string $dni,
+        ?string $ruc,
+        string $razonSocial,
+        ?string $direccion,
+        ?string $telefono,
+        ?string $correo,
+        array $cuentas = []
+    ): array {
+        return DB::transaction(function () use ($tipoEntidad, $dni, $ruc, $razonSocial, $direccion, $telefono, $correo, $cuentas) {
+            $id = ProveedoresData::crear_proveedor(
+                $tipoEntidad,
+                $dni,
+                $ruc,
+                $razonSocial,
+                $direccion,
+                $telefono,
+                $correo
+            );
 
-    public function crear_proveedor(string $tipoEntidad, ?string $dni, ?string $ruc, string $razonSocial, ?string $direccion, ?string $telefono, ?string $correo): int
-    {
-        return $this->data->crear_proveedor($tipoEntidad, $dni, $ruc, $razonSocial, $direccion, $telefono, $correo);
+            foreach ($cuentas as $cta) {
+                CuentasBancariasData::crear_cuenta_bancaria(
+                    $id,
+                    $cta['id_banco'],
+                    $cta['moneda'],
+                    $cta['numero_cuenta'],
+                    $cta['cci'] ?? null,
+                    (int) ($cta['es_para_detraccion'] ?? 0)
+                );
+            }
+
+            $new_proveedor = ProveedoresData::get_proveedor_by_id($id);
+            return ApiResponse::success($new_proveedor, "Proveedor registrado correctamente");
+        });
     }
 }

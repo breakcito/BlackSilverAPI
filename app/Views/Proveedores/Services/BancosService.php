@@ -2,24 +2,30 @@
 
 namespace App\Views\Proveedores\Services;
 
+use App\Models\Banco;
+use App\Shared\Responses\ApiResponse;
 use App\Views\Proveedores\Data\BancosData;
 
 class BancosService
 {
-    protected BancosData $data;
-
-    public function __construct(BancosData $data)
+    public static function get_bancos(): array
     {
-        $this->data = $data;
+        $data = BancosData::get_bancos();
+        return ApiResponse::success($data, "Bancos obtenidos correctamente");
     }
 
-    public function get_bancos(): array
+    public static function crear_banco(string $nombre, string $abreviatura): array
     {
-        return $this->data->get_bancos();
-    }
+        $existe = Banco::where('nombre', $nombre)
+            ->orWhere('abreviatura', $abreviatura)
+            ->exists();
 
-    public function crear_banco(string $nombre, string $abreviatura): int
-    {
-        return $this->data->crear_banco($nombre, $abreviatura);
+        if ($existe) {
+            return ApiResponse::error("El banco con ese nombre o abreviatura ya existe");
+        }
+
+        $id = BancosData::crear_banco($nombre, $abreviatura);
+        $nuevoBanco = BancosData::get_banco_by_id($id);
+        return ApiResponse::success($nuevoBanco, "Banco creado correctamente");
     }
 }

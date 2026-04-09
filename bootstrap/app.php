@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Views/SolicitudesReabastecimientoAtencion/SolicitudesAtencionEndpoints.php');
                 require base_path('app/Views/PrestamosAlmacenAtencion/PrestamosAtencionEndpoints.php');
                 require base_path('app/Views/PrestamosAlmacen/PrestamosAlmacenEndpoints.php');
+                require base_path('app/Views/Proveedores/ProveedoresEndpoints.php');
             });
         },
     )

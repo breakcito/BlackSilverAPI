@@ -13,6 +13,7 @@ class Banco extends Model
     protected $fillable = [
         'nombre',
         'abreviatura',
+        'es_nacional', // no lo registra ni cambia el usuario, se gestiona a nivel interno
         'estado', // Estado Basico
     ];
 }

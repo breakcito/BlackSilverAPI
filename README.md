@@ -35,31 +35,29 @@ El flujo debe partir estrictamente en esta dirección: **Endpoints -> Controller
 
 #### 2. Controller (Por Caso de Uso / Proceso)
 
-- **Responsabilidad:** Puerta de entrada, orquestación y validación inicial estricta.
-- **Regla de Creación:** Se debe crear **un Controller por cada proceso o caso de uso** (Ej: `RegistroEntregaController.php`), no un solo controller gigante por vista.
-- **Validación:** Debe validar obligatoriamente que las entradas (`Request`) tengan la forma y tipos correctos.
-- **Flujo de Datos al Service:** **PROHIBIDO pasar un array genérico de `data`** al Service. Los datos de cabecera deben extraerse y pasarse como parámetros explícitos. _Excepción:_ Se permite enviar un array para "detalles" (ej. lista de items), pero el Service debe documentarlo.
-- **Autenticación y Contexto:** Extraer el usuario autenticado así:
+- **Responsabilidad:** Puerta de entrada y validación inicial estricta.
+- **Regla de Creación:** Se debe crear **un Controller por cada proceso o caso de uso** (Ej: `RegistroEntregaController.php`).
+- **Validación:** Validar obligatoriamente las entradas (`Request`).
+- **Flujo de Datos al Service:** Extraer datos de cabecera y pasarlos como parámetros explícitos.
+- **Importaciones:** Usar declaciones `use` al inicio del archivo, evitar namespaces en línea.
+- **Salida:** Retorna directamente la respuesta del Service formateada como JSON:
     ```php
-    $authUser = $request->attributes->get('auth_user');
+    return response()->json(MiService::ejecutar($request->datos));
     ```
-    _(Contiene: `id_usuario`, `id_rol`, `id_empleado`, `nombre`, `apellido`, `dni`, `ruc`, `carnet_extranjeria`, `pasaporte`, `fecha_nacimiento`, `path_foto`, `estado_empleado`, `estado_usuario`)_
-- **Salida:** Retorna siempre una `ApiResponse`.
 
 #### 3. Service (Por Caso de Uso / Proceso)
 
 - **Responsabilidad:** Orquestación absoluta de la lógica de negocio pura.
-- **Regla de Creación:** Se debe crear **un Service por cada proceso o caso de uso**, a la par de su Controller (Ej: `RegistroEntregaService.php`).
-- **Regla Estricta:** **NO DEBE HACER USO DE MODELOS**. El Service ignora Eloquent. Solo usa la capa de `Data` para la base de datos.
-- **Documentación de Arrays:** Si recibe un array de "detalles", documentar obligatoriamente mediante un DocBlock (`/** ... */`) qué llaves contiene.
-- **Transacciones:** Operaciones que afecten a múltiples tablas **deben** usar `DB::transaction()`.
+- **Regla Estricta:** **ÉTATICO**. Todos los métodos deben ser `public static`.
+- **Salida:** Debe retornar siempre una instancia de `ApiResponse`.
+- **Relación con Modelos:** Preferencia por usar la capa de `Data`. Si se usan modelos directamente, asegurar que sea para operaciones simples.
+- **Transacciones:** Operaciones multi-tabla **deben** usar `DB::transaction()`.
 
 #### 4. Data
 
-- **Responsabilidad:** Acceso a datos e interacción exclusiva con la base de datos.
-- **Ubicación:** `app/Views/[Vista]/[Vista]Data.php`
-- **Regla:** **Métodos tontos.** Cero lógica de negocio.
-- **Uso de ORM vs SQL:** Eloquent solo para consultas simples. **PROHIBIDO usar sintaxis ORM** si las consultas usan joins, subconsultas o agrupaciones complejas. Usar **SQL puro** obligatoriamente.
+- **Responsabilidad:** Acceso a datos.
+- **Uso de ORM vs SQL:** Eloquent es bienvenido para consultas simples y joins manejables. Reservar SQL puro solo para consultas extremadamente complejas (agrupaciones masivas, subconsultas pesadas).
+- **Regla Estricta:** **ESTÁTICO**. Todos los métodos deben ser `public static`.
 
 ---
 
