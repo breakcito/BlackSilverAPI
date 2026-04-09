@@ -15,27 +15,17 @@ class EmpleadosController
     public function get_empleados(Request $request): JsonResponse
     {
         $id_mina = $request->query('id_mina') ? (int) $request->query('id_mina') : null;
-        $result = EmpleadosService::get_empleados($id_mina);
+        $result  = EmpleadosService::get_empleados($id_mina);
 
         return response()->json($result);
     }
 
     /**
-     * Obtener minas
+     * Obtener minas activas
      */
     public function get_minas(Request $request): JsonResponse
     {
         $result = EmpleadosService::get_minas();
-
-        return response()->json($result);
-    }
-
-    /**
-     * Obtener empresas
-     */
-    public function get_empresas(Request $request): JsonResponse
-    {
-        $result = EmpleadosService::get_empresas();
 
         return response()->json($result);
     }
@@ -66,16 +56,16 @@ class EmpleadosController
     public function crear_empleado(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'id_empresa' => 'required|integer',
-            'id_cargo' => 'required|integer',
-            'nombre' => 'required|string|max:255',
-            'apellido' => 'required|string|max:255',
-            'dni' => 'nullable|string|max:20',
-            'ruc' => 'nullable|string|max:20',
+            'id_mina'            => 'required|integer',
+            'id_cargo'           => 'required|integer',
+            'nombre'             => 'required|string|max:255',
+            'apellido'           => 'required|string|max:255',
+            'dni'                => 'nullable|string|max:20',
+            'ruc'                => 'nullable|string|max:20',
             'carnet_extranjeria' => 'nullable|string|max:20',
-            'pasaporte' => 'nullable|string|max:20',
-            'fecha_nacimiento' => 'nullable|date',
-            'path_foto' => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
+            'pasaporte'          => 'nullable|string|max:20',
+            'fecha_nacimiento'   => 'nullable|date',
+            'path_foto'          => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -83,7 +73,7 @@ class EmpleadosController
         }
 
         $result = EmpleadosService::crear_empleado(
-            id_empresa: (int) $request->input('id_empresa'),
+            id_mina: (int) $request->input('id_mina'),
             id_cargo: (int) $request->input('id_cargo'),
             nombre: (string) $request->input('nombre'),
             apellido: (string) $request->input('apellido'),
@@ -92,7 +82,8 @@ class EmpleadosController
             carnet_extranjeria: $request->input('carnet_extranjeria'),
             pasaporte: $request->input('pasaporte'),
             fecha_nacimiento: $request->input('fecha_nacimiento'),
-            foto: $request->file('path_foto')
+            foto: $request->file('path_foto'),
+            ids_labor: (array) $request->input('ids_labor', [])
         );
 
         return response()->json($result);
