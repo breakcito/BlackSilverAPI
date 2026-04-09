@@ -12,7 +12,7 @@ class Empleado extends Model
 
     protected $fillable = [
         'id_cargo',
-        'id_empresa',
+        'id_mina',
         'nombre',
         'apellido',
         'dni',

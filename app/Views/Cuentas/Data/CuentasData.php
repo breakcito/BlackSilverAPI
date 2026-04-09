@@ -22,12 +22,12 @@ class CuentasData
                 r.nombre as nombre_rol,
                 e.nombre as nombre_empleado,
                 e.apellido as apellido_empleado,
-                e.id_empresa as id_empresa_pertenece,
+                e.id_mina as id_mina_pertenece,
                 e.path_foto,
-                ep.nombre_comercial as empresa_pertenece
+                mn.nombre as mina_pertenece
             FROM usuario u
             INNER JOIN empleado e ON e.id = u.id_empleado
-            INNER JOIN empresa ep ON ep.id = e.id_empresa
+            LEFT JOIN mina mn ON mn.id = e.id_mina
             INNER JOIN rol r ON r.id = u.id_rol
             ORDER BY e.apellido ASC
         ";
@@ -46,7 +46,7 @@ class CuentasData
                 e.nombre,
                 e.apellido,
                 e.dni,
-                e.id_empresa as id_empresa_pertenece
+                e.id_mina as id_mina_pertenece
             FROM empleado e
             LEFT JOIN usuario u ON u.id_empleado = e.id
             WHERE u.id IS NULL AND e.estado = 'Activo'
@@ -83,12 +83,12 @@ class CuentasData
                 r.nombre as nombre_rol,
                 e.nombre as nombre_empleado,
                 e.apellido as apellido_empleado,
-                e.id_empresa as id_empresa_pertenece,
+                e.id_mina as id_mina_pertenece,
                 e.path_foto,
-                ep.nombre_comercial as empresa_pertenece
+                mn.nombre as mina_pertenece
             FROM usuario u
             INNER JOIN empleado e ON e.id = u.id_empleado
-            INNER JOIN empresa ep ON ep.id = e.id_empresa
+            LEFT JOIN mina mn ON mn.id = e.id_mina
             INNER JOIN rol r ON r.id = u.id_rol
             WHERE u.id = :id_usuario
         ";

@@ -10,7 +10,7 @@ use Illuminate\Http\UploadedFile;
 class EmpleadosService
 {
     /**
-     * Listar empleados de las empresas del usuario
+     * Listar empleados con su mina y labores asignadas
      */
     public static function get_empleados(?int $id_mina = null)
     {
@@ -27,19 +27,11 @@ class EmpleadosService
     }
 
     /**
-     * Obtener minas
+     * Obtener minas activas
      */
     public static function get_minas()
     {
         return ApiResponse::success(EmpleadosData::get_minas());
-    }
-
-    /**
-     * Obtener empresas
-     */
-    public static function get_empresas()
-    {
-        return ApiResponse::success(EmpleadosData::get_empresas());
     }
 
     /**
@@ -62,7 +54,7 @@ class EmpleadosService
      * Registrar un nuevo empleado
      */
     public static function crear_empleado(
-        int $id_empresa,
+        int $id_mina,
         int $id_cargo,
         string $nombre,
         string $apellido,
@@ -86,7 +78,7 @@ class EmpleadosService
         }
 
         $id = EmpleadosData::crear_empleado(
-            $id_empresa,
+            $id_mina,
             $id_cargo,
             $nombre,
             $apellido,
@@ -105,6 +97,7 @@ class EmpleadosService
             'Empleado registrado correctamente'
         );
     }
+
     /**
      * Actualizar la foto de un empleado
      */
