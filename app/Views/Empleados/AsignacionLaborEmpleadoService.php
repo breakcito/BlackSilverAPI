@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 class AsignacionLaborEmpleadoService
 {
     /**
-     * Asignar nuevas labores a un empleado
+     * Sincronizar las labores de un empleado (Limpiar e Insertar)
      * 
      * @param int $id_empleado
      * @param int[] $ids_labor
@@ -25,20 +25,17 @@ class AsignacionLaborEmpleadoService
         }
 
         $asignadas  = 0;
-        $duplicadas = [];
         $invalidas  = [];
 
-        DB::transaction(function () use ($ids_labor, $id_empleado, $id_mina, &$asignadas, &$duplicadas, &$invalidas) {
+        DB::transaction(function () use ($ids_labor, $id_empleado, $id_mina, &$asignadas, &$invalidas) {
+            // 1. Limpiar labores actuales para este empleado para la sincronización
+            EmpleadosData::eliminar_labores_empleado($id_empleado);
+
+            // 2. Insertar las nuevas seleccionadas (si hay)
             foreach ($ids_labor as $id_labor) {
-                // Verificar que la labor pertenece a la mina del empleado
+                // Validación de seguridad: que pertenezca a la mina
                 if (!EmpleadosData::labor_pertenece_a_mina($id_labor, $id_mina)) {
                     $invalidas[] = $id_labor;
-                    continue;
-                }
-
-                // Verificar que no esté ya asignada
-                if (EmpleadosData::existe_labor_empleado($id_empleado, $id_labor)) {
-                    $duplicadas[] = $id_labor;
                     continue;
                 }
 
@@ -47,16 +44,10 @@ class AsignacionLaborEmpleadoService
             }
         });
 
-        if ($asignadas === 0) {
-            if (!empty($duplicadas)) {
-                return ApiResponse::error('Las labores seleccionadas ya están asignadas a este empleado.');
-            }
-            if (!empty($invalidas)) {
-                return ApiResponse::error('Las labores seleccionadas no pertenecen a la mina del empleado.');
-            }
-            return ApiResponse::error('No se seleccionó ninguna labor nueva.');
+        if (!empty($invalidas)) {
+            return ApiResponse::success(null, "Cambios guardados, pero se omitieron labores de otras minas.");
         }
 
-        return ApiResponse::success(null, "Se asignaron {$asignadas} labor(es) correctamente.");
+        return ApiResponse::success(null, "Labores actualizadas correctamente.");
     }
 }

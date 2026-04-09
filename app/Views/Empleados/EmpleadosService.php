@@ -63,7 +63,8 @@ class EmpleadosService
         ?string $carnet_extranjeria = null,
         ?string $pasaporte = null,
         ?string $fecha_nacimiento = null,
-        ?UploadedFile $foto = null
+        ?UploadedFile $foto = null,
+        array $ids_labor = []
     ) {
         if ($dni && EmpleadosData::existe_dni($dni)) {
             return ApiResponse::error('El DNI ingresado ya se encuentra registrado.');
@@ -77,25 +78,38 @@ class EmpleadosService
             }
         }
 
-        $id = EmpleadosData::crear_empleado(
-            $id_mina,
-            $id_cargo,
-            $nombre,
-            $apellido,
-            $dni,
-            $ruc,
-            $carnet_extranjeria,
-            $pasaporte,
-            $fecha_nacimiento,
-            $path_foto
-        );
+        return \Illuminate\Support\Facades\DB::transaction(function () use (
+            $id_mina, $id_cargo, $nombre, $apellido, $dni, $ruc, $carnet_extranjeria, 
+            $pasaporte, $fecha_nacimiento, $path_foto, $ids_labor
+        ) {
+            $id = EmpleadosData::crear_empleado(
+                $id_mina,
+                $id_cargo,
+                $nombre,
+                $apellido,
+                $dni,
+                $ruc,
+                $carnet_extranjeria,
+                $pasaporte,
+                $fecha_nacimiento,
+                $path_foto
+            );
 
-        $nuevoEmpleado = EmpleadosData::get_empleado_by_id($id);
+            // Asignar labores iniciales si las hay
+            foreach ($ids_labor as $id_labor) {
+                // Validar que la labor sea de la mina seleccionada
+                if (EmpleadosData::labor_pertenece_a_mina((int)$id_labor, $id_mina)) {
+                    EmpleadosData::asignar_labor($id, (int)$id_labor);
+                }
+            }
 
-        return ApiResponse::success(
-            $nuevoEmpleado,
-            'Empleado registrado correctamente'
-        );
+            $nuevoEmpleado = EmpleadosData::get_empleado_by_id($id);
+
+            return ApiResponse::success(
+                $nuevoEmpleado,
+                'Empleado registrado correctamente'
+            );
+        });
     }
 
     /**

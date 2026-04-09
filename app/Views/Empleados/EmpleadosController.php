@@ -82,7 +82,8 @@ class EmpleadosController
             carnet_extranjeria: $request->input('carnet_extranjeria'),
             pasaporte: $request->input('pasaporte'),
             fecha_nacimiento: $request->input('fecha_nacimiento'),
-            foto: $request->file('path_foto')
+            foto: $request->file('path_foto'),
+            ids_labor: (array) $request->input('ids_labor', [])
         );
 
         return response()->json($result);
