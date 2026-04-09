@@ -15,6 +15,9 @@ class Proveedor extends Model
         'dni',
         'ruc',
         'razon_social',
+        'direccion',
+        'telefono',
+        'correo',
         'estado', // Estado Basico
     ];
 }
