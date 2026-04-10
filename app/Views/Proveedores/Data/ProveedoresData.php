@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class ProveedoresData
 {
-    public static function get_proveedores(?int $id_proveedor = null): array
+    public static function get_proveedores(?int $id_proveedor = null)
     {
         $sql = '
         SELECT
@@ -45,9 +45,9 @@ class ProveedoresData
         return DB::select($sql, $params);
     }
 
-    public static function get_proveedor_by_id(int $id_proveedor): array
+    public static function get_proveedor_by_id(int $id_proveedor)
     {
-        return self::get_proveedores($id_proveedor);
+        return self::get_proveedores(id_proveedor: $id_proveedor);
     }
 
     public static function crear_proveedor(
