@@ -6,21 +6,21 @@ use App\Models\Comparativo;
 use App\Models\ComparativoDetalle;
 use App\Models\Cotizacion;
 use App\Models\CotizacionDetalle;
+use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 
 class CotizacionesData
 {
     /**
-     * Obtener el siguiente número correlativo para el año actual
+     * Obtener el siguiente número correlativo usando el helper
      */
-    public static function get_siguiente_numero_correlativo(): int
+    public static function get_nuevo_correlativo(): array
     {
-        $year = date('Y');
-        $max = DB::table('cotizacion')
-            ->whereYear('fecha_hora_cotizacion', $year)
-            ->max('numero_correlativo');
-
-        return ($max ?? 0) + 1;
+        return CorrelativoHelper::generar(
+            tabla: 'cotizacion',
+            prefijo: 'CTZ',
+            columnaFecha: 'fecha_hora_cotizacion'
+        );
     }
 
     /**

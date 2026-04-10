@@ -13,12 +13,21 @@ class CotizacionesController
      */
     public function registrar_comparativo(Request $request): JsonResponse
     {
-        $productos    = $request->input('productos', []);
-        $cotizaciones = $request->input('cotizaciones', []);
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'productos'    => 'required|array|min:1',
+            'cotizaciones' => 'required|array|min:1',
+        ], [
+            'productos.required'    => 'Debe incluir al menos un producto para el comparativo.',
+            'cotizaciones.required' => 'Debe incluir al menos una cotización de proveedor.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(\App\Shared\Responses\ApiResponse::error($validator->errors()->first()));
+        }
 
         $result = CotizacionesService::registrar_comparativo(
-            productos:    $productos,
-            cotizaciones: $cotizaciones
+            productos:    $request->input('productos'),
+            cotizaciones: $request->input('cotizaciones')
         );
 
         return response()->json($result);
@@ -30,6 +39,33 @@ class CotizacionesController
     public function get_listado(Request $request): JsonResponse
     {
         $result = CotizacionesService::listar();
+        return response()->json($result);
+    }
+
+    /**
+     * Obtener unidades de medida (Independencia de vista)
+     */
+    public function get_unidades_medida(): JsonResponse
+    {
+        $result = CotizacionesService::get_unidades_medida();
+        return response()->json($result);
+    }
+
+    /**
+     * Obtener productos (Independencia de vista)
+     */
+    public function get_productos(): JsonResponse
+    {
+        $result = CotizacionesService::get_productos();
+        return response()->json($result);
+    }
+
+    /**
+     * Obtener proveedores (Independencia de vista)
+     */
+    public function get_proveedores(): JsonResponse
+    {
+        $result = CotizacionesService::get_proveedores();
         return response()->json($result);
     }
 }

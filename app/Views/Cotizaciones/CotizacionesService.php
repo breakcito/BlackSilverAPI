@@ -5,6 +5,8 @@ namespace App\Views\Cotizaciones;
 use App\Shared\Responses\ApiResponse;
 use App\Shared\Enums\Cotizacion\EstadoCotizacion;
 use App\Views\Cotizaciones\Data\CotizacionesData;
+use App\Views\Cotizaciones\Data\ProductosData;
+use App\Views\Cotizaciones\Data\ProveedoresData;
 use Illuminate\Support\Facades\DB;
 
 class CotizacionesService
@@ -23,7 +25,6 @@ class CotizacionesService
         try {
             return DB::transaction(function () use ($productos, $cotizaciones) {
                 $fecha_ahora = now()->toDateTimeString();
-                $year_short  = date('y'); // 24, 25, 26...
 
                 // 1. Crear el Comparativo Maestro
                 $id_comparativo = CotizacionesData::crear_comparativo($fecha_ahora);
@@ -52,8 +53,9 @@ class CotizacionesService
 
                 // 4. Registrar cada Cotización
                 foreach ($cotizaciones as $index => $c) {
-                    $numero = CotizacionesData::get_siguiente_numero_correlativo();
-                    $correlativo = "CTZ-{$year_short}-" . str_pad($numero, 5, '0', STR_PAD_LEFT);
+                    $correlativoData = CotizacionesData::get_nuevo_correlativo();
+                    $correlativo = $correlativoData['correlativo'];
+                    $numero      = $correlativoData['numero_correlativo'];
 
                     // Determinar estado final
                     $estado_final = $c['estado'] ?? EstadoCotizacion::GENERADA->value;
@@ -115,5 +117,32 @@ class CotizacionesService
     {
         $result = CotizacionesData::get_listado_agrupado();
         return ApiResponse::success($result);
+    }
+
+    /**
+     * Obtener unidades de medida (Desde capa compartida)
+     */
+    public static function get_unidades_medida(): array
+    {
+        $unidades = \App\Data\UnidadesMedidaData::get_unidades();
+        return ApiResponse::success($unidades);
+    }
+
+    /**
+     * Obtener productos (Desde capa local de la vista)
+     */
+    public static function get_productos(): array
+    {
+        $productos = ProductosData::get_productos_maestro();
+        return ApiResponse::success($productos);
+    }
+
+    /**
+     * Obtener proveedores (Desde capa local de la vista)
+     */
+    public static function get_proveedores(): array
+    {
+        $proveedores = ProveedoresData::get_proveedores_maestro();
+        return ApiResponse::success($proveedores);
     }
 }
