@@ -7,6 +7,7 @@ use App\Shared\Enums\Cotizacion\EstadoCotizacion;
 use App\Views\Cotizaciones\Data\CotizacionesData;
 use App\Views\Cotizaciones\Data\ProductosData;
 use App\Views\Cotizaciones\Data\ProveedoresData;
+use App\Shared\Enums\Cotizacion\MetodoPago;
 use Illuminate\Support\Facades\DB;
 
 class CotizacionesService
@@ -21,6 +22,13 @@ class CotizacionesService
     {
         if (empty($productos)) return ApiResponse::error('Debe incluir al menos un producto en el comparativo.');
         if (empty($cotizaciones)) return ApiResponse::error('Debe incluir al menos una cotización.');
+
+        // Validar que cada cotización tenga al menos un detalle
+        foreach ($cotizaciones as $c) {
+            if (empty($c['detalles'])) {
+                return ApiResponse::error('Cada cotización debe incluir al menos un producto a cotizar.');
+            }
+        }
 
         try {
             return DB::transaction(function () use ($productos, $cotizaciones) {
@@ -70,7 +78,9 @@ class CotizacionesService
                         'correlativo'            => $correlativo,
                         'numero_correlativo'     => $numero,
                         'metodo_pago'            => (string)$c['metodo_pago'],
-                        'fecha_vencimiento_pago' => $c['fecha_vencimiento_pago'] ?? null,
+                        'fecha_vencimiento_pago' => ($c['metodo_pago'] === MetodoPago::CREDITO->value) 
+                                                    ? ($c['fecha_vencimiento_pago'] ?? null) 
+                                                    : null,
                         'total_antes_igv'        => (float)$c['total_antes_igv'],
                         'incluye_igv'            => (bool)$c['incluye_igv'],
                         'porcentaje_igv'         => (float)$c['porcentaje_igv'],
