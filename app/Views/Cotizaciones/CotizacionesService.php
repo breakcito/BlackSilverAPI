@@ -78,7 +78,7 @@ class CotizacionesService
                         'correlativo'            => $correlativo,
                         'numero_correlativo'     => $numero,
                         'metodo_pago'            => (string)$c['metodo_pago'],
-                        'fecha_vencimiento_pago' => ($c['metodo_pago'] === MetodoPago::CREDITO->value) 
+                        'fecha_vencimiento_pago' => (trim((string)($c['metodo_pago'] ?? '')) === MetodoPago::CREDITO->value) 
                                                     ? ($c['fecha_vencimiento_pago'] ?? null) 
                                                     : null,
                         'total_antes_igv'        => (float)$c['total_antes_igv'],
