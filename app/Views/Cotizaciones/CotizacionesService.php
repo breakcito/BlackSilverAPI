@@ -121,7 +121,7 @@ class CotizacionesService
     }
 
     /**
-     * Listar cotizaciones agrupadas
+     * Listar cotizaciones agrupadas con sus detalles
      */
     public static function listar(): array
     {

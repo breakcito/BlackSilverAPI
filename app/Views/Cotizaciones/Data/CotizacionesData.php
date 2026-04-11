@@ -69,9 +69,10 @@ class CotizacionesData
      */
     public static function get_listado_agrupado(): array
     {
-        return DB::select("
+        // 1. Cabeceras de comparativos y cotizaciones
+        $cotizaciones = DB::select("
             SELECT 
-                c.*, 
+                c.*,
                 p.razon_social as proveedor_nombre,
                 comp.created_at as comparativo_fecha
             FROM cotizacion c
@@ -79,5 +80,24 @@ class CotizacionesData
             INNER JOIN comparativo comp ON c.id_comparativo = comp.id
             ORDER BY c.id_comparativo DESC, c.id DESC
         ");
+
+        // 2. Detalles de cada cotización (con nombre del producto y unidad)
+        $detalles = DB::select("
+            SELECT
+                cd.*,
+                pr.nombre as producto_nombre,
+                um.nombre as unidad_medida_nombre,
+                um.abreviatura as unidad_medida_abv
+            FROM cotizacion_detalle cd
+            INNER JOIN comparativo_detalle cpd ON cd.id_comparativo_detalle = cpd.id
+            INNER JOIN producto pr ON cpd.id_producto = pr.id
+            INNER JOIN unidad_medida um ON cd.id_unidad_medida = um.id
+            ORDER BY cd.id_cotizacion, pr.nombre ASC
+        ");
+
+        return [
+            'cotizaciones' => $cotizaciones,
+            'detalles'     => $detalles,
+        ];
     }
 }
