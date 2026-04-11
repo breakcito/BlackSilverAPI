@@ -72,7 +72,7 @@ class CotizacionesData
         return DB::select("
             SELECT 
                 c.*, 
-                p.nombre as proveedor_nombre,
+                p.razon_social as proveedor_nombre,
                 comp.created_at as comparativo_fecha
             FROM cotizacion c
             INNER JOIN proveedor p ON c.id_proveedor = p.id
