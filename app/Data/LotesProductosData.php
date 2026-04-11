@@ -118,14 +118,14 @@ class LotesProductosData
         int $id_producto,
         int $id_unidad_medida,
         int $id_almacen,
-        ?string $descripcion,
         string $correlativo,
         int $numero_correlativo,
         float $stock_inicial,
         float $contenido_por_presentacion,
         float $stock_actual_base,
         string $fecha_hora_ingreso,
-        ?string $fecha_vencimiento
+        ?string $descripcion = null,
+        ?string $fecha_vencimiento = null
     ) {
         return LoteProducto::insertGetId([
             'id_producto' => $id_producto,
@@ -166,7 +166,6 @@ class LotesProductosData
             pr.nombre AS producto,
             lot.correlativo AS lote,
             alm.nombre AS almacen,
-            lot.descripcion,
             DATE(lot.fecha_hora_ingreso) AS fecha_ingreso
         FROM
             lote_producto lot

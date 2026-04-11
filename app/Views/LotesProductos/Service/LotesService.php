@@ -44,13 +44,13 @@ class LotesService
             id_producto: $id_producto,
             id_unidad_medida: $id_unidad_medida,
             id_almacen: $id_almacen,
-            descripcion: $descripcion,
             correlativo: $correlativoData["correlativo"],
             numero_correlativo: $correlativoData["numero_correlativo"],
             stock_inicial: $stock_inicial,
             contenido_por_presentacion: $contenido_por_presentacion,
             stock_actual_base: $stock_actual_base,
             fecha_hora_ingreso: $fecha_hora_ingreso,
+            descripcion: $descripcion,
             fecha_vencimiento: $fecha_vencimiento
         );
 

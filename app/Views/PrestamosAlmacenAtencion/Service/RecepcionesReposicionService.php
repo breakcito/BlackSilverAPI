@@ -71,6 +71,7 @@ class RecepcionesReposicionService
             $id_almacen_destino = (int) $reposicion->id_almacen_prestamista;
 
             // 4. Procesar ítems de la recepción
+            $ids_lotes_nuevos = [];
             foreach ($items as $item) {
                 $id_repo_det = (int) $item['id_reposicion_detalle'];
                 $cantidad_recep_base = (float) $item['cantidad_base'];
@@ -88,7 +89,6 @@ class RecepcionesReposicionService
                         id_producto: (int) $repo_det->id_producto,
                         id_unidad_medida: (int) $item['id_unidad_medida'],
                         id_almacen: $id_almacen_destino,
-                        descripcion: $item['descripcion'] ?? "Ingreso por recepción de reposición",
                         correlativo: $correlativoData['correlativo'],
                         numero_correlativo: $correlativoData['numero_correlativo'],
                         stock_inicial: (float) ($cantidad_recep_base / ($item['contenido_por_presentacion'] ?? 1)),
@@ -97,10 +97,13 @@ class RecepcionesReposicionService
                         fecha_hora_ingreso: isset($item['fecha_ingreso'])
                             ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
                             : $fecha_mysql,
+                        descripcion: $item['descripcion'] ?? "Ingreso por recepción de reposición",
                         fecha_vencimiento: isset($item['fecha_vencimiento'])
                             ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
                             : null
                     );
+
+                    $ids_lotes_nuevos[] = $id_lote_destino;
 
                     $lote_nuevo = LotesProductosData::get_lote_simple_by_id($id_lote_destino);
                     $stock_anterior = 0;
@@ -145,7 +148,11 @@ class RecepcionesReposicionService
                 self::actualizar_estados_post_recepcion($id_repo_det);
             }
 
-            return ApiResponse::success(null, "Recepción de reposición registrada exitosamente");
+            $lotes_data = !empty($ids_lotes_nuevos)
+                ? LotesProductosData::get_info_to_ticket(ids_lotes: $ids_lotes_nuevos)
+                : null;
+
+            return ApiResponse::success($lotes_data, "Recepción de reposición registrada exitosamente");
         });
     }
 
@@ -173,7 +180,7 @@ class RecepcionesReposicionService
         if (!$detalle) return;
 
         $total_recepcionado = RecepcionesReposicionData::get_cantidad_recepcionada_total_base_detalle($id_reposicion_detalle);
-        
+
         // Estado detalle
         $nuevo_estado_det = ($total_recepcionado >= $detalle->cantidad_base - 0.0001) ? 'Recepcionado' : 'Recepcionado Parcialmente';
         RecepcionesReposicionData::update_reposicion_detalle_estado($id_reposicion_detalle, $nuevo_estado_det);
@@ -181,7 +188,7 @@ class RecepcionesReposicionService
         // Estado cabecera
         $id_reposicion = (int) $detalle->id_prestamo_almacen_reposicion;
         $todos_detalles = RecepcionesReposicionData::get_reposicion_detalles($id_reposicion);
-        
+
         $todos_recibidos = true;
         $algun_recibido = false;
 

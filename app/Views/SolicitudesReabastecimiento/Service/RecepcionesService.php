@@ -40,7 +40,15 @@ class RecepcionesService
          */
         array $evidencias = []
     ) {
-        return DB::transaction(function () use ($id_reabastecimiento_entrega, $id_empleado_registro, $con_incidencia, $observacion, $fecha_hora_recepcion, $items, $evidencias) {
+        return DB::transaction(function () use (
+            $id_reabastecimiento_entrega,
+            $id_empleado_registro,
+            $con_incidencia,
+            $observacion,
+            $fecha_hora_recepcion,
+            $items,
+            $evidencias
+        ) {
 
             $fecha_mysql = $fecha_hora_recepcion
                 ? Carbon::parse($fecha_hora_recepcion)->toDateTimeString()
@@ -49,7 +57,7 @@ class RecepcionesService
             // 1. Guardar evidencias
             $evidenciasJson = null;
             if (!empty($evidencias)) {
-                $evidenciasData = ArchivoHelper::guardarArchivos('reabastecimiento/recepciones', $evidencias);
+                $evidenciasData = ArchivoHelper::guardarArchivos('reabastecimiento-recepciones', $evidencias);
                 $evidenciasJson = json_encode($evidenciasData);
             }
 
@@ -64,6 +72,7 @@ class RecepcionesService
             );
 
             // 3. Procesar ítems de la recepción
+            $ids_lotes_nuevos = [];
             foreach ($items as $item) {
                 $id_solic_detalle = (int) $item['id_solicitud_reabastecimiento_detalle'];
                 $cantidad_recep_base = (float) $item['cantidad_base'];
@@ -81,19 +90,21 @@ class RecepcionesService
                         id_producto: (int) $detalle_sol->id_producto,
                         id_unidad_medida: (int) $item['id_unidad_medida'],
                         id_almacen: $id_almacen_destino,
-                        descripcion: $item['descripcion'] ?? "Ingreso por recepción en reabastecimiento",
                         correlativo: $correlativoData['correlativo'],
                         numero_correlativo: $correlativoData['numero_correlativo'],
                         stock_inicial: (float) ($cantidad_recep_base / ($item['contenido_por_presentacion'] ?? 1)),
                         contenido_por_presentacion: (float) ($item['contenido_por_presentacion'] ?? 1),
                         stock_actual_base: $cantidad_recep_base,
                         fecha_hora_ingreso: isset($item['fecha_ingreso'])
-                        ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
-                        : $fecha_mysql,
+                            ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
+                            : $fecha_mysql,
+                        descripcion: $item['descripcion'] ?? "Ingreso por recepción en reabastecimiento",
                         fecha_vencimiento: isset($item['fecha_vencimiento'])
-                        ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
-                        : null
+                            ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
+                            : null
                     );
+
+                    $ids_lotes_nuevos[] = $id_lote_destino;
 
                     $lote_nuevo = LotesProductosData::get_lote_simple_by_id($id_lote_destino);
                     $stock_anterior = 0;
@@ -101,7 +112,6 @@ class RecepcionesService
                     $nuevo_stock = $lote_nuevo['stock_actual'];
                     $nuevo_stock_base = $lote_nuevo['stock_actual_base'];
                     $contenido_lot = $lote_nuevo['contenido_por_presentacion'];
-
                 } else {
                     $id_lote_destino = (int) $item['id_lote_existente'];
                     $lote_existente = LotesProductosData::get_lote_simple_by_id($id_lote_destino);
@@ -150,7 +160,11 @@ class RecepcionesService
                 SolicitudesDetalleData::insert_log_simple($id_solic_detalle, $id_empleado_registro, 'Recepcionado', $descripcionLog);
             }
 
-            return ApiResponse::success(null, "Recepción logística registrada exitosamente");
+            $lotes_data = !empty($ids_lotes_nuevos)
+                ? LotesProductosData::get_info_to_ticket(ids_lotes: $ids_lotes_nuevos)
+                : null;
+
+            return ApiResponse::success($lotes_data, "Recepción logística registrada exitosamente");
         });
     }
 
@@ -163,7 +177,6 @@ class RecepcionesService
         bool $con_incidencia,
         ?string $observacion,
         ?string $fecha_hora_recepcion,
-        array $items,
         /**
          *   'id_solicitud_reabastecimiento_detalle'
          *   'id_entrega_detalle'
@@ -177,9 +190,18 @@ class RecepcionesService
          *   'fecha_ingreso'
          *   'unidad_abv'
          */
+        array $items,
         array $evidencias = []
     ) {
-        return DB::transaction(function () use ($id_reabastecimiento_entrega, $id_empleado_registro, $con_incidencia, $observacion, $fecha_hora_recepcion, $items, $evidencias) {
+        return DB::transaction(function () use (
+            $id_reabastecimiento_entrega,
+            $id_empleado_registro,
+            $con_incidencia,
+            $observacion,
+            $fecha_hora_recepcion,
+            $items,
+            $evidencias
+        ) {
 
             $fecha_mysql = $fecha_hora_recepcion
                 ? Carbon::parse($fecha_hora_recepcion)->toDateTimeString()
@@ -203,6 +225,7 @@ class RecepcionesService
             );
 
             // 3. Procesar ítems de la recepción
+            $ids_lotes_nuevos = [];
             foreach ($items as $item) {
                 $id_solic_detalle = (int) $item['id_solicitud_reabastecimiento_detalle'];
                 $cantidad_recep_base = (float) $item['cantidad_base'];
@@ -220,19 +243,21 @@ class RecepcionesService
                         id_producto: (int) $detalle_sol->id_producto,
                         id_unidad_medida: (int) $item['id_unidad_medida'],
                         id_almacen: $id_almacen_destino,
-                        descripcion: $item['descripcion'] ?? "Ingreso por recepción en reabastecimiento",
                         correlativo: $correlativoData['correlativo'],
                         numero_correlativo: $correlativoData['numero_correlativo'],
                         stock_inicial: (float) ($cantidad_recep_base / ($item['contenido_por_presentacion'] ?? 1)),
                         contenido_por_presentacion: (float) ($item['contenido_por_presentacion'] ?? 1),
                         stock_actual_base: $cantidad_recep_base,
                         fecha_hora_ingreso: isset($item['fecha_ingreso'])
-                        ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
-                        : $fecha_mysql,
+                            ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
+                            : $fecha_mysql,
+                        descripcion: $item['descripcion'] ?? "Ingreso por recepción en reabastecimiento",
                         fecha_vencimiento: isset($item['fecha_vencimiento'])
-                        ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
-                        : null
+                            ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
+                            : null
                     );
+
+                    $ids_lotes_nuevos[] = $id_lote_destino;
 
                     $lote_nuevo = LotesProductosData::get_lote_simple_by_id($id_lote_destino);
                     $stock_anterior = 0;
@@ -240,7 +265,6 @@ class RecepcionesService
                     $nuevo_stock = $lote_nuevo['stock_actual'];
                     $nuevo_stock_base = $lote_nuevo['stock_actual_base'];
                     $contenido_lot = $lote_nuevo['contenido_por_presentacion'];
-
                 } else {
                     $id_lote_destino = (int) $item['id_lote_existente'];
                     $lote_existente = LotesProductosData::get_lote_simple_by_id($id_lote_destino);
@@ -289,7 +313,11 @@ class RecepcionesService
                 SolicitudesDetalleData::insert_log_simple($id_solic_detalle, $id_empleado_registro, 'Recepcionado', $descripcionLog);
             }
 
-            return ApiResponse::success(null, "Recepción de préstamo registrada exitosamente");
+            $lotes_data = !empty($ids_lotes_nuevos)
+                ? LotesProductosData::get_info_to_ticket(ids_lotes: $ids_lotes_nuevos)
+                : null;
+
+            return ApiResponse::success($lotes_data, "Recepción de préstamo registrada exitosamente");
         });
     }
 
@@ -324,7 +352,7 @@ class RecepcionesService
         if (!$detalle) return;
 
         $total_recibido = RecepcionesData::get_cantidad_recepcionada_total_base_detalle($id_entrega_detalle);
-        
+
         // Determinar estado del detalle
         $nuevo_estado_det = ($total_recibido >= $detalle->cantidad_base - 0.0001) ? 'Recibido' : 'Recibido Parcialmente';
         RecepcionesData::update_entrega_detalle_estado($id_entrega_detalle, $nuevo_estado_det);
@@ -332,7 +360,7 @@ class RecepcionesService
         // Determinar estado de la cabecera
         $id_entrega = (int) $detalle->id_reabastecimiento_entrega;
         $todos_detalles = RecepcionesData::get_entrega_detalles($id_entrega);
-        
+
         $todos_recibidos = $todos_detalles->every(fn($d) => $d->state === 'Recibido' || $d->estado === 'Recibido');
         $algun_recibido = $todos_detalles->contains(fn($d) => in_array($d->estado ?? $d->state, ['Recibido', 'Recibido Parcialmente']));
 
@@ -349,7 +377,7 @@ class RecepcionesService
         if (!$detalle) return;
 
         $total_recibido = RecepcionesPrestamoData::get_cantidad_recepcionada_total_base_detalle($id_entrega_detalle);
-        
+
         // Determinar estado del detalle
         $nuevo_estado_det = ($total_recibido >= $detalle->cantidad_base - 0.0001) ? 'Recibido' : 'Recibido Parcialmente';
         RecepcionesPrestamoData::update_entrega_detalle_estado($id_entrega_detalle, $nuevo_estado_det);
@@ -357,7 +385,7 @@ class RecepcionesService
         // Determinar estado de la cabecera
         $id_entrega = (int) $detalle->id_prestamo_almacen_entrega;
         $todos_detalles = RecepcionesPrestamoData::get_entrega_detalles($id_entrega);
-        
+
         $todos_recibidos = $todos_detalles->every(fn($d) => $d->state === 'Recibido' || $d->estado === 'Recibido');
         $algun_recibido = $todos_detalles->contains(fn($d) => in_array($d->estado ?? $d->state, ['Recibido', 'Recibido Parcialmente']));
 
