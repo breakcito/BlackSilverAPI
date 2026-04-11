@@ -75,12 +75,15 @@ class LotesProductosData
     }
 
     /**
-     * Obtener datos basicos de un lote por su id
+     * Obtener datos básicos de uno o varios lotes por su ID.
      */
-    public static function get_lote_simple_by_id(int $id_lote): array
+    public static function get_lote_simple_by_id(int|array $id_lote): ?array
     {
-        return LoteProducto::where('id', $id_lote)
-            ->first([
+        $esArray = is_array($id_lote);
+        $ids = $esArray ? $id_lote : [$id_lote];
+
+        $query = LoteProducto::whereIn('id', $ids)
+            ->get([
                 'id as id_lote',
                 'id_producto',
                 'id_unidad_medida',
@@ -89,7 +92,13 @@ class LotesProductosData
                 'stock_actual',
                 'stock_actual_base',
                 'contenido_por_presentacion'
-            ])?->toArray();
+            ]);
+
+        if ($esArray) {
+            return $query->toArray();
+        }
+
+        return $query->first()?->toArray();
     }
 
     /**

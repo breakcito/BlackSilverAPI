@@ -71,7 +71,19 @@ class RecepcionesService
                 $con_incidencia
             );
 
-            // 3. Procesar ítems de la recepción
+            // 3. Pre-cargar lotes existentes en una sola consulta
+            $ids_lotes_existentes = collect($items)
+                ->where('es_nuevo_lote', false)
+                ->map(fn($i) => (int) $i['id_lote_existente'])
+                ->filter()
+                ->values()
+                ->all();
+
+            $lotesMap = !empty($ids_lotes_existentes)
+                ? collect(LotesProductosData::get_lote_simple_by_id($ids_lotes_existentes))->keyBy('id_lote')
+                : collect();
+
+            // Procesar ítems de la recepción
             $ids_lotes_nuevos = [];
             foreach ($items as $item) {
                 $id_solic_detalle = (int) $item['id_solicitud_reabastecimiento_detalle'];
@@ -85,6 +97,9 @@ class RecepcionesService
 
                 // 4. Gestión de Lotes (Ajuste vs Nuevo)
                 if ($es_nuevo_lote) {
+                    $contenido_por_presentacion = (float) ($item['contenido_por_presentacion'] ?? 1);
+                    $stock_inicial = $cantidad_recep_base / $contenido_por_presentacion;
+
                     $correlativoData = LotesProductosData::get_nuevo_correlativo($id_almacen_destino);
                     $id_lote_destino = LotesProductosData::crear_lote(
                         id_producto: (int) $detalle_sol->id_producto,
@@ -92,8 +107,8 @@ class RecepcionesService
                         id_almacen: $id_almacen_destino,
                         correlativo: $correlativoData['correlativo'],
                         numero_correlativo: $correlativoData['numero_correlativo'],
-                        stock_inicial: (float) ($cantidad_recep_base / ($item['contenido_por_presentacion'] ?? 1)),
-                        contenido_por_presentacion: (float) ($item['contenido_por_presentacion'] ?? 1),
+                        stock_inicial: $stock_inicial,
+                        contenido_por_presentacion: $contenido_por_presentacion,
                         stock_actual_base: $cantidad_recep_base,
                         fecha_hora_ingreso: isset($item['fecha_ingreso'])
                             ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
@@ -106,15 +121,15 @@ class RecepcionesService
 
                     $ids_lotes_nuevos[] = $id_lote_destino;
 
-                    $lote_nuevo = LotesProductosData::get_lote_simple_by_id($id_lote_destino);
+                    // Calcular valores directamente sin re-consultar el lote recién creado
                     $stock_anterior = 0;
                     $stock_anterior_base = 0;
-                    $nuevo_stock = $lote_nuevo['stock_actual'];
-                    $nuevo_stock_base = $lote_nuevo['stock_actual_base'];
-                    $contenido_lot = $lote_nuevo['contenido_por_presentacion'];
+                    $nuevo_stock = $stock_inicial;
+                    $nuevo_stock_base = $cantidad_recep_base;
+                    $contenido_lot = $contenido_por_presentacion;
                 } else {
                     $id_lote_destino = (int) $item['id_lote_existente'];
-                    $lote_existente = LotesProductosData::get_lote_simple_by_id($id_lote_destino);
+                    $lote_existente = $lotesMap->get($id_lote_destino);
 
                     $stock_anterior = $lote_existente['stock_actual'];
                     $stock_anterior_base = $lote_existente['stock_actual_base'];
@@ -224,7 +239,19 @@ class RecepcionesService
                 $con_incidencia
             );
 
-            // 3. Procesar ítems de la recepción
+            // 3. Pre-cargar lotes existentes en una sola consulta
+            $ids_lotes_existentes = collect($items)
+                ->where('es_nuevo_lote', false)
+                ->map(fn($i) => (int) $i['id_lote_existente'])
+                ->filter()
+                ->values()
+                ->all();
+
+            $lotesMap = !empty($ids_lotes_existentes)
+                ? collect(LotesProductosData::get_lote_simple_by_id($ids_lotes_existentes))->keyBy('id_lote')
+                : collect();
+
+            // Procesar ítems de la recepción
             $ids_lotes_nuevos = [];
             foreach ($items as $item) {
                 $id_solic_detalle = (int) $item['id_solicitud_reabastecimiento_detalle'];
@@ -238,6 +265,9 @@ class RecepcionesService
 
                 // 4. Gestión de Lotes (Ajuste vs Nuevo)
                 if ($es_nuevo_lote) {
+                    $contenido_por_presentacion = (float) ($item['contenido_por_presentacion'] ?? 1);
+                    $stock_inicial = $cantidad_recep_base / $contenido_por_presentacion;
+
                     $correlativoData = LotesProductosData::get_nuevo_correlativo($id_almacen_destino);
                     $id_lote_destino = LotesProductosData::crear_lote(
                         id_producto: (int) $detalle_sol->id_producto,
@@ -245,8 +275,8 @@ class RecepcionesService
                         id_almacen: $id_almacen_destino,
                         correlativo: $correlativoData['correlativo'],
                         numero_correlativo: $correlativoData['numero_correlativo'],
-                        stock_inicial: (float) ($cantidad_recep_base / ($item['contenido_por_presentacion'] ?? 1)),
-                        contenido_por_presentacion: (float) ($item['contenido_por_presentacion'] ?? 1),
+                        stock_inicial: $stock_inicial,
+                        contenido_por_presentacion: $contenido_por_presentacion,
                         stock_actual_base: $cantidad_recep_base,
                         fecha_hora_ingreso: isset($item['fecha_ingreso'])
                             ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
@@ -259,15 +289,15 @@ class RecepcionesService
 
                     $ids_lotes_nuevos[] = $id_lote_destino;
 
-                    $lote_nuevo = LotesProductosData::get_lote_simple_by_id($id_lote_destino);
+                    // Calcular valores directamente sin re-consultar el lote recién creado
                     $stock_anterior = 0;
                     $stock_anterior_base = 0;
-                    $nuevo_stock = $lote_nuevo['stock_actual'];
-                    $nuevo_stock_base = $lote_nuevo['stock_actual_base'];
-                    $contenido_lot = $lote_nuevo['contenido_por_presentacion'];
+                    $nuevo_stock = $stock_inicial;
+                    $nuevo_stock_base = $cantidad_recep_base;
+                    $contenido_lot = $contenido_por_presentacion;
                 } else {
                     $id_lote_destino = (int) $item['id_lote_existente'];
-                    $lote_existente = LotesProductosData::get_lote_simple_by_id($id_lote_destino);
+                    $lote_existente = $lotesMap->get($id_lote_destino);
 
                     $stock_anterior = $lote_existente['stock_actual'];
                     $stock_anterior_base = $lote_existente['stock_actual_base'];

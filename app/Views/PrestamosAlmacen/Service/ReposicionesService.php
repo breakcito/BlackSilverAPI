@@ -80,19 +80,27 @@ class ReposicionesService
                 $evidenciasData,
             );
 
-            // 5. Procesar cada ítem de la reposición
+            // 5. Pre-cargar todos los lotes en una sola consulta
+            $ids_lotes = array_map(fn($i) => (int) $i['id_lote_producto'], $items);
+            $lotesMap = collect(LotesProductosData::get_lote_simple_by_id($ids_lotes))
+                ->keyBy('id_lote');
+
+            // Validar Stock de todos los ítems antes de procesar
+            foreach ($items as $item) {
+                $lote = $lotesMap->get((int) $item['id_lote_producto']);
+                if (!$lote || $lote['stock_actual_base'] < (float) $item['cantidad_base']) {
+                    return ApiResponse::error("Stock insuficiente en el lote " . ($lote['correlativo'] ?? 'ID: ' . $item['id_lote_producto']));
+                }
+            }
+
+            // Procesar cada ítem de la reposición
             foreach ($items as $item) {
                 $id_prestamo_detalle = (int) $item['id_prestamo_detalle'];
                 $id_lote_producto = (int) $item['id_lote_producto'];
                 $cantidad_base = (float) $item['cantidad_base'];
                 $cantidad_lote = (float) $item['cantidad_lote'];
                 $cantidad_prestamo = (float) $item['cantidad_prestamo'];
-
-                // Validar Stock del lote de origen
-                $lote = LotesProductosData::get_lote_simple_by_id($id_lote_producto);
-                if ($lote['stock_actual_base'] < $cantidad_base) {
-                    return ApiResponse::error("Stock insuficiente en el lote " . $lote['correlativo']);
-                }
+                $lote = $lotesMap->get($id_lote_producto);
 
                 // A. Insertar detalle de la reposición
                 ReposicionesData::crear_detalle_reposicion(

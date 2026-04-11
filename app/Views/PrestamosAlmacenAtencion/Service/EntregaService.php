@@ -45,21 +45,24 @@ class EntregaService
                 ? Carbon::parse($fecha_hora_entrega)->toDateTimeString()
                 : now()->toDateTimeString();
 
-            // 0. Procesar Evidencias si existen
+            // 0. Pre-cargar todos los lotes en una sola consulta
+            $ids_lotes = array_map(fn($d) => (int) $d['id_lote_salida'], $detalles);
+            $lotesMap = collect(LotesProductosData::get_lote_simple_by_id($ids_lotes))
+                ->keyBy('id_lote');
+
+            // Validar Stock General antes de empezar
+            foreach ($detalles as $det) {
+                $id_lote = (int) $det['id_lote_salida'];
+                $lote = $lotesMap->get($id_lote);
+                if (!$lote || $lote['stock_actual_base'] < (float) $det['cantidad_base']) {
+                    return ApiResponse::error("Stock insuficiente en el lote: " . ($lote['correlativo'] ?? 'ID: ' . $id_lote));
+                }
+            }
+
+            // 1. Procesar Evidencias si existen
             $evidenciasData = null;
             if (!empty($evidencias)) {
                 $evidenciasData = ArchivoHelper::guardarArchivos('prestamos_almacen_entregas', $evidencias);
-            }
-
-            // 1. Validar Stock General antes de empezar
-            foreach ($detalles as $det) {
-                $id_lote = (int) $det['id_lote_salida'];
-                $cant_base = (float) $det['cantidad_base'];
-
-                $lote = LotesProductosData::get_lote_simple_by_id($id_lote);
-                if (!$lote || $lote['stock_actual_base'] < $cant_base) {
-                    return ApiResponse::error("Stock insuficiente en el lote: " . ($lote['correlativo'] ?? 'ID: ' . $id_lote));
-                }
             }
 
             // 2. Obtener cabecera del préstamo para el correlativo y datos del Kardex
@@ -105,8 +108,8 @@ class EntregaService
                     $det['comentario'] ?? null
                 );
 
-                // 4.2 Cargar Lote para cálculos
-                $lote = LotesProductosData::get_lote_simple_by_id($id_lote);
+                // 4.2 Obtener lote desde el mapa pre-cargado
+                $lote = $lotesMap->get($id_lote);
                 $stock_anterior = $lote['stock_actual'];
                 $stock_anterior_base = $lote['stock_actual_base'];
                 $nuevo_stock = $stock_anterior - $cant_lote;

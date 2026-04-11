@@ -62,11 +62,16 @@ class EntregaService
                 $evidenciasData = ArchivoHelper::guardarArchivos('requerimientos_almacen_entregas', $evidencias);
             }
 
+            // Pre-cargar todos los lotes en una sola consulta
+            $ids_lotes = array_map(fn($i) => (int) $i['id_lote_producto'], $detalles);
+            $lotesMap = collect(LotesProductosData::get_lote_simple_by_id($ids_lotes))
+                ->keyBy('id_lote');
+
             // Validar Stock
             foreach ($detalles as $item) {
-                $lote = LotesProductosData::get_lote_simple_by_id($item['id_lote_producto']);
+                $lote = $lotesMap->get((int) $item['id_lote_producto']);
                 if (!$lote || $lote['stock_actual_base'] < $item['cantidad_base']) {
-                    return ApiResponse::error("Stock insuficiente en el lote: " . $lote['correlativo']);
+                    return ApiResponse::error("Stock insuficiente en el lote: " . ($lote['correlativo'] ?? 'ID: ' . $item['id_lote_producto']));
                 }
             }
 
@@ -100,8 +105,8 @@ class EntregaService
                     $item['cantidad_requerimiento']
                 );
 
-                // Cargar Lote para Kardex
-                $lote = LotesProductosData::get_lote_simple_by_id($id_lote);
+                // Obtener lote desde el mapa pre-cargado
+                $lote = $lotesMap->get((int) $id_lote);
                 $stock_anterior = $lote['stock_actual'];
                 $stock_anterior_base = $lote['stock_actual_base'];
                 $nuevo_stock = $stock_anterior - $item['cantidad_lote'];
