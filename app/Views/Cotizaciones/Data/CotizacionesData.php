@@ -86,12 +86,14 @@ class CotizacionesData
             SELECT
                 cd.*,
                 pr.nombre as producto_nombre,
-                um.nombre as unidad_medida_nombre,
-                um.abreviatura as unidad_medida_abv
+                pr.id as id_producto,
+                um.abreviatura as unidad_medida_abv,
+                COALESCE(umb.abreviatura, '---') as unidad_medida_base_abv
             FROM cotizacion_detalle cd
             INNER JOIN comparativo_detalle cpd ON cd.id_comparativo_detalle = cpd.id
             INNER JOIN producto pr ON cpd.id_producto = pr.id
             INNER JOIN unidad_medida um ON cd.id_unidad_medida = um.id
+            LEFT JOIN unidad_medida umb ON pr.id_unidad_medida_base = umb.id
             ORDER BY cd.id_cotizacion, pr.nombre ASC
         ");
 
