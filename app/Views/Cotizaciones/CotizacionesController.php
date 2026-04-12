@@ -68,4 +68,13 @@ class CotizacionesController
         $result = CotizacionesService::get_proveedores();
         return response()->json($result);
     }
+
+    /**
+     * Aprobar una cotización específica
+     */
+    public function aprobar_cotizacion(int $id): JsonResponse
+    {
+        $result = CotizacionesService::aprobar_cotizacion($id);
+        return response()->json($result);
+    }
 }

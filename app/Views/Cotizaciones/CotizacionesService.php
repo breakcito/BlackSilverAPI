@@ -49,27 +49,14 @@ class CotizacionesService
                     $mapa_productos[$p['id_producto']] = $id_det;
                 }
 
-                // 3. Pre-procesar estados de las cotizaciones
-                // Si alguna viene como "Aprobada", las demás pasan a "Desestimada"
-                $hay_aprobada = false;
-                foreach ($cotizaciones as $c) {
-                    if (($c['estado'] ?? '') === EstadoCotizacion::APROBADA->value) {
-                        $hay_aprobada = true;
-                        break;
-                    }
-                }
-
                 // 4. Registrar cada Cotización
                 foreach ($cotizaciones as $index => $c) {
                     $correlativoData = CotizacionesData::get_nuevo_correlativo();
                     $correlativo = $correlativoData['correlativo'];
                     $numero      = $correlativoData['numero_correlativo'];
 
-                    // Determinar estado final
+                    // Determinar estado final (respetamos lo que viene del front directamente)
                     $estado_final = $c['estado'] ?? EstadoCotizacion::GENERADA->value;
-                    if ($hay_aprobada && $estado_final !== EstadoCotizacion::APROBADA->value) {
-                        $estado_final = EstadoCotizacion::DESESTIMADA->value;
-                    }
 
                     $id_cotizacion = CotizacionesData::crear_cotizacion([
                         'id_comparativo'         => $id_comparativo,
@@ -117,6 +104,19 @@ class CotizacionesService
             });
         } catch (\Exception $e) {
             return ApiResponse::error('Error al registrar el comparativo: ' . $e->getMessage());
+        }
+    }
+
+    public static function aprobar_cotizacion(int $id_cotizacion): array
+    {
+        try {
+            DB::table('cotizacion')
+                ->where('id', $id_cotizacion)
+                ->update(['estado' => EstadoCotizacion::APROBADA->value]);
+
+            return ApiResponse::success(null, 'Cotización aprobada correctamente.');
+        } catch (\Exception $e) {
+            return ApiResponse::error('Error al aprobar: ' . $e->getMessage());
         }
     }
 
