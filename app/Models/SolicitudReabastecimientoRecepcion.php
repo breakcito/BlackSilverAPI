@@ -31,8 +31,9 @@ class SolicitudReabastecimientoRecepcion extends Model
         SELECT 
             r.id as id_recepcion,
             r.id_solicitud_reabastecimiento_entrega,
-            r.id_empleado_registro,
+            -- 
             CONCAT(e.nombre, " ", e.apellido) AS empleado_registro,
+            -- 
             r.observacion,
             r.fecha_hora_recepcion,
             r.evidencias,

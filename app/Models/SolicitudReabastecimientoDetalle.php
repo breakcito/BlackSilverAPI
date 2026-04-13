@@ -70,6 +70,10 @@ class SolicitudReabastecimientoDetalle extends Model
             pr.nombre AS producto,
             pr.stock_minimo,
             --
+            -- que producto (tractor, carro, etc) va a consumir este item
+            prdt.nombre as producto_destino, 
+            --
+            --
             -- segun la unidad base del producto
             pr.id_unidad_medida_base,
             unib.abreviatura AS unidad_medida_base_abv,
@@ -94,9 +98,6 @@ class SolicitudReabastecimientoDetalle extends Model
             -- 
             srd.comentario,
             srd.comentario_decision,
-            --
-            -- que producto (tractor, carro, etc) va a consumir este item
-            prdt.nombre as producto_destino, 
             --
             srd.estado
         FROM

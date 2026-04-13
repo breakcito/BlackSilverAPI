@@ -80,7 +80,7 @@ class SolicitudReabastecimiento extends Model
             scr.id_almacen_solicitante,
             alm.nombre as almacen_solicitante,
             --
-            CONCAT(emp.nombre, " ", emp.apellido) AS solicitante,
+            CONCAT(emp.nombre, " ", emp.apellido) AS solicitado_por,
             --
             scr.id_requerimiento_almacen,
             ra.correlativo as correlativo_requerimiento,
@@ -88,8 +88,9 @@ class SolicitudReabastecimiento extends Model
             scr.observacion,
             scr.premura,
             scr.fecha_entrega_requerida,
-            scr.estado,
-            scr.created_at
+            --
+            scr.created_at,
+            scr.estado
         FROM
             solicitud_reabastecimiento scr
         INNER JOIN empleado emp ON emp.id = scr.id_empleado_solicitante

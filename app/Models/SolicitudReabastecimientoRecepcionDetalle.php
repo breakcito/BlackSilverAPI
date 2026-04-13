@@ -41,7 +41,7 @@ class SolicitudReabastecimientoRecepcionDetalle extends Model
             srd.id_unidad_medida as id_unidad_medida_sol,
             us.abreviatura as unidad_medida_sol_abv,
             srd.contenido_por_presentacion as contenido_por_presentacion_sol,
-            (rd.cantidad_recepcionada_base / srd.contenido_por_presentacion) as cantidad_recep_sol,
+            (rd.cantidad_recepcionada_base / srd.contenido_por_presentacion) as cantidad_recepcionada_sol,
             --
             rd.estado
         FROM 
