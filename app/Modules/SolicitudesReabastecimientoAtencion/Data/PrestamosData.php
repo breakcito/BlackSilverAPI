@@ -102,8 +102,8 @@ class PrestamosData
         return PrestamoAlmacenDetalleLog::crear_log(
             id_prestamo_almacen_detalle: $id_prestamo_detalle,
             id_empleado: $id_empleado,
-            descripcion: EstadoDetallePrestamo::Pendiente->getGlosa(),
-            estado: EstadoDetallePrestamo::Pendiente,
+            descripcion: EstadoDetallePrestamo::EsperandoAprobacion->getGlosa(),
+            estado: EstadoDetallePrestamo::EsperandoAprobacion,
         );
     }
 }

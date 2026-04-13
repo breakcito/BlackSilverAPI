@@ -99,7 +99,7 @@ class AtencionService
                         $estadoSolicitud = EstadoSolicitudDetalle::Aprobado->value;
                     } elseif ($nuevo_estado === EstadoDetallePrestamo::Rechazado->value) {
                         $estadoSolicitud = EstadoSolicitudDetalle::Aprobado->value; // Regresa a aprobado para intentar otro almacén
-                    } elseif ($nuevo_estado === EstadoDetallePrestamo::DespachoIniciado->value) {
+                    } elseif ($nuevo_estado === EstadoDetallePrestamo::EnDespacho->value) {
                         $estadoSolicitud = EstadoSolicitudDetalle::EnDespacho->value;
                     }
 

@@ -80,6 +80,7 @@ class SolicitudReabastecimiento extends Model
             scr.id_almacen_solicitante,
             alm.nombre as almacen_solicitante,
             --
+            scr.id_empleado_solicitante,
             CONCAT(emp.nombre, " ", emp.apellido) AS solicitado_por,
             --
             scr.id_requerimiento_almacen,

@@ -60,7 +60,7 @@ class PrestamosDetalleData
     {
         $det = PrestamoAlmacenDetalle::find($id_prestamo_detalle);
         if ($det && $det->cantidad_prestada_base >= $det->cantidad_solicitada_base) {
-            $nuevoEstado = EstadoDetallePrestamo::EntregaCompleta;
+            $nuevoEstado = EstadoDetallePrestamo::Completado;
             $det->update(['estado' => $nuevoEstado->value]);
 
             // INSERTAR LOG AUTOMÁTICO DE CIERRE

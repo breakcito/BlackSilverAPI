@@ -60,7 +60,7 @@ class PrestamoAlmacenDetalle extends Model
             'cantidad_repuesta'                      => 0,
             'cantidad_repuesta_base'                 => 0,
             'comentario'                             => $comentario,
-            'estado'                                 => EstadoDetallePrestamo::Pendiente->value,
+            'estado'                                 => EstadoDetallePrestamo::EsperandoAprobacion->value,
         ]);
     }
 

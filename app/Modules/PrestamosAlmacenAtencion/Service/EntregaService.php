@@ -140,14 +140,14 @@ class EntregaService
                 $updatedItem = DB::table('prestamo_almacen_detalle')
                     ->where('id', $id_prestamo_detalle)
                     ->where('estado', EstadoDetallePrestamo::Aprobado->value)
-                    ->update(['estado' => EstadoDetallePrestamo::DespachoIniciado->value]);
+                    ->update(['estado' => EstadoDetallePrestamo::EnDespacho->value]);
 
                 if ($updatedItem) {
                     PrestamosDetalleData::insert_detalle_log(
                         $id_prestamo_detalle,
                         $id_empleado_entrega,
-                        EstadoDetallePrestamo::DespachoIniciado->value,
-                        EstadoDetallePrestamo::DespachoIniciado->getGlosa()
+                        EstadoDetallePrestamo::EnDespacho->value,
+                        EstadoDetallePrestamo::EnDespacho->getGlosa()
                     );
                 }
 
@@ -185,13 +185,13 @@ class EntregaService
                 DB::table('prestamo_almacen')
                     ->where('id', $id_prestamo)
                     ->where('estado', EstadoPrestamo::Generado->value)
-                    ->update(['estado' => EstadoPrestamo::EnProceso->value]);
+                    ->update(['estado' => EstadoPrestamo::EnDespacho->value]);
             }
 
-            return ApiResponse::success(
-                $correlativoData['correlativo'],
-                "Despacho N° {$correlativoData['correlativo']} registrado exitosamente"
-            );
+            return ApiResponse::success([
+                'correlativo' => $correlativoData['correlativo'],
+                'id_entrega' => $id_entrega
+            ], "Despacho N° {$correlativoData['correlativo']} registrado exitosamente");
         });
     }
 
