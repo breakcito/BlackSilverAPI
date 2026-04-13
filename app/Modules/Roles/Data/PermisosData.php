@@ -10,55 +10,55 @@ use App\Models\ModuloRol;
 class PermisosData
 {
     /**
-     * Obtener la estructura jerarquica de modulos -> submodulos -> secciones
+     * Obtener la estructura jerarquica de Menú -> Submenú -> Módulo
      */
     public static function get_estructura_permisos()
     {
-        // 1. Obtener modulos activos
-        $modulos = Menu::where('estado', 'Activo')->get();
+        // 1. Obtener menus activos
+        $menus = Menu::where('estado', 'Activo')->get();
 
-        foreach ($modulos as $modulo) {
-            // 2. Obtener submodulos de cada modulo
-            $submodulos = Submenu::where('id_modulo', $modulo->id)
+        foreach ($menus as $menu) {
+            // 2. Obtener submenus de cada menu
+            $submenus = Submenu::where('id_menu', $menu->id)
                 ->where('estado', 'Activo')
                 ->get();
 
-            foreach ($submodulos as $submodulo) {
-                // 3. Obtener secciones de cada submodulo
-                $submodulo->secciones = Modulo::where('id_submodulo', $submodulo->id)
+            foreach ($submenus as $submenu) {
+                // 3. Obtener modulos de cada submenu
+                $submenu->modulos = Modulo::where('id_submenu', $submenu->id)
                     ->where('estado', 'Activo')
                     ->get();
             }
 
-            $modulo->submodulos = $submodulos;
+            $menu->submenus = $submenus;
         }
 
-        return $modulos;
+        return $menus;
     }
 
     /**
-     * Asignar una seccion a un rol (tabla pivote)
+     * Asignar un modulo a un rol (tabla pivote)
      */
-    public static function asignar_seccion_a_rol(int $id_rol, int $id_seccion): void
+    public static function asignar_modulo_a_rol(int $id_rol, int $id_modulo): void
     {
         ModuloRol::create([
             'id_rol' => $id_rol,
-            'id_seccion' => $id_seccion
+            'id_modulo' => $id_modulo
         ]);
     }
 
     /**
-     * Obtener solo los IDs de las secciones de un rol
+     * Obtener solo los IDs de los modulos de un rol
      */
-    public static function get_ids_secciones_por_rol(int $id_rol): array
+    public static function get_ids_modulos_por_rol(int $id_rol): array
     {
         return ModuloRol::where('id_rol', $id_rol)
-            ->pluck('id_seccion')
+            ->pluck('id_modulo')
             ->toArray();
     }
 
     /**
-     * Eliminar todas las asociaciones de secciones de un rol
+     * Eliminar todas las asociaciones de modulos de un rol
      */
     public static function limpiar_permisos_rol(int $id_rol): void
     {

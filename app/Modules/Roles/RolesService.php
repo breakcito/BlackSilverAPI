@@ -28,7 +28,7 @@ class RolesService
     }
 
     /**
-     * Crear un rol y asignar sus secciones
+     * Crear un rol y asignar sus modulos
      */
     public static function crear_rol(array $data)
     {
@@ -42,9 +42,9 @@ class RolesService
                     'estado' => 'Activo'
                 ]);
 
-                // 2. Asignar secciones
-                foreach ($data['secciones'] as $id_seccion) {
-                    PermisosData::asignar_seccion_a_rol($id_rol, $id_seccion);
+                // 2. Asignar modulos
+                foreach ($data['modulos'] as $id_modulo) {
+                    PermisosData::asignar_modulo_a_rol($id_rol, $id_modulo);
                 }
 
                 $nuevoRol = RolesData::get_rol_by_id($id_rol);
@@ -56,27 +56,27 @@ class RolesService
     }
 
     /**
-     * Obtener los IDs de las secciones asignadas a un rol
+     * Obtener los IDs de los modulos asignados a un rol
      */
     public static function get_permisos_rol(int $id_rol)
     {
-        $secciones = PermisosData::get_ids_secciones_por_rol($id_rol);
-        return ApiResponse::success($secciones);
+        $modulos = PermisosData::get_ids_modulos_por_rol($id_rol);
+        return ApiResponse::success($modulos);
     }
 
     /**
      * Actualizar los permisos de un rol
      */
-    public static function actualizar_permisos_rol(int $id_rol, array $secciones)
+    public static function actualizar_permisos_rol(int $id_rol, array $modulos)
     {
         try {
-            return DB::transaction(function () use ($id_rol, $secciones) {
+            return DB::transaction(function () use ($id_rol, $modulos) {
                 // 1. Limpiar permisos actuales
                 PermisosData::limpiar_permisos_rol($id_rol);
 
                 // 2. Asignar nuevos permisos
-                foreach ($secciones as $id_seccion) {
-                    PermisosData::asignar_seccion_a_rol($id_rol, $id_seccion);
+                foreach ($modulos as $id_modulo) {
+                    PermisosData::asignar_modulo_a_rol($id_rol, $id_modulo);
                 }
 
                 return ApiResponse::success(null, 'Permisos actualizados correctamente.');

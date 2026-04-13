@@ -9,68 +9,68 @@ class MenuNavService
 {
     public static function get_menu_navegacion(int $idRol): array
     {
-        // 1. Obtener todos los módulos
-        $modulos = MenuNavData::get_menus_by_rol($idRol);
-        if (empty($modulos)) return ApiResponse::success([]);
+        // 1. Obtener todos los menus
+        $menus = MenuNavData::get_menus_by_rol($idRol);
+        if (empty($menus)) return ApiResponse::success([]);
 
-        $idsModulos = array_column($modulos, 'id_menu');
+        $idsMenus = array_column($menus, 'id_menu');
 
-        // 2. Obtener TODOS los submódulos de esos módulos
-        $todosLosSubmodulos = MenuNavData::get_submodulos_by_rol_and_modulos($idRol, $idsModulos);
-        $idsSubmodulos = array_column($todosLosSubmodulos, 'id_submodulo');
+        // 2. Obtener TODOS los submenus de esos menus
+        $todosLosSubmenus = MenuNavData::get_submenus_by_rol_and_menus($idRol, $idsMenus);
+        $idsSubmenus = array_column($todosLosSubmenus, 'id_submenu');
 
-        // 3. Obtener TODAS las secciones de esos submódulos
-        $todasLasSecciones = !empty($idsSubmodulos)
-            ? MenuNavData::get_secciones_by_rol_and_submodulos($idRol, $idsSubmodulos)
+        // 3. Obtener TODOS los modulos de esos submenus
+        $todosLosModulos = !empty($idsSubmenus)
+            ? MenuNavData::get_modulos_by_rol_and_submenus($idRol, $idsSubmenus)
             : [];
 
         // AGRUPACIÓN
 
-        // Agrupar secciones por su padre (id_submodulo)
-        $seccionesAgrupadas = [];
-        foreach ($todasLasSecciones as $seccion) {
-            $seccionesAgrupadas[$seccion->id_submodulo][] = $seccion;
+        // Agrupar modulos por su padre (id_submenu)
+        $modulosAgrupados = [];
+        foreach ($todosLosModulos as $modulo) {
+            $modulosAgrupados[$modulo->id_submenu][] = $modulo;
         }
 
-        // Agrupar submódulos por su padre (id_modulo)
-        $submodulosAgrupados = [];
-        foreach ($todosLosSubmodulos as $submodulo) {
-            $submodulosAgrupados[$submodulo->id_modulo][] = $submodulo;
+        // Agrupar submenus por su padre (id_menu)
+        $submenusAgrupados = [];
+        foreach ($todosLosSubmenus as $submenu) {
+            $submenusAgrupados[$submenu->id_menu][] = $submenu;
         }
 
         // CONSTRUCCIÓN DE LA ESTRUCTURA
 
-        $menu = [];
-        foreach ($modulos as $modulo) {
-            $submodulosData = [];
+        $estructura = [];
+        foreach ($menus as $menu) {
+            $submenusData = [];
 
-            $misSubmodulos = $submodulosAgrupados[$modulo->id_modulo] ?? [];
+            $misSubmenus = $submenusAgrupados[$menu->id_menu] ?? [];
 
-            foreach ($misSubmodulos as $submodulo) {
-                $misSecciones = $seccionesAgrupadas[$submodulo->id_submodulo] ?? [];
+            foreach ($misSubmenus as $submenu) {
+                $misModulos = $modulosAgrupados[$submenu->id_submenu] ?? [];
 
-                $submodulosData[] = [
-                    'id_submodulo' => $submodulo->id_submodulo,
-                    'nombre'       => $submodulo->nombre,
-                    'path'         => $submodulo->path,
-                    'secciones'    => array_map(function ($seccion) use ($modulo, $submodulo) {
+                $submenusData[] = [
+                    'id_submenu' => $submenu->id_submenu,
+                    'nombre'     => $submenu->nombre,
+                    'path'       => $submenu->path,
+                    'modulos'    => array_map(function ($modulo) use ($menu, $submenu) {
                         return [
-                            'id_seccion' => $seccion->id_seccion,
-                            'nombre'     => $seccion->nombre,
-                            'url'        => "/{$modulo->path}/{$submodulo->path}/{$seccion->path}",
+                            'id_modulo' => $modulo->id_modulo,
+                            'nombre'    => $modulo->nombre,
+                            'url'       => "/{$menu->path}/{$submenu->path}/{$modulo->path}",
                         ];
-                    }, $misSecciones),
+                    }, $misModulos),
                 ];
             }
 
-            $menu[] = [
-                'id_modulo'  => $modulo->id_modulo,
-                'nombre'     => $modulo->nombre,
-                'path'       => $modulo->path,
-                'submodulos' => $submodulosData,
+            $estructura[] = [
+                'id_menu'  => $menu->id_menu,
+                'nombre'   => $menu->nombre,
+                'path'     => $menu->path,
+                'submenus' => $submenusData,
             ];
         }
 
-        return ApiResponse::success($menu);
+        return ApiResponse::success($estructura);
     }
 }

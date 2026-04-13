@@ -20,7 +20,7 @@ class RolesController extends Controller
     }
 
     /**
-     * Obtener toda la estructura de modulos, submodulos y secciones
+     * Obtener toda la estructura de Menús, Submenús y Módulos
      */
     public function get_estructura_permisos(): JsonResponse
     {
@@ -36,12 +36,12 @@ class RolesController extends Controller
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:64',
             'descripcion' => 'nullable|string|max:512',
-            'secciones' => 'required|array|min:1',
-            'secciones.*' => 'integer|exists:seccion,id'
+            'modulos' => 'required|array|min:1',
+            'modulos.*' => 'integer|exists:modulo,id'
         ], [
             'nombre.required' => 'El nombre del rol es obligatorio.',
-            'secciones.required' => 'Debe seleccionar al menos una sección.',
-            'secciones.*.exists' => 'Una de las secciones seleccionadas no es válida.'
+            'modulos.required' => 'Debe seleccionar al menos un módulo.',
+            'modulos.*.exists' => 'Uno de los módulos seleccionados no es válido.'
         ]);
 
         if ($validator->fails()) {
@@ -53,7 +53,7 @@ class RolesController extends Controller
     }
 
     /**
-     * Obtener los IDs de las secciones asignadas a un rol
+     * Obtener los IDs de los modulos asignados a un rol
      */
     public function get_permisos_rol(int $id_rol): JsonResponse
     {
@@ -62,23 +62,23 @@ class RolesController extends Controller
     }
 
     /**
-     * Actualizar los permisos (secciones) de un rol
+     * Actualizar los permisos (modulos) de un rol
      */
     public function actualizar_permisos_rol(Request $request, int $id_rol): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'secciones' => 'required|array|min:1',
-            'secciones.*' => 'integer|exists:seccion,id'
+            'modulos' => 'required|array|min:1',
+            'modulos.*' => 'integer|exists:modulo,id'
         ], [
-            'secciones.required' => 'Debe seleccionar al menos una sección.',
-            'secciones.*.exists' => 'Una de las secciones seleccionadas no es válida.'
+            'modulos.required' => 'Debe seleccionar al menos un módulo.',
+            'modulos.*.exists' => 'Uno de los módulos seleccionados no es válido.'
         ]);
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = RolesService::actualizar_permisos_rol($id_rol, $request->input('secciones'));
+        $result = RolesService::actualizar_permisos_rol($id_rol, $request->input('modulos'));
         return response()->json($result);
     }
 }

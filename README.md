@@ -1,12 +1,6 @@
-Entendido. Corrección aplicada. Cada vista mantiene el control de su consulta en este caso específico sin centralizarla.
-
-Aquí tienes el documento actualizado:
-
----
-
 # Black Silver - API (Laravel)
 
-Este es el repositorio del backend (API) de **Black Silver**, una plataforma SaaS diseñada para la gestión integral de operaciones mineras. El sistema está construido sobre Laravel 12 y sigue una arquitectura estricta de **Aislamiento por Vista** orientada a la mantenibilidad.
+Este es el repositorio del backend (API) de **Black Silver**, una plataforma SaaS diseñada para la gestión integral de operaciones mineras. El sistema está construido sobre Laravel 12 y sigue una arquitectura estricta de **Aislamiento por modulo** orientada a la mantenibilidad.
 
 ---
 
@@ -19,18 +13,18 @@ Este es el repositorio del backend (API) de **Black Silver**, una plataforma Saa
 
 ---
 
-## 🏗️ Arquitectura: Aislamiento por Vista
+## 🏗️ Arquitectura: Aislamiento por modulo
 
-La lógica de la API se organiza por **Vistas** (correspondientes exactamente a las vistas del frontend). Cada vista reside en `app/Views/[NombreVista]`.
+La lógica de la API se organiza por **modulos** (correspondientes exactamente a las modulos del frontend). Cada modulo reside en `app/Modules/[Nombremodulo]`.
 
 El flujo debe partir estrictamente en esta dirección: **Endpoints -> Controller -> Service -> Data**.
 
-### Estructura de Capas por Vista
+### Estructura de Capas por modulo
 
 #### 1. Endpoints
 
 - **Responsabilidad:** Definición de rutas y middleware.
-- **Ubicación:** `app/Views/[Vista]/[Vista]Endpoints.php`
+- **Ubicación:** `app/Modules/[modulo]/[modulo]Endpoints.php`
 - **Regla:** Solo deben contener la definición de la ruta y apuntar al método correspondiente del Controller. Cero lógica.
 
 #### 2. Controller (Por Caso de Uso / Proceso)
@@ -65,11 +59,11 @@ El flujo debe partir estrictamente en esta dirección: **Endpoints -> Controller
 
 ### 1. Independencia Total y Reutilización de Consultas
 
-Ninguna vista debe importar lógica (`Controller`, `Service`) de otra. Para consultas en la capa `Data`:
+Ninguna modulo debe importar lógica (`Controller`, `Service`) de otra. Para consultas en la capa `Data`:
 
-- **Uso exacto en 2 Vistas:** Mover la consulta al **Modelo** correspondiente para que la capa Data de ambas vistas la reutilice.
-- **Uso exacto en >2 Vistas:** Crear un archivo dedicado en una **Capa de Data Compartida**.
-- **Consultas con Diferente Profundidad:** Si una consulta en una vista es base para otra, pero una de ellas requiere obtener más información (más joins, subconsultas, agrupaciones), **NO se extrae al modelo**. Ambas vistas tendrán esa consulta directamente ahí mismo en su propia capa de `Data`. La diferencia es que la capa Data de una vista añadirá esa información extra en su propia consulta, mientras que la otra mantendrá la versión base.
+- **Uso exacto en 2 modulos:** Mover la consulta al **Modelo** correspondiente para que la capa Data de ambas modulos la reutilice.
+- **Uso exacto en >2 modulos:** Crear un archivo dedicado en una **Capa de Data Compartida**.
+- **Consultas con Diferente Profundidad:** Si una consulta en una modulo es base para otra, pero una de ellas requiere obtener más información (más joins, subconsultas, agrupaciones), **NO se extrae al modelo**. Ambas modulos tendrán esa consulta directamente ahí mismo en su propia capa de `Data`. La diferencia es que la capa Data de una modulo añadirá esa información extra en su propia consulta, mientras que la otra mantendrá la versión base.
 
 ### 2. Uso Estricto de Enums
 
@@ -93,8 +87,8 @@ public function registrar(int $usuarioId, string $descripcion, array $lotes) {
 
 ## 🚀 Workflow: Crear un Nuevo Proceso
 
-1. **Definir Ruta:** En `[Vista]Endpoints.php`.
-2. **Data Layer:** Implementa los métodos SQL tontos en `[Vista]Data.php`.
+1. **Definir Ruta:** En `[modulo]Endpoints.php`.
+2. **Data Layer:** Implementa los métodos SQL tontos en `[modulo]Data.php`.
 3. **Desarrollar Service:** Crea `[Proceso]Service.php`, documenta arrays, inyecta la capa Data y programa la lógica pura.
 4. **Implementar Controller:** Crea `[Proceso]Controller.php` para validar la entrada, extraer `$authUser`, y pasar parámetros explícitos al Service.
 5. **Respuesta Estandarizada:** ```php
