@@ -14,7 +14,7 @@ class PrestamoAlmacenEntregaDetalle extends Model
     protected $fillable = [
         'id_prestamo_almacen_entrega',
         'id_prestamo_almacen_detalle',
-        'id_lote_salida',
+        'id_lote_producto',
         'cantidad',
         'cantidad_base',
         'comentario',
@@ -32,20 +32,29 @@ class PrestamoAlmacenEntregaDetalle extends Model
         SELECT
             paed.id AS id_entrega_detalle,
             paed.id_prestamo_almacen_entrega,
-            pad.id_solicitud_reabastecimiento_detalle,
             paed.id_prestamo_almacen_detalle,
+            pad.id_solicitud_reabastecimiento_detalle,
             --
             prod.id AS id_producto,
             prod.nombre AS producto,
             --
             -- el lote tomado para la entrega
-            paed.id_lote_salida as id_lote_producto,
+            paed.id_lote_producto,
             lt.correlativo as lote_correlativo,
             --
             -- unidad de medida base del producto
             um_bs.id as id_unidad_medida_base, 
             um_bs.abreviatura as unidad_medida_base_abv,
             paed.cantidad_base, -- cantidad entregada segun la unidad de medida base del producto
+            --
+            COALESCE((
+                SELECT
+                    SUM(rd.cantidad_recepcionada_base)
+                FROM
+                    prestamo_almacen_entrega_recepcion_detalle rd
+                WHERE
+                    rd.id_prestamo_almacen_entrega_detalle = paed.id
+            ),0) AS cantidad_total_recepcionada_base,
             --
             -- unidad de medida del lote de donde salio
             lt.id_unidad_medida as id_unidad_medida_lot,
@@ -59,19 +68,10 @@ class PrestamoAlmacenEntregaDetalle extends Model
             pad.contenido_por_presentacion as contenido_por_presentacion_pr, -- cuantas unidades base hay por una unidad del detalle del prestamo
             paed.cantidad as cantidad_prestamo, -- cantidad entregada segun la unidad de medida del prestamo
             --
-            COALESCE((
-                SELECT
-                    SUM(rd.cantidad_recepcionada_base)
-                FROM
-                    prestamo_almacen_recepcion_detalle rd
-                WHERE
-                    rd.id_prestamo_almacen_entrega_detalle = paed.id
-            ),0) AS cantidad_recibida_total_base,
-            --
             paed.estado
         FROM
             prestamo_almacen_entrega_detalle paed
-        INNER JOIN lote_producto lt on lt.id = paed.id_lote_salida
+        INNER JOIN lote_producto lt on lt.id = paed.id_lote_producto
         INNER JOIN prestamo_almacen_detalle pad ON pad.id = paed.id_prestamo_almacen_detalle
         INNER JOIN producto prod ON prod.id = pad.id_producto
         INNER JOIN unidad_medida um_pr ON um_pr.id = pad.id_unidad_medida

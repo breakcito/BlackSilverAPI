@@ -9,24 +9,22 @@ class MenuNavData
     /**
      * Obtener los modulos del sistema para el menu de navegacion
      */
-    public static function get_modulos_by_rol(int $id_rol): array
+    public static function get_menus_by_rol(int $id_rol): array
     {
         $sql = '
         SELECT DISTINCT
-            md.id AS id_modulo,
-            md.nombre,
-            md.path,
-            md.numero_orden
-        FROM modulo md
-        INNER JOIN submodulo sb ON sb.id_modulo = md.id
-        INNER JOIN seccion sc ON sc.id_submodulo = sb.id
-        INNER JOIN seccion_rol scr ON scr.id_seccion = sc.id
+            mn.id AS id_menu,
+            mn.nombre,
+            mn.path,
+            mn.numero_orden
+        FROM menu mn
+        INNER JOIN submenu sb ON sb.id_menu = mn.id
+        INNER JOIN modulo md ON md.id_submenu = sb.id
+        INNER JOIN modulo_rol mr ON mr.id_modulo = md.id
         WHERE
-            scr.id_rol = :id_rol AND
-            md.estado = "Activo" AND
-            sb.estado = "Activo" AND
-            sc.estado = "Activo"
-        ORDER BY md.numero_orden ASC;
+            mr.id_rol = :id_rol AND
+            mn.estado = "Activo"
+        ORDER BY mn.numero_orden ASC;
         ';
 
         return DB::select($sql, ['id_rol' => $id_rol]);

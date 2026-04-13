@@ -82,9 +82,11 @@ class PrestamoAlmacenReposicion extends Model
         $sql = '
         SELECT 
             r.id as id_reposicion,
-            r.id_almacen_entrega,
             r.id_prestamo_almacen,
+            --
+            r.id_almacen_entrega,
             a.nombre AS almacen_entrega,
+            --
             r.correlativo,
             r.fecha_hora_reposicion,
             r.observacion,

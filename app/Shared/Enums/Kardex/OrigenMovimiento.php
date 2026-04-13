@@ -5,16 +5,15 @@ namespace App\Shared\Enums\Kardex;
 enum OrigenMovimiento: string
 {
     /**
-     * ---------------------
+     * -------------------------------------
      * Ingresos
-     * ---------------------
+     * -------------------------------------
      */
-
 
     /**
      * Cuando se registra un lote manualmente
      */
-    case NuevoLote = 'Nuevo lote';
+    case NuevoLote = 'Nuevo Lote';
 
     /**
      * Cuando se recepciona mas stock por
@@ -23,15 +22,11 @@ enum OrigenMovimiento: string
      */
     case Recepcion = 'Recepcion';
 
-
-
     /**
-     * ---------------------
+     * -------------------------------------
      * Salidas
-     * ---------------------
+     * -------------------------------------
      */
-
-
 
     /**
      * Cuando se realiza una entrega por:
@@ -48,7 +43,13 @@ enum OrigenMovimiento: string
     case Reposicion = 'Reposición';
 
     /**
+     * -------------------------------------
      * Mixtos
+     * -------------------------------------
      */
-    case AjusteStock = 'Ajuste de Stock'; // el almacenero edito manualmente el stock
+
+    /**
+     * Cuando se realiza un ajuste de stock, ya sea manual o automatico
+     */
+    case AjusteStock = 'Ajuste de Stock';
 }

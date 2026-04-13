@@ -59,7 +59,7 @@ class SolicitudReabastecimientoDetalle extends Model
      * la vista de Solicitud de Reabastecimiento, que es la vista para el almacenero 
      * que ha hecho esta solicitud de reabastecimiento.
      */
-    public static function get_detalles_solicitud(int $id_solicitud_reabastecimiento)
+    public static function get_detalles_solicitud(?int $id_solicitud_reabastecimiento = null)
     {
         $sql = '
         SELECT DISTINCT
@@ -94,6 +94,10 @@ class SolicitudReabastecimientoDetalle extends Model
             -- 
             srd.comentario,
             srd.comentario_decision,
+            --
+            -- que producto (tractor, carro, etc) va a consumir este item
+            prdt.nombre as producto_destino, 
+            --
             srd.estado
         FROM
             solicitud_reabastecimiento_detalle srd
@@ -101,11 +105,18 @@ class SolicitudReabastecimientoDetalle extends Model
         INNER JOIN producto pr ON pr.id = srd.id_producto
         INNER JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
         INNER JOIN unidad_medida uni ON uni.id = srd.id_unidad_medida
-        WHERE srd.id_solicitud_reabastecimiento = :id_solicitud_reabastecimiento
+        LEFT JOIN requerimiento_almacen_detalle rqd on rqd.id = srd.id_requerimiento_almacen_detalle
+        LEFT JOIN producto prdt on prdt.id = rqd.id_producto_destino
+        WHERE 1 = 1
         ';
 
-        return DB::select($sql, [
-            'id_solicitud_reabastecimiento' => $id_solicitud_reabastecimiento
-        ]);
+        $params = [];
+
+        if ($id_solicitud_reabastecimiento !== null) {
+            $sql .= ' AND srd.id_solicitud_reabastecimiento = :id_solicitud_reabastecimiento';
+            $params['id_solicitud_reabastecimiento'] = $id_solicitud_reabastecimiento;
+        }
+
+        return DB::select($sql, $params);
     }
 }

@@ -10,10 +10,10 @@ class MenuNavService
     public static function get_menu_navegacion(int $idRol): array
     {
         // 1. Obtener todos los módulos
-        $modulos = MenuNavData::get_modulos_by_rol($idRol);
+        $modulos = MenuNavData::get_menus_by_rol($idRol);
         if (empty($modulos)) return ApiResponse::success([]);
 
-        $idsModulos = array_column($modulos, 'id_modulo');
+        $idsModulos = array_column($modulos, 'id_menu');
 
         // 2. Obtener TODOS los submódulos de esos módulos
         $todosLosSubmodulos = MenuNavData::get_submodulos_by_rol_and_modulos($idRol, $idsModulos);

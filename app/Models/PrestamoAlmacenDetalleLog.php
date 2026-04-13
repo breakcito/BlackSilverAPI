@@ -46,11 +46,11 @@ class PrestamoAlmacenDetalleLog extends Model
         $sql = '
         SELECT
             log.id as id_log,
-            log.estado,
             log.descripcion,
             log.created_at,
             CONCAT(e.nombre, " ", e.apellido) AS empleado,
-            e.path_foto
+            e.path_foto,
+            log.estado
         FROM
             prestamo_almacen_detalle_log log
         INNER JOIN empleado e ON e.id = log.id_empleado
