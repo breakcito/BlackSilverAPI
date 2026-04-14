@@ -2,8 +2,7 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\PrestamoAlmacen\EstadoDetalleReposicion;
-use App\Shared\Enums\PrestamoAlmacen\EstadoReposicion;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoReposicion;
 use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -67,7 +66,7 @@ class PrestamoAlmacenReposicion extends Model
             'fecha_hora_reposicion' => $fecha_hora_reposicion,
             'observacion' => $observacion ?? '',
             'evidencias' => $evidencias ? json_encode($evidencias) : null,
-            'estado' => EstadoReposicion::EnDespacho->value,
+            'estado' => EstadoPrestamoReposicion::EnDespacho->value,
             'created_at' => now(),
         ]);
     }

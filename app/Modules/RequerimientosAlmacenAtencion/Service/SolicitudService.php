@@ -4,8 +4,9 @@ namespace App\Modules\RequerimientosAlmacenAtencion\Service;
 
 use Illuminate\Support\Facades\DB;
 use App\Shared\Responses\ApiResponse;
-use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
-use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalle;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalleLog;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleLog;
 use App\Modules\RequerimientosAlmacenAtencion\Data\RequerimientosData;
 use App\Modules\RequerimientosAlmacenAtencion\Data\RequerimientosDetalleData;
 use App\Modules\RequerimientosAlmacenAtencion\Data\SolicitudesData;
@@ -66,13 +67,13 @@ class SolicitudService
                     (int)$id_srd,
                     $id_empleado,
                     "Solicitud generada a partir del requerimiento de almacén N° {$correlativo_requerimiento->correlativo}",
-                    EstadoSolicitudDetalle::EsperandoAprobacion
+                    EstadoSolicitudDetalleLog::EsperandoAprobacion
                 );
 
                 // c) Actualizar estado en el detalle del requerimiento de almacén
                 RequerimientosDetalleData::update_detalle_estado(
                     $id_rad,
-                    EstadoDetalleRequerimiento::ConsultaLogistica->value,
+                    EstadoRequerimientoDetalle::ConsultaLogistica->value,
                     $id_empleado,
                     $item['comentario'] ?? null
                 );
@@ -81,8 +82,8 @@ class SolicitudService
                 RequerimientosDetalleData::insert_detalle_log(
                     $id_rad,
                     $id_empleado,
-                    EstadoDetalleRequerimiento::ConsultaLogistica->getGlosa($correlativoData['correlativo']),
-                    EstadoDetalleRequerimiento::ConsultaLogistica
+                    EstadoRequerimientoDetalle::ConsultaLogistica->getGlosa($correlativoData['correlativo']),
+                    EstadoRequerimientoDetalleLog::ConsultaLogistica
                 );
             }
 

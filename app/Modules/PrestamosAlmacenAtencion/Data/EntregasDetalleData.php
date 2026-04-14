@@ -4,7 +4,7 @@ namespace App\Modules\PrestamosAlmacenAtencion\Data;
 
 use App\Models\PrestamoAlmacenEntrega;
 use App\Models\PrestamoAlmacenEntregaDetalle;
-use App\Shared\Enums\PrestamoAlmacen\EstadoEntregaPrestamo;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoEntrega;
 use Illuminate\Support\Facades\DB;
 
 class EntregasDetalleData
@@ -27,7 +27,7 @@ class EntregasDetalleData
             'cantidad'                    => $cantidad,
             'cantidad_base'               => $cantidad_base,
             'comentario'                  => $comentario,
-            'estado'                      => EstadoEntregaPrestamo::EnDespacho->value,
+            'estado'                      => EstadoPrestamoEntrega::EnDespacho->value,
         ]);
     }
 
@@ -38,7 +38,7 @@ class EntregasDetalleData
     {
         return (bool) PrestamoAlmacenEntregaDetalle::where('id', $id_entrega_detalle)
             ->update([
-                'estado'          => EstadoEntregaPrestamo::Confirmada->value
+                'estado'          => EstadoPrestamoEntrega::RecepcionCompleta->value
             ]);
     }
 
@@ -48,13 +48,13 @@ class EntregasDetalleData
     public static function verificar_y_completar_entrega(int $id_entrega): void
     {
         $pendientes = PrestamoAlmacenEntregaDetalle::where('id_prestamo_almacen_entrega', $id_entrega)
-            ->where('estado', '!=', EstadoEntregaPrestamo::Confirmada->value)
-            ->where('estado', '!=', EstadoEntregaPrestamo::Anulada->value)
+            ->where('estado', '!=', EstadoPrestamoEntrega::RecepcionCompleta->value)
+            ->where('estado', '!=', EstadoPrestamoEntrega::Anulado->value)
             ->count();
 
         if ($pendientes === 0) {
             PrestamoAlmacenEntrega::where('id', $id_entrega)
-                ->update(['estado' => EstadoEntregaPrestamo::Confirmada->value]);
+                ->update(['estado' => EstadoPrestamoEntrega::RecepcionCompleta->value]);
         }
     }
 }

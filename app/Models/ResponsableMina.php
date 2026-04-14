@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\EstadoBase;
+use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 

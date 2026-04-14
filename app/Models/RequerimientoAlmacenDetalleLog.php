@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalleLog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -26,7 +26,7 @@ class RequerimientoAlmacenDetalleLog extends Model
     public static function crear_log(
         int $id_requerimiento_detalle,
         string $descripcion,
-        EstadoDetalleRequerimiento $estado,
+        EstadoRequerimientoDetalleLog $estado,
         ?int $id_empleado = null
     ) {
         return self::create([

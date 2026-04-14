@@ -3,7 +3,7 @@
 namespace App\Modules\RequerimientosAlmacenAtencion\Data;
 
 use App\Models\RequerimientoAlmacenEntregaDetalle;
-use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleEntrega;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalleEntrega;
 use Illuminate\Support\Facades\DB;
 
 class EntregasDetalleData
@@ -28,7 +28,7 @@ class EntregasDetalleData
             'cantidad_lote' => $cantidad_lote,
             'cantidad_requerimiento' => $cantidad_requerimiento,
             'created_at' => now(),
-            'estado' => EstadoDetalleEntrega::Entregado->value,
+            'estado' => EstadoRequerimientoDetalleEntrega::RecepcionCompleta->value,
         ]);
     }
 

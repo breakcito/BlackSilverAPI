@@ -4,17 +4,18 @@ namespace App\Modules\PrestamosAlmacenAtencion\Service;
 
 use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
-use App\Shared\Enums\Kardex\OrigenMovimiento;
-use App\Shared\Enums\Kardex\TipoMovimiento;
-use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
+use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoDetalle;
 use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamo;
-use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleLog;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\PrestamosAlmacenAtencion\Data\EntregasData;
 use App\Modules\PrestamosAlmacenAtencion\Data\EntregasDetalleData;
 use App\Modules\PrestamosAlmacenAtencion\Data\PrestamosData;
 use App\Modules\PrestamosAlmacenAtencion\Data\PrestamosDetalleData;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoDetalleLog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -122,8 +123,8 @@ class EntregaService
                 KardexProductosData::registrar_kardex(
                     id_lote: $id_lote,
                     id_origen: $id_det_entrega,
-                    tipo_movimiento: TipoMovimiento::Salida,
-                    tipo_origen: OrigenMovimiento::Entrega,
+                    tipo_movimiento: KardexTipoMovimiento::Salida,
+                    tipo_origen: KardexOrigenMovimiento::Entrega,
                     descripcion: "Entrega N° {$correlativoData['correlativo']} al almacén {$nombreAlmDestino}",
                     stock_anterior: $stock_anterior,
                     stock_anterior_base: $stock_anterior_base,
@@ -139,15 +140,15 @@ class EntregaService
                 // 4.5.1 Transición de estado del ítem a "Despacho iniciado"
                 $updatedItem = DB::table('prestamo_almacen_detalle')
                     ->where('id', $id_prestamo_detalle)
-                    ->where('estado', EstadoDetallePrestamo::Aprobado->value)
-                    ->update(['estado' => EstadoDetallePrestamo::EnDespacho->value]);
+                    ->where('estado', EstadoPrestamoDetalle::Aprobado->value)
+                    ->update(['estado' => EstadoPrestamoDetalle::EnDespacho->value]);
 
                 if ($updatedItem) {
                     PrestamosDetalleData::insert_detalle_log(
                         $id_prestamo_detalle,
                         $id_empleado_entrega,
-                        EstadoDetallePrestamo::EnDespacho->value,
-                        EstadoDetallePrestamo::EnDespacho->getGlosa()
+                        EstadoPrestamoDetalle::EnDespacho->value,
+                        EstadoPrestamoDetalle::EnDespacho->getGlosa()
                     );
                 }
 
@@ -160,21 +161,21 @@ class EntregaService
                     EntregasData::incrementar_entregado_reabastecimiento($id_sol_det, $cant_solicitud, $cant_base);
 
                     // LOG DE REABASTECIMIENTO (Original)
-                    $reabastecimientoLogGlosa = EstadoSolicitudDetalle::NuevaEntrega->getGlosa((string)$cant_solicitud);
+                    $reabastecimientoLogGlosa = EstadoSolicitudDetalleLog::NuevaEntrega->getGlosa((string)$cant_solicitud);
                     EntregasData::insertar_log_reabastecimiento(
                         $id_sol_det,
                         $id_empleado_entrega,
                         $reabastecimientoLogGlosa,
-                        EstadoSolicitudDetalle::NuevaEntrega->value
+                        EstadoSolicitudDetalleLog::NuevaEntrega->value
                     );
                 }
 
                 // 4.7 LOG DE TRAZABILIDAD DEL PRÉSTAMO
-                $prestamoLogGlosa = EstadoDetallePrestamo::NuevaEntrega->getGlosa((string)$cant_lote);
+                $prestamoLogGlosa = EstadoPrestamoDetalleLog::NuevaEntrega->getGlosa((string)$cant_lote);
                 PrestamosDetalleData::insert_detalle_log(
                     $id_prestamo_detalle,
                     $id_empleado_entrega,
-                    EstadoDetallePrestamo::NuevaEntrega->value,
+                    EstadoPrestamoDetalleLog::NuevaEntrega->value,
                     $prestamoLogGlosa
                 );
 

@@ -4,7 +4,8 @@ namespace App\Modules\RequerimientosAlmacen\Data;
 
 use App\Models\RequerimientoAlmacenDetalle;
 use App\Models\RequerimientoAlmacenDetalleLog;
-use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalle;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalleLog;
 use Illuminate\Support\Facades\DB;
 
 class RequerimientosDetalleData
@@ -167,7 +168,7 @@ class RequerimientosDetalleData
             'cantidad_entregada_base'    => 0,
             'comentario'                 => $comentario,
             'id_producto_destino'        => $id_producto_destino,
-            'estado'                     => EstadoDetalleRequerimiento::EsperandoAprobacion->value,
+            'estado'                     => EstadoRequerimientoDetalle::EsperandoAprobacion->value,
         ]);
     }
 
@@ -181,8 +182,8 @@ class RequerimientosDetalleData
         return RequerimientoAlmacenDetalleLog::crear_log(
             id_requerimiento_detalle: $id_detalle,
             id_empleado: $id_empleado_solicitante,
-            descripcion: EstadoDetalleRequerimiento::EsperandoAprobacion->getGlosa(),
-            estado: EstadoDetalleRequerimiento::EsperandoAprobacion
+            descripcion: EstadoRequerimientoDetalleLog::EsperandoAprobacion->getGlosa(),
+            estado: EstadoRequerimientoDetalleLog::EsperandoAprobacion
         );
     }
 }

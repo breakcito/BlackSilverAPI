@@ -8,8 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Enum;
-use App\Shared\Enums\Producto\TipoProducto;
-use App\Shared\Enums\Producto\ClasificacionBien;
+use App\Shared\Enums\_Generic\TipoProducto;
+use App\Shared\Enums\_Generic\TipoBien;
 
 class CategoriasController extends Controller
 {

@@ -2,7 +2,7 @@
 
 namespace App\Modules\RequerimientosAlmacen;
 
-use App\Shared\Enums\Premura;
+use App\Shared\Enums\_Generic\Premura;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\RequerimientosAlmacen\RequerimientosService;
 use Illuminate\Http\JsonResponse;

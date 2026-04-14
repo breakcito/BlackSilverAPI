@@ -7,8 +7,8 @@ use App\Models\PrestamoAlmacenEntrega;
 use App\Models\PrestamoAlmacenEntregaDetalle;
 use App\Models\SolicitudReabastecimientoDetalle;
 use App\Models\SolicitudReabastecimientoDetalleLog;
-use App\Shared\Enums\PrestamoAlmacen\EstadoEntregaPrestamo;
-use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoEntrega;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleLog;
 use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 
@@ -70,7 +70,7 @@ class EntregasData
             'observacion'         => $observacion,
             'evidencias'          => $evidencias ? json_encode($evidencias) : null,
             'created_at'          => now(),
-            'estado'              => EstadoEntregaPrestamo::EnDespacho->value
+            'estado'              => EstadoPrestamoEntrega::EnDespacho->value
         ]);
     }
 
@@ -122,7 +122,7 @@ class EntregasData
             $id_solicitud_detalle,
             $id_empleado,
             $glosa,
-            EstadoSolicitudDetalle::from($estado)
+            EstadoSolicitudDetalleLog::from($estado)
         );
     }
 

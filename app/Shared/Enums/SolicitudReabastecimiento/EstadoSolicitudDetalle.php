@@ -4,29 +4,24 @@ namespace App\Shared\Enums\SolicitudReabastecimiento;
 
 enum EstadoSolicitudDetalle: string
 {
-    case EsperandoAprobacion = "Esperando aprobación";
+    case EsperandoAprobacion = "Esperando Aprobación";
     case Rechazado = "Rechazado";
     case Aprobado = "Aprobado";
-    case EnDespacho = "En despacho"; // La primera vez que se realiza una entrega
-    case NuevaEntrega = "Nueva entrega"; // solo para la trazabilidad
-    case Completado = "Completado"; // estado automatico
-    case Cerrado = "Cerrado"; // estado manual - se decidio dejar de realizar entregas
-    case SolicitandoPrestamo = "Solicitando préstamo";
+    case EnDespacho = "En Despacho";
+    case Cerrado = "Cerrado";
+    case Completado = "Completado";
+    case SolicitandoPrestamo = "Solicitando Préstamo";
 
-    /**
-     * Obtiene la glosa estándar para la trazabilidad
-     */
     public function getGlosa(?string $dinamico = null): string
     {
         return match ($this) {
-            self::EsperandoAprobacion => 'Esperando aprobación',
-            self::Rechazado => 'Lo sentimos, tu producto fue rechazado por el área de Logística',
-            self::Aprobado => 'El área de Logística aprobó el despacho para este producto',
-            self::EnDespacho => 'El área de Logística está procesando tu pedido',
-            self::NuevaEntrega => "Se realizó la entrega de {$dinamico} producto(s)",
-            self::Completado => 'Tu producto ha sido completamente despachado',
-            self::Cerrado => 'El despacho de tu producto ha terminado.',
-            self::SolicitandoPrestamo => 'Se ha solicitado un préstamo entre almacenes para este producto',
+            self::EsperandoAprobacion => 'Esperando aprobación de logística',
+            self::Aprobado => 'Logística aprobó la solicitud de este producto',
+            self::Rechazado => 'Lo sentimos, el producto no pudo ser atendido por logística',
+            self::EnDespacho => 'Logística está procesando el despacho de este producto',
+            self::Cerrado => 'El seguimiento de este ítem ha sido finalizado.',
+            self::Completado => 'La atención de este ítem ha sido finalizada al 100%',
+            self::SolicitandoPrestamo => 'Se ha solicitado un préstamo para atender este ítem',
         };
     }
 }

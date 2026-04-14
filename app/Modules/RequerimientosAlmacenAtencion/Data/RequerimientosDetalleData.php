@@ -4,7 +4,8 @@ namespace App\Modules\RequerimientosAlmacenAtencion\Data;
 
 use App\Models\RequerimientoAlmacenDetalle;
 use App\Models\RequerimientoAlmacenDetalleLog;
-use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalle;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalleLog;
 use Illuminate\Support\Facades\DB;
 
 class RequerimientosDetalleData
@@ -102,7 +103,7 @@ class RequerimientosDetalleData
         int $id_detalle,
         int $id_empleado,
         string $descripcion,
-        EstadoDetalleRequerimiento $estado
+        EstadoRequerimientoDetalleLog $estado
     ) {
         return RequerimientoAlmacenDetalleLog::crear_log(
             id_requerimiento_detalle: $id_detalle,

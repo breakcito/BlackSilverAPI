@@ -3,6 +3,7 @@
 namespace App\Modules\SolicitudesReabastecimiento\Service;
 
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleLog;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimiento\Data\SolicitudesData;
 use App\Modules\SolicitudesReabastecimiento\Data\SolicitudesDetalleData;
@@ -73,7 +74,7 @@ class SolicitudesService
                 $comentario
             );
 
-            $estadoEnum = EstadoSolicitudDetalle::EsperandoAprobacion;
+            $estadoEnum = EstadoSolicitudDetalleLog::EsperandoAprobacion;
             SolicitudesDetalleData::insert_detalle_log(
                 (int)$id_solicitud_detalle,
                 $id_empleado_solicitante,

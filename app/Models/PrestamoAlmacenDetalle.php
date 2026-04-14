@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoDetalle;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -60,7 +60,7 @@ class PrestamoAlmacenDetalle extends Model
             'cantidad_repuesta'                      => 0,
             'cantidad_repuesta_base'                 => 0,
             'comentario'                             => $comentario,
-            'estado'                                 => EstadoDetallePrestamo::EsperandoAprobacion->value,
+            'estado'                                 => EstadoPrestamoDetalle::EsperandoAprobacion->value,
         ]);
     }
 

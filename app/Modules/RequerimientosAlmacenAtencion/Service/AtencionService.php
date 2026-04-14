@@ -3,7 +3,8 @@
 namespace App\Modules\RequerimientosAlmacenAtencion\Service;
 
 use App\Data\AlmacenesData;
-use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalle;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalleLog;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\RequerimientosAlmacenAtencion\Data\RequerimientosData;
 use App\Modules\RequerimientosAlmacenAtencion\Data\RequerimientosDetalleData;
@@ -56,10 +57,10 @@ class AtencionService
                 RequerimientosDetalleData::update_detalle_estado((int) $id_detalle, $nuevo_estado, $id_empleado, $comentario_decision);
 
                 // 2. Determinar el Enum para el log
-                $estadoEnum = EstadoDetalleRequerimiento::from($nuevo_estado);
+                $estadoEnum = EstadoRequerimientoDetalle::from($nuevo_estado);
 
                 // 3. Colocar en estado de proceso al requerimiento si uno de sus detalles es aprobado o consultado con logistica
-                if (EstadoDetalleRequerimiento::Aprobado == $nuevo_estado || $nuevo_estado == EstadoDetalleRequerimiento::ConsultaLogistica) {
+                if (EstadoRequerimientoDetalle::Aprobado->value == $nuevo_estado || $nuevo_estado == EstadoRequerimientoDetalle::ConsultaLogistica->value) {
                     $requerimiento = RequerimientosDetalleData::get_id_requerimiento_by_detalle((int) $id_detalle);
                     RequerimientosData::update_requerimiento_estado((int) $requerimiento->id_requerimiento_almacen, $nuevo_estado);
                 }
@@ -69,7 +70,7 @@ class AtencionService
                     (int) $id_detalle,
                     $id_empleado,
                     $comentario_decision ?? $descripcion,
-                    $estadoEnum
+                    EstadoRequerimientoDetalleLog::from($nuevo_estado)
                 );
             }
 

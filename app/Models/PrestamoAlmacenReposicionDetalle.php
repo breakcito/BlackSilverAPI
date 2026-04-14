@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\PrestamoAlmacen\EstadoDetalleReposicion;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoReposicionDetalle;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -45,7 +45,7 @@ class PrestamoAlmacenReposicionDetalle extends Model
             'cantidad_base' => $cantidad_base,
             'cantidad_lote' => $cantidad_lote,
             'cantidad_prestamo' => $cantidad_prestamo,
-            'estado' => EstadoDetalleReposicion::EnDespacho->value,
+            'estado' => EstadoPrestamoReposicionDetalle::EnDespacho->value,
         ]);
     }
 

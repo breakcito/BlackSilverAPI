@@ -15,6 +15,7 @@
         "php-open-source-saver/jwt-auth": "^2.8"
     },
     "require-dev": {
+        "larastan/larastan": "^3.9",
         "laravel/boost": "^2.1",
         "laravel/pail": "^1.2.2",
         "laravel/pint": "^1.24",

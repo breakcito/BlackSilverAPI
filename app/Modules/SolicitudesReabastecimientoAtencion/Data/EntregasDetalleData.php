@@ -4,7 +4,7 @@ namespace App\Modules\SolicitudesReabastecimientoAtencion\Data;
 
 use App\Models\PrestamoAlmacenEntregaDetalle;
 use App\Models\SolicitudReabastecimientoEntregaDetalle;
-use App\Shared\Enums\SolicitudReabastecimiento\EstadoDetalleEntrega;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleEntrega;
 
 class EntregasDetalleData
 {
@@ -27,7 +27,7 @@ class EntregasDetalleData
             'cantidad_base' => $cantidad_base,
             'cantidad_lote' => $cantidad_lote,
             'cantidad_solicitud' => $cantidad_solicitud,
-            'estado' => EstadoDetalleEntrega::Entregado->value,
+            'estado' => EstadoSolicitudDetalleEntrega::RecepcionCompleta->value,
         ]);
     }
 

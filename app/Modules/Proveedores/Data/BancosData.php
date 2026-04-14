@@ -3,7 +3,7 @@
 namespace App\Modules\Proveedores\Data;
 
 use App\Models\Banco;
-use App\Shared\Enums\EstadoBase;
+use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
 class BancosData

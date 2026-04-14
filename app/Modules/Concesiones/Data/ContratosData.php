@@ -3,7 +3,7 @@
 namespace App\Modules\Concesiones\Data;
 
 use App\Models\ContratoConcesion;
-use App\Shared\Enums\EstadoBase;
+use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 

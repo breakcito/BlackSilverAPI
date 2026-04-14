@@ -2,7 +2,7 @@
 
 namespace App\Shared\Helpers;
 
-use App\Shared\Enums\Periodo;
+use App\Shared\Enums\_Generic\Periodo;
 use Illuminate\Support\Facades\DB;
 use Closure;
 

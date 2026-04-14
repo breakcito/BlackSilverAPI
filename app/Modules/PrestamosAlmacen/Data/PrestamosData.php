@@ -5,7 +5,7 @@ namespace App\Modules\PrestamosAlmacen\Data;
 use App\Models\PrestamoAlmacen;
 use App\Models\PrestamoAlmacenDetalle;
 use App\Models\PrestamoAlmacenDetalleLog;
-use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoDetalleLog;
 use Illuminate\Support\Facades\DB;
 
 class PrestamosData
@@ -85,7 +85,7 @@ class PrestamosData
             id_prestamo_almacen_detalle: $id_prestamo_detalle,
             id_empleado: $id_empleado,
             descripcion: $glosa,
-            estado: EstadoDetallePrestamo::EnReposicion,
+            estado: EstadoPrestamoDetalleLog::Completado,
         );
     }
 }

@@ -3,7 +3,7 @@
 namespace App\Modules\MinasLabores\Data;
 
 use App\Models\ResponsableMina;
-use App\Shared\Enums\EstadoBase;
+use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
 class ResponsablesData

@@ -4,8 +4,8 @@ namespace App\Modules\LotesProductos\Service;
 
 use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
-use App\Shared\Enums\Kardex\OrigenMovimiento;
-use App\Shared\Enums\Kardex\TipoMovimiento;
+use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\LotesProductos\Data\AuxData;
 use App\Modules\LotesProductos\Data\LotesData;
@@ -57,8 +57,8 @@ class LotesService
         if ($stock_inicial > 0) {
             KardexProductosData::registrar_kardex(
                 id_lote: $id_lote,
-                tipo_movimiento: TipoMovimiento::Ingreso,
-                tipo_origen: OrigenMovimiento::NuevoLote,
+                tipo_movimiento: KardexTipoMovimiento::Ingreso,
+                tipo_origen: KardexOrigenMovimiento::NuevoLote,
                 descripcion: 'Ingreso por nuevo lote al almacén',
                 cantidad_movimiento: $stock_inicial,
                 cantidad_movimiento_base: $stock_actual_base,
@@ -90,7 +90,7 @@ class LotesService
             $stock_anterior_base = $lote['stock_actual_base'];
             $diferencia_base = $nuevo_stock_base - $stock_anterior_base;
             $diferencia_lote = $nuevo_stock - $stock_anterior;
-            $tipo_movimiento = $diferencia_base > 0 ? TipoMovimiento::Ingreso : TipoMovimiento::Salida;
+            $tipo_movimiento = $diferencia_base > 0 ? KardexTipoMovimiento::Ingreso : KardexTipoMovimiento::Salida;
 
             $unidad_base = AuxData::get_abreviatura_unidad_medida($lote['id_unidad_medida']);
 
@@ -111,7 +111,7 @@ class LotesService
             KardexProductosData::registrar_kardex(
                 id_lote: $id_lote,
                 tipo_movimiento: $tipo_movimiento,
-                tipo_origen: OrigenMovimiento::AjusteStock,
+                tipo_origen: KardexOrigenMovimiento::AjusteStock,
                 descripcion: $descripcion_kardex,
                 stock_anterior: $stock_anterior,
                 stock_anterior_base: $stock_anterior_base,

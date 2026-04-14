@@ -5,7 +5,7 @@ namespace App\Modules\SolicitudesReabastecimientoAtencion\Data;
 use App\Models\PrestamoAlmacen;
 use App\Models\PrestamoAlmacenDetalle;
 use App\Models\PrestamoAlmacenDetalleLog;
-use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoDetalleLog;
 
 class PrestamosData
 {
@@ -102,8 +102,8 @@ class PrestamosData
         return PrestamoAlmacenDetalleLog::crear_log(
             id_prestamo_almacen_detalle: $id_prestamo_detalle,
             id_empleado: $id_empleado,
-            descripcion: EstadoDetallePrestamo::EsperandoAprobacion->getGlosa(),
-            estado: EstadoDetallePrestamo::EsperandoAprobacion,
+            descripcion: EstadoPrestamoDetalleLog::EsperandoAprobacion->getGlosa(),
+            estado: EstadoPrestamoDetalleLog::EsperandoAprobacion,
         );
     }
 }

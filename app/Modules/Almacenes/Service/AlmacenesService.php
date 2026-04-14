@@ -14,7 +14,7 @@ class AlmacenesService
         return ApiResponse::success($almacenes);
     }
 
-    public static function crear_almacen(string $nombre, ?string $descripcion = null, bool $es_principal)
+    public static function crear_almacen(string $nombre, bool $es_principal, ?string $descripcion = null)
     {
         if (AlmacenesData::verificar_nombre_duplicado($nombre)) {
             return ApiResponse::error('Ya existe un almacén con este nombre.');

@@ -5,7 +5,7 @@ namespace App\Modules\RequerimientosAlmacenAtencion\Data;
 use App\Models\SolicitudReabastecimiento;
 use App\Models\SolicitudReabastecimientoDetalle;
 use App\Models\SolicitudReabastecimientoDetalleLog;
-use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleLog;
 
 class SolicitudesData
 {
@@ -125,7 +125,7 @@ class SolicitudesData
         int $id_solicitud_detalle,
         int $id_empleado,
         string $descripcion,
-        EstadoSolicitudDetalle $estado
+        EstadoSolicitudDetalleLog $estado
     ) {
         return SolicitudReabastecimientoDetalleLog::crear_log(
             id_solicitud_detalle: $id_solicitud_detalle,

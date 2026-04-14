@@ -3,7 +3,7 @@
 namespace App\Modules\Cotizaciones\Data;
 
 use App\Models\Producto;
-use App\Shared\Enums\EstadoBase;
+use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
 class ProductosData

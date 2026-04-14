@@ -4,13 +4,14 @@ namespace App\Modules\SolicitudesReabastecimientoAtencion\Service;
 
 use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
-use App\Shared\Enums\Kardex\OrigenMovimiento;
-use App\Shared\Enums\Kardex\TipoMovimiento;
+use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\EntregasData;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\EntregasDetalleData;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\SolicitudesDetalleData;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleLog;
 use Illuminate\Support\Facades\DB;
 use App\Shared\Helpers\ArchivoHelper;
 
@@ -118,8 +119,8 @@ class EntregaService
                 // Registrar Kardex (Salida)
                 KardexProductosData::registrar_kardex(
                     $id_lote,
-                    TipoMovimiento::Salida,
-                    OrigenMovimiento::Entrega,
+                    KardexTipoMovimiento::Salida,
+                    KardexOrigenMovimiento::Entrega,
                     "Salida por entrega N° {$correlativoData['correlativo']} debido a una solicitud de reabastecimiento",
                     $item['cantidad_lote'],
                     $item['cantidad_base'],
@@ -150,8 +151,8 @@ class EntregaService
                     SolicitudesDetalleData::insert_detalle_log(
                         $id_detalle_sol,
                         $id_empleado_entrega,
-                        EstadoSolicitudDetalle::EnDespacho->getGlosa(),
-                        EstadoSolicitudDetalle::EnDespacho
+                        EstadoSolicitudDetalleLog::EnDespacho->getGlosa(),
+                        EstadoSolicitudDetalleLog::EnDespacho
                     );
                 }
 
@@ -159,16 +160,16 @@ class EntregaService
                 SolicitudesDetalleData::insert_detalle_log(
                     $id_detalle_sol,
                     $id_empleado_entrega,
-                    EstadoSolicitudDetalle::NuevaEntrega->getGlosa((string)$item['cantidad_solicitud']),
-                    EstadoSolicitudDetalle::NuevaEntrega
+                    EstadoSolicitudDetalleLog::NuevaEntrega->getGlosa((string)$item['cantidad_solicitud']),
+                    EstadoSolicitudDetalleLog::NuevaEntrega
                 );
 
                 if ($finalizo_item) { // si ya finalizo
                     SolicitudesDetalleData::insert_detalle_log(
                         $id_detalle_sol,
                         $id_empleado_entrega,
-                        EstadoSolicitudDetalle::Completado->getGlosa(),
-                        EstadoSolicitudDetalle::Completado
+                        EstadoSolicitudDetalleLog::Completado->getGlosa(),
+                        EstadoSolicitudDetalleLog::Completado
                     );
                 }
             }

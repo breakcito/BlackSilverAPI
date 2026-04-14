@@ -4,8 +4,8 @@ namespace App\Modules\MinasLabores\Data;
 
 use App\Models\Labor;
 use App\Models\TipoLabor;
-use App\Shared\Enums\EstadoBase;
-use App\Shared\Enums\Periodo;
+use App\Shared\Enums\_Generic\EstadoBase;
+use App\Shared\Enums\_Generic\Periodo;
 use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 

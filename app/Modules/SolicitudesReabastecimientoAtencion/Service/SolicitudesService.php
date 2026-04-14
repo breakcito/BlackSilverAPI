@@ -2,8 +2,9 @@
 
 namespace App\Modules\SolicitudesReabastecimientoAtencion\Service;
 
-use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalle;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleLog;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\AuxData;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\SolicitudesData;
@@ -49,7 +50,7 @@ class SolicitudesService
                 $estadoEnum = EstadoSolicitudDetalle::from($nuevo_estado);
 
                 // Colocar en estado de proceso a la solicitudes si uno de sus detalles es aprobado o consultado con logistica
-                if (EstadoSolicitudDetalle::Aprobado == $nuevo_estado) {
+                if (EstadoSolicitudDetalle::Aprobado->value == $nuevo_estado) {
                     $solicitud = SolicitudesDetalleData::get_id_solicitud_by_detalle((int) $id_detalle);
                     SolicitudesData::update_solicitud_estado(
                         (int) $solicitud->id_solicitud_reabastecimiento,
@@ -61,7 +62,7 @@ class SolicitudesService
                 $detalleData = SolicitudesDetalleData::get_detalle_by_id((int) $id_detalle);
                 if ($detalleData->id_requerimiento_almacen_detalle != null) {
                     $id_detalle_req = (int) $detalleData->id_requerimiento_almacen_detalle;
-                    $estadoDetalleReqEnum = EstadoSolicitudDetalle::Aprobado->value == $nuevo_estado ? EstadoDetalleRequerimiento::AprobadoLogistica : EstadoDetalleRequerimiento::RechazadoLogistica;
+                    $estadoDetalleReqEnum = EstadoSolicitudDetalle::Aprobado->value == $nuevo_estado ? EstadoRequerimientoDetalle::AprobadoLogistica : EstadoRequerimientoDetalle::RechazadoLogistica;
 
                     // actualizamos el estado
                     AuxData::update_detalle_requerimiento_estado(
@@ -85,7 +86,7 @@ class SolicitudesService
                     (int) $id_detalle,
                     $id_empleado,
                     $comentario_decision ?? $descripcion,
-                    $estadoEnum
+                    EstadoSolicitudDetalleLog::from($nuevo_estado)
                 );
             }
 

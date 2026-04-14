@@ -2,10 +2,9 @@
 
 namespace App\Modules\PrestamosAlmacenAtencion\Data;
 
-use App\Models\PrestamoAlmacenReposicion;
-use App\Models\PrestamoAlmacenReposicionDetalle;
 use App\Models\PrestamoAlmacenReposicionRecepcion;
 use App\Models\PrestamoAlmacenReposicionRecepcionDetalle;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoReposicionDetalle;
 use Illuminate\Support\Facades\DB;
 
 class RecepcionesReposicionData
@@ -20,7 +19,7 @@ class RecepcionesReposicionData
         ?string $observacion,
         ?string $evidencias = null,
         bool $con_incidencia = false,
-        string $estado = 'Recepcionado'
+        EstadoPrestamoReposicionDetalle $estado = EstadoPrestamoReposicionDetalle::RecepcionCompleta
     ): int {
         return PrestamoAlmacenReposicionRecepcion::crear_recepcion(
             $id_reposicion,
@@ -40,13 +39,15 @@ class RecepcionesReposicionData
         int $id_recepcion,
         int $id_reposicion_detalle,
         float $cantidad_recep_base,
-        string $estado = 'Recepcionado'
+        EstadoPrestamoReposicionDetalle $estado = EstadoPrestamoReposicionDetalle::RecepcionCompleta
     ): bool {
         return PrestamoAlmacenReposicionRecepcionDetalle::crear_detalle(
             $id_recepcion,
-            $id_reposicion_detalle,
-            $cantidad_recep_base,
-            $estado
+            [
+                'id_reposicion_detalle' => $id_reposicion_detalle,
+                'cantidad_recepcionada_base' => $cantidad_recep_base,
+                'estado' => $estado
+            ]
         );
     }
 

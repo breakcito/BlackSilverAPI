@@ -3,7 +3,7 @@
 namespace App\Modules\Proveedores\Data;
 
 use App\Models\CuentaBancariaProveedor;
-use App\Shared\Enums\EstadoBase;
+use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
 class CuentasBancariasData

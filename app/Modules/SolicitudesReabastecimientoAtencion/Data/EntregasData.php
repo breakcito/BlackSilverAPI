@@ -4,7 +4,7 @@ namespace App\Modules\SolicitudesReabastecimientoAtencion\Data;
 
 use App\Models\PrestamoAlmacenEntrega;
 use App\Models\SolicitudReabastecimientoEntrega;
-use App\Shared\Enums\SolicitudReabastecimiento\EstadoEntrega;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudEntrega;
 use App\Shared\Helpers\CorrelativoHelper;
 
 class EntregasData
@@ -67,7 +67,7 @@ class EntregasData
             'observacion' => $observacion,
             'evidencias' => $evidencias ? json_encode($evidencias) : null,
             'created_at' => now(),
-            'estado' => EstadoEntrega::Procesada->value
+            'estado' => EstadoSolicitudEntrega::RecepcionCompleta->value
         ]);
     }
 }

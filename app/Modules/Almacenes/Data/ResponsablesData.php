@@ -3,7 +3,7 @@
 namespace App\Modules\Almacenes\Data;
 
 use App\Models\ResponsableAlmacen;
-use App\Shared\Enums\EstadoBase;
+use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
 class ResponsablesData

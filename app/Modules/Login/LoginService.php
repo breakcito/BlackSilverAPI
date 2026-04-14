@@ -2,7 +2,7 @@
 
 namespace App\Modules\Login;
 
-use App\Shared\Enums\EstadoBase;
+use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\Hash;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\Login\Data\LoginData;

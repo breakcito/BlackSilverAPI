@@ -120,7 +120,7 @@ class CuentasData
      */
     public static function update_usuario(int $id_usuario, array $data): bool
     {
-        return DB::table('usuario')
+        return (bool) DB::table('usuario')
             ->where('id', $id_usuario)
             ->update($data);
     }

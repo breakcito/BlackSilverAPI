@@ -3,7 +3,7 @@
 namespace App\Modules\Categorias\Data;
 
 use App\Models\Categoria;
-use App\Shared\Enums\EstadoBase;
+use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
 class CategoriasData

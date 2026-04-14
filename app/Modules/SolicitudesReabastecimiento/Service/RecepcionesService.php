@@ -4,8 +4,8 @@ namespace App\Modules\SolicitudesReabastecimiento\Service;
 
 use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
-use App\Shared\Enums\Kardex\OrigenMovimiento;
-use App\Shared\Enums\Kardex\TipoMovimiento;
+use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimiento\Data\RecepcionesData;
@@ -145,8 +145,8 @@ class RecepcionesService
                 // 5. Registrar Kardex
                 KardexProductosData::registrar_kardex(
                     $id_lote_destino,
-                    TipoMovimiento::Ingreso,
-                    OrigenMovimiento::Recepcion,
+                    KardexTipoMovimiento::Ingreso,
+                    KardexOrigenMovimiento::Recepcion,
                     "Ingreso por recepción de entrega en reabastecimiento",
                     $cantidad_recep_base / $contenido_lot,
                     $cantidad_recep_base,
@@ -313,8 +313,8 @@ class RecepcionesService
                 // 5. Registrar Kardex
                 KardexProductosData::registrar_kardex(
                     $id_lote_destino,
-                    TipoMovimiento::Ingreso,
-                    OrigenMovimiento::Recepcion,
+                    KardexTipoMovimiento::Ingreso,
+                    KardexOrigenMovimiento::Recepcion,
                     "Ingreso por recepción de entrega en reabastecimiento",
                     $cantidad_recep_base / $contenido_lot,
                     $cantidad_recep_base,

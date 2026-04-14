@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\PrestamoAlmacen\EstadoDetalleReposicion;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoReposicionDetalle;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -29,7 +29,7 @@ class PrestamoAlmacenReposicionRecepcionDetalle extends Model
      *      cantidad_recepcionada_base: int, 
      *      id_lote_producto: int | null,
      *      tipo_movimiento: string, // Nuevo Lote o Ajuste de Stock
-     *      estado: EstadoDetalleReposicion
+     *      estado: EstadoPrestamoReposicionDetalle
      *  }
      */
     public static function crear_detalle(
@@ -50,7 +50,7 @@ class PrestamoAlmacenReposicionRecepcionDetalle extends Model
                 'id_lote_producto' => $detalle['id_lote_producto'],
                 'tipo_movimiento' => $detalle['tipo_movimiento'],
                 'cantidad_recepcionada_base' => $detalle['cantidad_recepcionada_base'],
-                'estado' => $detalle['estado']->value ?? EstadoDetalleReposicion::Recepcionado->value,
+                'estado' => $detalle['estado']->value ?? EstadoPrestamoReposicionDetalle::RecepcionCompleta->value,
             ];
         }
 

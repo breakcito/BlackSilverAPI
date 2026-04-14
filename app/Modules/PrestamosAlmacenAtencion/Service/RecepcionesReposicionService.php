@@ -4,8 +4,8 @@ namespace App\Modules\PrestamosAlmacenAtencion\Service;
 
 use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
-use App\Shared\Enums\Kardex\OrigenMovimiento;
-use App\Shared\Enums\Kardex\TipoMovimiento;
+use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\PrestamosAlmacenAtencion\Data\RecepcionesReposicionData;
@@ -145,8 +145,8 @@ class RecepcionesReposicionService
                 KardexProductosData::registrar_kardex(
                     id_lote: $id_lote_destino,
                     id_origen: $id_recepcion,
-                    tipo_movimiento: TipoMovimiento::Ingreso,
-                    tipo_origen: OrigenMovimiento::Recepcion,
+                    tipo_movimiento: KardexTipoMovimiento::Ingreso,
+                    tipo_origen: KardexOrigenMovimiento::Reposicion,
                     descripcion: "Ingreso por recepción de reposición",
                     stock_anterior: $stock_anterior,
                     stock_anterior_base: $stock_anterior_base,

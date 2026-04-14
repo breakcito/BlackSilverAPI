@@ -2,11 +2,12 @@
 
 namespace App\Modules\SolicitudesReabastecimientoAtencion\Service;
 
-use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleLog;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\AuxData;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\PrestamosData;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\SolicitudesDetalleData;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use Illuminate\Support\Facades\DB;
 
 class PrestamosService
@@ -65,7 +66,7 @@ class PrestamosService
                     $srd->id,
                     $id_empleado_registro,
                     EstadoSolicitudDetalle::SolicitandoPrestamo->getGlosa(),
-                    EstadoSolicitudDetalle::SolicitandoPrestamo
+                    EstadoSolicitudDetalleLog::SolicitandoPrestamo
                 );
 
                 $cantidad_solicitada = (float) $detalle['cantidad_solicitada'];

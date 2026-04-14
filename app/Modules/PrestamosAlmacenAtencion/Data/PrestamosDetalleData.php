@@ -4,7 +4,7 @@ namespace App\Modules\PrestamosAlmacenAtencion\Data;
 
 use App\Models\PrestamoAlmacenDetalle;
 use App\Models\PrestamoAlmacenDetalleLog;
-use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoDetalle;
 
 class PrestamosDetalleData
 {
@@ -60,7 +60,7 @@ class PrestamosDetalleData
     {
         $det = PrestamoAlmacenDetalle::find($id_prestamo_detalle);
         if ($det && $det->cantidad_prestada_base >= $det->cantidad_solicitada_base) {
-            $nuevoEstado = EstadoDetallePrestamo::Completado;
+            $nuevoEstado = EstadoPrestamoDetalle::Completado;
             $det->update(['estado' => $nuevoEstado->value]);
 
             // INSERTAR LOG AUTOMÁTICO DE CIERRE

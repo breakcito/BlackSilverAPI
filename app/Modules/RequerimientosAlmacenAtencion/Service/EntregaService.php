@@ -5,9 +5,10 @@ namespace App\Modules\RequerimientosAlmacenAtencion\Service;
 use App\Data\EmpleadosData;
 use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
-use App\Shared\Enums\Kardex\OrigenMovimiento;
-use App\Shared\Enums\Kardex\TipoMovimiento;
-use App\Shared\Enums\RequerimientoAlmacen\EstadoDetalleRequerimiento;
+use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalle;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalleLog;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\RequerimientosAlmacenAtencion\Data\EntregasData;
@@ -119,8 +120,8 @@ class EntregaService
                 KardexProductosData::registrar_kardex(
                     id_lote: $id_lote,
                     id_origen: $id_detalle_entrega,
-                    tipo_movimiento: TipoMovimiento::Salida,
-                    tipo_origen: OrigenMovimiento::Entrega,
+                    tipo_movimiento: KardexTipoMovimiento::Salida,
+                    tipo_origen: KardexOrigenMovimiento::Entrega,
                     descripcion: "Salida por entrega N° {$correlativoData['correlativo']}",
                     stock_anterior: $stock_anterior,
                     stock_anterior_base: $stock_anterior_base,
@@ -141,20 +142,35 @@ class EntregaService
 
                 // Actualizar Estado del Item
                 $finalizo_item = ($detalle_req->cantidad_entregada_base >= $detalle_req->cantidad_solicitada_base);
-                $nuevo_estado_item = $finalizo_item ? EstadoDetalleRequerimiento::Completado->value : EstadoDetalleRequerimiento::EnDespacho->value;
+                $nuevo_estado_item = $finalizo_item ? EstadoRequerimientoDetalle::Completado->value : EstadoRequerimientoDetalle::EnDespacho->value;
 
                 RequerimientosDetalleData::update_detalle_estado($id_rad, $nuevo_estado_item, $id_empleado_entrega);
 
                 //  Log de Trazabilidad ---
                 if ($ya_entregado_antes == 0) { // si es la primera entrega
-                    RequerimientosDetalleData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::EnDespacho->getGlosa(), EstadoDetalleRequerimiento::EnDespacho);
+                    RequerimientosDetalleData::insert_detalle_log(
+                        $id_rad,
+                        $id_empleado_entrega,
+                        EstadoRequerimientoDetalleLog::EnDespacho->getGlosa(),
+                        EstadoRequerimientoDetalleLog::EnDespacho
+                    );
                 }
 
                 // Por nueva entrega
-                RequerimientosDetalleData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::NuevaEntrega->getGlosa((string)$item['cantidad_requerimiento']), EstadoDetalleRequerimiento::NuevaEntrega);
+                RequerimientosDetalleData::insert_detalle_log(
+                    $id_rad,
+                    $id_empleado_entrega,
+                    EstadoRequerimientoDetalleLog::NuevaEntrega->getGlosa((string)$item['cantidad_requerimiento']),
+                    EstadoRequerimientoDetalleLog::NuevaEntrega
+                );
 
                 if ($finalizo_item) { // si ya finalizo
-                    RequerimientosDetalleData::insert_detalle_log($id_rad, $id_empleado_entrega, EstadoDetalleRequerimiento::Completado->getGlosa(), EstadoDetalleRequerimiento::Completado);
+                    RequerimientosDetalleData::insert_detalle_log(
+                        $id_rad,
+                        $id_empleado_entrega,
+                        EstadoRequerimientoDetalleLog::Completado->getGlosa(),
+                        EstadoRequerimientoDetalleLog::Completado
+                    );
                 }
             }
 

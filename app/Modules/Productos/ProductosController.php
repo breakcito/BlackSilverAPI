@@ -2,7 +2,7 @@
 
 namespace App\Modules\Productos;
 
-use App\Shared\Enums\Periodo;
+use App\Shared\Enums\_Generic\Periodo;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

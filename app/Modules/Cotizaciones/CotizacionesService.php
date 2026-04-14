@@ -7,7 +7,7 @@ use App\Shared\Enums\Cotizacion\EstadoCotizacion;
 use App\Modules\Cotizaciones\Data\CotizacionesData;
 use App\Modules\Cotizaciones\Data\ProductosData;
 use App\Modules\Cotizaciones\Data\ProveedoresData;
-use App\Shared\Enums\Cotizacion\MetodoPago;
+use App\Shared\Enums\_Generic\MetodoPago;
 use Illuminate\Support\Facades\DB;
 
 class CotizacionesService
@@ -56,7 +56,7 @@ class CotizacionesService
                     $numero      = $correlativoData['numero_correlativo'];
 
                     // Determinar estado final (respetamos lo que viene del front directamente)
-                    $estado_final = $c['estado'] ?? EstadoCotizacion::GENERADA->value;
+                    $estado_final = $c['estado'] ?? EstadoCotizacion::Generada->value;
 
                     $id_cotizacion = CotizacionesData::crear_cotizacion([
                         'id_comparativo'         => $id_comparativo,
@@ -65,7 +65,7 @@ class CotizacionesService
                         'correlativo'            => $correlativo,
                         'numero_correlativo'     => $numero,
                         'metodo_pago'            => (string)$c['metodo_pago'],
-                        'fecha_vencimiento_pago' => (trim((string)($c['metodo_pago'] ?? '')) === MetodoPago::CREDITO->value)
+                        'fecha_vencimiento_pago' => (trim((string)($c['metodo_pago'] ?? '')) === MetodoPago::Credito->value)
                             ? ($c['fecha_vencimiento_pago'] ?? null)
                             : null,
                         'total_antes_igv'        => (float)$c['total_antes_igv'],
@@ -112,7 +112,7 @@ class CotizacionesService
         try {
             DB::table('cotizacion')
                 ->where('id', $id_cotizacion)
-                ->update(['estado' => EstadoCotizacion::APROBADA->value]);
+                ->update(['estado' => EstadoCotizacion::Aprobada->value]);
 
             return ApiResponse::success(null, 'Cotización aprobada correctamente.');
         } catch (\Exception $e) {

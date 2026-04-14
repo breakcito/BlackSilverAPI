@@ -3,7 +3,7 @@
 namespace App\Modules\Organigrama\Data;
 
 use App\Models\Cargo;
-use App\Shared\Enums\EstadoBase;
+use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
 class CargosData

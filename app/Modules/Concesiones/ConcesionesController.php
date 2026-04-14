@@ -3,7 +3,7 @@
 namespace App\Modules\Concesiones;
 
 use App\Shared\Responses\ApiResponse;
-use App\Shared\Enums\TipoMineral;
+use App\Shared\Enums\_Generic\TipoMineral;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;

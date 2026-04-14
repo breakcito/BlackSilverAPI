@@ -18,8 +18,8 @@ class SolicitudesData
     ) {
         return SolicitudReabastecimiento::get_solicitudes(
             id_almacen: $id_almacen,
-            mes: $mes,
-            yearcito: $yearcito
+            mes: (int) $mes,
+            yearcito: (int) $yearcito
         );
     }
 

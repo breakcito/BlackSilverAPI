@@ -10,7 +10,5 @@
     "herd_mcp": false,
     "mcp": true,
     "sail": false,
-    "skills": [
-        "pest-testing"
-    ]
+    "skills": []
 }

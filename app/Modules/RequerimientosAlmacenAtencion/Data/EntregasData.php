@@ -3,7 +3,7 @@
 namespace App\Modules\RequerimientosAlmacenAtencion\Data;
 
 use App\Models\RequerimientoAlmacenEntrega;
-use App\Shared\Enums\RequerimientoAlmacen\EstadoEntrega;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoEntrega;
 use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Support\Facades\DB;
 
@@ -107,7 +107,7 @@ class EntregasData
             'observacion' => $observacion,
             'evidencias' => $evidencias ? json_encode($evidencias) : null,
             'created_at' => now(),
-            'estado' => EstadoEntrega::Procesada->value
+            'estado' => EstadoRequerimientoEntrega::RecepcionCompleta->value
         ]);
     }
 }

@@ -2,7 +2,7 @@
 
 namespace App\Modules\PrestamosAlmacenAtencion\Service;
 
-use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoDetalle;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\PrestamosAlmacenAtencion\Data\PrestamosData;
@@ -57,7 +57,7 @@ class AtencionService
         return DB::transaction(function () use ($ids_detalles, $id_empleado, $nuevo_estado, $comentario) {
 
             // Resolvemos el Enum para obtener la glosa
-            $estadoEnum = EstadoDetallePrestamo::from($nuevo_estado);
+            $estadoEnum = EstadoPrestamoDetalle::from($nuevo_estado);
             $glosa = $estadoEnum->getGlosa();
 
             foreach ($ids_detalles as $id_prestamo_detalle) {
@@ -95,11 +95,11 @@ class AtencionService
 
                     // --- ACTUALIZACIÓN DE ESTADO DEL DETALLE DE SOLICITUD ---
                     $estadoSolicitud = null;
-                    if ($nuevo_estado === EstadoDetallePrestamo::Aprobado->value) {
+                    if ($nuevo_estado === EstadoPrestamoDetalle::Aprobado->value) {
                         $estadoSolicitud = EstadoSolicitudDetalle::Aprobado->value;
-                    } elseif ($nuevo_estado === EstadoDetallePrestamo::Rechazado->value) {
+                    } elseif ($nuevo_estado === EstadoPrestamoDetalle::Rechazado->value) {
                         $estadoSolicitud = EstadoSolicitudDetalle::Aprobado->value; // Regresa a aprobado para intentar otro almacén
-                    } elseif ($nuevo_estado === EstadoDetallePrestamo::EnDespacho->value) {
+                    } elseif ($nuevo_estado === EstadoPrestamoDetalle::EnDespacho->value) {
                         $estadoSolicitud = EstadoSolicitudDetalle::EnDespacho->value;
                     }
 

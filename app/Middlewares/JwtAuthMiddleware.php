@@ -4,7 +4,7 @@ namespace App\Middlewares;
 
 use Closure;
 use App\Models\Usuario;
-use App\Shared\Enums\EstadoBase;
+use App\Shared\Enums\_Generic\EstadoBase;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\Request;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;

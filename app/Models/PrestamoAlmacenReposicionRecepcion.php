@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoReposicionDetalle;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -32,7 +33,7 @@ class PrestamoAlmacenReposicionRecepcion extends Model
         ?string $observacion,
         ?string $evidencias = null,
         bool $con_incidencia = false,
-        string $estado = 'Recepcionado'
+        EstadoPrestamoReposicionDetalle $estado = EstadoPrestamoReposicionDetalle::RecepcionCompleta
     ): int {
         return self::insertGetId([
             'id_prestamo_almacen_reposicion' => $id_reposicion,

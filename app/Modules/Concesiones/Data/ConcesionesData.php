@@ -3,7 +3,7 @@
 namespace App\Modules\Concesiones\Data;
 
 use App\Models\Concesion;
-use App\Shared\Enums\EstadoBase;
+use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
 class ConcesionesData

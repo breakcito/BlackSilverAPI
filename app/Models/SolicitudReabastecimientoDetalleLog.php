@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleLog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -30,7 +30,7 @@ class SolicitudReabastecimientoDetalleLog extends Model
         int $id_solicitud_detalle,
         int $id_empleado,
         string $descripcion,
-        EstadoSolicitudDetalle $estado,
+        EstadoSolicitudDetalleLog $estado,
         ?string $created_at = null
     ) {
         return self::insertGetId([

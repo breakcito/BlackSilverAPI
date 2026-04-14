@@ -3,8 +3,8 @@
 namespace App\Data;
 
 use App\Models\KardexProducto;
-use App\Shared\Enums\Kardex\OrigenMovimiento;
-use App\Shared\Enums\Kardex\TipoMovimiento;
+use App\Shared\Enums\Kardex\KardexOrigenMovimiento as OrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento as TipoMovimiento;
 
 class KardexProductosData
 {

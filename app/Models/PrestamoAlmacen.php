@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamo;
-use App\Shared\Enums\PrestamoAlmacen\EstadoReposicion;
+use App\Shared\Enums\PrestamoAlmacen\EstadoReposicionPrestamo;
 use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -145,7 +145,7 @@ class PrestamoAlmacen extends Model
             'fecha_limite_devolucion'       => $fecha_limite_devolucion,
             'observacion'                   => $observacion,
             'created_at'                    => now(),
-            'estado_reposicion'             => EstadoReposicion::SinReposicion->value,
+            'estado_reposicion'             => EstadoReposicionPrestamo::SinReposicion->value,
             'estado'                        => EstadoPrestamo::Generado->value,
         ]);
     }

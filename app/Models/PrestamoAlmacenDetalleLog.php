@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\PrestamoAlmacen\EstadoDetallePrestamo;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoDetalleLog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -24,7 +24,7 @@ class PrestamoAlmacenDetalleLog extends Model
         int $id_prestamo_almacen_detalle,
         int $id_empleado,
         string $descripcion,
-        EstadoDetallePrestamo $estado,
+        EstadoPrestamoDetalleLog $estado,
         ?string $created_at = null,
     ) {
         return self::insertGetId([

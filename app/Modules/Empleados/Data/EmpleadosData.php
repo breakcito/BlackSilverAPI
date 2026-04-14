@@ -5,7 +5,7 @@ namespace App\Modules\Empleados\Data;
 use App\Models\Empleado;
 use App\Models\Labor;
 use App\Models\LaborEmpleado;
-use App\Shared\Enums\EstadoBase;
+use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
 class EmpleadosData
