@@ -11,6 +11,7 @@ use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimiento\Data\RecepcionesData;
 use App\Modules\SolicitudesReabastecimiento\Data\RecepcionesPrestamoData;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\SolicitudesDetalleData;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudEntregaDetalle;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -384,18 +385,18 @@ class RecepcionesService
         $total_recibido = RecepcionesData::get_cantidad_recepcionada_total_base_detalle($id_entrega_detalle);
 
         // Determinar estado del detalle
-        $nuevo_estado_det = ($total_recibido >= $detalle->cantidad_base - 0.0001) ? 'Recibido' : 'Recibido Parcialmente';
-        RecepcionesData::update_entrega_detalle_estado($id_entrega_detalle, $nuevo_estado_det);
+        $nuevo_estado_det = ($total_recibido >= $detalle->cantidad_base - 0.0001) ? EstadoSolicitudEntregaDetalle::RecepcionCompleta : EstadoSolicitudEntregaDetalle::RecepcionadoParcialmente;
+        RecepcionesData::update_entrega_detalle_estado($id_entrega_detalle, $nuevo_estado_det->value);
 
         // Determinar estado de la cabecera
         $id_entrega = (int) $detalle->id_reabastecimiento_entrega;
         $todos_detalles = RecepcionesData::get_entrega_detalles($id_entrega);
 
-        $todos_recibidos = $todos_detalles->every(fn($d) => $d->state === 'Recibido' || $d->estado === 'Recibido');
-        $algun_recibido = $todos_detalles->contains(fn($d) => in_array($d->estado ?? $d->state, ['Recibido', 'Recibido Parcialmente']));
+        $todos_recibidos = $todos_detalles->every(fn($d) => ($d->estado ?? $d->state) === EstadoSolicitudEntregaDetalle::RecepcionCompleta->value);
+        $algun_recibido = $todos_detalles->contains(fn($d) => in_array($d->estado ?? $d->state, [EstadoSolicitudEntregaDetalle::RecepcionCompleta->value, EstadoSolicitudEntregaDetalle::RecepcionadoParcialmente->value]));
 
-        $nuevo_estado_cab = $todos_recibidos ? 'Recibida' : ($algun_recibido ? 'Recepcionado Parcialmente' : 'Procesada');
-        RecepcionesData::update_entrega_estado($id_entrega, $nuevo_estado_cab);
+        $nuevo_estado_cab = $todos_recibidos ? EstadoSolicitudEntregaDetalle::RecepcionCompleta : ($algun_recibido ? EstadoSolicitudEntregaDetalle::RecepcionadoParcialmente : EstadoSolicitudEntregaDetalle::EnDespacho);
+        RecepcionesData::update_entrega_estado($id_entrega, $nuevo_estado_cab->value);
     }
 
     /**
@@ -409,17 +410,17 @@ class RecepcionesService
         $total_recibido = RecepcionesPrestamoData::get_cantidad_recepcionada_total_base_detalle($id_entrega_detalle);
 
         // Determinar estado del detalle
-        $nuevo_estado_det = ($total_recibido >= $detalle->cantidad_base - 0.0001) ? 'Recibido' : 'Recibido Parcialmente';
-        RecepcionesPrestamoData::update_entrega_detalle_estado($id_entrega_detalle, $nuevo_estado_det);
+        $nuevo_estado_det = ($total_recibido >= $detalle->cantidad_base - 0.0001) ? EstadoSolicitudEntregaDetalle::RecepcionCompleta : EstadoSolicitudEntregaDetalle::RecepcionadoParcialmente;
+        RecepcionesPrestamoData::update_entrega_detalle_estado($id_entrega_detalle, $nuevo_estado_det->value);
 
         // Determinar estado de la cabecera
         $id_entrega = (int) $detalle->id_prestamo_almacen_entrega;
         $todos_detalles = RecepcionesPrestamoData::get_entrega_detalles($id_entrega);
 
-        $todos_recibidos = $todos_detalles->every(fn($d) => $d->state === 'Recibido' || $d->estado === 'Recibido');
-        $algun_recibido = $todos_detalles->contains(fn($d) => in_array($d->estado ?? $d->state, ['Recibido', 'Recibido Parcialmente']));
+        $todos_recibidos = $todos_detalles->every(fn($d) => ($d->estado ?? $d->state) === EstadoSolicitudEntregaDetalle::RecepcionCompleta->value);
+        $algun_recibido = $todos_detalles->contains(fn($d) => in_array($d->estado ?? $d->state, [EstadoSolicitudEntregaDetalle::RecepcionCompleta->value, EstadoSolicitudEntregaDetalle::RecepcionadoParcialmente->value]));
 
-        $nuevo_estado_cab = $todos_recibidos ? 'Entrega confirmada' : ($algun_recibido ? 'Recibido Parcialmente' : 'En despacho');
-        RecepcionesPrestamoData::update_entrega_estado($id_entrega, $nuevo_estado_cab);
+        $nuevo_estado_cab = $todos_recibidos ? EstadoSolicitudEntregaDetalle::RecepcionCompleta : ($algun_recibido ? EstadoSolicitudEntregaDetalle::RecepcionadoParcialmente : EstadoSolicitudEntregaDetalle::EnDespacho);
+        RecepcionesPrestamoData::update_entrega_estado($id_entrega, $nuevo_estado_cab->value);
     }
 }

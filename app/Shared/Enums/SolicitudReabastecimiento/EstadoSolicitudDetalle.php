@@ -15,7 +15,7 @@ enum EstadoSolicitudDetalle: string
     public function getGlosa(?string $dinamico = null): string
     {
         return match ($this) {
-            self::EsperandoAprobacion => 'Esperando aprobación de logística',
+            self::EsperandoAprobacion => 'Esperando Aprobación de logística',
             self::Aprobado => 'Logística aprobó la solicitud de este producto',
             self::Rechazado => 'Lo sentimos, el producto no pudo ser atendido por logística',
             self::EnDespacho => 'Logística está procesando el despacho de este producto',

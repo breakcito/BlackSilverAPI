@@ -60,7 +60,7 @@ class AtencionService
                 $estadoEnum = EstadoRequerimientoDetalle::from($nuevo_estado);
 
                 // 3. Colocar en estado de proceso al requerimiento si uno de sus detalles es aprobado o consultado con logistica
-                if (EstadoRequerimientoDetalle::Aprobado->value == $nuevo_estado || $nuevo_estado == EstadoRequerimientoDetalle::ConsultaLogistica->value) {
+                if (EstadoRequerimientoDetalle::Aprobado->value === $nuevo_estado || $nuevo_estado === EstadoRequerimientoDetalle::ConsultaLogistica->value) {
                     $requerimiento = RequerimientosDetalleData::get_id_requerimiento_by_detalle((int) $id_detalle);
                     RequerimientosData::update_requerimiento_estado((int) $requerimiento->id_requerimiento_almacen, $nuevo_estado);
                 }

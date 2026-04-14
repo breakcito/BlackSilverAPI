@@ -14,7 +14,7 @@ enum EstadoPrestamoDetalle: string
     public function getGlosa(?string $dinamico = null): string
     {
         return match ($this) {
-            self::EsperandoAprobacion => 'Esperando aprobación del almacén',
+            self::EsperandoAprobacion => 'Esperando Aprobación',
             self::Aprobado => 'El encargado del almacén aprobó el préstamo de este producto',
             self::EnDespacho => 'El almacén está procesando el despacho de este producto',
             self::Completado => 'La atención de este ítem ha sido finalizada al 100%',

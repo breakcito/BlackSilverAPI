@@ -47,13 +47,13 @@ class EntregaService
                 : now()->toDateTimeString();
 
             // 0. Pre-cargar todos los lotes en una sola consulta
-            $ids_lotes = array_map(fn($d) => (int) $d['id_lote_salida'], $detalles);
+            $ids_lotes = array_map(fn($d) => (int) $d['id_lote_producto'], $detalles);
             $lotesMap = collect(LotesProductosData::get_lote_simple_by_id($ids_lotes))
                 ->keyBy('id_lote');
 
             // Validar Stock General antes de empezar
             foreach ($detalles as $det) {
-                $id_lote = (int) $det['id_lote_salida'];
+                $id_lote = (int) $det['id_lote_producto'];
                 $lote = $lotesMap->get($id_lote);
                 if (!$lote || $lote['stock_actual_base'] < (float) $det['cantidad_base']) {
                     return ApiResponse::error("Stock insuficiente en el lote: " . ($lote['correlativo'] ?? 'ID: ' . $id_lote));
@@ -94,7 +94,7 @@ class EntregaService
             // 4. Procesar Detalles y Afectar Stock/Kardex/Vínculos
             foreach ($detalles as $det) {
                 $id_prestamo_detalle = (int) $det['id_prestamo_detalle'];
-                $id_lote = (int) $det['id_lote_salida'];
+                $id_lote = (int) $det['id_lote_producto'];
                 $cant_lote = (float) $det['cantidad_lote'];
                 $cant_base = (float) $det['cantidad_base'];
                 $cant_solicitud = (float) $det['cantidad_solicitud']; // Cantidad en la unidad de la solicitud

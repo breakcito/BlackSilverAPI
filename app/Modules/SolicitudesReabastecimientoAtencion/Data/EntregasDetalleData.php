@@ -27,7 +27,7 @@ class EntregasDetalleData
             'cantidad_base' => $cantidad_base,
             'cantidad_lote' => $cantidad_lote,
             'cantidad_solicitud' => $cantidad_solicitud,
-            'estado' => EstadoSolicitudDetalleEntrega::RecepcionCompleta->value,
+            'estado' => EstadoSolicitudDetalleEntrega::EnDespacho->value,
         ]);
     }
 

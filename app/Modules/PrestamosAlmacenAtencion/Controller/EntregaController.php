@@ -25,7 +25,7 @@ class EntregaController extends Controller
             'evidencias.*'          => 'file',
             'detalles'              => 'required|array|min:1',
             'detalles.*.id_prestamo_detalle' => 'required|integer',
-            'detalles.*.id_lote_salida'      => 'required|integer',
+            'detalles.*.id_lote_producto'      => 'required|integer',
             'detalles.*.cantidad_lote'       => 'required|numeric|min:0.01',
             'detalles.*.cantidad_base'       => 'required|numeric|min:0.01',
             'detalles.*.cantidad_solicitud'  => 'required|numeric|min:0.01',

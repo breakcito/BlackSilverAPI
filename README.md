@@ -10,6 +10,20 @@ Este es el repositorio del backend (API) de **Black Silver**, una plataforma Saa
 - **Autenticación:** [JWT Auth](https://php-open-source-saver.github.io/jwt-auth/)
 - **Base de Datos:** MySQL / MariaDB
 - **Herramientas de Desarrollo:** Sail, Pint, Artisan
+- **Análisis Estático:** [Larastan](https://github.com/larastan/larastan) (PHPStan para Laravel)
+
+---
+
+## 💎 Librerías Relevantes
+
+### Producción
+- **laravel/framework:** Core del sistema (v12).
+- **php-open-source-saver/jwt-auth:** Gestión de tokens JWT para autenticación stateless.
+
+### Desarrollo
+- **larastan/larastan:** Análisis estático de tipos para prevenir errores en tiempo de ejecución.
+- **laravel/pint:** PHP Code Style fixer para mantener un código limpio y estandarizado.
+- **laravel/sail:** Entorno de desarrollo basado en Docker.
 
 ---
 
@@ -91,10 +105,10 @@ public function registrar(int $usuarioId, string $descripcion, array $lotes) {
 2. **Data Layer:** Implementa los métodos SQL tontos en `[modulo]Data.php`.
 3. **Desarrollar Service:** Crea `[Proceso]Service.php`, documenta arrays, inyecta la capa Data y programa la lógica pura.
 4. **Implementar Controller:** Crea `[Proceso]Controller.php` para validar la entrada, extraer `$authUser`, y pasar parámetros explícitos al Service.
-5. **Respuesta Estandarizada:** ```php
+5. **Respuesta Estandarizada:**
+   ```php
    return ApiResponse::success($data, "Operación exitosa");
-
-````
+   ```
 
 ---
 
@@ -103,7 +117,7 @@ public function registrar(int $usuarioId, string $descripcion, array $lotes) {
 ```bash
 php artisan serve
 php artisan config:clear
-````
+```
 
 ---
 
@@ -112,3 +126,22 @@ php artisan config:clear
 - Rutas sensibles protegidas por el middleware `auth:api`.
 - Validaciones estrictas en cada Controller.
 - Nunca exponer datos sensibles en las respuestas JSON.
+
+---
+
+## 🛠️ Calidad de Código y Análisis Estático
+
+Para garantizar la integridad de los tipos y la arquitectura (especialmente tras el refactor de Enums), utilizamos **Larastan**. Este realiza un análisis profundo del código sin ejecutarlo.
+
+### Configuración (`phpstan.neon`)
+El archivo de configuración define los niveles de rigor y las rutas a ignorar. Actualmente configurado en **Nivel 5** (un balance ideal entre consistencia y productividad).
+
+### Ejecución
+Para identificar errores críticos o inconsistencias de tipos, ejecuta:
+
+```bash
+./vendor/bin/phpstan analyse
+```
+
+> [!IMPORTANT]
+> Es obligatorio que el análisis reporte **0 errores críticos** antes de realizar un despliegue o merge importante.

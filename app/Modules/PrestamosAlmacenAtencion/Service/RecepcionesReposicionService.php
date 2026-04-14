@@ -9,6 +9,8 @@ use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\PrestamosAlmacenAtencion\Data\RecepcionesReposicionData;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoReposicion;
+use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoReposicionDetalle;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -197,8 +199,8 @@ class RecepcionesReposicionService
         $total_recepcionado = RecepcionesReposicionData::get_cantidad_recepcionada_total_base_detalle($id_reposicion_detalle);
 
         // Estado detalle
-        $nuevo_estado_det = ($total_recepcionado >= $detalle->cantidad_base - 0.0001) ? 'Recepcionado' : 'Recepcionado Parcialmente';
-        RecepcionesReposicionData::update_reposicion_detalle_estado($id_reposicion_detalle, $nuevo_estado_det);
+        $nuevo_estado_det = ($total_recepcionado >= $detalle->cantidad_base - 0.0001) ? EstadoPrestamoReposicionDetalle::RecepcionCompleta : EstadoPrestamoReposicionDetalle::RecepcionadoParcialmente;
+        RecepcionesReposicionData::update_reposicion_detalle_estado($id_reposicion_detalle, $nuevo_estado_det->value);
 
         // Estado cabecera
         $id_reposicion = (int) $detalle->id_prestamo_almacen_reposicion;
@@ -208,18 +210,18 @@ class RecepcionesReposicionService
         $algun_recibido = false;
 
         foreach ($todos_detalles as $d) {
-            if ($d->estado === 'Recepcionado') {
+            if ($d->estado === EstadoPrestamoReposicionDetalle::RecepcionCompleta->value) {
                 $algun_recibido = true;
             } else {
                 $todos_recibidos = false;
-                if ($d->estado === 'Recepcionado Parcialmente') {
+                if ($d->estado === EstadoPrestamoReposicionDetalle::RecepcionadoParcialmente->value) {
                     $algun_recibido = true;
                 }
             }
         }
 
-        $nuevo_estado_cab = $todos_recibidos ? 'Recepcionado' : ($algun_recibido ? 'Recepcionado Parcialmente' : 'En Despacho');
-        RecepcionesReposicionData::update_reposicion_estado($id_reposicion, $nuevo_estado_cab);
+        $nuevo_estado_cab = $todos_recibidos ? EstadoPrestamoReposicion::RecepcionCompleta : ($algun_recibido ? EstadoPrestamoReposicion::RecepcionadoParcialmente : EstadoPrestamoReposicion::EnDespacho);
+        RecepcionesReposicionData::update_reposicion_estado($id_reposicion, $nuevo_estado_cab->value);
     }
 
     /**

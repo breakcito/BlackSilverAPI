@@ -47,8 +47,8 @@ class PrestamoAlmacenReposicionRecepcionDetalle extends Model
             $insertData[] = [
                 'id_prestamo_almacen_reposicion_recepcion' => $id_recepcion,
                 'id_prestamo_almacen_reposicion_detalle' => $detalle['id_reposicion_detalle'],
-                'id_lote_producto' => $detalle['id_lote_producto'],
-                'tipo_movimiento' => $detalle['tipo_movimiento'],
+                'id_lote_producto' => $detalle['id_lote_producto'] ?? null,
+                'tipo_movimiento' => $detalle['tipo_movimiento'] ?? null,
                 'cantidad_recepcionada_base' => $detalle['cantidad_recepcionada_base'],
                 'estado' => $detalle['estado']->value ?? EstadoPrestamoReposicionDetalle::RecepcionCompleta->value,
             ];

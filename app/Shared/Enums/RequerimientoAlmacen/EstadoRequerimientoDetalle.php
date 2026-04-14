@@ -4,7 +4,7 @@ namespace App\Shared\Enums\RequerimientoAlmacen;
 
 enum EstadoRequerimientoDetalle: string
 {
-    case EsperandoAprobacion = "Esperando aprobación";
+    case EsperandoAprobacion = "Esperando Aprobación";
     case Rechazado = "Rechazado";
     case Aprobado = "Aprobado";
     case ConsultaLogistica = "Consultando a Logística";

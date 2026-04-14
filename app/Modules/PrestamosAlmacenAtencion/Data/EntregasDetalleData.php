@@ -15,7 +15,7 @@ class EntregasDetalleData
     public static function crear_detalle_entrega(
         int $id_entrega,
         int $id_prestamo_detalle,
-        int $id_lote_salida,
+        int $id_lote_producto,
         float $cantidad,
         float $cantidad_base,
         ?string $comentario = null
@@ -23,7 +23,7 @@ class EntregasDetalleData
         return PrestamoAlmacenEntregaDetalle::insertGetId([
             'id_prestamo_almacen_entrega' => $id_entrega,
             'id_prestamo_almacen_detalle' => $id_prestamo_detalle,
-            'id_lote_salida'              => $id_lote_salida,
+            'id_lote_producto'              => $id_lote_producto,
             'cantidad'                    => $cantidad,
             'cantidad_base'               => $cantidad_base,
             'comentario'                  => $comentario,
