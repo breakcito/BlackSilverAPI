@@ -49,6 +49,8 @@ class CotizacionesService
                     $mapa_productos[$p['id_producto']] = $id_det;
                 }
 
+                $ids_aprobadas = [];
+
                 // 4. Registrar cada Cotización
                 foreach ($cotizaciones as $index => $c) {
                     $correlativoData = CotizacionesData::get_nuevo_correlativo();
@@ -74,11 +76,18 @@ class CotizacionesService
                         'monto_igv'              => (float)$c['monto_igv'],
                         'total_despues_igv'      => (float)$c['total_despues_igv'],
                         'observacion'            => $c['observacion'] ?? null,
-                        'evidencia'              => $c['evidencia'] ?? null,
+                        'evidencias'              => $c['evidencias'] ?? null,
                         'fecha_hora_cotizacion'  => $fecha_ahora,
                         'estado'                 => $estado_final,
                         'created_at'             => $fecha_ahora,
                     ]);
+
+                    if ($estado_final === EstadoCotizacion::Aprobada->value) {
+                        $ids_aprobadas[] = [
+                            'id' => $id_cotizacion,
+                            'correlativo' => $correlativo
+                        ];
+                    }
 
                     // 5. Registrar Detalles de la Cotización
                     foreach ($c['detalles'] as $det) {
@@ -100,7 +109,10 @@ class CotizacionesService
                     }
                 }
 
-                return ApiResponse::success(null, 'Comparativo y cotizaciones registrados correctamente.');
+                return ApiResponse::success([
+                    'id_comparativo' => $id_comparativo,
+                    'ids_aprobadas'  => $ids_aprobadas
+                ], 'Comparativo y cotizaciones registrados correctamente.');
             });
         } catch (\Exception $e) {
             return ApiResponse::error('Error al registrar el comparativo: ' . $e->getMessage());

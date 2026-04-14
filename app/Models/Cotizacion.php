@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Cotizacion extends Model
 {
     protected $table = 'cotizacion';
-    
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -24,7 +24,7 @@ class Cotizacion extends Model
         'monto_igv',
         'total_despues_igv',
         'observacion',
-        'evidencia',
+        'evidencias',
         'fecha_hora_cotizacion',
         'estado',
         'created_at',
