@@ -4,6 +4,7 @@ namespace App\Modules\Cotizaciones;
 
 use App\Shared\Responses\ApiResponse;
 use App\Shared\Enums\Cotizacion\EstadoCotizacion;
+use App\Shared\Enums\Cotizacion\EstadoCotizacionDetalle;
 use App\Modules\Cotizaciones\Data\CotizacionesData;
 use App\Modules\Cotizaciones\Data\ProductosData;
 use App\Modules\Cotizaciones\Data\ProveedoresData;
@@ -23,10 +24,13 @@ class CotizacionesService
         if (empty($productos)) return ApiResponse::error('Debe incluir al menos un producto en el comparativo.');
         if (empty($cotizaciones)) return ApiResponse::error('Debe incluir al menos una cotización.');
 
-        // Validar que cada cotización tenga al menos un detalle
+        // Validar que cada cotización tenga al menos un detalle y empresas
         foreach ($cotizaciones as $c) {
             if (empty($c['detalles'])) {
                 return ApiResponse::error('Cada cotización debe incluir al menos un producto a cotizar.');
+            }
+            if (empty($c['empresas_ids']) || !is_array($c['empresas_ids'])) {
+                return ApiResponse::error('Cada cotización debe tener al menos una empresa asociada.');
             }
         }
 
@@ -50,6 +54,7 @@ class CotizacionesService
                 }
 
                 $ids_aprobadas = [];
+                $cotizaciones_ids = [];
 
                 // 4. Registrar cada Cotización
                 foreach ($cotizaciones as $index => $c) {
@@ -89,12 +94,17 @@ class CotizacionesService
                         ];
                     }
 
-                    // 5. Registrar Detalles de la Cotización
+                    $detalles_insertados = [];
+
+                    // 5. Asignar empresas a la cotización
+                    CotizacionesData::asignar_empresas_cotizacion($id_cotizacion, $c['empresas_ids']);
+
+                    // 6. Registrar Detalles de la Cotización
                     foreach ($c['detalles'] as $det) {
                         $id_comp_det = $mapa_productos[$det['id_producto']] ?? null;
 
                         if ($id_comp_det) {
-                            CotizacionesData::crear_cotizacion_detalle([
+                            $id_cot_det = CotizacionesData::crear_cotizacion_detalle([
                                 'id_cotizacion'              => $id_cotizacion,
                                 'id_comparativo_detalle'     => $id_comp_det,
                                 'id_unidad_medida'           => (int)$det['id_unidad_medida'],
@@ -104,14 +114,27 @@ class CotizacionesService
                                 'precio_unitario'            => (float)$det['precio_unitario'],
                                 'precio_unitario_base'       => (float)$det['precio_unitario_base'],
                                 'comentario'                 => $det['comentario'] ?? null,
+                                'estado'                     => $det['estado'] ?? EstadoCotizacionDetalle::Pendiente->value,
                             ]);
+                            $detalles_insertados[] = [
+                                'id_producto' => $det['id_producto'],
+                                'id_cot_det' => $id_cot_det
+                            ];
                         }
                     }
+
+                    $cotizaciones_ids[] = [
+                        'index' => $index,
+                        'id' => $id_cotizacion,
+                        'correlativo' => $correlativo,
+                        'detalles_map' => $detalles_insertados
+                    ];
                 }
 
                 return ApiResponse::success([
-                    'id_comparativo' => $id_comparativo,
-                    'ids_aprobadas'  => $ids_aprobadas
+                    'id_comparativo'   => $id_comparativo,
+                    'ids_aprobadas'    => $ids_aprobadas,
+                    'cotizaciones_ids' => $cotizaciones_ids
                 ], 'Comparativo y cotizaciones registrados correctamente.');
             });
         } catch (\Exception $e) {
@@ -119,14 +142,29 @@ class CotizacionesService
         }
     }
 
-    public static function aprobar_cotizacion(int $id_cotizacion): array
+    public static function aprobar_cotizacion_parcial(int $id_cotizacion, int $id_empresa_compradora, array $detalles_aprobados): array
     {
         try {
-            DB::table('cotizacion')
-                ->where('id', $id_cotizacion)
-                ->update(['estado' => EstadoCotizacion::Aprobada->value]);
+            DB::transaction(function () use ($id_cotizacion, $id_empresa_compradora, $detalles_aprobados) {
+                // 1. Aprobar la cotización principal
+                DB::table('cotizacion')
+                    ->where('id', $id_cotizacion)
+                    ->update(['estado' => EstadoCotizacion::Aprobada->value]);
 
-            return ApiResponse::success(null, 'Cotización aprobada correctamente.');
+                // 2. Marcar Detalles como Aprobados
+                DB::table('cotizacion_detalle')
+                    ->where('id_cotizacion', $id_cotizacion)
+                    ->whereIn('id', $detalles_aprobados)
+                    ->update(['estado' => EstadoCotizacionDetalle::Aprobado->value]);
+
+                // 3. Marcar Detalles como Rechazados
+                DB::table('cotizacion_detalle')
+                    ->where('id_cotizacion', $id_cotizacion)
+                    ->whereNotIn('id', $detalles_aprobados)
+                    ->update(['estado' => EstadoCotizacionDetalle::Rechazado->value]);
+            });
+
+            return ApiResponse::success(null, 'Cotización parcialmente aprobada y productos validados.');
         } catch (\Exception $e) {
             return ApiResponse::error('Error al aprobar: ' . $e->getMessage());
         }
