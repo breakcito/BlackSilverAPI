@@ -73,11 +73,28 @@ class CotizacionesController
     }
 
     /**
-     * Aprobar una cotización específica
+     * Aprobar una cotización específica con selección parcial de productos y empresa
      */
-    public function aprobar_cotizacion(int $id): JsonResponse
+    public function aprobar_cotizacion_parcial(Request $request, int $id): JsonResponse
     {
-        $result = CotizacionesService::aprobar_cotizacion($id);
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'id_empresa_compradora' => 'required|integer',
+            'detalles_aprobados'    => 'required|array|min:1',
+            'detalles_aprobados.*'  => 'integer',
+        ], [
+            'id_empresa_compradora.required' => 'Debe elegir la empresa compradora para la Orden de Compra.',
+            'detalles_aprobados.required'    => 'Debe incluir al menos un producto a ser aprobado.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(\App\Shared\Responses\ApiResponse::error($validator->errors()->first()));
+        }
+
+        $result = CotizacionesService::aprobar_cotizacion_parcial(
+            id_cotizacion: $id,
+            id_empresa_compradora: $request->input('id_empresa_compradora'),
+            detalles_aprobados: $request->input('detalles_aprobados')
+        );
         return response()->json($result);
     }
 }

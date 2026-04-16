@@ -4,6 +4,7 @@ namespace App\Modules\Cotizaciones;
 
 use App\Shared\Responses\ApiResponse;
 use App\Shared\Enums\Cotizacion\EstadoCotizacion;
+use App\Shared\Enums\Cotizacion\EstadoCotizacionDetalle;
 use App\Modules\Cotizaciones\Data\CotizacionesData;
 use App\Modules\Cotizaciones\Data\ProductosData;
 use App\Modules\Cotizaciones\Data\ProveedoresData;
@@ -126,14 +127,29 @@ class CotizacionesService
         }
     }
 
-    public static function aprobar_cotizacion(int $id_cotizacion): array
+    public static function aprobar_cotizacion_parcial(int $id_cotizacion, int $id_empresa_compradora, array $detalles_aprobados): array
     {
         try {
-            DB::table('cotizacion')
-                ->where('id', $id_cotizacion)
-                ->update(['estado' => EstadoCotizacion::Aprobada->value]);
+            DB::transaction(function () use ($id_cotizacion, $id_empresa_compradora, $detalles_aprobados) {
+                // 1. Aprobar la cotización principal
+                DB::table('cotizacion')
+                    ->where('id', $id_cotizacion)
+                    ->update(['estado' => EstadoCotizacion::Aprobada->value]);
 
-            return ApiResponse::success(null, 'Cotización aprobada correctamente.');
+                // 2. Marcar Detalles como Aprobados
+                DB::table('cotizacion_detalle')
+                    ->where('id_cotizacion', $id_cotizacion)
+                    ->whereIn('id', $detalles_aprobados)
+                    ->update(['estado' => EstadoCotizacionDetalle::Aprobado->value]);
+
+                // 3. Marcar Detalles como Rechazados
+                DB::table('cotizacion_detalle')
+                    ->where('id_cotizacion', $id_cotizacion)
+                    ->whereNotIn('id', $detalles_aprobados)
+                    ->update(['estado' => EstadoCotizacionDetalle::Rechazado->value]);
+            });
+
+            return ApiResponse::success(null, 'Cotización parcialmente aprobada y productos validados.');
         } catch (\Exception $e) {
             return ApiResponse::error('Error al aprobar: ' . $e->getMessage());
         }
