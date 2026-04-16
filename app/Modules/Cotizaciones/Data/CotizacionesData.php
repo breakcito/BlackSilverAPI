@@ -59,9 +59,10 @@ class CotizacionesData
     /**
      * Crear detalle de cotización
      */
-    public static function crear_cotizacion_detalle(array $data): void
+    public static function crear_cotizacion_detalle(array $data): int
     {
-        CotizacionDetalle::create($data);
+        $model = CotizacionDetalle::create($data);
+        return $model->id;
     }
 
     /**

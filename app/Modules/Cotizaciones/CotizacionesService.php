@@ -54,6 +54,7 @@ class CotizacionesService
                 }
 
                 $ids_aprobadas = [];
+                $cotizaciones_ids = [];
 
                 // 4. Registrar cada Cotización
                 foreach ($cotizaciones as $index => $c) {
@@ -93,6 +94,8 @@ class CotizacionesService
                         ];
                     }
 
+                    $detalles_insertados = [];
+
                     // 5. Asignar empresas a la cotización
                     CotizacionesData::asignar_empresas_cotizacion($id_cotizacion, $c['empresas_ids']);
 
@@ -101,7 +104,7 @@ class CotizacionesService
                         $id_comp_det = $mapa_productos[$det['id_producto']] ?? null;
 
                         if ($id_comp_det) {
-                            CotizacionesData::crear_cotizacion_detalle([
+                            $id_cot_det = CotizacionesData::crear_cotizacion_detalle([
                                 'id_cotizacion'              => $id_cotizacion,
                                 'id_comparativo_detalle'     => $id_comp_det,
                                 'id_unidad_medida'           => (int)$det['id_unidad_medida'],
@@ -111,15 +114,27 @@ class CotizacionesService
                                 'precio_unitario'            => (float)$det['precio_unitario'],
                                 'precio_unitario_base'       => (float)$det['precio_unitario_base'],
                                 'comentario'                 => $det['comentario'] ?? null,
-                                'estado'                     => $det['estado'] ?? null,
+                                'estado'                     => $det['estado'] ?? EstadoCotizacionDetalle::Pendiente->value,
                             ]);
+                            $detalles_insertados[] = [
+                                'id_producto' => $det['id_producto'],
+                                'id_cot_det' => $id_cot_det
+                            ];
                         }
                     }
+
+                    $cotizaciones_ids[] = [
+                        'index' => $index,
+                        'id' => $id_cotizacion,
+                        'correlativo' => $correlativo,
+                        'detalles_map' => $detalles_insertados
+                    ];
                 }
 
                 return ApiResponse::success([
-                    'id_comparativo' => $id_comparativo,
-                    'ids_aprobadas'  => $ids_aprobadas
+                    'id_comparativo'   => $id_comparativo,
+                    'ids_aprobadas'    => $ids_aprobadas,
+                    'cotizaciones_ids' => $cotizaciones_ids
                 ], 'Comparativo y cotizaciones registrados correctamente.');
             });
         } catch (\Exception $e) {
