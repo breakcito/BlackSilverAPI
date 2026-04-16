@@ -65,6 +65,24 @@ class CotizacionesData
     }
 
     /**
+     * Asignar empresas a una cotización (Tabla intermedia)
+     */
+    public static function asignar_empresas_cotizacion(int $id_cotizacion, array $empresas_ids): void
+    {
+        $inserts = [];
+        foreach ($empresas_ids as $id_emp) {
+            $inserts[] = [
+                'id_cotizacion' => $id_cotizacion,
+                'id_empresa'    => (int)$id_emp,
+            ];
+        }
+        
+        if (!empty($inserts)) {
+            DB::table('empresa_cotizacion')->insert($inserts);
+        }
+    }
+
+    /**
      * Obtener listado de cotizaciones agrupadas por comparativo
      */
     public static function get_listado_agrupado(): array
@@ -81,7 +99,23 @@ class CotizacionesData
             ORDER BY c.id_comparativo DESC, c.id DESC
         ");
 
-        // 2. Detalles de cada cotización (con nombre del producto y unidad)
+        // 2. Empresas vinculadas a las cotizaciones
+        // Lo traemos por separado para que el front las asocie por id_cotizacion sin duplicar filas base
+        $cotizacionesIds = array_column($cotizaciones, 'id');
+        $empresas = [];
+        
+        if (!empty($cotizacionesIds)) {
+            $ids_str = implode(',', $cotizacionesIds);
+            $empresas = DB::select("
+                SELECT ec.id_cotizacion, e.id as id_empresa, e.razon_social
+                FROM empresa_cotizacion ec
+                INNER JOIN empresa e ON ec.id_empresa = e.id
+                WHERE ec.id_cotizacion IN ($ids_str)
+                ORDER BY e.razon_social ASC
+            ");
+        }
+
+        // 3. Detalles de cada cotización (con nombre del producto y unidad)
         $detalles = DB::select("
             SELECT
                 cd.*,
@@ -99,6 +133,7 @@ class CotizacionesData
 
         return [
             'cotizaciones' => $cotizaciones,
+            'empresas'     => $empresas,
             'detalles'     => $detalles,
         ];
     }

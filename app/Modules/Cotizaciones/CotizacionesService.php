@@ -23,10 +23,13 @@ class CotizacionesService
         if (empty($productos)) return ApiResponse::error('Debe incluir al menos un producto en el comparativo.');
         if (empty($cotizaciones)) return ApiResponse::error('Debe incluir al menos una cotización.');
 
-        // Validar que cada cotización tenga al menos un detalle
+        // Validar que cada cotización tenga al menos un detalle y empresas
         foreach ($cotizaciones as $c) {
             if (empty($c['detalles'])) {
                 return ApiResponse::error('Cada cotización debe incluir al menos un producto a cotizar.');
+            }
+            if (empty($c['empresas_ids']) || !is_array($c['empresas_ids'])) {
+                return ApiResponse::error('Cada cotización debe tener al menos una empresa asociada.');
             }
         }
 
@@ -89,7 +92,10 @@ class CotizacionesService
                         ];
                     }
 
-                    // 5. Registrar Detalles de la Cotización
+                    // 5. Asignar empresas a la cotización
+                    CotizacionesData::asignar_empresas_cotizacion($id_cotizacion, $c['empresas_ids']);
+
+                    // 6. Registrar Detalles de la Cotización
                     foreach ($c['detalles'] as $det) {
                         $id_comp_det = $mapa_productos[$det['id_producto']] ?? null;
 
@@ -104,6 +110,7 @@ class CotizacionesService
                                 'precio_unitario'            => (float)$det['precio_unitario'],
                                 'precio_unitario_base'       => (float)$det['precio_unitario_base'],
                                 'comentario'                 => $det['comentario'] ?? null,
+                                'estado'                     => $det['estado'] ?? null,
                             ]);
                         }
                     }

@@ -16,9 +16,12 @@ class CotizacionesController
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'productos'    => 'required|array|min:1',
             'cotizaciones' => 'required|array|min:1',
+            'cotizaciones.*.empresas_ids' => 'required|array|min:1',
+            'cotizaciones.*.empresas_ids.*' => 'integer',
         ], [
             'productos.required'    => 'Debe incluir al menos un producto para el comparativo.',
             'cotizaciones.required' => 'Debe incluir al menos una cotización de proveedor.',
+            'cotizaciones.*.empresas_ids.required' => 'Debe seleccionar al menos una empresa para cada cotización.',
         ]);
 
         if ($validator->fails()) {

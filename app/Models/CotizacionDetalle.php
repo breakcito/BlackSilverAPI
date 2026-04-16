@@ -20,5 +20,6 @@ class CotizacionDetalle extends Model
         'precio_unitario',
         'precio_unitario_base',
         'comentario',
+        'estado',
     ];
 }
