@@ -32,6 +32,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
             // Listar empleados disponibles para asignar como responsable de almacen
             Route::post('/empleados/{id_almacen}', 'get_empleados');
+
+            // Inactivar un responsable de almacen
+            Route::post('/inactivar', 'inactivar_responsable');
         });
 
         // Abastecimiento de minas
