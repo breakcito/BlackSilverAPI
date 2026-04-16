@@ -16,6 +16,7 @@ class ResponsablesData
         $sql = '
         SELECT
             ra.id AS id_responsable_almacen,
+            ra.id_empleado,
             CONCAT(emp.nombre, " ", emp.apellido) as nombre_completo,
             emp.path_foto,
             emp.dni,
@@ -47,6 +48,18 @@ class ResponsablesData
         $sql .= ' ORDER BY ra.fecha_inicio DESC';
 
         return DB::select($sql, $params);
+    }
+
+    /**
+     * Inactivar un responsable de almacen
+     */
+    public static function inactivar_responsable(int $id_responsable, string $fecha_fin)
+    {
+        return ResponsableAlmacen::where('id', $id_responsable)
+            ->update([
+                'fecha_fin' => $fecha_fin,
+                'estado' => EstadoBase::Inactivo->value,
+            ]);
     }
 
     /**

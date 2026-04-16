@@ -9,28 +9,6 @@ use Illuminate\Support\Facades\DB;
 class MinasData
 {
     /**
-     * Concesiones
-     */
-    public static function get_concesiones()
-    {
-        $sql = '
-        SELECT DISTINCT
-            cn.id AS id_concesion,
-            cn.nombre
-        FROM
-            concesion cn
-        INNER JOIN contrato_concesion ctr ON
-            ctr.id_concesion = cn.id
-        INNER JOIN empresa emp ON
-            emp.id = ctr.id_empresa
-        WHERE
-            ctr.estado = "Activo"
-        ';
-
-        return DB::select($sql);
-    }
-
-    /**
      * Resumen de minas de una concesión
      */
     public static function get_resumen_minas(?int $id_concesion = null, ?int $id_mina = null)
@@ -39,44 +17,45 @@ class MinasData
         SELECT DISTINCT
             mn.id AS id_mina,
             mn.id_concesion,
-            cn.nombre as concesion,
+            cn.nombre AS concesion,
             mn.nombre,
             mn.descripcion,
-            CONCAT(em.nombre, " ", em.apellido) as responsable,
-            em.dni as dni_responsable,
-            em.path_foto as path_foto_responsable,
-            res.fecha_inicio as fecha_inicio_responsabilidad,
+            -- Lista de responsables concatenada (Similar a almacenes)
             (
-                SELECT
-                    COUNT(*)
+                SELECT GROUP_CONCAT(CONCAT(emp.nombre, " ", emp.apellido) ORDER BY res.id DESC SEPARATOR ", ")
+                FROM responsable_mina res
+                INNER JOIN empleado emp ON emp.id = res.id_empleado
+                WHERE 
+                    res.id_mina = mn.id AND 
+                    res.estado = "Activo" AND 
+                    res.fecha_fin IS NULL
+            ) AS responsables,
+            -- Conteo de labores activas
+            (
+                SELECT COUNT(*)
                 FROM labor lb
-                WHERE
-                    lb.id_mina = mn.id AND
+                WHERE 
+                    lb.id_mina = mn.id AND 
                     lb.estado = "Activo"
-            ) as cantidad_labores,
+            ) AS cantidad_labores,
+            -- Conteo de empresas ejecutoras únicas
             (
-                SELECT DISTINCT
-                    COUNT(*)
+                SELECT COUNT(DISTINCT emi.id_empresa)
                 FROM empresa_mina emi
-                WHERE
-                    emi.id_mina = mn.id
-            ) as cantidad_empresas_ejecutoras,
+                WHERE emi.id_mina = mn.id
+            ) AS cantidad_empresas_ejecutoras,
+            -- Lista de almacenes concatenada
             (
                 SELECT GROUP_CONCAT(a.nombre SEPARATOR ", ")
                 FROM almacen_mina am
                 JOIN almacen a ON a.id = am.id_almacen
                 WHERE am.id_mina = mn.id
-            ) as almacenes_suministradores,
+            ) AS almacenes_suministradores,
             mn.estado
-        FROM
+        FROM 
             mina mn
         INNER JOIN concesion cn ON cn.id = mn.id_concesion
-        LEFT JOIN responsable_mina res ON
-            res.id_mina = mn.id AND
-            res.estado = "Activo" AND
-            res.fecha_fin IS NULL
-        LEFT JOIN empleado em on em.id = res.id_empleado
-        WHERE
+        WHERE 
             1 = 1
         ';
 

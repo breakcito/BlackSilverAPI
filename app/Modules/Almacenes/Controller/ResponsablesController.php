@@ -59,4 +59,28 @@ class ResponsablesController extends Controller
 
         return response()->json($result);
     }
+
+    public function inactivar_responsable(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_responsable_almacen' => 'required|integer',
+            'fecha_fin' => 'required|date',
+        ], [
+            'id_responsable_almacen.required' => 'El responsable es requerido',
+            'fecha_fin.required' => 'La fecha de fin es requerida',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $v = $validator->validated();
+
+        $result = ResponsablesService::inactivar_responsable(
+            id_responsable: (int) $v['id_responsable_almacen'],
+            fecha_fin: (string) $v['fecha_fin'],
+        );
+
+        return response()->json($result);
+    }
 }

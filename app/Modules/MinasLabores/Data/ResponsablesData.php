@@ -16,6 +16,7 @@ class ResponsablesData
         $sql = '
         SELECT DISTINCT
             res.id AS id_responsable_mina,
+            em.id as id_empleado,
             CONCAT(em.nombre, " ", em.apellido) as empleado,
             em.dni,
             em.path_foto,
@@ -69,6 +70,15 @@ class ResponsablesData
     {
         ResponsableMina::where('id_mina', $id_mina)
             ->where('estado', EstadoBase::Activo->value)
+            ->update([
+                'fecha_fin' => $fecha_fin,
+                'estado' => EstadoBase::Inactivo->value,
+            ]);
+    }
+
+    public static function inactivar_responsable(int $id_responsable_mina, string $fecha_fin)
+    {
+        ResponsableMina::where('id', $id_responsable_mina)
             ->update([
                 'fecha_fin' => $fecha_fin,
                 'estado' => EstadoBase::Inactivo->value,

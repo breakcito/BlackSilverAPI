@@ -22,14 +22,13 @@ class AlmacenesData
             a.estado,
             (
                 SELECT 
-                    CONCAT(emp.nombre, " ", emp.apellido)
+                    GROUP_CONCAT(CONCAT(emp.nombre, " ", emp.apellido) ORDER BY ra.id DESC SEPARATOR ", ")
                 FROM responsable_almacen ra
                 INNER JOIN empleado emp ON emp.id = ra.id_empleado
                 WHERE 
                     ra.id_almacen = a.id AND 
                     ra.estado = "Activo"
-                LIMIT 1
-            ) AS responsable_actual,
+            ) AS responsables,
             (
                 SELECT 
                     COUNT(*)
