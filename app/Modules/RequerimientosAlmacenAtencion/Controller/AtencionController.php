@@ -11,24 +11,12 @@ use Illuminate\Support\Facades\Validator;
 
 class AtencionController extends Controller
 {
-    public function __construct(
-        private AtencionService $atencionService
-    ) {}
-
     /**
-     * Obtener almacenes donde el usuario es responsable.
+     * ------------------------------------------------------
+     * PARA LA CABECERA
+     * ------------------------------------------------------
      */
-    public function get_almacenes_autorizados(Request $request): JsonResponse
-    {
-        $authUser = $request->attributes->get('auth_user');
-        if (!$authUser) {
-            return response()->json(ApiResponse::error('No autorizado'), 401);
-        }
 
-        $result = $this->atencionService->get_almacenes_autorizados($authUser->id_empleado);
-
-        return response()->json($result);
-    }
 
     /**
      * Listado de requerimientos para atención por almacén.
@@ -43,10 +31,70 @@ class AtencionController extends Controller
             return response()->json(ApiResponse::error('id_almacen, mes y yearcito son requeridos'), 400);
         }
 
-        $result = $this->atencionService->get_requerimientos((int) $id_almacen, $mes, $yearcito);
+        $result = AtencionService::get_requerimientos((int) $id_almacen, $mes, $yearcito);
 
         return response()->json($result);
     }
+
+    public function crear_requerimiento(Request $request): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+        if (!$authUser) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
+        }
+
+        $reglas = [
+            'id_empleado_solicitante' => 'required|integer',
+            'id_mina'                 => 'required|integer',
+            'id_almacen_destino'      => 'required|integer',
+            'premura'                 => 'required|string',
+            'fecha_entrega_requerida' => 'required|date',
+            'labores'                 => 'present|array',
+            'detalles'                => 'required|array|min:1',
+            'detalles.*.id_producto'              => 'required|integer',
+            'detalles.*.id_unidad_medida'         => 'required|integer',
+            'detalles.*.cantidad_solicitada'      => 'required|numeric|min:0.01',
+            'detalles.*.contenido_por_presentacion' => 'required|numeric|min:0.01',
+            'evidencias'              => 'nullable|array',
+            'evidencias.*'            => 'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:10240',
+        ];
+
+        $validator = Validator::make($request->all(), $reglas);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error('Datos inválidos'));
+        }
+
+        $id_empleado_registro = $authUser->id_empleado;
+        $evidencias = $request->file('evidencias', []);
+
+        try {
+            $resultado = AtencionService::registrar_requerimiento(
+                id_empleado_solicitante: (int) $request->id_empleado_solicitante,
+                id_empleado_registro: (int) $id_empleado_registro,
+                id_mina: (int) $request->id_mina,
+                id_almacen_destino: (int) $request->id_almacen_destino,
+                premura: $request->premura,
+                observacion: $request->observacion,
+                fecha_entrega_requerida: $request->fecha_entrega_requerida,
+                labores: $request->labores,
+                detalles: $request->detalles,
+                evidencias: $evidencias
+            );
+
+            return response()->json($resultado);
+        } catch (\Exception $e) {
+            return response()->json(ApiResponse::error('Error al registrar requerimiento: ' . $e->getMessage()), 500);
+        }
+    }
+
+
+    /**
+     * ------------------------------------------------------
+     * PARA EL DETALLE
+     * ------------------------------------------------------
+     */
+
 
     /**
      * Obtener los detalles de un requerimiento.
@@ -58,7 +106,7 @@ class AtencionController extends Controller
             return response()->json(ApiResponse::error('El id_requerimiento es requerido'), 400);
         }
 
-        $result = $this->atencionService->get_detalles_requerimiento((int) $id);
+        $result = AtencionService::get_detalles_requerimiento((int) $id);
 
         return response()->json($result);
     }
@@ -101,7 +149,7 @@ class AtencionController extends Controller
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
-        $result = $this->atencionService->cambiar_estado_detalle(
+        $result = AtencionService::cambiar_estado_detalle(
             $authUser->id_empleado,
             $ids,
             $request->nuevo_estado,
@@ -121,7 +169,7 @@ class AtencionController extends Controller
             return response()->json(ApiResponse::error('El id_requerimiento_almacen_detalle es requerido'), 400);
         }
 
-        $result = $this->atencionService->obtener_trazabilidad((int) $id_detalle);
+        $result = AtencionService::obtener_trazabilidad((int) $id_detalle);
 
         return response()->json($result);
     }

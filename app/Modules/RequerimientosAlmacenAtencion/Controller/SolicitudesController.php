@@ -11,9 +11,6 @@ use Illuminate\Support\Facades\Validator;
 
 class SolicitudesController extends Controller
 {
-    public function __construct(
-        private SolicitudService $solicitudService
-    ) {}
 
     /**
      * Registrar una solicitud a logística (reabastecimiento).
@@ -44,7 +41,7 @@ class SolicitudesController extends Controller
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
-        $result = $this->solicitudService->registrarSolicitudLogistica(
+        $result = SolicitudService::registrarSolicitudLogistica(
             (int) $request->id_requerimiento,
             (int) $authUser->id_empleado,
             $request->premura,
@@ -66,7 +63,7 @@ class SolicitudesController extends Controller
             return response()->json(ApiResponse::error('El id_requerimiento es requerido'), 400);
         }
 
-        $result = $this->solicitudService->obtenerHistorialSolicitudes((int) $id);
+        $result = SolicitudService::obtenerHistorialSolicitudes((int) $id);
 
         return response()->json($result);
     }

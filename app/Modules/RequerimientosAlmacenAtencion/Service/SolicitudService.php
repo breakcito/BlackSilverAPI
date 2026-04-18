@@ -14,17 +14,51 @@ use App\Modules\RequerimientosAlmacenAtencion\Data\SolicitudesData;
 class SolicitudService
 {
     /**
-     * Registrar una solicitud de reabastecimiento (Consulta a Logística).
+     * Obtener el historial de solicitudes asociadas a un requerimiento.
      */
-    public function registrarSolicitudLogistica(
+    public static function obtenerHistorialSolicitudes(int $id_requerimiento)
+    {
+        $data = SolicitudesData::get_solicitudes(id_requerimiento: $id_requerimiento);
+
+        foreach ($data as $solicitud) {
+            $solicitud->detalles = SolicitudesData::get_detalles_solicitud(
+                id_solicitud_reabastecimiento: (int) $solicitud->id_solicitud_reabastecimiento
+            );
+        }
+
+        return ApiResponse::success($data);
+    }
+
+    /**
+     * Registrar una solicitud de reabastecimiento (Consulta a Logística).
+     * detalles: [
+     *  {
+     *   id_requerimiento_almacen_detalle,
+     *   id_producto,
+     *   id_unidad_medida,
+     *   cantidad_solicitada,
+     *   contenido_por_presentacion,
+     *   cantidad_solicitada_base,
+     *   comentario
+     *  }
+     * ]
+     */
+    public static function registrarSolicitudLogistica(
         int $id_requerimiento,
         int $id_empleado,
         string $premura,
         string $fecha_entrega_requerida,
-        array $detalles, // {id_requerimiento_almacen_detalle, id_producto, id_unidad_medida, cantidad_solicitada, contenido_por_presentacion, cantidad_solicitada_base, comentario}
+        array $detalles,
         ?string $observacion = null
     ) {
-        return DB::transaction(function () use ($id_requerimiento, $id_empleado, $observacion, $premura, $fecha_entrega_requerida, $detalles) {
+        return DB::transaction(function () use (
+            $id_requerimiento,
+            $id_empleado,
+            $observacion,
+            $premura,
+            $fecha_entrega_requerida,
+            $detalles
+        ) {
 
             $requerimiento = RequerimientosData::get_almacen_destino_by_requerimiento($id_requerimiento);
 
@@ -92,19 +126,5 @@ class SolicitudService
                 "La solicitud N° {$correlativoData['correlativo']} ha sido registrada."
             );
         });
-    }
-
-    /**
-     * Obtener el historial de solicitudes asociadas a un requerimiento.
-     */
-    public function obtenerHistorialSolicitudes(int $id_requerimiento)
-    {
-        $data = SolicitudesData::get_solicitudes(id_requerimiento: $id_requerimiento);
-
-        foreach ($data as $solicitud) {
-            $solicitud->detalles = SolicitudesData::get_detalles_solicitud(id_solicitud_reabastecimiento: (int) $solicitud->id_solicitud_reabastecimiento);
-        }
-
-        return ApiResponse::success($data);
     }
 }

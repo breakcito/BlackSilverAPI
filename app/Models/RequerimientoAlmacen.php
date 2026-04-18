@@ -12,13 +12,15 @@ class RequerimientoAlmacen extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_empleado_solicitante',
-        'id_mina',
-        'id_almacen_destino',
+        'id_empleado_solicitante', // el responsable de la mina que solicita
+        'id_empleado_registro',  // el almacenero que registra el requerimiento
+        'id_mina', // la mina que solicita
+        'id_almacen_destino', // el almacen que recibe el requerimiento
         'correlativo',
         'numero_correlativo',
         'premura',
         'observacion',
+        'evidencias',
         'fecha_entrega_requerida',
         'created_at',
         'estado',
@@ -42,11 +44,13 @@ class RequerimientoAlmacen extends Model
             alm.nombre AS almacen_destino,
             --
             CONCAT(emp.nombre, " ", emp.apellido) AS solicitante,
+            CONCAT(empr.nombre, " ", empr.apellido) AS responsable,
             --
             ra.id_mina,
             m.nombre AS mina,
             --
             ra.correlativo,
+            ra.evidencias,
             ra.observacion,
             ra.premura,
             ra.fecha_entrega_requerida,
@@ -57,6 +61,7 @@ class RequerimientoAlmacen extends Model
         INNER JOIN mina m ON m.id = ra.id_mina
         INNER JOIN almacen alm ON alm.id = ra.id_almacen_destino
         INNER JOIN empleado emp ON emp.id = ra.id_empleado_solicitante
+        INNER JOIN empleado empr ON empr.id = ra.id_empleado_registro
         WHERE 1=1
         ';
 

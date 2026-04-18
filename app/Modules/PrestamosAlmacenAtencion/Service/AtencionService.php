@@ -92,20 +92,6 @@ class AtencionService
                         $nuevo_estado,
                         $descripcionLog
                     );
-
-                    // --- ACTUALIZACIÓN DE ESTADO DEL DETALLE DE SOLICITUD ---
-                    $estadoSolicitud = null;
-                    if ($nuevo_estado === EstadoPrestamoDetalle::Aprobado->value) {
-                        $estadoSolicitud = EstadoSolicitudDetalle::Aprobado->value;
-                    } elseif ($nuevo_estado === EstadoPrestamoDetalle::Rechazado->value) {
-                        $estadoSolicitud = EstadoSolicitudDetalle::Aprobado->value; // Regresa a aprobado para intentar otro almacén
-                    } elseif ($nuevo_estado === EstadoPrestamoDetalle::EnDespacho->value) {
-                        $estadoSolicitud = EstadoSolicitudDetalle::EnDespacho->value;
-                    }
-
-                    if ($estadoSolicitud) {
-                        SolicitudesDetalleData::update_detalle_estado($id_sol_det, $estadoSolicitud, $id_empleado);
-                    }
                 }
             }
 

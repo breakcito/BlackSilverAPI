@@ -86,6 +86,14 @@ class RequerimientosDetalleData
         return DB::select($sql, $params);
     }
 
+    public static function get_cantidades_of_detalle_by_id(int $id_detalle)
+    {
+        return RequerimientoAlmacenDetalle::where('id', $id_detalle)->first([
+            'cantidad_solicitada_base',
+            'cantidad_entregada_base',
+        ]);
+    }
+
     /**
      * Obtiene los logs de trazabilidad de un detalle
      */
@@ -160,10 +168,88 @@ class RequerimientosDetalleData
     /**
      * Obtener detalle por id
      */
-    public static function get_detalle_by_id(int $id_detalle)
+    /**
+     * Obtiene la lista de productos junto a su unidad de medida base
+     */
+    public static function get_productos()
     {
-        return RequerimientoAlmacenDetalle::select('cantidad_entregada_base', 'cantidad_solicitada_base')
-            ->where('id', $id_detalle)
-            ->first();
+        $sql = '
+        SELECT
+            pr.id AS id_producto,
+            pr.nombre,
+            pr.es_fiscalizado,
+            pr.es_perecible,
+			--
+            pr.id_unidad_medida_base,
+            uni.nombre as unidad_medida_base,
+            uni.abreviatura as unidad_medida_base_abv,
+            --
+            cat.id as id_categoria,
+            cat.nombre as categoria,
+            cat.es_consumible,
+            --
+            (
+                SELECT 
+                	GROUP_CONCAT(DISTINCT cc.id_categoria_consumidora)
+                FROM categoria_consumible cc
+                WHERE 
+                	cc.id_categoria_consumible = cat.id
+            ) as ids_categorias_consumidoras
+        FROM
+            producto pr
+        INNER JOIN unidad_medida uni ON
+            uni.id = pr.id_unidad_medida_base
+        INNER JOIN categoria cat ON
+            cat.id = pr.id_categoria
+        WHERE
+            pr.estado = "Activo"
+        ORDER BY
+            pr.nombre;
+        ';
+
+        return DB::select($sql, []);
+    }
+
+    /**
+     * Crear el detalle de un requerimiento de almacén.
+     */
+    public static function crear_detalle(
+        int $id_requerimiento,
+        int $id_producto,
+        int $id_unidad_medida,
+        float $cantidad,
+        float $contenido,
+        float $cantidad_base,
+        ?string $comentario = null,
+        ?int $id_producto_destino = null
+    ) {
+        return RequerimientoAlmacenDetalle::insertGetId([
+            'id_requerimiento_almacen'   => $id_requerimiento,
+            'id_producto'                => $id_producto,
+            'id_unidad_medida'           => $id_unidad_medida,
+            'cantidad_solicitada'        => $cantidad,
+            'contenido_por_presentacion' => $contenido,
+            'cantidad_solicitada_base'   => $cantidad_base,
+            'cantidad_entregada'         => 0,
+            'cantidad_entregada_base'    => 0,
+            'comentario'                 => $comentario,
+            'id_producto_destino'        => $id_producto_destino,
+            'estado'                     => EstadoRequerimientoDetalle::EsperandoAprobacion->value,
+        ]);
+    }
+
+    /**
+     * Registra en la trazbilidad del detalle
+     */
+    public static function registrar_trazabilidad(
+        int $id_detalle,
+        int $id_empleado_solicitante
+    ) {
+        return RequerimientoAlmacenDetalleLog::crear_log(
+            id_requerimiento_detalle: $id_detalle,
+            id_empleado: $id_empleado_solicitante,
+            descripcion: EstadoRequerimientoDetalle::EsperandoAprobacion->getGlosa(),
+            estado: EstadoRequerimientoDetalleLog::EsperandoAprobacion
+        );
     }
 }

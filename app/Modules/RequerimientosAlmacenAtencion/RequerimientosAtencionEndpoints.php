@@ -3,6 +3,7 @@
 <?php
 
 use App\Modules\RequerimientosAlmacenAtencion\Controller\AtencionController;
+use App\Modules\RequerimientosAlmacenAtencion\Controller\AuxController;
 use App\Modules\RequerimientosAlmacenAtencion\Controller\EntregaController;
 use App\Modules\RequerimientosAlmacenAtencion\Controller\SolicitudesController;
 use Illuminate\Support\Facades\Route;
@@ -10,8 +11,19 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth.jwt.custom')->group(function () {
     Route::prefix('requerimientos-atencion')->group(function () {
 
-        Route::controller(AtencionController::class)->group(function () {
+        // Entregas (Despacho, Stock, Lotes)
+        Route::controller(AuxController::class)->group(function () {
+            Route::get('/lotes', 'get_lotes_disponibles');
+            Route::get('/empleados', 'get_empleados');
             Route::get('/almacenes-autorizados', 'get_almacenes_autorizados');
+            Route::get('/data-to-registro', 'get_data_to_registro');
+            Route::get('/minas-by-almacen', 'get_minas_by_almacen');
+            Route::get('/responsables-by-mina', 'get_responsables_by_mina');
+        });
+
+        Route::controller(AtencionController::class)->group(function () {
+            // Registro de requerimientos desde atención
+            Route::post('/', 'crear_requerimiento');
             Route::get('/requerimientos', 'get_requerimientos');
             Route::get('/detalles-by-requerimiento', 'get_detalles_requerimiento');
             Route::put('/save-decision-detalle', 'update_estado_detalle_requerimiento');
@@ -20,8 +32,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
         // Entregas (Despacho, Stock, Lotes)
         Route::controller(EntregaController::class)->group(function () {
-            Route::get('/lotes', 'get_lotes_disponibles');
-            Route::get('/empleados', 'get_empleados');
             Route::post('/save-entrega', 'crear_entrega');
             Route::get('/entregas', 'get_historial_entregas');
         });

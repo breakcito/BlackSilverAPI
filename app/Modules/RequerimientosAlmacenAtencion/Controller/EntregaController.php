@@ -11,29 +11,6 @@ use Illuminate\Support\Facades\Validator;
 
 class EntregaController extends Controller
 {
-    public function __construct(
-        private EntregaService $entregaService
-    ) {}
-
-    /**
-     * Obtener lotes disponibles para productos en un almacén.
-     */
-    public function get_lotes_disponibles(Request $request): JsonResponse
-    {
-        $id_producto = $request->input('id_producto');
-        $id_almacen = $request->input('id_almacen');
-
-        if (is_null($id_producto) || is_null($id_almacen)) {
-            return response()->json(ApiResponse::error('id_producto e id_almacen son requeridos'), 400);
-        }
-
-        // Handle both single int and array of ints for backwards compatibility and new batch feature
-        $ids_productos = is_array($id_producto) ? array_map('intval', $id_producto) : [(int) $id_producto];
-
-        $result = $this->entregaService->obtener_lotes_disponibles((int) $id_almacen, $ids_productos);
-
-        return response()->json($result);
-    }
 
     /**
      * Registrar la entrega física de productos.
@@ -64,7 +41,7 @@ class EntregaController extends Controller
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
-        $result = $this->entregaService->registrar_entrega(
+        $result = EntregaService::registrar_entrega(
             $authUser->id_empleado,
             (int) $request->id_requerimiento,
             (int) $request->id_empleado_recibe,
@@ -87,17 +64,8 @@ class EntregaController extends Controller
             return response()->json(ApiResponse::error('El id_requerimiento es requerido'), 400);
         }
 
-        $result = $this->entregaService->obtener_historial_entregas((int) $id_requerimiento);
+        $result = EntregaService::obtener_historial_entregas((int) $id_requerimiento);
 
-        return response()->json($result);
-    }
-
-    /**
-     * Obtener empleados facultados para recibir material.
-     */
-    public function get_empleados(): JsonResponse
-    {
-        $result = $this->entregaService->obtener_empleados();
         return response()->json($result);
     }
 }

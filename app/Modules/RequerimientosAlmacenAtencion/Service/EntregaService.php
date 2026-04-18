@@ -2,7 +2,6 @@
 
 namespace App\Modules\RequerimientosAlmacenAtencion\Service;
 
-use App\Data\EmpleadosData;
 use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
@@ -19,25 +18,19 @@ use Illuminate\Support\Facades\DB;
 
 class EntregaService
 {
-    /**
-     * Obtiene los lotes disponibles para una lista de productos de un almacén.
-     */
-    public function obtener_lotes_disponibles(int $id_almacen, array $ids_productos)
-    {
-        $data = LotesProductosData::get_lotes_disponibles($id_almacen, $ids_productos);
-        return ApiResponse::success($data);
-    }
 
     /**
      * Obtiene el historial de entregas y sus detalles.
      */
-    public function obtener_historial_entregas(int $id_requerimiento)
+    public static function obtener_historial_entregas(int $id_requerimiento)
     {
         $data = EntregasData::get_historial_entregas(id_requerimiento: $id_requerimiento);
 
         foreach ($data as $entrega) {
             $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
-            $entrega->detalles = EntregasDetalleData::get_detalles_entrega(id_entrega: (int) $entrega->id_requerimiento_almacen_entrega);
+            $entrega->detalles = EntregasDetalleData::get_detalles_entrega(
+                id_entrega: (int) $entrega->id_requerimiento_almacen_entrega
+            );
         }
 
         return ApiResponse::success($data);
@@ -45,17 +38,34 @@ class EntregaService
 
     /**
      * Registra una entrega física de materiales.
+     * detalles: [
+     *  {
+     *   id_requerimiento_almacen_detalle,
+     *   id_lote_producto,
+     *   cantidad_base,
+     *   cantidad_lote,
+     *   cantidad_requerimiento
+     *  }
+     * ]
      */
-    public function registrar_entrega(
+    public static function registrar_entrega(
         int $id_empleado_entrega,
         int $id_requerimiento,
         int $id_empleado_recibe,
         string $fecha_entrega,
         ?string $observacion,
         ?array $evidencias, // archivos
-        array $detalles // {id_requerimiento_almacen_detalle, id_lote_producto, cantidad_base, cantidad_lote, cantidad_requerimiento}
+        array $detalles
     ) {
-        return DB::transaction(function () use ($id_empleado_entrega, $id_requerimiento, $id_empleado_recibe, $fecha_entrega, $observacion, $evidencias, $detalles) {
+        return DB::transaction(function () use (
+            $id_empleado_entrega,
+            $id_requerimiento,
+            $id_empleado_recibe,
+            $fecha_entrega,
+            $observacion,
+            $evidencias,
+            $detalles
+        ) {
 
             // Procesar Evidencias si existen
             $evidenciasData = null;
@@ -132,13 +142,13 @@ class EntregaService
                 );
 
                 // Actualizar Requerimiento Detalle
-                $detalle_req = RequerimientosDetalleData::get_detalle_by_id($id_rad);
+                $detalle_req = RequerimientosDetalleData::get_cantidades_of_detalle_by_id($id_rad);
                 $ya_entregado_antes = $detalle_req->cantidad_entregada_base;
 
                 RequerimientosDetalleData::increment_detalle_entregado($id_rad, $item['cantidad_requerimiento'], $item['cantidad_base']);
 
                 // Reload para ver el nuevo estado
-                $detalle_req = RequerimientosDetalleData::get_detalle_by_id($id_rad);
+                $detalle_req = RequerimientosDetalleData::get_cantidades_of_detalle_by_id($id_rad);
 
                 // Actualizar Estado del Item
                 $finalizo_item = ($detalle_req->cantidad_entregada_base >= $detalle_req->cantidad_solicitada_base);
@@ -179,14 +189,5 @@ class EntregaService
                 "Entrega N° {$correlativoData['correlativo']} registrada exitosamente"
             );
         });
-    }
-
-    /**
-     * Obtiene los empleados para la entrega
-     */
-    public function obtener_empleados()
-    {
-        $data = EmpleadosData::get_empleados();
-        return ApiResponse::success($data);
     }
 }

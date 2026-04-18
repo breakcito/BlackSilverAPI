@@ -9,6 +9,7 @@ use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\AuxData;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\SolicitudesData;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\SolicitudesDetalleData;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitud;
 use Illuminate\Support\Facades\DB;
 
 class SolicitudesService
@@ -49,12 +50,12 @@ class SolicitudesService
                 // Determinar el Enum para el log
                 $estadoEnum = EstadoSolicitudDetalle::from($nuevo_estado);
 
-                // Colocar en estado de proceso a la solicitudes si uno de sus detalles es aprobado o consultado con logistica
+                // Colocar en estado de proceso a la solicitudes si uno de sus detalles es aprobado
                 if (EstadoSolicitudDetalle::Aprobado->value == $nuevo_estado) {
                     $solicitud = SolicitudesDetalleData::get_id_solicitud_by_detalle((int) $id_detalle);
                     SolicitudesData::update_solicitud_estado(
                         (int) $solicitud->id_solicitud_reabastecimiento,
-                        $nuevo_estado
+                        EstadoSolicitud::EnDespacho->value
                     );
                 }
 

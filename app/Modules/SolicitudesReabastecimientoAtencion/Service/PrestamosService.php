@@ -34,10 +34,6 @@ class PrestamosService
             // Obtener el almacén solicitante directamente desde la capa de datos de la vista
             $id_almacen_solicitante = AuxData::get_almacen_solicitante_by_id_solicitud($id_solicitud_reabastecimiento);
 
-            if (!$id_almacen_solicitante) {
-                throw new \Exception("La solicitud de reabastecimiento no es válida o no tiene un almacén solicitante asignado.");
-            }
-
             $id_prestamo = PrestamosData::crear_prestamo(
                 $id_solicitud_reabastecimiento,
                 $id_almacen_solicitante,
@@ -55,13 +51,6 @@ class PrestamosService
                 $srd = SolicitudesDetalleData::get_detalle_para_prestamo($detalle['id_solicitud_reabastecimiento_detalle']);
                 if (!$srd) continue;
 
-                // Actualizar estado e insertar log usando la capa de datos
-                SolicitudesDetalleData::update_detalle_estado(
-                    $srd->id,
-                    EstadoSolicitudDetalle::SolicitandoPrestamo->value,
-                    $id_empleado_registro
-                );
-
                 SolicitudesDetalleData::insert_detalle_log(
                     $srd->id,
                     $id_empleado_registro,
@@ -78,7 +67,7 @@ class PrestamosService
                 if ($stock_total_base < $cantidad_solicitada_base) {
                     $nombre_producto = AuxData::get_nombre_producto($srd->id_producto);
                     $stock_formateado = round($stock_total_base / $srd->contenido_por_presentacion, 2);
-                    throw new \Exception("¡Ups! El stock de '{$nombre_producto}' ha cambiado. Disponible: {$stock_formateado}, Solicitado: {$cantidad_solicitada}. La operación fue abortada.");
+                    return ApiResponse::error("¡Ups! El stock de '{$nombre_producto}' ha cambiado. Disponible: {$stock_formateado}, Solicitado: {$cantidad_solicitada}. La operación fue abortada.");
                 }
 
                 $id_detalle = PrestamosData::crear_detalle(
