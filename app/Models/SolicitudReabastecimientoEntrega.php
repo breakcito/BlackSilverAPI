@@ -41,7 +41,7 @@ class SolicitudReabastecimientoEntrega extends Model
             alm.nombre as almacen_entrega,
             --
             CONCAT(emp_ent.nombre," ",emp_ent.apellido) AS empleado_entrega,
-            CONCAT(per_rec.nombre," ",per_rec.apellido) AS personal_recibe,
+            TRIM(CONCAT_WS(" ", NULLIF(TRIM(per_rec.nombre), ""), NULLIF(TRIM(per_rec.apellido), ""))) AS personal_recibe,
             --
             ent.correlativo,
             ent.fecha_hora_entrega,

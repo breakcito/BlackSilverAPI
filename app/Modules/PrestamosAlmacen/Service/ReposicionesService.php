@@ -39,6 +39,7 @@ class ReposicionesService
         int $id_prestamo_almacen,
         int $id_almacen_entrega,
         int $id_empleado_entrega,
+        int $id_personal_recibe,
         string $fecha_hora_reposicion,
         //
         // [{id_prestamo_detalle, id_lote_producto, cantidad_base, cantidad_lote, cantidad_prestamo}]
@@ -51,6 +52,7 @@ class ReposicionesService
             $id_prestamo_almacen,
             $id_almacen_entrega,
             $id_empleado_entrega,
+            $id_personal_recibe,
             $fecha_hora_reposicion,
             $observacion,
             $items,
@@ -73,6 +75,7 @@ class ReposicionesService
                 $id_prestamo_almacen,
                 $id_almacen_entrega,
                 $id_empleado_entrega,
+                $id_personal_recibe,
                 $correlativoData['correlativo'],
                 $correlativoData['numero_correlativo'],
                 Carbon::parse($fecha_hora_reposicion)->toDateTimeString(),

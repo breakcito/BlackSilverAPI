@@ -26,7 +26,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
         Route::prefix('auxiliares')->controller(AuxController::class)->group(function () {
             Route::get('/almacenes', 'get_almacenes'); // listar almacenes principales o secundarios
-            Route::get('/empleados', 'get_empleados'); // listar empleados para recibir material
+            Route::get('/personal-externo', 'get_personal_externo'); // listar personal externo para recibir material
+            Route::post('/personal-externo', 'crear_personal_externo'); // agregar personal externo
             Route::get('/lotes', 'get_lotes_disponibles'); // listar lotes disponibles de un almacen
         });
 

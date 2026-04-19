@@ -20,10 +20,25 @@ class AuxController extends Controller
         return response()->json($result);
     }
 
-    public function get_empleados(Request $request): JsonResponse
+    public function get_personal_externo(Request $request): JsonResponse
     {
+        $result = AuxService::get_personal_externo();
+        return response()->json($result);
+    }
 
-        $result = AuxService::get_empleados();
+    public function crear_personal_externo(Request $request): JsonResponse
+    {
+        $request->validate([
+            'nombre' => 'required|string',
+            'apellido' => 'nullable|string',
+            'dni' => 'nullable|string',
+        ]);
+
+        $result = AuxService::crear_personal_externo(
+            nombre: $request->input('nombre'),
+            apellido: $request->input('apellido'),
+            dni: $request->input('dni')
+        );
 
         return response()->json($result);
     }

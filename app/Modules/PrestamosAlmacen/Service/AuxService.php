@@ -32,7 +32,7 @@ class AuxService
      */
     public static function get_personal_externo()
     {
-        return PersonalExternoData::get_personal();
+        return ApiResponse::success(PersonalExternoData::get_personal());
     }
 
     /**
@@ -43,10 +43,12 @@ class AuxService
         ?string $apellido = null,
         ?string $dni = null
     ) {
-        return PersonalExternoData::crear_personal(
+        $id_personal = PersonalExternoData::crear_personal(
             nombre: $nombre,
             apellido: $apellido,
             dni: $dni
         );
+
+        return ApiResponse::success(PersonalExternoData::get_personal(id_personal: $id_personal));
     }
 }

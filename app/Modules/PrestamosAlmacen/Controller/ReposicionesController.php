@@ -33,6 +33,7 @@ class ReposicionesController extends Controller
         $validator = Validator::make($request->all(), [
             'id_prestamo_almacen' => 'required|integer',
             'id_almacen_entrega' => 'required|integer',
+            'id_personal_recibe' => 'required|integer',
             'fecha_hora_reposicion' => 'required|date',
             'observacion' => 'nullable|string',
             'items' => 'required', // Puede ser string JSON o array
@@ -64,6 +65,7 @@ class ReposicionesController extends Controller
             (int) $request->input('id_prestamo_almacen'),
             (int) $request->input('id_almacen_entrega'),
             (int) $authUser->id_empleado,
+            (int) $request->input('id_personal_recibe'),
             $request->input('fecha_hora_reposicion'),
             $items,
             $request->input('observacion'),

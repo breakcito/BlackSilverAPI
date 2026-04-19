@@ -13,7 +13,7 @@ class AuxService
 
     public static function get_catalogo(int $id_empleado)
     {
-        $almacenes = AlmacenesData::get_almacenes(id_responsable: $id_empleado);
+        $almacenes = AlmacenesData::get_almacenes(id_responsable: $id_empleado, es_principal: 0);
         $productos = AuxData::get_productos();
         $unidades_medida = UnidadesMedidaData::get_unidades();
 

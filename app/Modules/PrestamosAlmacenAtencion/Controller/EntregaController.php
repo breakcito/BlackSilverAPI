@@ -18,7 +18,7 @@ class EntregaController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id_prestamo'           => 'required|integer',
-            'id_empleado_recibe'    => 'required|integer',
+            'id_personal_recibe'    => 'required|integer',
             'fecha_hora_entrega'    => 'nullable|date',
             'observacion'           => 'nullable|string|max:255',
             'evidencias'            => 'nullable|array',
@@ -43,7 +43,7 @@ class EntregaController extends Controller
         $result = EntregaService::registrar_despacho(
             (int) $request->input('id_prestamo'),
             (int) $authUser->id_empleado,
-            (int) $request->input('id_empleado_recibe'),
+            (int) $request->input('id_personal_recibe'),
             (string) $request->input('fecha_hora_entrega'),
             (string) $request->input('observacion'),
             $request->file('evidencias'),

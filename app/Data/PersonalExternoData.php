@@ -35,11 +35,11 @@ class PersonalExternoData
         $sql = '
         SELECT
             pr.id AS id_personal,
-            CONCAT(pr.nombre, " ", pr.apellido) AS personal,
+            TRIM(CONCAT_WS(" ", NULLIF(TRIM(pr.nombre), ""), NULLIF(TRIM(pr.apellido), ""))) AS nombre_completo,
             pr.dni
         FROM
             personal_externo pr
-        WHERE 1=1
+        WHERE 1=1;
         ';
 
         $params = [];
