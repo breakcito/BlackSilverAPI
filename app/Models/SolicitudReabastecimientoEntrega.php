@@ -15,7 +15,7 @@ class SolicitudReabastecimientoEntrega extends Model
         'id_solicitud_reabastecimiento',
         'id_almacen_entrega', // un almacen principal
         'id_empleado_entrega',
-        'id_empleado_recibe',
+        'id_personal_recibe', // Personal externo
         'correlativo',
         'numero_correlativo',
         'fecha_hora_entrega',
@@ -41,7 +41,7 @@ class SolicitudReabastecimientoEntrega extends Model
             alm.nombre as almacen_entrega,
             --
             CONCAT(emp_ent.nombre," ",emp_ent.apellido) AS empleado_entrega,
-            CONCAT(emp_rec.nombre," ",emp_rec.apellido) AS empleado_recibe,
+            CONCAT(per_rec.nombre," ",per_rec.apellido) AS personal_recibe,
             --
             ent.correlativo,
             ent.fecha_hora_entrega,
@@ -54,8 +54,8 @@ class SolicitudReabastecimientoEntrega extends Model
         INNER JOIN almacen alm on alm.id = ent.id_almacen_entrega
         INNER JOIN empleado emp_ent ON
             emp_ent.id = ent.id_empleado_entrega
-        INNER JOIN empleado emp_rec ON
-            emp_rec.id = ent.id_empleado_recibe
+        INNER JOIN personal_externo per_rec ON
+            per_rec.id = ent.id_personal_recibe
         WHERE 1 = 1
         ';
 

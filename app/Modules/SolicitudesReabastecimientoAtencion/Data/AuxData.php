@@ -2,6 +2,7 @@
 
 namespace App\Modules\SolicitudesReabastecimientoAtencion\Data;
 
+use App\Data\LotesProductosData;
 use App\Models\RequerimientoAlmacenDetalle;
 use App\Models\RequerimientoAlmacenDetalleLog;
 use App\Models\SolicitudReabastecimiento;
@@ -146,7 +147,7 @@ class AuxData
      */
     public static function get_stock_total_base_por_producto(int $id_almacen, int $id_producto): float
     {
-        $lotes = \App\Data\LotesProductosData::get_lotes_disponibles($id_almacen, [$id_producto]);
+        $lotes = LotesProductosData::get_lotes_disponibles($id_almacen, [$id_producto]);
         $totalStock = 0;
         foreach ($lotes as $lote) {
             $totalStock += (float) $lote->stock_actual_base;

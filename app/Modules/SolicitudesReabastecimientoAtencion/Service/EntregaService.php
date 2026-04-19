@@ -49,13 +49,22 @@ class EntregaService
         int $id_almacen_entrega,
         int $id_empleado_entrega,
         int $id_solicitud,
-        int $id_empleado_recibe,
+        int $id_personal_recibe,
         string $fecha_hora_entrega,
         ?string $observacion,
         ?array $evidencias, // archivos
         array $detalles // {id_solicitud_detalle, id_lote_producto, cantidad_base, cantidad_lote, cantidad_solicitud
     ) {
-        return DB::transaction(function () use ($id_almacen_entrega, $id_empleado_entrega, $id_solicitud, $id_empleado_recibe, $fecha_hora_entrega, $observacion, $evidencias, $detalles) {
+        return DB::transaction(function () use (
+            $id_almacen_entrega,
+            $id_empleado_entrega,
+            $id_solicitud,
+            $id_personal_recibe,
+            $fecha_hora_entrega,
+            $observacion,
+            $evidencias,
+            $detalles
+        ) {
 
             // Procesar Evidencias si existen
             $evidenciasData = null;
@@ -84,7 +93,7 @@ class EntregaService
                 $id_solicitud,
                 $id_almacen_entrega,
                 $id_empleado_entrega,
-                $id_empleado_recibe,
+                $id_personal_recibe,
                 $correlativoData['correlativo'],
                 $correlativoData['numero_correlativo'],
                 $fecha_hora_entrega,

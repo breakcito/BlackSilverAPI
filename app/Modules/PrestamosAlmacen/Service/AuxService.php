@@ -4,6 +4,7 @@ namespace App\Modules\PrestamosAlmacen\Service;
 
 use App\Data\AlmacenesData;
 use App\Data\LotesProductosData;
+use App\Data\PersonalExternoData;
 use App\Shared\Responses\ApiResponse;
 
 class AuxService
@@ -24,5 +25,28 @@ class AuxService
     {
         $data = LotesProductosData::get_lotes_disponibles($id_almacen, $ids_productos);
         return ApiResponse::success($data);
+    }
+
+    /**
+     * Obtiene el personal externo
+     */
+    public static function get_personal_externo()
+    {
+        return PersonalExternoData::get_personal();
+    }
+
+    /**
+     * Registrar un nuevo personal externo
+     */
+    public static function crear_personal_externo(
+        ?string $nombre = null,
+        ?string $apellido = null,
+        ?string $dni = null
+    ) {
+        return PersonalExternoData::crear_personal(
+            nombre: $nombre,
+            apellido: $apellido,
+            dni: $dni
+        );
     }
 }

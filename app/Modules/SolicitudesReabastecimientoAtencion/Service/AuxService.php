@@ -5,6 +5,7 @@ namespace App\Modules\SolicitudesReabastecimientoAtencion\Service;
 use App\Data\AlmacenesData;
 use App\Data\EmpleadosData;
 use App\Data\LotesProductosData;
+use App\Data\PersonalExternoData;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\AuxData;
 
@@ -54,5 +55,28 @@ class AuxService
     {
         $data = AuxData::get_stock_total_almacen_por_productos($id_almacen, $ids_productos);
         return ApiResponse::success($data);
+    }
+
+    /**
+     * Obtiene el personal externo
+     */
+    public static function get_personal_externo()
+    {
+        return PersonalExternoData::get_personal();
+    }
+
+    /**
+     * Registrar un nuevo personal externo
+     */
+    public static function crear_personal_externo(
+        ?string $nombre = null,
+        ?string $apellido = null,
+        ?string $dni = null
+    ) {
+        return PersonalExternoData::crear_personal(
+            nombre: $nombre,
+            apellido: $apellido,
+            dni: $dni
+        );
     }
 }

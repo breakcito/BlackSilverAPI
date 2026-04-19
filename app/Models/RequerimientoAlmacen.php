@@ -43,6 +43,7 @@ class RequerimientoAlmacen extends Model
             ra.id_almacen_destino,
             alm.nombre AS almacen_destino,
             --
+            ra.id_empleado_solicitante,
             CONCAT(emp.nombre, " ", emp.apellido) AS solicitante,
             CONCAT(empr.nombre, " ", empr.apellido) AS responsable,
             --
