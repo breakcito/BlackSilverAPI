@@ -16,18 +16,11 @@ class AuxService
      */
     public static function get_almacenes_autorizados(int $id_empleado)
     {
-        $data = AlmacenesData::get_almacenes(id_responsable: $id_empleado);
+        $data = AlmacenesData::get_almacenes(id_responsable: $id_empleado, es_principal: 0);
         return ApiResponse::success($data);
     }
 
-    /**
-     * Obtiene los empleados activos para seleccionar como entregador o receptor
-     */
-    public static function get_empleados()
-    {
-        $data = EmpleadosData::get_empleados();
-        return ApiResponse::success($data);
-    }
+
 
     /**
      * Obtiene los lotes disponibles de un producto en un almacén

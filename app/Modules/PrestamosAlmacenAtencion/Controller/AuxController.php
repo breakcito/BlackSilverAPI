@@ -24,12 +24,26 @@ class AuxController extends Controller
         return response()->json($result);
     }
 
-    /**
-     * Obtiene los empleados activos (para selector entregador/receptor)
-     */
-    public function get_empleados(): JsonResponse
+    public function get_personal_externo(Request $request): JsonResponse
     {
-        $result = AuxService::get_empleados();
+        $result = AuxService::get_personal_externo();
+        return response()->json($result);
+    }
+
+    public function crear_personal_externo(Request $request): JsonResponse
+    {
+        $request->validate([
+            'nombre' => 'required|string',
+            'apellido' => 'nullable|string',
+            'dni' => 'nullable|string',
+        ]);
+
+        $result = AuxService::crear_personal_externo(
+            nombre: $request->input('nombre'),
+            apellido: $request->input('apellido'),
+            dni: $request->input('dni')
+        );
+
         return response()->json($result);
     }
 

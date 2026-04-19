@@ -33,6 +33,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::get('/almacenes-secundarios',  'get_almacenes_secundarios');
             Route::get('/almacenes-principales', 'get_almacenes_principales');
             Route::get('/lotes',                  'get_lotes_disponibles');
+            Route::get('/personal-externo',  'get_personal_externo');
+            Route::post('/personal-externo', 'crear_personal_externo');
         });
     });
 });

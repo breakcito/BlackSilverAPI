@@ -13,7 +13,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
         // Auxiliares
         Route::controller(AuxController::class)->group(function () {
             Route::get('/almacenes-autorizados', 'get_almacenes_autorizados');
-            Route::get('/empleados',             'get_empleados');
+            Route::get('/personal-externo',  'get_personal_externo');
+            Route::post('/personal-externo', 'crear_personal_externo');
             Route::get('/lotes',                 'get_lotes_disponibles');
             Route::get('/catalogos/unidades',    'get_unidades_medida');
             Route::get('/catalogos/lotes-destino', 'get_lotes_destino');
