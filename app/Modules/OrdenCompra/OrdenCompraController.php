@@ -11,14 +11,26 @@ class OrdenCompraController
     /**
      * Listar todas las órdenes de compra
      */
-    public function get_listado(): JsonResponse
+    public function get_listado(Request $request): JsonResponse
     {
-        $result = OrdenCompraService::listar();
+        $mes = $request->query('mes') ? (int) $request->query('mes') : null;
+        $year = $request->query('year') ? (int) $request->query('year') : null;
+
+        $result = OrdenCompraService::listar($mes, $year);
         return response()->json($result);
     }
 
     /**
-     * Obtener los detalles de una OC específica
+     * Obtener una orden de compra por ID
+     */
+    public function get_orden(Request $request): JsonResponse
+    {
+        $id = (int) $request->query('id');
+        $result = OrdenCompraService::get_cabecera($id);
+        return response()->json($result);
+    }
+
+    /**
      */
     public function get_detalles(Request $request): JsonResponse
     {

@@ -10,10 +10,19 @@ class OrdenCompraService
     /**
      * Listar todas las órdenes de compra con sus cabeceras
      */
-    public static function listar(): array
+    public static function listar(?int $mes = null, ?int $year = null): array
     {
-        $ordenes  = OrdenCompraData::get_listado();
+        $ordenes  = OrdenCompraData::get_listado(null, $mes, $year);
         return ApiResponse::success(['ordenes' => $ordenes]);
+    }
+
+    /**
+     * Obtener una sola cabecera de orden de compra por ID
+     */
+    public static function get_cabecera(int $id): array
+    {
+        $ordenes  = OrdenCompraData::get_listado($id);
+        return ApiResponse::success($ordenes[0] ?? null);
     }
 
     /**

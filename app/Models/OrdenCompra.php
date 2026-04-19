@@ -76,7 +76,7 @@ class OrdenCompra extends Model
     /**
      * Lista las órdenes de compra con datos de empresa y cotización
      */
-    public static function get_ordenes(?int $id_orden = null): array|object|null
+    public static function get_ordenes(?int $id_orden = null, ?int $mes = null, ?int $year = null): array|object|null
     {
         $sql = '
         SELECT
@@ -111,6 +111,16 @@ class OrdenCompra extends Model
             $sql .= ' AND oc.id = :id_orden';
             $params['id_orden'] = $id_orden;
             return DB::selectOne($sql, $params);
+        }
+
+        if ($mes !== null) {
+            $sql .= ' AND MONTH(oc.fecha_hora_orden) = :mes';
+            $params['mes'] = $mes;
+        }
+
+        if ($year !== null) {
+            $sql .= ' AND YEAR(oc.fecha_hora_orden) = :year';
+            $params['year'] = $year;
         }
 
         $sql .= '
