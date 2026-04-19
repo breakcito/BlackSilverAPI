@@ -27,7 +27,7 @@ class AtencionController extends Controller
         $mes = $request->input('mes');
         $yearcito = $request->input('yearcito');
 
-        if (! $id_almacen || !$mes || !$yearcito) {
+        if (!$id_almacen || !$mes || !$yearcito) {
             return response()->json(ApiResponse::error('id_almacen, mes y yearcito son requeridos'), 400);
         }
 
@@ -45,24 +45,28 @@ class AtencionController extends Controller
 
         $reglas = [
             'id_empleado_solicitante' => 'required|integer',
-            'id_mina'                 => 'required|integer',
-            'id_almacen_destino'      => 'required|integer',
-            'premura'                 => 'required|string',
+            'id_mina' => 'required|integer',
+            'id_almacen_destino' => 'required|integer',
+            'premura' => 'required|string',
             'fecha_entrega_requerida' => 'required|date',
-            'labores'                 => 'present|array',
-            'detalles'                => 'required|array|min:1',
-            'detalles.*.id_producto'              => 'required|integer',
-            'detalles.*.id_unidad_medida'         => 'required|integer',
-            'detalles.*.cantidad_solicitada'      => 'required|numeric|min:0.01',
+            'observacion' => 'nullable|string',
+            'labores' => 'nullable|array',
+            'detalles' => 'required|array|min:1',
+            'detalles.*.id_producto' => 'required|integer',
+            'detalles.*.id_unidad_medida' => 'required|integer',
+            'detalles.*.cantidad_solicitada' => 'required|numeric|min:0.01',
             'detalles.*.contenido_por_presentacion' => 'required|numeric|min:0.01',
-            'evidencias'              => 'nullable|array',
-            'evidencias.*'            => 'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:10240',
+            'detalles.*.id_producto_destino' => 'nullable|integer',
+            'detalles.*.comentario' => 'nullable|string',
+            'evidencias' => 'nullable|array',
+            'evidencias.*' => 'file',
         ];
 
         $validator = Validator::make($request->all(), $reglas);
 
         if ($validator->fails()) {
-            return response()->json(ApiResponse::error('Datos inválidos'));
+            $errores = $validator->errors()->all();
+            return response()->json(ApiResponse::error('Datos inválidos: ' . implode(', ', $errores)));
         }
 
         $id_empleado_registro = $authUser->id_empleado;
@@ -145,7 +149,7 @@ class AtencionController extends Controller
         }
 
         $authUser = $request->attributes->get('auth_user');
-        if (! $authUser) {
+        if (!$authUser) {
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 

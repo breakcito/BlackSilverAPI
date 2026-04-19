@@ -1,5 +1,3 @@
-
-
 <?php
 
 use App\Modules\RequerimientosAlmacenAtencion\Controller\AtencionController;
@@ -14,11 +12,10 @@ Route::middleware('auth.jwt.custom')->group(function () {
         // Entregas (Despacho, Stock, Lotes)
         Route::controller(AuxController::class)->group(function () {
             Route::get('/lotes', 'get_lotes_disponibles');
-            Route::get('/empleados', 'get_empleados');
             Route::get('/almacenes-autorizados', 'get_almacenes_autorizados');
             Route::get('/data-to-registro', 'get_data_to_registro');
             Route::get('/minas-by-almacen', 'get_minas_by_almacen');
-            Route::get('/responsables-by-mina', 'get_responsables_by_mina');
+            Route::get('/data-by-mina', 'get_data_by_mina');
         });
 
         Route::controller(AtencionController::class)->group(function () {

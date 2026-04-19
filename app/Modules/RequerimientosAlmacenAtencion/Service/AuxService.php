@@ -3,7 +3,6 @@
 namespace App\Modules\RequerimientosAlmacenAtencion\Service;
 
 use App\Data\AlmacenesData;
-use App\Data\EmpleadosData;
 use App\Data\LotesProductosData;
 use App\Data\UnidadesMedidaData;
 use App\Shared\Responses\ApiResponse;
@@ -17,7 +16,7 @@ class AuxService
      */
     public static function get_almacenes_autorizados(int $id_empleado)
     {
-        $data = AlmacenesData::get_almacenes(id_responsable: $id_empleado);
+        $data = AlmacenesData::get_almacenes(id_responsable: $id_empleado, es_principal: 0);
         return ApiResponse::success($data);
     }
 
@@ -26,12 +25,12 @@ class AuxService
      */
     public static function get_data_to_registro(int $id_empleado)
     {
-        $almacenes = AlmacenesData::get_almacenes(id_responsable: $id_empleado);
+        // $almacenes = AlmacenesData::get_almacenes(id_responsable: $id_empleado);
         $productos = RequerimientosDetalleData::get_productos();
         $unidades = UnidadesMedidaData::get_unidades();
 
         return ApiResponse::success([
-            'almacenes' => $almacenes,
+            // 'almacenes' => $almacenes,
             'productos' => $productos,
             'unidades' => $unidades,
         ]);
@@ -63,18 +62,9 @@ class AuxService
     /**
      * Obtiene los lotes disponibles para una lista de productos de un almacén.
      */
-    public static function obtener_lotes_disponibles(int $id_almacen, array $ids_productos)
+    public static function get_lotes_disponibles(int $id_almacen, array $ids_productos)
     {
         $data = LotesProductosData::get_lotes_disponibles($id_almacen, $ids_productos);
-        return ApiResponse::success($data);
-    }
-
-    /**
-     * Obtiene los empleados para la entrega
-     */
-    public static function obtener_empleados()
-    {
-        $data = EmpleadosData::get_empleados();
         return ApiResponse::success($data);
     }
 }

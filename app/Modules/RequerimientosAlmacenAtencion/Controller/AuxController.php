@@ -60,4 +60,24 @@ class AuxController extends Controller
 
         return response()->json($result);
     }
+
+    /**
+     * Obtener lotes disponibles para varios productos (Batch).
+     */
+    public function get_lotes_disponibles(Request $request): JsonResponse
+    {
+        $id_almacen = $request->query('id_almacen');
+        $ids_productos_str = $request->query('ids_productos');
+
+        if (!$id_almacen || !$ids_productos_str) {
+            return response()->json(ApiResponse::error('Faltan parámetros: id_almacen o ids_productos'), 400);
+        }
+
+        $ids_productos = explode(',', $ids_productos_str);
+        $ids_productos = array_map('intval', $ids_productos);
+
+        $lotes = AuxService::get_lotes_disponibles((int) $id_almacen, $ids_productos);
+
+        return response()->json(ApiResponse::success($lotes));
+    }
 }

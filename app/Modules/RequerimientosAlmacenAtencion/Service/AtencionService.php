@@ -125,7 +125,9 @@ class AtencionService
 
             // 5. Obtener resumen para el front
             $resumen = RequerimientosData::get_requerimiento_by_id($id_requerimiento);
+            $resumen->evidencias = $resumen->evidencias ? json_decode($resumen->evidencias) : null;
             $resumen->labores = RequerimientosData::get_labores_by_requerimiento($id_requerimiento);
+            $resumen->detalles = RequerimientosDetalleData::get_detalles_by_requerimiento($id_requerimiento);
 
             return ApiResponse::success(
                 $resumen,
