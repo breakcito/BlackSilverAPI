@@ -32,7 +32,16 @@ class OrdenCompraService
      */
     public static function get_detalles(int $id_orden_compra): array
     {
-        $detalles = OrdenCompraData::get_detalles($id_orden_compra);
+        $detalles = \App\Models\OrdenCompraDetalle::get_detalles($id_orden_compra);
         return ApiResponse::success(['detalles' => $detalles]);
+    }
+
+    /**
+     * Obtener el seguimiento de un detalle de OC
+     */
+    public static function get_seguimiento(int $id_detalle): array
+    {
+        $logs = \App\Models\OrdenCompraDetalleLog::get_logs($id_detalle);
+        return ApiResponse::success($logs);
     }
 }

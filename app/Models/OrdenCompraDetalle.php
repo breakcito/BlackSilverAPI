@@ -60,15 +60,22 @@ class OrdenCompraDetalle extends Model
                 ocd.cantidad_requerida_base,
                 ocd.estado,
                 --
+                cd.precio_unitario,
+                --
                 ocd.id_producto,
                 pr.nombre   AS producto_nombre,
+                pr.id_unidad_medida_base,
                 --
                 ocd.id_unidad_medida,
-                um.nombre   AS unidad_medida_nombre,
-                um.abreviatura AS unidad_medida_abv
+                um.nombre        AS unidad_medida_nombre,
+                um.abreviatura   AS unidad_medida_abv,
+                --
+                um_base.abreviatura AS unidad_medida_base_abv
             FROM orden_compra_detalle ocd
+            INNER JOIN cotizacion_detalle cd ON cd.id = ocd.id_cotizacion_detalle
             INNER JOIN producto      pr ON pr.id = ocd.id_producto
             INNER JOIN unidad_medida um ON um.id = ocd.id_unidad_medida
+            INNER JOIN unidad_medida um_base ON um_base.id = pr.id_unidad_medida_base
             WHERE ocd.id_orden_compra = :id_orden_compra
             ORDER BY pr.nombre ASC
         ', ['id_orden_compra' => $id_orden_compra]);

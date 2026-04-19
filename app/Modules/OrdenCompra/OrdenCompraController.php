@@ -43,4 +43,19 @@ class OrdenCompraController
         $result = OrdenCompraService::get_detalles($id_orden_compra);
         return response()->json($result);
     }
+
+    /**
+     * Obtener el seguimiento de un detalle de OC
+     */
+    public function get_seguimiento(Request $request): JsonResponse
+    {
+        $id_detalle = (int) $request->query('id_detalle');
+
+        if (!$id_detalle) {
+            return response()->json(\App\Shared\Responses\ApiResponse::error('Debe indicar el id de detalle.'));
+        }
+
+        $result = OrdenCompraService::get_seguimiento($id_detalle);
+        return response()->json($result);
+    }
 }
