@@ -91,9 +91,10 @@ class CotizacionesController
         }
 
         $result = CotizacionesService::aprobar_cotizacion_parcial(
-            id_cotizacion: $id,
+            id_cotizacion:         $id,
             id_empresa_compradora: $request->input('id_empresa_compradora'),
-            detalles_aprobados: $request->input('detalles_aprobados')
+            id_empleado:           $request->user()->id_empleado,
+            detalles_aprobados:    $request->input('detalles_aprobados')
         );
         return response()->json($result);
     }
