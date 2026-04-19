@@ -36,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Modules/PrestamosAlmacen/PrestamosAlmacenEndpoints.php');
                 require base_path('app/Modules/Proveedores/ProveedoresEndpoints.php');
                 require base_path('app/Modules/Cotizaciones/CotizacionesEndpoints.php');
+                require base_path('app/Modules/OrdenCompra/OrdenCompraEndpoints.php');
             });
         },
     )

@@ -93,10 +93,12 @@ class CotizacionesData
             SELECT 
                 c.*,
                 p.razon_social as proveedor_nombre,
-                comp.created_at as comparativo_fecha
+                comp.created_at as comparativo_fecha,
+                oc.id as id_orden_compra
             FROM cotizacion c
             INNER JOIN proveedor p ON c.id_proveedor = p.id
             INNER JOIN comparativo comp ON c.id_comparativo = comp.id
+            LEFT JOIN orden_compra oc ON oc.id_cotizacion = c.id
             ORDER BY c.id_comparativo DESC, c.id DESC
         ");
 
