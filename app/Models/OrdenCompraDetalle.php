@@ -100,40 +100,50 @@ class OrdenCompraDetalle extends Model
                 ocd.id AS id_orden_compra_detalle,
                 ocd.id_orden_compra,
                 ocd.id_cotizacion_detalle,
-                ocd.estado,
-                --
+                -- 
+                -- info del almacen para el que van destinados los productos
                 ocd.id_almacen_recepcionista,
                 alm.nombre AS almacen_recepcionista,
-                --
-                ocd.tipo_despacho,
+                alm.es_principal para_un_almacen_principal,
+                -- 
+                -- info para la recepcion
+                ocd.tipo_despacho,  -- recojo o envio
                 ocd.lugar_recojo,
                 --
-                ocd.tiempo_entrega,
-                ocd.tiempo_entrega_periodo,
-                ocd.tiempo_entrega_dias,
-                --
-                ocd.contenido_por_presentacion,
-                ocd.cantidad_requerida,
-                ocd.cantidad_requerida_base,
-                --
+                -- info del plazo de entrega
+                ocd.tiempo_entrega, -- 2
+                ocd.tiempo_entrega_periodo, -- semanas
+                ocd.tiempo_entrega_dias, -- 14 dias
+                -- 
+            	-- informacion del producto
+                ocd.id_producto,
+                pr.nombre AS producto,
+                pr.es_fiscalizado,
+                pr.es_perecible,
+                -- 
+                -- unidad de medida de la orden de compra
+                ocd.id_unidad_medida as id_unidad_medida_oc,
+                um.nombre as unidad_medida_oc,
+                um.abreviatura as unidad_medida_oc_abv,
+                -- 
+                -- unidad de medida del producto
+                pr.id_unidad_medida_base,
+                um_base.nombre as unidad_medida_base,
+                um_base.abreviatura as unidad_medida_base_abv,
+                -- 
+                ocd.cantidad_requerida, -- segun la unidad de la compra
+                ocd.contenido_por_presentacion, -- cuantas unidades base del producto hay en una unidad de la compra
+                ocd.cantidad_requerida_base, -- segun la unidad base del producto
+                -- 
                 ocd.precio_unitario,
                 ocd.precio_unitario_base,
                 ocd.comentario,
-                --
-                ocd.id_producto,
-                pr.nombre AS producto_nombre,
-                pr.id_unidad_medida_base,
-                --
-                ocd.id_unidad_medida,
-                um.nombre AS unidad_medida_nombre,
-                um.abreviatura AS unidad_medida_abv,
-                --
-                um_base.abreviatura             AS unidad_medida_base_abv
+                ocd.estado
             FROM orden_compra_detalle ocd
-            INNER JOIN almacen          alm ON alm.id = ocd.id_almacen_recepcionista
+            INNER JOIN almacen alm ON alm.id = ocd.id_almacen_recepcionista
             INNER JOIN cotizacion_detalle cd ON cd.id  = ocd.id_cotizacion_detalle
-            INNER JOIN producto          pr  ON pr.id  = ocd.id_producto
-            INNER JOIN unidad_medida     um  ON um.id  = ocd.id_unidad_medida
+            INNER JOIN producto pr  ON pr.id  = ocd.id_producto
+            INNER JOIN unidad_medida um  ON um.id  = ocd.id_unidad_medida
             INNER JOIN unidad_medida um_base ON um_base.id = pr.id_unidad_medida_base
             WHERE ocd.id_orden_compra = :id_orden_compra
             ORDER BY pr.nombre ASC

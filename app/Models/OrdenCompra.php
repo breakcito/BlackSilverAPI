@@ -16,6 +16,7 @@ class OrdenCompra extends Model
     protected $fillable = [
         'id_cotizacion', // Por si viene de una cotizacion
         'id_empresa', // Una de las empresas involucradas en la cotizacion
+        'id_proveedor',
         //
         'correlativo',
         'numero_correlativo',
@@ -54,6 +55,7 @@ class OrdenCompra extends Model
     public static function crear_orden(
         int $id_cotizacion,
         int $id_empresa,
+        int $id_proveedor,
         string $correlativo,
         int $numero_correlativo,
         string $fecha_hora_orden,
@@ -72,6 +74,7 @@ class OrdenCompra extends Model
         return self::insertGetId([
             'id_cotizacion' => $id_cotizacion,
             'id_empresa' => $id_empresa,
+            'id_proveedor' => $id_proveedor,
             'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
             'observacion' => $observacion,
@@ -94,32 +97,50 @@ class OrdenCompra extends Model
     /**
      * Lista las órdenes de compra con datos de empresa y cotización
      */
-    public static function get_ordenes(?int $id_orden = null, ?int $mes = null, ?int $year = null): array|object|null
-    {
+    public static function get_ordenes(
+        ?int $id_orden = null,
+        ?int $mes = null,
+        ?int $year = null
+    ): array|object|null {
         $sql = '
         SELECT
-            oc.id,
+            oc.id as id_orden_compra,
             oc.correlativo,
+            -- 
+            oc.id_cotizacion,
+            cot.correlativo AS correlativo_cotizacion,
+            -- 
+            oc.id_empresa,
+            emp.razon_social AS empresa,
+            emp.ruc	AS empresa_ruc,
+            -- 
+            oc.id_proveedor,
+            prov.razon_social AS proveedor,
+            prov.tipo_entidad as tipo_entidad_proveedor,
+            IFNULL(prov.ruc, prov.dni) AS documento_proveedor,
+            -- 
             oc.observacion,
             oc.fecha_hora_orden,
+            -- 
+            oc.metodo_pago,
+            oc.fecha_vencimiento_pago,
             oc.moneda,
+            -- 
+            oc.costo_flete,
+            oc.otros_gastos,
+            -- 
+            oc.total_antes_igv,
             oc.incluye_igv,
             oc.porcentaje_igv,
             oc.monto_igv,
-            oc.total_antes_igv,
             oc.total_despues_igv,
+            -- 
             oc.created_at,
-            oc.estado,
-            --
-            oc.id_cotizacion,
-            cot.correlativo AS correlativo_cotizacion,
-            --
-            oc.id_empresa,
-            emp.razon_social AS empresa_nombre,
-            emp.ruc          AS empresa_ruc
+            oc.estado
         FROM orden_compra oc
-        INNER JOIN cotizacion  cot ON cot.id = oc.id_cotizacion
-        INNER JOIN empresa     emp ON emp.id = oc.id_empresa
+        LEFT JOIN cotizacion  cot ON cot.id = oc.id_cotizacion
+        INNER JOIN empresa emp ON emp.id = oc.id_empresa
+        INNER JOIN proveedor prov on prov.id = oc.id_proveedor
         WHERE 1 = 1
         ';
 
