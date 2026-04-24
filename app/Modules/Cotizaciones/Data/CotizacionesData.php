@@ -2,142 +2,182 @@
 
 namespace App\Modules\Cotizaciones\Data;
 
-use App\Models\Comparativo;
-use App\Models\ComparativoDetalle;
 use App\Models\Cotizacion;
 use App\Models\CotizacionDetalle;
-use App\Shared\Helpers\CorrelativoHelper;
-use Illuminate\Support\Facades\DB;
+use App\Models\CotizacionEmpresa;
+use App\Shared\Enums\_Generic\Periodo;
+use App\Shared\Enums\_Generic\TipoDespachoCompra;
+use App\Shared\Enums\Cotizacion\EstadoCotizacion;
+use App\Shared\Enums\Cotizacion\EstadoCotizacionDetalle;
 
 class CotizacionesData
 {
+    /**
+     * -------------------------------------------------------
+     * QUERYS PARA LA CABECERA
+     * -------------------------------------------------------
+     */
+
+
     /**
      * Obtener el siguiente número correlativo usando el helper
      */
     public static function get_nuevo_correlativo(): array
     {
-        return CorrelativoHelper::generar(
-            tabla: 'cotizacion',
-            prefijo: 'CTZ',
-            columnaFecha: 'fecha_hora_cotizacion'
-        );
-    }
-
-    /**
-     * Crear el registro maestro del comparativo
-     */
-    public static function crear_comparativo(string $fecha_ahora): int
-    {
-        $comp = Comparativo::create([
-            'created_at' => $fecha_ahora
-        ]);
-        return $comp->id;
-    }
-
-    /**
-     * Crear el detalle de productos del comparativo
-     */
-    public static function crear_comparativo_detalle(int $id_comparativo, int $id_producto, ?int $id_solicitud_detalle = null): int
-    {
-        $det = ComparativoDetalle::create([
-            'id_comparativo' => $id_comparativo,
-            'id_producto' => $id_producto,
-            'id_solicitud_reabastecimiento_detalle' => $id_solicitud_detalle
-        ]);
-        return $det->id;
+        return Cotizacion::get_nuevo_correlativo();
     }
 
     /**
      * Crear cabecera de cotización
      */
-    public static function crear_cotizacion(array $data): int
-    {
-        $cot = Cotizacion::create($data);
-        return $cot->id;
+    public static function crear_cotizacion(
+        int $id_comparativo,
+        int $id_proveedor,
+        //
+        string $correlativo,
+        int $numero_correlativo,
+        //
+        string $fecha_hora_cotizacion,
+        //
+        string $metodo_pago,
+        string $moneda,
+        //
+        float $costo_flete,
+        float $otros_gastos,
+        //
+        float $total_antes_igv,
+        bool $incluye_igv,
+        float $porcentaje_igv,
+        float $monto_igv,
+        float $total_despues_igv,
+        //
+        ?string $observacion = null,
+        ?string $fecha_vencimiento_pago = null,
+        ?string $evidencias = null,
+        EstadoCotizacion $estado = EstadoCotizacion::Generada,
+    ): int {
+        return Cotizacion::crear_cotizacion(
+            $id_comparativo,
+            $id_proveedor,
+            //
+            $correlativo,
+            $numero_correlativo,
+            //
+            $fecha_hora_cotizacion,
+            //
+            $metodo_pago,
+            $moneda,
+            //
+            $costo_flete,
+            $otros_gastos,
+            //
+            $total_antes_igv,
+            $incluye_igv,
+            $porcentaje_igv,
+            $monto_igv,
+            $total_despues_igv,
+            //
+            $observacion,
+            $fecha_vencimiento_pago,
+            $evidencias,
+            $estado
+        );
     }
+
+    /**
+     * Asignar empresas a una cotización
+     */
+    public static function asignar_empresa(int $id_cotizacion, array $empresas_ids): bool
+    {
+        return CotizacionEmpresa::asignar_empresa(
+            $id_cotizacion,
+            $empresas_ids
+        );
+    }
+
+
+    public static function get_cotizaciones(
+        ?int $id_cotizacion = null,
+        null|int|array $ids_comparativos = null
+    ) {
+        return Cotizacion::get_cotizaciones(
+            id_cotizacion: $id_cotizacion,
+            ids_comparativos: $ids_comparativos
+        );
+    }
+
+
+    /**
+     * -------------------------------------------------------
+     * QUERYS PARA EL DETALLE
+     * -------------------------------------------------------
+     */
+
 
     /**
      * Crear detalle de cotización
      */
-    public static function crear_cotizacion_detalle(array $data): int
-    {
-        $model = CotizacionDetalle::create($data);
-        return $model->id;
+    public static function crear_detalle(
+        int $id_cotizacion,
+        int $id_comparativo_detalle,
+        int $id_unidad_medida,
+        int $id_almacen_recepcionista,
+        //
+        TipoDespachoCompra $tipo_despacho,
+        ?string $lugar_recojo = null,
+        //
+        int $tiempo_entrega,
+        Periodo $tiempo_entrega_periodo,
+        int $tiempo_entrega_dias,
+        //
+        float $cantidad,
+        float $contenido_por_presentacion,
+        float $cantidad_base,
+        //
+        float $precio_unitario,
+        float $precio_unitario_base,
+        //
+        ?string $comentario = null,
+        //
+        EstadoCotizacionDetalle $estado = EstadoCotizacionDetalle::Generada
+    ): int {
+        return CotizacionDetalle::crear_detalle(
+            $id_cotizacion,
+            $id_comparativo_detalle,
+            $id_unidad_medida,
+            $id_almacen_recepcionista,
+            //
+            $tipo_despacho,
+            $lugar_recojo,
+            //
+            $tiempo_entrega,
+            $tiempo_entrega_periodo,
+            $tiempo_entrega_dias,
+            //
+            $cantidad,
+            $contenido_por_presentacion,
+            $cantidad_base,
+            //
+            $precio_unitario,
+            $precio_unitario_base,
+            //
+            $comentario,
+            //
+            $estado
+        );
     }
 
-    /**
-     * Asignar empresas a una cotización (Tabla intermedia)
-     */
-    public static function asignar_empresas_cotizacion(int $id_cotizacion, array $empresas_ids): void
-    {
-        $inserts = [];
-        foreach ($empresas_ids as $id_emp) {
-            $inserts[] = [
-                'id_cotizacion' => $id_cotizacion,
-                'id_empresa'    => (int)$id_emp,
-            ];
-        }
-        
-        if (!empty($inserts)) {
-            DB::table('empresa_cotizacion')->insert($inserts);
-        }
-    }
 
     /**
-     * Obtener listado de cotizaciones agrupadas por comparativo
+     * Obtener el o los detalles de una cotizacion
      */
-    public static function get_listado_agrupado(): array
-    {
-        // 1. Cabeceras de comparativos y cotizaciones
-        $cotizaciones = DB::select("
-            SELECT 
-                c.*,
-                p.razon_social as proveedor_nombre,
-                comp.created_at as comparativo_fecha,
-                oc.id as id_orden_compra
-            FROM cotizacion c
-            INNER JOIN proveedor p ON c.id_proveedor = p.id
-            INNER JOIN comparativo comp ON c.id_comparativo = comp.id
-            LEFT JOIN orden_compra oc ON oc.id_cotizacion = c.id
-            ORDER BY c.id_comparativo DESC, c.id DESC
-        ");
-
-        // 2. Empresas vinculadas a las cotizaciones
-        // Lo traemos por separado para que el front las asocie por id_cotizacion sin duplicar filas base
-        $cotizacionesIds = array_column($cotizaciones, 'id');
-        $empresas = [];
-        
-        if (!empty($cotizacionesIds)) {
-            $ids_str = implode(',', $cotizacionesIds);
-            $empresas = DB::select("
-                SELECT ec.id_cotizacion, e.id as id_empresa, e.razon_social
-                FROM empresa_cotizacion ec
-                INNER JOIN empresa e ON ec.id_empresa = e.id
-                WHERE ec.id_cotizacion IN ($ids_str)
-                ORDER BY e.razon_social ASC
-            ");
-        }
-
-        // 3. Detalles de cada cotización (con nombre del producto y unidad)
-        $detalles = DB::select("
-            SELECT
-                cd.*,
-                pr.nombre as producto_nombre,
-                pr.id as id_producto,
-                um.abreviatura as unidad_medida_abv,
-                COALESCE(umb.abreviatura, '---') as unidad_medida_base_abv
-            FROM cotizacion_detalle cd
-            INNER JOIN comparativo_detalle cpd ON cd.id_comparativo_detalle = cpd.id
-            INNER JOIN producto pr ON cpd.id_producto = pr.id
-            INNER JOIN unidad_medida um ON cd.id_unidad_medida = um.id
-            LEFT JOIN unidad_medida umb ON pr.id_unidad_medida_base = umb.id
-            ORDER BY cd.id_cotizacion, pr.nombre ASC
-        ");
-
-        return [
-            'cotizaciones' => $cotizaciones,
-            'empresas'     => $empresas,
-            'detalles'     => $detalles,
-        ];
+    public static function get_detalles_cotizacion(
+        ?int $id_detalle = null,
+        null|int|array $ids_cotizaciones = null
+    ) {
+        return CotizacionDetalle::get_detalles(
+            id_detalle: $id_detalle,
+            ids_cotizaciones: $ids_cotizaciones
+        );
     }
 }

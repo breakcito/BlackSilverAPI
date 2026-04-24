@@ -1,14 +1,13 @@
 <?php
 
-namespace App\Modules\Cotizaciones;
+namespace App\Modules\Cotizaciones\Service;
 
+use App\Modules\Cotizaciones\Data\ComparativoData;
 use App\Shared\Responses\ApiResponse;
 use App\Shared\Enums\Cotizacion\EstadoCotizacion;
 use App\Shared\Enums\Cotizacion\EstadoCotizacionDetalle;
 use App\Shared\Enums\OrdenCompra\EstadoOrdenCompraDetalleLog;
 use App\Modules\Cotizaciones\Data\CotizacionesData;
-use App\Modules\Cotizaciones\Data\ProductosData;
-use App\Modules\Cotizaciones\Data\ProveedoresData;
 use App\Models\OrdenCompra;
 use App\Models\OrdenCompraDetalle;
 use App\Models\OrdenCompraDetalleLog;
@@ -25,8 +24,10 @@ class CotizacionesService
      */
     public static function registrar_comparativo(array $productos, array $cotizaciones): array
     {
-        if (empty($productos)) return ApiResponse::error('Debe incluir al menos un producto en el comparativo.');
-        if (empty($cotizaciones)) return ApiResponse::error('Debe incluir al menos una cotización.');
+        if (empty($productos))
+            return ApiResponse::error('Debe incluir al menos un producto en el comparativo.');
+        if (empty($cotizaciones))
+            return ApiResponse::error('Debe incluir al menos una cotización.');
 
         // Validar que cada cotización tenga al menos un detalle y empresas
         foreach ($cotizaciones as $c) {
@@ -51,8 +52,8 @@ class CotizacionesService
                 foreach ($productos as $p) {
                     $id_det = CotizacionesData::crear_comparativo_detalle(
                         $id_comparativo,
-                        (int)$p['id_producto'],
-                        isset($p['id_solicitud_detalle']) ? (int)$p['id_solicitud_detalle'] : null
+                        (int) $p['id_producto'],
+                        isset($p['id_solicitud_detalle']) ? (int) $p['id_solicitud_detalle'] : null
                     );
                     $mapa_productos[$p['id_producto']] = $id_det;
                 }
@@ -64,31 +65,31 @@ class CotizacionesService
                 foreach ($cotizaciones as $index => $c) {
                     $correlativoData = CotizacionesData::get_nuevo_correlativo();
                     $correlativo = $correlativoData['correlativo'];
-                    $numero      = $correlativoData['numero_correlativo'];
+                    $numero = $correlativoData['numero_correlativo'];
 
                     // Determinar estado final (respetamos lo que viene del front directamente)
                     $estado_final = $c['estado'] ?? EstadoCotizacion::Generada->value;
 
                     $id_cotizacion = CotizacionesData::crear_cotizacion([
-                        'id_comparativo'         => $id_comparativo,
-                        'id_proveedor'           => (int)$c['id_proveedor'],
-                        'moneda'                 => (string)$c['moneda'],
-                        'correlativo'            => $correlativo,
-                        'numero_correlativo'     => $numero,
-                        'metodo_pago'            => (string)$c['metodo_pago'],
-                        'fecha_vencimiento_pago' => (trim((string)($c['metodo_pago'] ?? '')) === MetodoPago::Credito->value)
+                        'id_comparativo' => $id_comparativo,
+                        'id_proveedor' => (int) $c['id_proveedor'],
+                        'moneda' => (string) $c['moneda'],
+                        'correlativo' => $correlativo,
+                        'numero_correlativo' => $numero,
+                        'metodo_pago' => (string) $c['metodo_pago'],
+                        'fecha_vencimiento_pago' => (trim((string) ($c['metodo_pago'] ?? '')) === MetodoPago::Credito->value)
                             ? ($c['fecha_vencimiento_pago'] ?? null)
                             : null,
-                        'total_antes_igv'        => (float)$c['total_antes_igv'],
-                        'incluye_igv'            => (bool)$c['incluye_igv'],
-                        'porcentaje_igv'         => (float)$c['porcentaje_igv'],
-                        'monto_igv'              => (float)$c['monto_igv'],
-                        'total_despues_igv'      => (float)$c['total_despues_igv'],
-                        'observacion'            => $c['observacion'] ?? null,
-                        'evidencias'              => $c['evidencias'] ?? null,
-                        'fecha_hora_cotizacion'  => $fecha_ahora,
-                        'estado'                 => $estado_final,
-                        'created_at'             => $fecha_ahora,
+                        'total_antes_igv' => (float) $c['total_antes_igv'],
+                        'incluye_igv' => (bool) $c['incluye_igv'],
+                        'porcentaje_igv' => (float) $c['porcentaje_igv'],
+                        'monto_igv' => (float) $c['monto_igv'],
+                        'total_despues_igv' => (float) $c['total_despues_igv'],
+                        'observacion' => $c['observacion'] ?? null,
+                        'evidencias' => $c['evidencias'] ?? null,
+                        'fecha_hora_cotizacion' => $fecha_ahora,
+                        'estado' => $estado_final,
+                        'created_at' => $fecha_ahora,
                     ]);
 
                     if ($estado_final === EstadoCotizacion::Aprobada->value) {
@@ -109,16 +110,16 @@ class CotizacionesService
 
                         if ($id_comp_det) {
                             $id_cot_det = CotizacionesData::crear_cotizacion_detalle([
-                                'id_cotizacion'              => $id_cotizacion,
-                                'id_comparativo_detalle'     => $id_comp_det,
-                                'id_unidad_medida'           => (int)$det['id_unidad_medida'],
-                                'cantidad'                   => (float)$det['cantidad'],
-                                'contenido_por_presentacion' => (float)$det['contenido_por_presentacion'],
-                                'cantidad_base'              => (float)$det['cantidad_base'],
-                                'precio_unitario'            => (float)$det['precio_unitario'],
-                                'precio_unitario_base'       => (float)$det['precio_unitario_base'],
-                                'comentario'                 => $det['comentario'] ?? null,
-                                'estado'                     => $det['estado'] ?? EstadoCotizacionDetalle::Pendiente->value,
+                                'id_cotizacion' => $id_cotizacion,
+                                'id_comparativo_detalle' => $id_comp_det,
+                                'id_unidad_medida' => (int) $det['id_unidad_medida'],
+                                'cantidad' => (float) $det['cantidad'],
+                                'contenido_por_presentacion' => (float) $det['contenido_por_presentacion'],
+                                'cantidad_base' => (float) $det['cantidad_base'],
+                                'precio_unitario' => (float) $det['precio_unitario'],
+                                'precio_unitario_base' => (float) $det['precio_unitario_base'],
+                                'comentario' => $det['comentario'] ?? null,
+                                'estado' => $det['estado'] ?? EstadoCotizacionDetalle::Pendiente->value,
                             ]);
                             $detalles_insertados[] = [
                                 'id_producto' => $det['id_producto'],
@@ -136,8 +137,8 @@ class CotizacionesService
                 }
 
                 return ApiResponse::success([
-                    'id_comparativo'   => $id_comparativo,
-                    'ids_aprobadas'    => $ids_aprobadas,
+                    'id_comparativo' => $id_comparativo,
+                    'ids_aprobadas' => $ids_aprobadas,
                     'cotizaciones_ids' => $cotizaciones_ids
                 ], 'Comparativo y cotizaciones registrados correctamente.');
             });
@@ -174,7 +175,7 @@ class CotizacionesService
                 $cotizacion = DB::table('cotizacion')->where('id', $id_cotizacion)->first();
 
                 // 4. Calcular totales solo de los ítems aprobados
-                $pct_igv = $cotizacion->incluye_igv ? (float)$cotizacion->porcentaje_igv : 0;
+                $pct_igv = $cotizacion->incluye_igv ? (float) $cotizacion->porcentaje_igv : 0;
                 $multiplicador = 1 + ($pct_igv / 100);
 
                 $totales = DB::table('cotizacion_detalle')
@@ -186,25 +187,25 @@ class CotizacionesService
                     ->whereIn('id', $detalles_aprobados)
                     ->first();
 
-                $total_antes   = round((float)($totales->total_antes_igv ?? 0), 2);
-                $total_despues = round((float)($totales->total_despues_igv ?? 0), 2);
-                $monto_igv     = round($total_despues - $total_antes, 2);
+                $total_antes = round((float) ($totales->total_antes_igv ?? 0), 2);
+                $total_despues = round((float) ($totales->total_despues_igv ?? 0), 2);
+                $monto_igv = round($total_despues - $total_antes, 2);
 
                 // 5. Correlativo y cabecera de la OC
                 $correlativoData = OrdenCompra::get_nuevo_correlativo();
 
                 $id_orden = OrdenCompra::crear_orden(
-                    id_cotizacion:         $id_cotizacion,
-                    id_empresa:            $id_empresa_compradora,
-                    correlativo:           $correlativoData['correlativo'],
-                    numero_correlativo:    $correlativoData['numero_correlativo'],
-                    fecha_hora_orden:      now()->toDateTimeString(),
-                    moneda:                $cotizacion->moneda,
-                    incluye_igv:           (bool)$cotizacion->incluye_igv,
-                    porcentaje_igv:        (float)$cotizacion->porcentaje_igv,
-                    monto_igv:             $monto_igv,
-                    total_antes_igv:       $total_antes,
-                    total_despues_igv:     $total_despues,
+                    id_cotizacion: $id_cotizacion,
+                    id_empresa: $id_empresa_compradora,
+                    correlativo: $correlativoData['correlativo'],
+                    numero_correlativo: $correlativoData['numero_correlativo'],
+                    fecha_hora_orden: now()->toDateTimeString(),
+                    moneda: $cotizacion->moneda,
+                    incluye_igv: (bool) $cotizacion->incluye_igv,
+                    porcentaje_igv: (float) $cotizacion->porcentaje_igv,
+                    monto_igv: $monto_igv,
+                    total_antes_igv: $total_antes,
+                    total_despues_igv: $total_despues,
                 );
 
                 // 6. Crear detalles de OC y log inicial por ítem
@@ -223,19 +224,19 @@ class CotizacionesService
 
                 foreach ($detalles_cot as $det) {
                     $id_oc_det = OrdenCompraDetalle::crear_detalle(
-                        id_orden_compra:            $id_orden,
-                        id_cotizacion_detalle:      $det->id,
-                        id_producto:                $det->id_producto,
-                        id_unidad_medida:           $det->id_unidad_medida,
-                        contenido_por_presentacion: (float)$det->contenido_por_presentacion,
-                        cantidad_requerida:         (float)$det->cantidad,
-                        cantidad_requerida_base:    (float)$det->cantidad_base,
+                        id_orden_compra: $id_orden,
+                        id_cotizacion_detalle: $det->id,
+                        id_producto: $det->id_producto,
+                        id_unidad_medida: $det->id_unidad_medida,
+                        contenido_por_presentacion: (float) $det->contenido_por_presentacion,
+                        cantidad_requerida: (float) $det->cantidad,
+                        cantidad_requerida_base: (float) $det->cantidad_base,
                     );
 
                     OrdenCompraDetalleLog::crear_log(
                         id_orden_compra_detalle: $id_oc_det,
-                        id_empleado:             $id_empleado,
-                        estado:                  EstadoOrdenCompraDetalleLog::Pendiente,
+                        id_empleado: $id_empleado,
+                        estado: EstadoOrdenCompraDetalleLog::Pendiente,
                     );
                 }
 
@@ -252,36 +253,23 @@ class CotizacionesService
     /**
      * Listar cotizaciones agrupadas con sus detalles
      */
-    public static function listar(): array
-    {
-        $result = CotizacionesData::get_listado_agrupado();
-        return ApiResponse::success($result);
-    }
+    public static function listar(
+        int $mes,
+        int $yearcito
+    ): array {
+        // Comparativos
+        $comparativos = ComparativoData::get_comparativos(mes: $mes, yearcito: $yearcito);
+        $ids_comparativos = array_map(fn($comp) => $comp->id, $comparativos);
 
-    /**
-     * Obtener unidades de medida (Desde capa compartida)
-     */
-    public static function get_unidades_medida(): array
-    {
-        $unidades = \App\Data\UnidadesMedidaData::get_unidades();
-        return ApiResponse::success($unidades);
-    }
+        // todas las cotizaciones de los comparativos
+        $cotizaciones = CotizacionesData::get_cotizaciones(ids_comparativos: $ids_comparativos);
+        $ids_cotizaciones = array_map(fn($cot) => $cot->id, $cotizaciones);
 
-    /**
-     * Obtener productos (Desde capa local de la vista)
-     */
-    public static function get_productos(): array
-    {
-        $productos = ProductosData::get_productos_maestro();
-        return ApiResponse::success($productos);
-    }
+        // todos los detalles de las cotizaciones
+        // $detalles = CotizacionesData::get_detalles_cotizacion(ids_cotizaciones: $ids_cotizaciones);
 
-    /**
-     * Obtener proveedores (Desde capa local de la vista)
-     */
-    public static function get_proveedores(): array
-    {
-        $proveedores = ProveedoresData::get_proveedores_maestro();
-        return ApiResponse::success($proveedores);
+        // agrupamos por comparativo y cotiza
+
+        return ApiResponse::success($cotizaciones);
     }
 }
