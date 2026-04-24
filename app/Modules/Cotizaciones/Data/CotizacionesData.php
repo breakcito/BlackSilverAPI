@@ -14,22 +14,15 @@ class CotizacionesData
 {
     /**
      * -------------------------------------------------------
-     * QUERYS PARA LA CABECERA
+     * CABECERA
      * -------------------------------------------------------
      */
 
-
-    /**
-     * Obtener el siguiente número correlativo usando el helper
-     */
     public static function get_nuevo_correlativo(): array
     {
         return Cotizacion::get_nuevo_correlativo();
     }
 
-    /**
-     * Crear cabecera de cotización
-     */
     public static function crear_cotizacion(
         int $id_comparativo,
         int $id_proveedor,
@@ -57,44 +50,34 @@ class CotizacionesData
         EstadoCotizacion $estado = EstadoCotizacion::Generada,
     ): int {
         return Cotizacion::crear_cotizacion(
-            $id_comparativo,
-            $id_proveedor,
-            //
-            $correlativo,
-            $numero_correlativo,
-            //
-            $fecha_hora_cotizacion,
-            //
-            $metodo_pago,
-            $moneda,
-            //
-            $costo_flete,
-            $otros_gastos,
-            //
-            $total_antes_igv,
-            $incluye_igv,
-            $porcentaje_igv,
-            $monto_igv,
-            $total_despues_igv,
-            //
-            $observacion,
-            $fecha_vencimiento_pago,
-            $evidencias,
-            $estado
+            id_comparativo: $id_comparativo,
+            id_proveedor: $id_proveedor,
+            correlativo: $correlativo,
+            numero_correlativo: $numero_correlativo,
+            fecha_hora_cotizacion: $fecha_hora_cotizacion,
+            metodo_pago: $metodo_pago,
+            moneda: $moneda,
+            costo_flete: $costo_flete,
+            otros_gastos: $otros_gastos,
+            total_antes_igv: $total_antes_igv,
+            incluye_igv: $incluye_igv,
+            porcentaje_igv: $porcentaje_igv,
+            monto_igv: $monto_igv,
+            total_despues_igv: $total_despues_igv,
+            observacion: $observacion,
+            fecha_vencimiento_pago: $fecha_vencimiento_pago,
+            evidencias: $evidencias,
+            estado: $estado,
         );
     }
 
     /**
-     * Asignar empresas a una cotización
+     * Asignar las empresas compradoras a una cotización
      */
-    public static function asignar_empresa(int $id_cotizacion, array $empresas_ids): bool
+    public static function asignar_empresas(int $id_cotizacion, array $empresas_ids): void
     {
-        return CotizacionEmpresa::asignar_empresa(
-            $id_cotizacion,
-            $empresas_ids
-        );
+        CotizacionEmpresa::asignar_empresa($id_cotizacion, $empresas_ids);
     }
-
 
     public static function get_cotizaciones(
         ?int $id_cotizacion = null,
@@ -102,21 +85,32 @@ class CotizacionesData
     ) {
         return Cotizacion::get_cotizaciones(
             id_cotizacion: $id_cotizacion,
-            ids_comparativos: $ids_comparativos
+            ids_comparativos: $ids_comparativos,
         );
     }
 
+    /**
+     * Obtener las empresas asociadas a un grupo de cotizaciones
+     */
+    public static function get_empresas_cotizacion(array $ids_cotizaciones): array
+    {
+        return CotizacionEmpresa::get_empresas($ids_cotizaciones);
+    }
+
+    /**
+     * Cambiar el estado de una cotización
+     */
+    public static function actualizar_estado(int $id, EstadoCotizacion $estado): void
+    {
+        Cotizacion::where('id', $id)->update(['estado' => $estado->value]);
+    }
 
     /**
      * -------------------------------------------------------
-     * QUERYS PARA EL DETALLE
+     * DETALLE
      * -------------------------------------------------------
      */
 
-
-    /**
-     * Crear detalle de cotización
-     */
     public static function crear_detalle(
         int $id_cotizacion,
         int $id_comparativo_detalle,
@@ -124,7 +118,6 @@ class CotizacionesData
         int $id_almacen_recepcionista,
         //
         TipoDespachoCompra $tipo_despacho,
-        ?string $lugar_recojo = null,
         //
         int $tiempo_entrega,
         Periodo $tiempo_entrega_periodo,
@@ -138,46 +131,55 @@ class CotizacionesData
         float $precio_unitario_base,
         //
         ?string $comentario = null,
+        ?string $lugar_recojo = null,
         //
         EstadoCotizacionDetalle $estado = EstadoCotizacionDetalle::Generada
     ): int {
         return CotizacionDetalle::crear_detalle(
-            $id_cotizacion,
-            $id_comparativo_detalle,
-            $id_unidad_medida,
-            $id_almacen_recepcionista,
-            //
-            $tipo_despacho,
-            $lugar_recojo,
-            //
-            $tiempo_entrega,
-            $tiempo_entrega_periodo,
-            $tiempo_entrega_dias,
-            //
-            $cantidad,
-            $contenido_por_presentacion,
-            $cantidad_base,
-            //
-            $precio_unitario,
-            $precio_unitario_base,
-            //
-            $comentario,
-            //
-            $estado
+            id_cotizacion: $id_cotizacion,
+            id_comparativo_detalle: $id_comparativo_detalle,
+            id_unidad_medida: $id_unidad_medida,
+            id_almacen_recepcionista: $id_almacen_recepcionista,
+            tipo_despacho: $tipo_despacho,
+            lugar_recojo: $lugar_recojo,
+            tiempo_entrega: $tiempo_entrega,
+            tiempo_entrega_periodo: $tiempo_entrega_periodo,
+            tiempo_entrega_dias: $tiempo_entrega_dias,
+            cantidad: $cantidad,
+            contenido_por_presentacion: $contenido_por_presentacion,
+            cantidad_base: $cantidad_base,
+            precio_unitario: $precio_unitario,
+            precio_unitario_base: $precio_unitario_base,
+            comentario: $comentario,
+            estado: $estado,
         );
     }
 
-
-    /**
-     * Obtener el o los detalles de una cotizacion
-     */
     public static function get_detalles_cotizacion(
         ?int $id_detalle = null,
         null|int|array $ids_cotizaciones = null
     ) {
         return CotizacionDetalle::get_detalles(
             id_detalle: $id_detalle,
-            ids_cotizaciones: $ids_cotizaciones
+            ids_cotizaciones: $ids_cotizaciones,
         );
+    }
+
+
+    /**
+     * Marca como Aprobados los detalles incluidos y como Rechazados los demás,
+     * dentro de una cotización específica.
+     */
+    public static function actualizar_estados_aprobacion(
+        int $id_cotizacion,
+        array $ids_aprobados
+    ): void {
+        CotizacionDetalle::where('id_cotizacion', $id_cotizacion)
+            ->whereIn('id', $ids_aprobados)
+            ->update(['estado' => EstadoCotizacionDetalle::Aprobado->value]);
+
+        CotizacionDetalle::where('id_cotizacion', $id_cotizacion)
+            ->whereNotIn('id', $ids_aprobados)
+            ->update(['estado' => EstadoCotizacionDetalle::Rechazado->value]);
     }
 }

@@ -1,6 +1,8 @@
 <?php
 
-use App\Modules\Cotizaciones\CotizacionesController;
+
+use App\Modules\Cotizaciones\Controller\AuxController;
+use App\Modules\Cotizaciones\Controller\CotizacionesController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.jwt.custom')->group(function () {
@@ -10,11 +12,14 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::get('/', 'get_listado');
             Route::post('/registrar', 'registrar_comparativo');
             Route::post('/{id}/aprobar', 'aprobar_cotizacion_parcial');
+        });
 
-            // Endpoints maestros para independencia del módulo
+        Route::controller(AuxController::class)->group(function () {
             Route::get('/unidades-medida', 'get_unidades_medida');
             Route::get('/productos', 'get_productos');
             Route::get('/proveedores', 'get_proveedores');
+            Route::get('/almacenes', 'get_almacenes');
+            Route::get('/empresas', 'get_empresas');
         });
     });
 });

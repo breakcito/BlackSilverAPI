@@ -47,7 +47,6 @@ class CotizacionDetalle extends Model
         int $id_almacen_recepcionista,
         //
         TipoDespachoCompra $tipo_despacho,
-        ?string $lugar_recojo = null,
         //
         int $tiempo_entrega,
         Periodo $tiempo_entrega_periodo,
@@ -61,6 +60,7 @@ class CotizacionDetalle extends Model
         float $precio_unitario_base,
         //
         ?string $comentario = null,
+        ?string $lugar_recojo = null,
         //
         EstadoCotizacionDetalle $estado = EstadoCotizacionDetalle::Generada
     ) {
@@ -100,6 +100,7 @@ class CotizacionDetalle extends Model
         SELECT
             ctd.id AS id_cotizacion_detalle,
             ctd.id_cotizacion,
+            ctd.id_comparativo_detalle,
             -- 
             -- info del almacen para el que van destinados los productos
             ctd.id_almacen_recepcionista,

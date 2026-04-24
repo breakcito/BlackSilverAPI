@@ -1,0 +1,78 @@
+<?php
+
+namespace App\Modules\Cotizaciones\Controller;
+
+use App\Modules\Cotizaciones\Service\AuxService;
+use App\Modules\Cotizaciones\Service\CotizacionesService;
+use App\Shared\Responses\ApiResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+
+class CotizacionesController
+{
+    /**
+     * Registrar un nuevo comparativo con sus cotizaciones
+     */
+    public function registrar_comparativo(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'productos' => 'required|array|min:1',
+            'cotizaciones' => 'required|array|min:1',
+            'cotizaciones.*.empresas_ids' => 'required|array|min:1',
+            'cotizaciones.*.empresas_ids.*' => 'integer',
+            'cotizaciones.*.detalles' => 'required|array|min:1',
+        ], [
+            'productos.required' => 'Debe incluir al menos un producto para el comparativo.',
+            'cotizaciones.required' => 'Debe incluir al menos una cotización de proveedor.',
+            'cotizaciones.*.empresas_ids.required' => 'Debe seleccionar al menos una empresa para cada cotización.',
+            'cotizaciones.*.detalles.required' => 'Cada cotización debe incluir al menos un detalle.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        return response()->json(CotizacionesService::registrar_comparativo(
+            productos: $request->input('productos'),
+            cotizaciones: $request->input('cotizaciones'),
+        ));
+    }
+
+    /**
+     * Listar comparativos agrupados con cotizaciones y detalles
+     */
+    public function get_listado(Request $request): JsonResponse
+    {
+        $mes = (int) $request->query('mes', now()->month);
+        $year = (int) $request->query('year', now()->year);
+
+        return response()->json(CotizacionesService::listar(mes: $mes, year: $year));
+    }
+
+    /**
+     * Aprobar parcialmente una cotización y generar la Orden de Compra
+     */
+    public function aprobar_cotizacion_parcial(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_empresa_compradora' => 'required|integer',
+            'detalles_aprobados' => 'required|array|min:1',
+            'detalles_aprobados.*' => 'integer',
+        ], [
+            'id_empresa_compradora.required' => 'Debe elegir la empresa compradora para la Orden de Compra.',
+            'detalles_aprobados.required' => 'Debe incluir al menos un producto a ser aprobado.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        return response()->json(CotizacionesService::aprobar_cotizacion_parcial(
+            id_cotizacion: $id,
+            id_empresa_compradora: $request->input('id_empresa_compradora'),
+            id_empleado: $request->user()->id_empleado,
+            detalles_aprobados: $request->input('detalles_aprobados'),
+        ));
+    }
+}

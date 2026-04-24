@@ -16,7 +16,7 @@ class ComparativoData
 
 
     /**
-     * Obtener el siguiente número correlativo usando el helper
+     * Obtener el siguiente número correlativo
      */
     public static function get_nuevo_correlativo(): array
     {
@@ -26,9 +26,9 @@ class ComparativoData
     /**
      * Crear el registro maestro del comparativo
      */
-    public static function crear_comparativo(): int
+    public static function crear_comparativo(int $numero_correlativo): int
     {
-        return Comparativo::crear_comparativo();
+        return Comparativo::crear_comparativo($numero_correlativo);
     }
 
     public static function get_comparativos(

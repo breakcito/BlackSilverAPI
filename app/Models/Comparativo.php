@@ -28,10 +28,11 @@ class Comparativo extends Model
     /**
      * Crear el registro maestro del comparativo
      */
-    public static function crear_comparativo(?string $fecha_ahora = null): int
+    public static function crear_comparativo(int $numero_correlativo): int
     {
         return self::insertGetId([
-            'created_at' => $fecha_ahora ?? now()
+            'numero_correlativo' => $numero_correlativo,
+            'created_at' => now(),
         ]);
     }
 

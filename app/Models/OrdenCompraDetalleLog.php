@@ -29,10 +29,10 @@ class OrdenCompraDetalleLog extends Model
     ): int {
         return self::insertGetId([
             'id_orden_compra_detalle' => $id_orden_compra_detalle,
-            'id_empleado'             => $id_empleado,
-            'descripcion'             => $estado->getGlosa($dinamico),
-            'created_at'              => now(),
-            'estado'                  => $estado->value,
+            'id_empleado' => $id_empleado,
+            'descripcion' => $estado->getGlosa($dinamico),
+            'created_at' => now(),
+            'estado' => $estado->value,
         ]);
     }
 
@@ -43,12 +43,12 @@ class OrdenCompraDetalleLog extends Model
     {
         return DB::select('
             SELECT
-                log.id,
+                log.id as id_log,
                 log.descripcion,
                 log.created_at,
-                log.estado,
                 CONCAT(e.nombre, " ", e.apellido) AS empleado,
-                e.path_foto
+                e.path_foto,
+                log.estado
             FROM orden_compra_detalle_log log
             INNER JOIN empleado e ON e.id = log.id_empleado
             WHERE log.id_orden_compra_detalle = :id_orden_compra_detalle

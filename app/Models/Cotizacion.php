@@ -118,9 +118,10 @@ class Cotizacion extends Model
         null|int|array $ids_comparativos = null,
     ) {
         $sql = '
-        SELECT
+        SELECT DISTINCT
             ct.id AS id_cotizacion,
             ct.id_comparativo,
+            oc.id as id_orden_compra,
             -- 
             ct.id_proveedor,
             prov.razon_social AS proveedor,
@@ -153,6 +154,7 @@ class Cotizacion extends Model
             cotizacion ct
         INNER JOIN proveedor prov ON
             prov.id = ct.id_proveedor
+		LEFT JOIN orden_compra oc on oc.id_cotizacion = ct.id            
         WHERE
             1 = 1
         ';
@@ -177,7 +179,7 @@ class Cotizacion extends Model
             }
         }
 
-        $sql .= ' ORDER BY ct.numero_correlativo DESC ';
+        $sql .= ' ORDER BY ct.correlativo DESC ';
 
         return DB::select($sql, $params);
     }

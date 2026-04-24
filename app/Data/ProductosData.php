@@ -16,7 +16,7 @@ class ProductosData
         $sql = '
             SELECT 
                 p.id AS id_producto,
-                p.nombre as producto,
+                p.nombre as nombre,
                 p.es_perecible,
                 p.es_fiscalizado,
                 --
