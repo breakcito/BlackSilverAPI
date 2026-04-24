@@ -44,10 +44,11 @@ class CotizacionesService
      */
     public static function registrar_comparativo(
         array $productos,
-        array $cotizaciones
+        array $cotizaciones,
+        int $id_empleado
     ): array {
         try {
-            return DB::transaction(function () use ($productos, $cotizaciones) {
+            return DB::transaction(function () use ($productos, $cotizaciones, $id_empleado) {
 
                 // 1. Crear el comparativo maestro
                 $correlativo_comparativo = ComparativoData::get_nuevo_correlativo();
@@ -64,11 +65,8 @@ class CotizacionesService
                     $mapa_productos[$p['id_producto']] = $id_det;
                 }
 
-                $ids_aprobadas = [];
-                $cotizaciones_ids = [];
-
-                // 3. Registrar cada cotización
-                foreach ($cotizaciones as $index => $c) {
+                // 3. Registrar cada cotización con su estado final real
+                foreach ($cotizaciones as $c) {
                     $correlativoData = CotizacionesData::get_nuevo_correlativo();
 
                     $es_credito = trim((string) $c['metodo_pago']) === MetodoPago::Credito->value;
@@ -95,15 +93,11 @@ class CotizacionesService
                         estado: $estado_final,
                     );
 
-                    if ($estado_final === EstadoCotizacion::Aprobada) {
-                        $ids_aprobadas[] = ['id' => $id_cotizacion, 'correlativo' => $correlativoData['correlativo']];
-                    }
-
                     // 4. Asignar empresas compradoras
                     CotizacionesData::asignar_empresas($id_cotizacion, $c['empresas_ids']);
 
-                    // 5. Registrar detalles
-                    $detalles_insertados = [];
+                    // 5. Registrar detalles con su estado final real
+                    $detalles_aprobados_ids = [];
                     foreach ($c['detalles'] as $det) {
                         $id_comp_det = $mapa_productos[$det['id_producto']] ?? null;
                         if ($id_comp_det === null)
@@ -111,6 +105,7 @@ class CotizacionesService
 
                         $tipo_despacho = TipoDespachoCompra::from((string) $det['tipo_despacho']);
                         $periodo = Periodo::from((string) $det['tiempo_entrega_periodo']);
+                        $estado_det = EstadoCotizacionDetalle::tryFrom($det['estado'] ?? '') ?? EstadoCotizacionDetalle::Pendiente;
 
                         $id_cot_det = CotizacionesData::crear_detalle(
                             id_cotizacion: $id_cotizacion,
@@ -118,9 +113,9 @@ class CotizacionesService
                             id_unidad_medida: (int) $det['id_unidad_medida'],
                             id_almacen_recepcionista: (int) $det['id_almacen_recepcionista'],
                             tipo_despacho: $tipo_despacho,
-                            lugar_recojo: ($tipo_despacho === TipoDespachoCompra::Recojo)
-                            ? ($det['lugar_recojo'] ?? null)
-                            : null,
+                            lugar_recojo: $tipo_despacho === TipoDespachoCompra::Recojo
+                                ? ($det['lugar_recojo'] ?? null)
+                                : null,
                             tiempo_entrega: (int) $det['tiempo_entrega'],
                             tiempo_entrega_periodo: $periodo,
                             tiempo_entrega_dias: (int) $det['tiempo_entrega_dias'],
@@ -130,26 +125,96 @@ class CotizacionesService
                             precio_unitario: (float) $det['precio_unitario'],
                             precio_unitario_base: (float) $det['precio_unitario_base'],
                             comentario: $det['comentario'] ?? null,
-                            estado: EstadoCotizacionDetalle::tryFrom($det['estado'] ?? '')
-                            ?? EstadoCotizacionDetalle::Pendiente,
+                            estado: $estado_det,
                         );
 
-                        $detalles_insertados[] = ['id_producto' => $det['id_producto'], 'id_cot_det' => $id_cot_det];
+                        if ($estado_det === EstadoCotizacionDetalle::Aprobado) {
+                            $detalles_aprobados_ids[] = $id_cot_det;
+                        }
                     }
 
-                    $cotizaciones_ids[] = [
-                        'index' => $index,
-                        'id' => $id_cotizacion,
-                        'correlativo' => $correlativoData['correlativo'],
-                        'detalles_map' => $detalles_insertados,
-                    ];
+                    // 6. Si la cotización es Aprobada → crear Orden de Compra automáticamente
+                    if ($estado_final === EstadoCotizacion::Aprobada && count($detalles_aprobados_ids) > 0) {
+                        $id_empresa_compradora = (int) ($c['id_empresa_compradora'] ?? 0);
+
+                        if ($id_empresa_compradora > 0) {
+                            // Obtener los detalles recién insertados para calcular totales de la OC
+                            $detalles_cot = CotizacionesData::get_detalles_cotizacion(ids_cotizaciones: $id_cotizacion);
+                            $detalles_aprobados_data = array_filter(
+                                is_array($detalles_cot) ? $detalles_cot : iterator_to_array($detalles_cot),
+                                fn($d) => in_array($d->id_cotizacion_detalle, $detalles_aprobados_ids)
+                            );
+
+                            $subtotal = array_sum(array_map(
+                                fn($d) => (float) $d->cantidad * (float) $d->precio_unitario,
+                                $detalles_aprobados_data
+                            ));
+
+                            $costo_flete = (float) ($c['costo_flete'] ?? 0);
+                            $otros_gastos = (float) ($c['otros_gastos'] ?? 0);
+                            $total_antes = round($subtotal + $costo_flete + $otros_gastos, 2);
+
+                            $pct_igv = (bool) $c['incluye_igv'] ? (float) $c['porcentaje_igv'] : 0;
+                            $monto_igv = round($total_antes * ($pct_igv / 100), 2);
+                            $total_despues = round($total_antes + $monto_igv, 2);
+
+                            $correlativoOC = OrdenesCompraData::get_nuevo_correlativo();
+
+                            $id_orden = OrdenesCompraData::crear_orden(
+                                id_cotizacion: $id_cotizacion,
+                                id_empresa: $id_empresa_compradora,
+                                id_proveedor: (int) $c['id_proveedor'],
+                                correlativo: $correlativoOC['correlativo'],
+                                numero_correlativo: (int) $correlativoOC['numero_correlativo'],
+                                fecha_hora_orden: now()->toDateTimeString(),
+                                moneda: (string) $c['moneda'],
+                                metodo_pago: (string) $c['metodo_pago'],
+                                incluye_igv: (bool) $c['incluye_igv'],
+                                porcentaje_igv: (float) $c['porcentaje_igv'],
+                                monto_igv: $monto_igv,
+                                costo_flete: $costo_flete,
+                                otros_gastos: $otros_gastos,
+                                total_antes_igv: $total_antes,
+                                total_despues_igv: $total_despues,
+                                fecha_vencimiento_pago: $es_credito ? ($c['fecha_vencimiento_pago'] ?? null) : null,
+                            );
+
+                            // Crear detalles de OC y logs
+                            foreach ($detalles_aprobados_data as $det) {
+                                $tipo_despacho_oc = TipoDespachoCompra::from($det->tipo_despacho);
+                                $periodo_oc = Periodo::from($det->tiempo_entrega_periodo);
+
+                                $id_oc_det = OrdenesCompraData::crear_detalle_orden(
+                                    id_orden_compra: $id_orden,
+                                    id_cotizacion_detalle: $det->id_cotizacion_detalle,
+                                    id_producto: (int) $det->id_producto,
+                                    id_unidad_medida: (int) $det->id_unidad_medida_ctz,
+                                    id_almacen_recepcionista: (int) $det->id_almacen_recepcionista,
+                                    tipo_despacho: $tipo_despacho_oc,
+                                    tiempo_entrega: (int) $det->tiempo_entrega,
+                                    tiempo_entrega_periodo: $periodo_oc,
+                                    tiempo_entrega_dias: (int) $det->tiempo_entrega_dias,
+                                    lugar_recojo: $det->lugar_recojo ?? null,
+                                    contenido_por_presentacion: (float) $det->contenido_por_presentacion,
+                                    cantidad_requerida: (float) $det->cantidad,
+                                    cantidad_requerida_base: (float) $det->cantidad_base,
+                                    precio_unitario: (float) $det->precio_unitario,
+                                    precio_unitario_base: (float) $det->precio_unitario_base,
+                                    comentario: $det->comentario ?? null,
+                                );
+
+                                OrdenesCompraData::crear_logs(
+                                    id_orden_compra_detalle: $id_oc_det,
+                                    id_empleado: $id_empleado,
+                                    estado: EstadoOrdenCompraDetalleLog::Pendiente,
+                                );
+                            }
+                        }
+                    }
                 }
 
-                return ApiResponse::success([
-                    'id_comparativo' => $id_comparativo,
-                    'ids_aprobadas' => $ids_aprobadas,
-                    'cotizaciones_ids' => $cotizaciones_ids,
-                ], 'Comparativo y cotizaciones registrados correctamente.');
+                // 7. Devolver el comparativo recién creado con el mismo formato del listado
+                return self::listar(id_comparativo: $id_comparativo);
             });
         } catch (\Exception $e) {
             return ApiResponse::error('Error al registrar el comparativo: ' . $e->getMessage());
@@ -205,6 +270,7 @@ class CotizacionesService
                 $id_orden = OrdenesCompraData::crear_orden(
                     id_cotizacion: $id_cotizacion,
                     id_empresa: $id_empresa_compradora,
+                    id_proveedor: (int) $cotizacion->id_proveedor,
                     correlativo: $correlativoData['correlativo'],
                     numero_correlativo: (int) $correlativoData['numero_correlativo'],
                     fecha_hora_orden: now()->toDateTimeString(),
@@ -262,12 +328,22 @@ class CotizacionesService
     }
 
     /**
-     * Listar comparativos con sus cotizaciones y detalles agrupados
+     * Listar comparativos con sus cotizaciones y detalles agrupados.
+     * Si se pasa id_comparativo, retorna solo ese comparativo (útil desde registrar).
      */
-    public static function listar(int $mes, int $year): array
-    {
-        // 1. Comparativos del período
-        $comparativos = ComparativoData::get_comparativos(mes: $mes, yearcito: $year);
+    public static function listar(
+        ?int $mes = null,
+        ?int $year = null,
+        ?int $id_comparativo = null
+    ): array {
+        // 1. Comparativos (por período o por ID específico)
+        if ($id_comparativo) {
+            $comp = ComparativoData::get_comparativos(id_comparativo: $id_comparativo);
+            $comparativos = $comp ? [$comp] : [];
+        } else {
+            $comparativos = ComparativoData::get_comparativos(mes: $mes, yearcito: $year);
+        }
+
         if (empty($comparativos))
             return ApiResponse::success([]);
 

@@ -36,6 +36,7 @@ class CotizacionesController
         return response()->json(CotizacionesService::registrar_comparativo(
             productos: $request->input('productos'),
             cotizaciones: $request->input('cotizaciones'),
+            id_empleado: $request->user()->id_empleado,
         ));
     }
 
