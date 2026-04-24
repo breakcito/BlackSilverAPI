@@ -13,19 +13,28 @@ class Cotizacion extends Model
     protected $fillable = [
         'id_comparativo',
         'id_proveedor',
-        'moneda',
+        //
         'correlativo',
         'numero_correlativo',
-        'metodo_pago',
-        'fecha_vencimiento_pago',
+        //
+        'observacion',
+        'fecha_hora_cotizacion',
+        //
+        'metodo_pago', // Contado / Credito
+        'fecha_vencimiento_pago', // Solo cuando es a credito
+        'moneda', // Soles o Dolares
+        //
+        'costo_flete',
+        'otros_gastos',
+        // 
         'total_antes_igv',
         'incluye_igv',
         'porcentaje_igv',
         'monto_igv',
         'total_despues_igv',
-        'observacion',
+        //
         'evidencias',
-        'fecha_hora_cotizacion',
+        //
         'estado',
         'created_at',
     ];

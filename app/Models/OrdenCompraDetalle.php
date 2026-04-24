@@ -17,10 +17,25 @@ class OrdenCompraDetalle extends Model
         'id_cotizacion_detalle',
         'id_producto',
         'id_unidad_medida',
-        'contenido_por_presentacion',
-        'cantidad_requerida',
-        'cantidad_requerida_base',
-        'estado',
+        'id_almacen_recepcionista', // Obligatorio - Es el almacen que deberia recibir esos productos
+        //
+        'tipo_despacho', // Recojo / Envio
+        'lugar_recojo', // Para el recojo es obligatorio
+        // tiempos estimados
+        'tiempo_entrega', // 2
+        'tiempo_entrega_periodo', // Semanas
+        'tiempo_entrega_dias', // 14 dias
+        // 
+        'cantidad_requerida', // 3 cajas
+        'contenido_por_presentacion', // 2 unidades por Caja
+        'cantidad_requerida_base', // 6 unidades
+        //
+        'precio_unitario', // S/12 la caja
+        'precio_unitario_base', // S/2 por unidad
+        //
+        'comentario',
+        //
+        'estado', // Pendiente, En recepcion, Cerrada, Completada
     ];
 
     // Crea un detalle de OC y retorna su ID
@@ -34,14 +49,14 @@ class OrdenCompraDetalle extends Model
         float $cantidad_requerida_base,
     ): int {
         return self::insertGetId([
-            'id_orden_compra'            => $id_orden_compra,
-            'id_cotizacion_detalle'      => $id_cotizacion_detalle,
-            'id_producto'                => $id_producto,
-            'id_unidad_medida'           => $id_unidad_medida,
+            'id_orden_compra' => $id_orden_compra,
+            'id_cotizacion_detalle' => $id_cotizacion_detalle,
+            'id_producto' => $id_producto,
+            'id_unidad_medida' => $id_unidad_medida,
             'contenido_por_presentacion' => $contenido_por_presentacion,
-            'cantidad_requerida'         => $cantidad_requerida,
-            'cantidad_requerida_base'    => $cantidad_requerida_base,
-            'estado'                     => EstadoOrdenCompraDetalle::Pendiente->value,
+            'cantidad_requerida' => $cantidad_requerida,
+            'cantidad_requerida_base' => $cantidad_requerida_base,
+            'estado' => EstadoOrdenCompraDetalle::Pendiente->value,
         ]);
     }
 

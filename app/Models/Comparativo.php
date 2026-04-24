@@ -11,6 +11,7 @@ class Comparativo extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'numero_correlativo', // anual
         'created_at'
     ];
 }

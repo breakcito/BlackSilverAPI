@@ -14,20 +14,30 @@ class OrdenCompra extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_cotizacion',
-        'id_empresa',
+        'id_cotizacion', // Por si viene de una cotizacion
+        'id_empresa', // Una de las empresas involucradas en la cotizacion
+        //
         'correlativo',
         'numero_correlativo',
+        //
         'observacion',
         'fecha_hora_orden',
-        'moneda',
+        //
+        'metodo_pago', // Contado / credito
+        'fecha_vencimiento_pago', // Solo cuando es a credito
+        'moneda', // soles o dolares
+        //
+        'costo_flete',
+        'otros_gastos',
+        //
+        'total_antes_igv',
         'incluye_igv',
         'porcentaje_igv',
         'monto_igv',
-        'total_antes_igv',
         'total_despues_igv',
+        //
         'created_at',
-        'estado',
+        'estado', // Generada / En Recepcion / Anulada / Cerrada / Completada
     ];
 
     // Helper que calcula el siguiente correlativo — reseteo anual por fecha_hora_orden
@@ -56,20 +66,20 @@ class OrdenCompra extends Model
         ?string $observacion = null,
     ): int {
         return self::insertGetId([
-            'id_cotizacion'       => $id_cotizacion,
-            'id_empresa'          => $id_empresa,
-            'correlativo'         => $correlativo,
-            'numero_correlativo'  => $numero_correlativo,
-            'observacion'         => $observacion,
-            'fecha_hora_orden'    => $fecha_hora_orden,
-            'moneda'              => $moneda,
-            'incluye_igv'         => $incluye_igv,
-            'porcentaje_igv'      => $porcentaje_igv,
-            'monto_igv'           => $monto_igv,
-            'total_antes_igv'     => $total_antes_igv,
-            'total_despues_igv'   => $total_despues_igv,
-            'created_at'          => now(),
-            'estado'              => EstadoOrdenCompra::Generada->value,
+            'id_cotizacion' => $id_cotizacion,
+            'id_empresa' => $id_empresa,
+            'correlativo' => $correlativo,
+            'numero_correlativo' => $numero_correlativo,
+            'observacion' => $observacion,
+            'fecha_hora_orden' => $fecha_hora_orden,
+            'moneda' => $moneda,
+            'incluye_igv' => $incluye_igv,
+            'porcentaje_igv' => $porcentaje_igv,
+            'monto_igv' => $monto_igv,
+            'total_antes_igv' => $total_antes_igv,
+            'total_despues_igv' => $total_despues_igv,
+            'created_at' => now(),
+            'estado' => EstadoOrdenCompra::Generada->value,
         ]);
     }
 
