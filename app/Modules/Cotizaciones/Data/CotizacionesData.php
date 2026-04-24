@@ -133,7 +133,7 @@ class CotizacionesData
         ?string $comentario = null,
         ?string $lugar_recojo = null,
         //
-        EstadoCotizacionDetalle $estado = EstadoCotizacionDetalle::Generada
+        EstadoCotizacionDetalle $estado = EstadoCotizacionDetalle::Pendiente
     ): int {
         return CotizacionDetalle::crear_detalle(
             id_cotizacion: $id_cotizacion,

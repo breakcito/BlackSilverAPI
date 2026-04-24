@@ -62,7 +62,7 @@ class CotizacionDetalle extends Model
         ?string $comentario = null,
         ?string $lugar_recojo = null,
         //
-        EstadoCotizacionDetalle $estado = EstadoCotizacionDetalle::Generada
+        EstadoCotizacionDetalle $estado = EstadoCotizacionDetalle::Pendiente
     ) {
         return CotizacionDetalle::insertGetId([
             'id_cotizacion' => $id_cotizacion,

@@ -16,11 +16,11 @@ Route::middleware('auth.jwt.custom')->group(function () {
         });
 
 
-        Route::controller(OrdenesCompraController::class)->group(function () {
+        Route::prefix('ordenes-compra')->controller(OrdenesCompraController::class)->group(function () {
             Route::get('/{id_orden_compra}', 'get_orden_compra');
         });
 
-        Route::controller(AuxController::class)->group(function () {
+        Route::prefix('aux')->controller(AuxController::class)->group(function () {
             Route::get('/unidades-medida', 'get_unidades_medida');
             Route::get('/productos', 'get_productos');
             Route::get('/proveedores', 'get_proveedores');
