@@ -25,6 +25,7 @@ class OrdenesCompraData
     public static function crear_orden(
         int $id_cotizacion,
         int $id_empresa,
+        int $id_proveedor,
         string $correlativo,
         int $numero_correlativo,
         string $fecha_hora_orden,
@@ -43,6 +44,7 @@ class OrdenesCompraData
         return OrdenCompra::crear_orden(
             id_cotizacion: $id_cotizacion,
             id_empresa: $id_empresa,
+            id_proveedor: $id_proveedor,
             correlativo: $correlativo,
             numero_correlativo: $numero_correlativo,
             fecha_hora_orden: $fecha_hora_orden,
@@ -58,6 +60,11 @@ class OrdenesCompraData
             observacion: $observacion,
             fecha_vencimiento_pago: $fecha_vencimiento_pago,
         );
+    }
+
+    public static function get_orden_compra(int $id_orden_compra): array
+    {
+        return OrdenCompra::get_ordenes($id_orden_compra);
     }
 
     /**
@@ -107,6 +114,11 @@ class OrdenesCompraData
             lugar_recojo: $lugar_recojo,
             comentario: $comentario,
         );
+    }
+
+    public static function get_detalles_orden_compra(int $id_orden_compra): array
+    {
+        return OrdenCompraDetalle::get_detalles($id_orden_compra);
     }
 
     public static function crear_logs(
