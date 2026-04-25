@@ -8,21 +8,12 @@ use App\Modules\OrdenCompra\Data\OrdenCompraData;
 class OrdenCompraService
 {
     /**
-     * Listar todas las órdenes de compra con sus cabeceras
+     * Listar todas las órdenes de compra - solo cabeceras
      */
-    public static function listar(?int $mes = null, ?int $year = null): array
+    public static function get_ordenes(?int $mes = null, ?int $yearcito = null): array
     {
-        $ordenes  = OrdenCompraData::get_listado(null, $mes, $year);
-        return ApiResponse::success(['ordenes' => $ordenes]);
-    }
-
-    /**
-     * Obtener una sola cabecera de orden de compra por ID
-     */
-    public static function get_cabecera(int $id): array
-    {
-        $ordenes  = OrdenCompraData::get_listado($id);
-        return ApiResponse::success($ordenes[0] ?? null);
+        $ordenes = OrdenCompraData::get_ordenes(mes: $mes, yearcito: $yearcito);
+        return ApiResponse::success($ordenes);
     }
 
     /**
@@ -32,8 +23,8 @@ class OrdenCompraService
      */
     public static function get_detalles(int $id_orden_compra): array
     {
-        $detalles = \App\Models\OrdenCompraDetalle::get_detalles($id_orden_compra);
-        return ApiResponse::success(['detalles' => $detalles]);
+        $detalles = OrdenCompraData::get_detalles($id_orden_compra);
+        return ApiResponse::success($detalles);
     }
 
     /**
@@ -41,7 +32,7 @@ class OrdenCompraService
      */
     public static function get_seguimiento(int $id_detalle): array
     {
-        $logs = \App\Models\OrdenCompraDetalleLog::get_logs($id_detalle);
+        $logs = OrdenCompraData::get_seguimiento($id_detalle);
         return ApiResponse::success($logs);
     }
 }

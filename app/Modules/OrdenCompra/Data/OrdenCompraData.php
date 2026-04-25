@@ -4,17 +4,16 @@ namespace App\Modules\OrdenCompra\Data;
 
 use App\Models\OrdenCompra;
 use App\Models\OrdenCompraDetalle;
+use App\Models\OrdenCompraDetalleLog;
 
 class OrdenCompraData
 {
     /**
      * Obtener el listado de órdenes de compra con empresa y cotización
      */
-    public static function get_listado(?int $id = null, ?int $mes = null, ?int $year = null): array
+    public static function get_ordenes(?int $mes = null, ?int $yearcito = null): array
     {
-        $res = OrdenCompra::get_ordenes($id, $mes, $year);
-        if ($id && !is_array($res)) return [$res];
-        return $res;
+        return OrdenCompra::get_ordenes(mes: $mes, year: $yearcito);
     }
 
     /**
@@ -23,5 +22,13 @@ class OrdenCompraData
     public static function get_detalles(int $id_orden_compra): array
     {
         return OrdenCompraDetalle::get_detalles($id_orden_compra);
+    }
+
+    /**
+     * Obtener el seguimiento de un detalle de OC
+     */
+    public static function get_seguimiento(int $id_detalle): array
+    {
+        return OrdenCompraDetalleLog::get_logs($id_detalle);
     }
 }
