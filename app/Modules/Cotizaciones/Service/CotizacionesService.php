@@ -152,11 +152,21 @@ class CotizacionesService
 
                             $costo_flete = (float) ($c['costo_flete'] ?? 0);
                             $otros_gastos = (float) ($c['otros_gastos'] ?? 0);
-                            $total_antes = round($subtotal + $costo_flete + $otros_gastos, 2);
+                            $base = $subtotal + $costo_flete + $otros_gastos;
 
-                            $pct_igv = (bool) $c['incluye_igv'] ? (float) $c['porcentaje_igv'] : 0;
-                            $monto_igv = round($total_antes * ($pct_igv / 100), 2);
-                            $total_despues = round($total_antes + $monto_igv, 2);
+                            $incluye_igv = (bool) ($c['incluye_igv'] ?? false);
+                            $pct_igv = (float) ($c['porcentaje_igv'] ?? 18);
+
+                            if ($incluye_igv) {
+                                $factor = 1 + ($pct_igv / 100);
+                                $total_antes = round($base / $factor, 2);
+                                $monto_igv = round($base - $total_antes, 2);
+                                $total_despues = round($base, 2);
+                            } else {
+                                $total_antes = round($base, 2);
+                                $monto_igv = round($base * ($pct_igv / 100), 2);
+                                $total_despues = round($base + $monto_igv, 2);
+                            }
 
                             $correlativoOC = OrdenesCompraData::get_nuevo_correlativo();
 
@@ -258,11 +268,21 @@ class CotizacionesService
 
                 $costo_flete = (float) ($cotizacion->costo_flete ?? 0);
                 $otros_gastos = (float) ($cotizacion->otros_gastos ?? 0);
-                $total_antes = round($subtotal + $costo_flete + $otros_gastos, 2);
+                $base = $subtotal + $costo_flete + $otros_gastos;
 
-                $pct_igv = $cotizacion->incluye_igv ? (float) $cotizacion->porcentaje_igv : 0;
-                $monto_igv = round($total_antes * ($pct_igv / 100), 2);
-                $total_despues = round($total_antes + $monto_igv, 2);
+                $incluye_igv = (bool) $cotizacion->incluye_igv;
+                $pct_igv = (float) $cotizacion->porcentaje_igv;
+
+                if ($incluye_igv) {
+                    $factor = 1 + ($pct_igv / 100);
+                    $total_antes = round($base / $factor, 2);
+                    $monto_igv = round($base - $total_antes, 2);
+                    $total_despues = round($base, 2);
+                } else {
+                    $total_antes = round($base, 2);
+                    $monto_igv = round($base * ($pct_igv / 100), 2);
+                    $total_despues = round($base + $monto_igv, 2);
+                }
 
                 // 5. Crear la Orden de Compra
                 $correlativoData = OrdenesCompraData::get_nuevo_correlativo();
