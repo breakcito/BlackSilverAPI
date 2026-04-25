@@ -64,7 +64,7 @@ class OrdenesCompraData
 
     public static function get_orden_compra(int $id_orden_compra): array
     {
-        return OrdenCompra::get_ordenes($id_orden_compra);
+        return (array) OrdenCompra::get_ordenes($id_orden_compra);
     }
 
     /**
