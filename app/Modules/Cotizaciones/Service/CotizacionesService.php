@@ -54,15 +54,15 @@ class CotizacionesService
                 $correlativo_comparativo = ComparativoData::get_nuevo_correlativo();
                 $id_comparativo = ComparativoData::crear_comparativo($correlativo_comparativo['numero_correlativo']);
 
-                // 2. Crear los productos del comparativo y construir mapa id_producto → id_comparativo_detalle
+                // 2. Crear los productos del comparativo y construir mapa indice_lista → id_comparativo_detalle
                 $mapa_productos = [];
-                foreach ($productos as $p) {
+                foreach ($productos as $index => $p) {
                     $id_det = ComparativoData::crear_comparativo_detalle(
                         id_comparativo: $id_comparativo,
                         id_producto: (int) $p['id_producto'],
                         id_solicitud_detalle: isset($p['id_solicitud_detalle']) ? (int) $p['id_solicitud_detalle'] : null,
                     );
-                    $mapa_productos[$p['id_producto']] = $id_det;
+                    $mapa_productos[$index] = $id_det;
                 }
 
                 // 3. Registrar cada cotización con su estado final real
@@ -98,8 +98,8 @@ class CotizacionesService
 
                     // 5. Registrar detalles con su estado final real
                     $detalles_aprobados_ids = [];
-                    foreach ($c['detalles'] as $det) {
-                        $id_comp_det = $mapa_productos[$det['id_producto']] ?? null;
+                    foreach ($c['detalles'] as $index => $det) {
+                        $id_comp_det = $mapa_productos[$index] ?? null;
                         if ($id_comp_det === null)
                             continue;
 
