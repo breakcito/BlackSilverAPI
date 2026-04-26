@@ -104,7 +104,7 @@ class OrdenCompraDetalle extends Model
                 -- info del almacen para el que van destinados los productos
                 ocd.id_almacen_recepcionista,
                 alm.nombre AS almacen_recepcionista,
-                alm.es_principal para_un_almacen_principal,
+                alm.es_principal AS para_un_almacen_principal,
                 -- 
                 -- info para la recepcion
                 ocd.tipo_despacho,  -- recojo o envio

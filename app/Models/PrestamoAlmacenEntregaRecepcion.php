@@ -44,7 +44,7 @@ class PrestamoAlmacenEntregaRecepcion extends Model
             r.estado
         FROM
             prestamo_almacen_entrega_recepcion r
-        JOIN empleado e ON
+        INNER JOIN empleado e ON
             e.id = r.id_empleado_registro
         WHERE 1 = 1
         ';

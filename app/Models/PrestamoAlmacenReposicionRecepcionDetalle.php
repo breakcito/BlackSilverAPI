@@ -27,8 +27,6 @@ class PrestamoAlmacenReposicionRecepcionDetalle extends Model
      *  {
      *      id_reposicion_detalle: int, 
      *      cantidad_recepcionada_base: int, 
-     *      id_lote_producto: int | null,
-     *      tipo_movimiento: string, // Nuevo Lote o Ajuste de Stock
      *      estado: EstadoPrestamoReposicionDetalle
      *  }
      */
@@ -79,14 +77,6 @@ class PrestamoAlmacenReposicionRecepcionDetalle extends Model
             um.abreviatura AS unidad_medida_base_abv,
             -- 
             prd.cantidad_recepcionada_base,
-            -- 
-            -- Nuevo Lote / Ajuste de Stock
-            prd.tipo_movimiento,
-            -- 
-            -- Si genero un nuevo lote
-            prd.id_lote_producto,
-            lot.correlativo AS lote_correlativo,
-            -- 
             prd.estado
         FROM
             prestamo_almacen_reposicion_recepcion_detalle prd
@@ -98,10 +88,6 @@ class PrestamoAlmacenReposicionRecepcionDetalle extends Model
             p.id = pd.id_producto
         INNER JOIN unidad_medida um ON
             um.id = p.id_unidad_medida_base
-        -- 
-        -- jon left por si se genero un nuevo lote
-        LEFT JOIN lote_producto lot ON
-            lot.id = prd.id_lote_producto
         -- 
         -- joins para saber para que sera usado lo recepcionado
         LEFT JOIN solicitud_reabastecimiento_detalle srd ON
