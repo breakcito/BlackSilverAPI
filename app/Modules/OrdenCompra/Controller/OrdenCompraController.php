@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Modules\OrdenCompra;
+namespace App\Modules\OrdenCompra\Controller;
 
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Modules\OrdenCompra\OrdenCompraService;
+use App\Modules\OrdenCompra\Service\OrdenCompraService;
 
 class OrdenCompraController
 {
@@ -41,7 +41,7 @@ class OrdenCompraController
      */
     public function get_seguimiento(Request $request): JsonResponse
     {
-        $id_detalle = (int) $request->query('id_detalle');
+        $id_detalle = (int) $request->query('id_orden_compra_detalle');
 
         if (!$id_detalle) {
             return response()->json(ApiResponse::error('Debe indicar el id de detalle.'));

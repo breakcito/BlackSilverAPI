@@ -134,6 +134,12 @@ class OrdenCompraDetalle extends Model
                 ocd.cantidad_requerida, -- segun la unidad de la compra
                 ocd.contenido_por_presentacion, -- cuantas unidades base del producto hay en una unidad de la compra
                 ocd.cantidad_requerida_base, -- segun la unidad base del producto
+                (
+                    SELECT
+                    	SUM(rcd.cantidad_recepcionada_base)
+                    FROM orden_compra_recepcion_detalle rcd
+                    WHERE rcd.id_orden_compra_detalle = ocd.id
+                ) as cantidad_recepcionada_base,
                 -- 
                 ocd.precio_unitario,
                 ocd.precio_unitario_base,

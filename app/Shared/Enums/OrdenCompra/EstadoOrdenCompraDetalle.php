@@ -4,6 +4,7 @@ namespace App\Shared\Enums\OrdenCompra;
 
 enum EstadoOrdenCompraDetalle: string
 {
-    case Pendiente    = 'Pendiente';
-    case EnRecepcion  = 'En Recepción';
+    case Pendiente = 'Pendiente';
+    case EnRecepcion = 'En Recepción';
+    case RecepcionCompleta = 'Recepción Completa';
 }

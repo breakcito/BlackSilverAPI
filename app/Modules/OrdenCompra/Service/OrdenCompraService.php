@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\OrdenCompra;
+namespace App\Modules\OrdenCompra\Service;
 
 use App\Shared\Responses\ApiResponse;
 use App\Modules\OrdenCompra\Data\OrdenCompraData;
