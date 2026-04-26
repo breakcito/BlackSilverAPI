@@ -1,147 +1,88 @@
-# Black Silver - API (Laravel)
+# BlackSilver API - Documentación Técnica Integral
 
-Este es el repositorio del backend (API) de **Black Silver**, una plataforma SaaS diseñada para la gestión integral de operaciones mineras. El sistema está construido sobre Laravel 12 y sigue una arquitectura estricta de **Aislamiento por modulo** orientada a la mantenibilidad.
+Backend robusto diseñado para la gestión integral de operaciones mineras y logística ERP. Construido sobre **Laravel 12** y **PHP 8.2+**, utiliza una arquitectura modular personalizada que garantiza escalabilidad, desacoplamiento y una trazabilidad absoluta de cada movimiento operativo.
 
----
+## 🏗 Arquitectura del Sistema: "Hybrid Modular Architecture"
 
-## 🛠️ Stack Tecnológico
+El proyecto no sigue la estructura estándar de Laravel. Implementa un patrón de **Módulos Independientes** que conviven con una **Capa Global de Datos y Servicios**.
 
-- **Framework:** [Laravel 12](https://laravel.com/) (PHP 8.2+)
-- **Autenticación:** [JWT Auth](https://php-open-source-saver.github.io/jwt-auth/)
-- **Base de Datos:** MySQL / MariaDB
-- **Herramientas de Desarrollo:** Sail, Pint, Artisan
-- **Análisis Estático:** [Larastan](https://github.com/larastan/larastan) (PHPStan para Laravel)
+### 📁 Organización de la Aplicación (`/app`)
 
----
+#### 1. `Modules/` - El Núcleo del Negocio
+Es el corazón del ERP. Cada carpeta representa un dominio funcional (ej. `Almacenes`, `Cotizaciones`) que actúa como un micro-servicio interno.
+- **Endpoints (`XEndpoints.php`)**: Definición de rutas tipo API. Se registran manualmente en `bootstrap/app.php`.
+- **Controllers**: Validadores de entrada y orquestadores de flujo.
+- **Services**: Contenedores de la **lógica de negocio pesada**. Aquí se manejan cálculos, transacciones financieras y validaciones de stock en tiempo real.
+- **Data (Local)**: Consultas SQL específicas que solo atañen al módulo.
 
-## 💎 Librerías Relevantes
+#### 2. `Data/` - Capa de Acceso a Datos Global (DAL)
+A diferencia de los modelos Eloquent puros, se utilizan clases `Data` para centralizar consultas complejas (SQL Raw optimizado) y operaciones de persistencia compartidas.
+- **Ejemplo**: `KardexProductosData.php` es el único punto de entrada autorizado para registrar movimientos de stock, asegurando que todos los módulos (Requerimientos, Compras, Préstamos) sigan la misma regla de auditoría.
 
-### Producción
-- **laravel/framework:** Core del sistema (v12).
-- **php-open-source-saver/jwt-auth:** Gestión de tokens JWT para autenticación stateless.
+#### 3. `Shared/` - Utilidades Transversales
+- **`Responses/`**: Estandarización vía `ApiResponse`. Toda petición retorna un JSON predecible.
+- **`Helpers/`**:
+    - `ArchivoHelper`: Gestión centralizada de documentos, fotos de empleados y archivos adjuntos.
+    - `CorrelativoHelper`: El "notario" del sistema. Genera y reserva números de documentos (OC, REQ, LOT) garantizando que no haya huecos ni duplicados.
+- **`Enums/`**: Diccionario maestro de estados (`Pendiente`, `Aprobado`, `En_Despacho`) y tipos (`Metálico`, `Ferretería`).
 
-### Desarrollo
-- **larastan/larastan:** Análisis estático de tipos para prevenir errores en tiempo de ejecución.
-- **laravel/pint:** PHP Code Style fixer para mantener un código limpio y estandarizado.
-- **laravel/sail:** Entorno de desarrollo basado en Docker.
+#### 4. `Middlewares/` - Seguridad Perimetral
+- **`JwtAuthMiddleware`**: No solo valida el token; inyecta el contexto del usuario (`id_empleado`, `id_rol`) en la petición para que los servicios operen con la identidad correcta.
 
----
-
-## 🏗️ Arquitectura: Aislamiento por modulo
-
-La lógica de la API se organiza por **modulos** (correspondientes exactamente a las modulos del frontend). Cada modulo reside en `app/Modules/[Nombremodulo]`.
-
-El flujo debe partir estrictamente en esta dirección: **Endpoints -> Controller -> Service -> Data**.
-
-### Estructura de Capas por modulo
-
-#### 1. Endpoints
-
-- **Responsabilidad:** Definición de rutas y middleware.
-- **Ubicación:** `app/Modules/[modulo]/[modulo]Endpoints.php`
-- **Regla:** Solo deben contener la definición de la ruta y apuntar al método correspondiente del Controller. Cero lógica.
-
-#### 2. Controller (Por Caso de Uso / Proceso)
-
-- **Responsabilidad:** Puerta de entrada y validación inicial estricta.
-- **Regla de Creación:** Se debe crear **un Controller por cada proceso o caso de uso** (Ej: `RegistroEntregaController.php`).
-- **Validación:** Validar obligatoriamente las entradas (`Request`).
-- **Flujo de Datos al Service:** Extraer datos de cabecera y pasarlos como parámetros explícitos.
-- **Importaciones:** Usar declaciones `use` al inicio del archivo, evitar namespaces en línea.
-- **Salida:** Retorna directamente la respuesta del Service formateada como JSON:
-    ```php
-    return response()->json(MiService::ejecutar($request->datos));
-    ```
-
-#### 3. Service (Por Caso de Uso / Proceso)
-
-- **Responsabilidad:** Orquestación absoluta de la lógica de negocio pura.
-- **Regla Estricta:** **ÉTATICO**. Todos los métodos deben ser `public static`.
-- **Salida:** Debe retornar siempre una instancia de `ApiResponse`.
-- **Relación con Modelos:** Preferencia por usar la capa de `Data`. Si se usan modelos directamente, asegurar que sea para operaciones simples.
-- **Transacciones:** Operaciones multi-tabla **deben** usar `DB::transaction()`.
-
-#### 4. Data
-
-- **Responsabilidad:** Acceso a datos.
-- **Uso de ORM vs SQL:** Eloquent es bienvenido para consultas simples y joins manejables. Reservar SQL puro solo para consultas extremadamente complejas (agrupaciones masivas, subconsultas pesadas).
-- **Regla Estricta:** **ESTÁTICO**. Todos los métodos deben ser `public static`.
+#### 5. `Models/` - El Mapa Relacional
+Más de 60 modelos Eloquent que definen las relaciones de integridad referencial. El sistema utiliza intensivamente tablas de **Logs de Seguimiento** (ej. `requerimiento_almacen_detalle_log`) para reconstruir el historial de cualquier item.
 
 ---
 
-## 📜 Reglas de Oro del Desarrollo
+## 🔒 Seguridad y Contexto de Usuario
 
-### 1. Independencia Total y Reutilización de Consultas
+### Autenticación JWT
+Se utiliza `PHPOpenSourceSaver\JWTAuth`. El token no es opaco; contiene un payload enriquecido:
+- **Claims Personalizados**: `id_usuario`, `id_rol`, `id_empleado`.
+- **Validación Dual**: El sistema verifica que tanto la cuenta de usuario como el contrato del empleado estén en estado `Activo` antes de autorizar cualquier operación.
 
-Ninguna modulo debe importar lógica (`Controller`, `Service`) de otra. Para consultas en la capa `Data`:
-
-- **Uso exacto en 2 modulos:** Mover la consulta al **Modelo** correspondiente para que la capa Data de ambas modulos la reutilice.
-- **Uso exacto en >2 modulos:** Crear un archivo dedicado en una **Capa de Data Compartida**.
-- **Consultas con Diferente Profundidad:** Si una consulta en una modulo es base para otra, pero una de ellas requiere obtener más información (más joins, subconsultas, agrupaciones), **NO se extrae al modelo**. Ambas modulos tendrán esa consulta directamente ahí mismo en su propia capa de `Data`. La diferencia es que la capa Data de una modulo añadirá esa información extra en su propia consulta, mientras que la otra mantendrá la versión base.
-
-### 2. Uso Estricto de Enums
-
-Evitar _strings_ planos o números mágicos para estados. **Uso obligatorio de Enums** para garantizar la trazabilidad del código.
-
-### 3. Firmas de Métodos Explícitas
-
-No pasar `arrays` genéricos en los Services. Usar parámetros tipados:
-
-```php
-// MAL
-public function registrar(array $data) { ... }
-
-// BIEN
-public function registrar(int $usuarioId, string $descripcion, array $lotes) {
-    // Nota: El array $lotes debe estar documentado en el DocBlock
-}
-```
+### Control de Acceso (RBAC)
+Los permisos no son solo booleanos; se basan en una estructura jerárquica:
+- **Módulos -> Submódulos -> Acciones**.
+- El middleware protege las rutas, mientras que el frontend consume la estructura de permisos para renderizar la navegación dinámicamente.
 
 ---
 
-## 🚀 Workflow: Crear un Nuevo Proceso
+## ⚙️ Patrones de Diseño y Reglas Críticas
 
-1. **Definir Ruta:** En `[modulo]Endpoints.php`.
-2. **Data Layer:** Implementa los métodos SQL tontos en `[modulo]Data.php`.
-3. **Desarrollar Service:** Crea `[Proceso]Service.php`, documenta arrays, inyecta la capa Data y programa la lógica pura.
-4. **Implementar Controller:** Crea `[Proceso]Controller.php` para validar la entrada, extraer `$authUser`, y pasar parámetros explícitos al Service.
-5. **Respuesta Estandarizada:**
-   ```php
-   return ApiResponse::success($data, "Operación exitosa");
-   ```
+### 1. Normalización de Unidades (La "Unidad Base")
+Para evitar errores de inventario, el sistema maneja dos cantidades:
+- **`cantidad_solicitada`**: En la unidad de compra/pedido (ej. 1 Caja).
+- **`cantidad_base`**: El equivalente en la unidad mínima (ej. 10 Unidades).
+Todos los cálculos de stock y Kardex se realizan sobre la **unidad base**.
 
----
+### 2. Trazabilidad "Timeline"
+Cada cambio de estado en un documento genera un hito. Esto permite saber:
+- Quién pidió, quién aprobó, quién despachó y quién recibió.
+- Comentarios asociados a cada decisión técnica.
 
-## 🔧 Comandos Útiles
-
-```bash
-php artisan serve
-php artisan config:clear
-```
+### 3. Consultas N+1 y Eager Loading
+En módulos críticos como `Cotizaciones` o `Atención`, se prefiere el uso de **SQL Raw** y la indexación manual de arrays para manejar volúmenes masivos de datos (ej. comparar 50 cotizaciones con 100 items cada una) sin degradar el rendimiento.
 
 ---
 
-## 🔒 Seguridad
+## 📖 Documentación de Módulos (Deep Dive)
 
-- Rutas sensibles protegidas por el middleware `auth:api`.
-- Validaciones estrictas en cada Controller.
-- Nunca exponer datos sensibles en las respuestas JSON.
-
----
-
-## 🛠️ Calidad de Código y Análisis Estático
-
-Para garantizar la integridad de los tipos y la arquitectura (especialmente tras el refactor de Enums), utilizamos **Larastan**. Este realiza un análisis profundo del código sin ejecutarlo.
-
-### Configuración (`phpstan.neon`)
-El archivo de configuración define los niveles de rigor y las rutas a ignorar. Actualmente configurado en **Nivel 5** (un balance ideal entre consistencia y productividad).
-
-### Ejecución
-Para identificar errores críticos o inconsistencias de tipos, ejecuta:
-
-```bash
-./vendor/bin/phpstan analyse
-```
+Cada módulo cuenta con su propia documentación técnica detallada. Si necesitas profundizar en un flujo específico, consulta los READMEs internos:
 
 > [!IMPORTANT]
-> Es obligatorio que el análisis reporte **0 errores críticos** antes de realizar un despliegue o merge importante.
+> **Rutas de Documentación Específica:**
+> - [Atención de Requerimientos](app/Modules/RequerimientosAlmacenAtencion/README.md): Lógica de despacho y stock.
+> - [Reabastecimiento Logístico](app/Modules/SolicitudesReabastecimiento/README.md): Gestión de préstamos e ingresos.
+> - [Cotizaciones y Compras](app/Modules/Cotizaciones/README.md): El flujo financiero desde la oferta hasta la OC.
+
+---
+
+## 🚀 Guía de Inicio Rápido
+
+1. **Dependencias**: `composer install`
+2. **Entorno**: Configurar `.env` (BD y JWT_SECRET).
+3. **Migraciones**: `php artisan migrate` (Carga la estructura y catálogos maestros).
+4. **Desarrollo**: `php artisan serve`
+
+> **BlackSilver API** es un sistema vivo. Mantener la modularidad y respetar la capa de `Shared` es vital para la integridad del ERP.
