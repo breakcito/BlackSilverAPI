@@ -3,6 +3,7 @@
 use App\Modules\OrdenCompra\Controller\AuxController;
 use App\Modules\OrdenCompra\Controller\OrdenCompraController;
 use App\Modules\OrdenCompra\Controller\RecepcionesOCController;
+use App\Modules\OrdenCompra\Controller\TransferenciaController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.jwt.custom')->group(function () {
@@ -17,6 +18,10 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::prefix('recepciones')->controller(RecepcionesOCController::class)->group(function () {
             Route::post('/', 'registrar_recepcion');
             Route::get('/{id}', 'get_historial');
+        });
+
+        Route::prefix('transferencias')->controller(TransferenciaController::class)->group(function () {
+            Route::post('/', 'registrar_transferencia');
         });
 
         Route::prefix('aux')->controller(AuxController::class)->group(function () {

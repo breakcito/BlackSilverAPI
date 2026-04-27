@@ -75,6 +75,9 @@ class OrdenCompraRecepcionDetalle extends Model
             ocd.id_producto,
             prd.nombre AS producto,
             -- 
+            ocd.id_almacen_recepcionista AS id_almacen_destino,
+            alm.nombre AS almacen_destino,
+            -- 
             umb.id AS id_unidad_medida_base,
             umb.abreviatura AS unidad_medida_base_abv,
             -- 
@@ -90,6 +93,7 @@ class OrdenCompraRecepcionDetalle extends Model
             orden_compra_recepcion_detalle rcd
         INNER JOIN orden_compra_detalle ocd on ocd.id = rcd.id_orden_compra_detalle
         INNER JOIN producto prd on prd.id = ocd.id_producto
+        INNER JOIN almacen alm on alm.id = ocd.id_almacen_recepcionista
         INNER JOIN unidad_medida umb on umb.id = prd.id_unidad_medida_base
         INNER JOIN unidad_medida umc on umc.id = ocd.id_unidad_medida
         WHERE 1=1

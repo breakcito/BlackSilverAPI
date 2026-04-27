@@ -39,7 +39,7 @@ class PersonalExternoData
             pr.dni
         FROM
             personal_externo pr
-        WHERE 1=1;
+        WHERE 1=1
         ';
 
         $params = [];
