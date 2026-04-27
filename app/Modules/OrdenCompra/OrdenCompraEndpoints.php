@@ -22,6 +22,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::prefix('aux')->controller(AuxController::class)->group(function () {
             Route::get('/almacenes', 'get_almacenes');
             Route::get('/lotes-destino', 'get_lotes_disponibles');
+            Route::get('/personal-externo', 'get_personal_externo');
+            Route::post('/personal-externo', 'crear_personal_externo');
         });
     });
 });

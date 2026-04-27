@@ -31,4 +31,27 @@ class AuxController
 
         return response()->json(AuxService::get_lotes_disponibles($id_almacen, $id_productos));
     }
+
+    public function get_personal_externo(Request $request): JsonResponse
+    {
+        $result = AuxService::get_personal_externo();
+        return response()->json($result);
+    }
+
+    public function crear_personal_externo(Request $request): JsonResponse
+    {
+        $request->validate([
+            'nombre' => 'required|string',
+            'apellido' => 'nullable|string',
+            'dni' => 'nullable|string',
+        ]);
+
+        $result = AuxService::crear_personal_externo(
+            nombre: $request->input('nombre'),
+            apellido: $request->input('apellido'),
+            dni: $request->input('dni')
+        );
+
+        return response()->json($result);
+    }
 }
