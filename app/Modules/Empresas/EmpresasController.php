@@ -59,7 +59,7 @@ class EmpresasController extends Controller
     public function actualizar_logo(Request $request, int $id): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'path_logo' => 'required|image|mimes:jpg,png,jpeg|max:2048',
+            'path_logo' => 'required|image|mimes:jpg,png,jpeg',
         ]);
 
         if ($validator->fails()) {
