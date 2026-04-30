@@ -45,9 +45,15 @@ class AsignacionLaborEmpleadoService
         });
 
         if (!empty($invalidas)) {
-            return ApiResponse::success(null, "Cambios guardados, pero se omitieron labores de otras minas.");
+            return ApiResponse::success(
+                EmpleadosData::get_empleado_by_id($id_empleado),
+                "Cambios guardados, pero se omitieron labores de otras minas."
+            );
         }
 
-        return ApiResponse::success(null, "Labores actualizadas correctamente.");
+        return ApiResponse::success(
+            EmpleadosData::get_empleado_by_id($id_empleado),
+            "Labores actualizadas correctamente."
+        );
     }
 }

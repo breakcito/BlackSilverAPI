@@ -19,7 +19,7 @@ class EmpleadosData
         SELECT DISTINCT
             e.id AS id_empleado,
             e.id_mina,
-            mn.nombre AS mina,
+            COALESCE(mn.nombre, "No aplica") AS mina,
             e.id_cargo,
             car.nombre AS cargo,
             car.id_area,
@@ -38,10 +38,15 @@ class EmpleadosData
                 FROM labor_empleado le
                 INNER JOIN labor lab ON lab.id = le.id_labor
                 WHERE le.id_empleado = e.id
-            ), "Sin asignar") AS labores_asignadas
+            ), "No aplica") AS labores_asignadas,
+            (
+                SELECT GROUP_CONCAT(le.id_labor)
+                FROM labor_empleado le
+                WHERE le.id_empleado = e.id
+            ) AS ids_labor_asignadas
         FROM
             empleado e
-        INNER JOIN mina mn ON mn.id = e.id_mina
+        LEFT JOIN mina mn ON mn.id = e.id_mina
         INNER JOIN cargo car ON car.id = e.id_cargo
         INNER JOIN area a ON a.id = car.id_area
         WHERE 1 = 1
@@ -78,7 +83,7 @@ class EmpleadosData
      * Crear un nuevo empleado con parámetros explícitos
      */
     public static function crear_empleado(
-        int $id_mina,
+        ?int $id_mina,
         int $id_cargo,
         string $nombre,
         string $apellido,

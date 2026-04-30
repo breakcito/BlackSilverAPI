@@ -54,7 +54,7 @@ class EmpleadosService
      * Registrar un nuevo empleado
      */
     public static function crear_empleado(
-        int $id_mina,
+        ?int $id_mina = null,
         int $id_cargo,
         string $nombre,
         string $apellido,
@@ -104,11 +104,13 @@ class EmpleadosService
                 $path_foto
             );
 
-            // Asignar labores iniciales si las hay
-            foreach ($ids_labor as $id_labor) {
-                // Validar que la labor sea de la mina seleccionada
-                if (EmpleadosData::labor_pertenece_a_mina((int)$id_labor, $id_mina)) {
-                    EmpleadosData::asignar_labor($id, (int)$id_labor);
+            // Asignar labores iniciales si las hay y hay una mina seleccionada
+            if ($id_mina) {
+                foreach ($ids_labor as $id_labor) {
+                    // Validar que la labor sea de la mina seleccionada
+                    if (EmpleadosData::labor_pertenece_a_mina((int)$id_labor, $id_mina)) {
+                        EmpleadosData::asignar_labor($id, (int)$id_labor);
+                    }
                 }
             }
 

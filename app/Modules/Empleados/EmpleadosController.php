@@ -56,7 +56,7 @@ class EmpleadosController
     public function crear_empleado(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'id_mina'            => 'required|integer',
+            'id_mina'            => 'nullable|integer',
             'id_cargo'           => 'required|integer',
             'nombre'             => 'required|string|max:255',
             'apellido'           => 'required|string|max:255',
@@ -73,7 +73,7 @@ class EmpleadosController
         }
 
         $result = EmpleadosService::crear_empleado(
-            id_mina: (int) $request->input('id_mina'),
+            id_mina: $request->input('id_mina') ? (int) $request->input('id_mina') : null,
             id_cargo: (int) $request->input('id_cargo'),
             nombre: (string) $request->input('nombre'),
             apellido: (string) $request->input('apellido'),
