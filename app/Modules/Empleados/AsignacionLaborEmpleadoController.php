@@ -38,14 +38,12 @@ class AsignacionLaborEmpleadoController
      */
     public function asignar_labores(Request $request, int $id_empleado): JsonResponse
     {
-        $ids_labor = $request->input('ids_labor');
-
-        if (!is_array($ids_labor) || empty($ids_labor)) {
-            return response()->json(ApiResponse::error('Debe seleccionar al menos una labor.'));
-        }
+        $ids_labor = $request->input('ids_labor', []);
+        $id_mina = $request->input('id_mina'); // Opcional
 
         $result = AsignacionLaborEmpleadoService::asignar_labores(
             id_empleado: $id_empleado,
+            id_mina: $id_mina ? (int) $id_mina : null,
             ids_labor: $ids_labor
         );
 

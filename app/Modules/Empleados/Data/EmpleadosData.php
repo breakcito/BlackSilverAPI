@@ -262,4 +262,12 @@ class EmpleadosData
             ->where('id_mina', $id_mina)
             ->exists();
     }
+
+    /**
+     * Actualizar la mina de un empleado
+     */
+    public static function actualizar_mina(int $id_empleado, ?int $id_mina): bool
+    {
+        return (bool) Empleado::where('id', $id_empleado)->update(['id_mina' => $id_mina]);
+    }
 }
