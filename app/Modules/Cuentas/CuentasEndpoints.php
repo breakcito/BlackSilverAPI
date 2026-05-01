@@ -10,4 +10,5 @@ Route::prefix('cuentas')->group(function () {
     Route::get('/roles', [CuentasController::class, 'get_roles_disponibles']);
     Route::post('/', [CuentasController::class, 'crear_cuenta']);
     Route::put('/{id_usuario}', [CuentasController::class, 'actualizar_cuenta']);
+    Route::post('/foto/{id_empleado}', [CuentasController::class, 'actualizar_foto_empleado']);
 });

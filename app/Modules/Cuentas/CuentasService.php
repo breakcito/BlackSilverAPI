@@ -7,6 +7,9 @@ use App\Shared\Responses\ApiResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 
+use App\Shared\Helpers\ArchivoHelper;
+use Illuminate\Http\UploadedFile;
+
 class CuentasService
 {
     public static function get_cuentas(): array|object
@@ -73,5 +76,30 @@ class CuentasService
         CuentasData::update_usuario($id_usuario, $updateData);
 
         return ApiResponse::success(null, 'Cuenta actualizada correctamente.');
+    }
+
+    /**
+     * Actualizar la foto del empleado asociado a una cuenta
+     */
+    public static function actualizar_foto_empleado(int $id_empleado, UploadedFile $archivo): array|object
+    {
+        // 1. Guardar el archivo en la carpeta de perfiles
+        $resultados = ArchivoHelper::guardarArchivos('perfiles', [$archivo]);
+
+        if (empty($resultados)) {
+            return ApiResponse::error('Error al procesar el archivo.');
+        }
+
+        $pathRelativo = $resultados[0]['path_relativo'];
+
+        // 2. Actualizar en la base de datos (tabla empleado)
+        DB::table('empleado')
+            ->where('id', $id_empleado)
+            ->update(['path_foto' => asset('storage/' . $pathRelativo)]);
+
+        return ApiResponse::success(
+            ['url' => asset('storage/' . $pathRelativo)],
+            'Foto actualizada correctamente.'
+        );
     }
 }

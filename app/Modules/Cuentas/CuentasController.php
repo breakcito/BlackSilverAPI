@@ -104,4 +104,17 @@ class CuentasController extends Controller
         );
         return response()->json($result);
     }
+
+    /**
+     * Actualizar la foto del empleado asociado a una cuenta
+     */
+    public function actualizar_foto_empleado(Request $request, int $id_empleado): JsonResponse
+    {
+        if (!$request->hasFile('foto')) {
+            return response()->json(ApiResponse::error('No se ha enviado ninguna imagen.'));
+        }
+
+        $result = CuentasService::actualizar_foto_empleado($id_empleado, $request->file('foto'));
+        return response()->json($result);
+    }
 }
