@@ -65,18 +65,27 @@ class RolesService
     }
 
     /**
-     * Actualizar los permisos de un rol
+     * Actualizar los permisos de un rol (solo diferencias)
      */
-    public static function actualizar_permisos_rol(int $id_rol, array $modulos)
+    public static function actualizar_permisos_rol(int $id_rol, array $modulos_nuevos)
     {
         try {
-            return DB::transaction(function () use ($id_rol, $modulos) {
-                // 1. Limpiar permisos actuales
-                PermisosData::limpiar_permisos_rol($id_rol);
+            return DB::transaction(function () use ($id_rol, $modulos_nuevos) {
+                // 1. Obtener permisos actuales
+                $actuales = PermisosData::get_ids_modulos_por_rol($id_rol);
 
-                // 2. Asignar nuevos permisos
-                foreach ($modulos as $id_modulo) {
+                // 2. Calcular diferencias
+                $agregar = array_diff($modulos_nuevos, $actuales);
+                $eliminar = array_diff($actuales, $modulos_nuevos);
+
+                // 3. Agregar solo los nuevos
+                foreach ($agregar as $id_modulo) {
                     PermisosData::asignar_modulo_a_rol($id_rol, $id_modulo);
+                }
+
+                // 4. Eliminar solo los revocados
+                foreach ($eliminar as $id_modulo) {
+                    PermisosData::eliminar_modulo_de_rol($id_rol, $id_modulo);
                 }
 
                 return ApiResponse::success(null, 'Permisos actualizados correctamente.');

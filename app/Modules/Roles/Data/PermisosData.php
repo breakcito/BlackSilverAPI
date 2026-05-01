@@ -64,4 +64,14 @@ class PermisosData
     {
         ModuloRol::where('id_rol', $id_rol)->delete();
     }
+
+    /**
+     * Eliminar un modulo específico de un rol
+     */
+    public static function eliminar_modulo_de_rol(int $id_rol, int $id_modulo): void
+    {
+        ModuloRol::where('id_rol', $id_rol)
+            ->where('id_modulo', $id_modulo)
+            ->delete();
+    }
 }
