@@ -18,7 +18,8 @@ class AreasData
             a.id AS id_area,
             a.nombre,
             a.estado,
-            (SELECT COUNT(*) FROM cargo c WHERE c.id_area = a.id AND c.estado = :estado_cargo) AS cantidad_cargos
+            (SELECT COUNT(*) FROM cargo c WHERE c.id_area = a.id AND c.estado = :estado_cargo) AS cantidad_cargos,
+            (SELECT GROUP_CONCAT(c.nombre SEPARATOR ", ") FROM cargo c WHERE c.id_area = a.id AND c.estado = :estado_cargo2) AS nombres_cargos
         FROM
             area a
         WHERE
@@ -27,6 +28,7 @@ class AreasData
 
         $params = [];
         $params['estado_cargo'] = EstadoBase::Activo->value;
+        $params['estado_cargo2'] = EstadoBase::Activo->value;
 
         if ($id_area !== null) {
             $sql .= ' AND a.id = :id_area';
