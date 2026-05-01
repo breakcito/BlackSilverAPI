@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Modules\OrdenCompra\Controller;
+namespace App\Modules\OrdenesCompra\Controller;
 
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Modules\OrdenCompra\Service\OrdenCompraService;
+use App\Modules\OrdenesCompra\Service\OrdenCompraService;
 
 class OrdenCompraController
 {

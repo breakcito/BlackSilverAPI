@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\OrdenCompra\Data;
+namespace App\Modules\OrdenesCompra\Data;
 
 use App\Models\OrdenCompra;
 use App\Models\OrdenCompraDetalle;

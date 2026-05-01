@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\OrdenCompra\Service;
+namespace App\Modules\OrdenesCompra\Service;
 
 use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;

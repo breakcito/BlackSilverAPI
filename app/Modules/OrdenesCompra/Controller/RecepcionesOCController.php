@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Modules\OrdenCompra\Controller;
+namespace App\Modules\OrdenesCompra\Controller;
 
-use App\Modules\OrdenCompra\Service\RecepcionesOCService;
+use App\Modules\OrdenesCompra\Service\RecepcionesOCService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

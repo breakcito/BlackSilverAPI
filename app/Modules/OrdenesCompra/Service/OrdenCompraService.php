@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Modules\OrdenCompra\Service;
+namespace App\Modules\OrdenesCompra\Service;
 
 use App\Shared\Responses\ApiResponse;
-use App\Modules\OrdenCompra\Data\OrdenCompraData;
+use App\Modules\OrdenesCompra\Data\OrdenCompraData;
 
 class OrdenCompraService
 {

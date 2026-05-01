@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Modules\OrdenCompra\Service;
+namespace App\Modules\OrdenesCompra\Service;
 
 use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
-use App\Modules\OrdenCompra\Data\RecepcionesOCData;
+use App\Modules\OrdenesCompra\Data\RecepcionesOCData;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\OrdenCompra\EstadoOrdenCompra;

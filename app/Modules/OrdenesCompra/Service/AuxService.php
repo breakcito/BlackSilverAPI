@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\OrdenCompra\Service;
+namespace App\Modules\OrdenesCompra\Service;
 
 use App\Data\AlmacenesData;
 use App\Data\LotesProductosData;

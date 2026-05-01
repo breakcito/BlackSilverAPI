@@ -1,9 +1,9 @@
 <?php
 
-use App\Modules\OrdenCompra\Controller\AuxController;
-use App\Modules\OrdenCompra\Controller\OrdenCompraController;
-use App\Modules\OrdenCompra\Controller\RecepcionesOCController;
-use App\Modules\OrdenCompra\Controller\TransferenciaController;
+use App\Modules\OrdenesCompra\Controller\AuxController;
+use App\Modules\OrdenesCompra\Controller\OrdenCompraController;
+use App\Modules\OrdenesCompra\Controller\RecepcionesOCController;
+use App\Modules\OrdenesCompra\Controller\TransferenciaController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.jwt.custom')->group(function () {
