@@ -87,10 +87,25 @@ class OrdenCompraRecepcionDetalle extends Model
             rcd.cantidad_recepcionada,
             rcd.cantidad_recepcionada_base,
             -- 
+            CASE
+            	-- si el almacen que ha recepcionado los productos es diferente al 
+                -- almacen que deberia haberlo hecho
+            	WHEN ocd.id_almacen_recepcionista != ocr.id_almacen_recepcionista THEN (1)
+                ELSE (0)
+            END as es_para_otro_almacen,
+            (
+                SELECT
+                	SUM(trnd.cantidad_transferida_base)
+                FROM orden_compra_transferencia_detalle trnd
+                WHERE 
+                	trnd.id_orden_compra_recepcion_detalle = rcd.id
+            ) as cantidad_transferida_base,
+            -- 
             rcd.comentario,
             rcd.estado
         FROM
             orden_compra_recepcion_detalle rcd
+        INNER JOIN orden_compra_recepcion ocr on ocr.id = rcd.id_orden_compra_recepcion
         INNER JOIN orden_compra_detalle ocd on ocd.id = rcd.id_orden_compra_detalle
         INNER JOIN producto prd on prd.id = ocd.id_producto
         INNER JOIN almacen alm on alm.id = ocd.id_almacen_recepcionista
