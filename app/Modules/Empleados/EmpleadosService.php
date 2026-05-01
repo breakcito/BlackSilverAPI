@@ -16,9 +16,9 @@ class EmpleadosService
     {
         $empleados = EmpleadosData::get_empleados(id_mina: $id_mina);
 
-        // Convertir path_foto a URL completa
+        // Convertir path_foto a URL completa (compatible con registros viejos y nuevos)
         foreach ($empleados as $empleado) {
-            if ($empleado->path_foto) {
+            if ($empleado->path_foto && !str_starts_with($empleado->path_foto, 'http')) {
                 $empleado->path_foto = asset('storage/' . $empleado->path_foto);
             }
         }
@@ -74,7 +74,7 @@ class EmpleadosService
         if ($foto && $foto->isValid()) {
             $archivos = ArchivoHelper::guardarArchivos('fotos-empleados', [$foto]);
             if (!empty($archivos)) {
-                $path_foto = $archivos[0]['url'];
+                $path_foto = $archivos[0]['path_relativo'];
             }
         }
 
@@ -133,7 +133,7 @@ class EmpleadosService
             return ApiResponse::error('No se pudo procesar la imagen.');
         }
 
-        $path_foto = $archivos[0]['url'];
+        $path_foto = $archivos[0]['path_relativo'];
         EmpleadosData::actualizar_foto($id_empleado, $path_foto);
 
         $empleado = EmpleadosData::get_empleado_by_id($id_empleado);
