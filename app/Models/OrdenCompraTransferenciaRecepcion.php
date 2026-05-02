@@ -42,6 +42,7 @@ class OrdenCompraTransferenciaRecepcion extends Model
             -- 
             CONCAT(e.nombre, " ", e.apellido) AS empleado_registro,
             -- 
+            r.numero_correlativo,
             r.observacion,
             r.fecha_hora_recepcion,
             r.evidencias,
