@@ -23,11 +23,6 @@ class CotizacionEmpresa extends Model
         int $id_cotizacion,
         array $ids_empresas
     ): bool {
-        // Si pasas un solo registro asociativo, lo convertimos en un arreglo de arreglos.
-        if (!isset($ids_empresas[0]) || !is_array($ids_empresas[0])) {
-            $ids_empresas = [$ids_empresas];
-        }
-
         $insertData = [];
 
         foreach ($ids_empresas as $id_emp) {
@@ -37,7 +32,10 @@ class CotizacionEmpresa extends Model
             ];
         }
 
-        // Ejecuta todo en una sola consulta a la base de datos
+        if (empty($insertData)) {
+            return true;
+        }
+
         return self::insert($insertData);
     }
 

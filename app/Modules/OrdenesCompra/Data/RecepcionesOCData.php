@@ -86,7 +86,7 @@ class RecepcionesOCData
      */
     public static function get_cantidad_recepcionada_total_base_detalle(int $id_oc_detalle): float
     {
-        return (float) OrdenCompraRecepcionDetalle::where('id_orden_compra_detalle', $id_oc_detalle)
+        return OrdenCompraRecepcionDetalle::where('id_orden_compra_detalle', $id_oc_detalle)
             ->sum('cantidad_recepcionada_base');
     }
 

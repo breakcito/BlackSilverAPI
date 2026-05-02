@@ -5,6 +5,7 @@ namespace App\Modules\OrdenesCompra\Data;
 use App\Models\OrdenCompra;
 use App\Models\OrdenCompraDetalle;
 use App\Models\OrdenCompraDetalleLog;
+use App\Shared\Enums\OrdenCompra\EstadoOrdenCompraDetalleLog;
 
 class OrdenCompraData
 {
@@ -30,5 +31,22 @@ class OrdenCompraData
     public static function get_seguimiento(int $id_detalle): array
     {
         return OrdenCompraDetalleLog::get_logs($id_detalle);
+    }
+
+    /**
+     * Registrar un log en la trazabilidad del detalle de la OC
+     */
+    public static function registrar_log_detalle(
+        int $id_orden_compra_detalle,
+        int $id_empleado,
+        EstadoOrdenCompraDetalleLog $estado,
+        ?string $dinamico = null
+    ): int {
+        return OrdenCompraDetalleLog::crear_log(
+            id_orden_compra_detalle: $id_orden_compra_detalle,
+            id_empleado: $id_empleado,
+            estado: $estado,
+            dinamico: $dinamico
+        );
     }
 }

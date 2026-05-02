@@ -4,8 +4,7 @@ namespace App\Modules\OrdenesCompra\Service;
 
 use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
-use App\Models\OrdenCompraTransferencia;
-use App\Models\OrdenCompraTransferenciaDetalle;
+use App\Modules\OrdenesCompra\Data\TransferenciaOCData;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\OrdenCompra\EstadoOCTransferenciaDetalle;
@@ -60,7 +59,7 @@ class TransferenciaService
             );
 
             // Crear Cabecera de Transferencia
-            $id_transferencia = OrdenCompraTransferencia::crear_transferencia(
+            $id_transferencia = TransferenciaOCData::crear_transferencia(
                 id_almacen_destino: $id_almacen_destino,
                 id_orden_compra_recepcion: $id_orden_compra_recepcion,
                 id_empleado_transferencia: $id_empleado_transferencia,
@@ -83,7 +82,7 @@ class TransferenciaService
                     'estado' => EstadoOCTransferenciaDetalle::EnDespacho,
                 ];
             }
-            OrdenCompraTransferenciaDetalle::crear_detalle($id_transferencia, $detallesToInsert);
+            TransferenciaOCData::crear_detalles($id_transferencia, $detallesToInsert);
 
             // Ajuste de Stock y Kardex
             foreach ($detalles as $item) {
@@ -119,7 +118,7 @@ class TransferenciaService
             }
 
             // Recuperamos el objeto creado
-            $transferencia = OrdenCompraTransferencia::get_transferencias(id_transferencia: $id_transferencia);
+            $transferencia = TransferenciaOCData::get_transferencia_by_id(id_transferencia: $id_transferencia);
 
             return ApiResponse::success(
                 $transferencia,

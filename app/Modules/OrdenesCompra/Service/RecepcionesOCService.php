@@ -4,11 +4,13 @@ namespace App\Modules\OrdenesCompra\Service;
 
 use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
+use App\Modules\OrdenesCompra\Data\OrdenCompraData;
 use App\Modules\OrdenesCompra\Data\RecepcionesOCData;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\OrdenCompra\EstadoOrdenCompra;
 use App\Shared\Enums\OrdenCompra\EstadoOrdenCompraDetalle;
+use App\Shared\Enums\OrdenCompra\EstadoOrdenCompraDetalleLog;
 use App\Shared\Enums\OrdenCompra\EstadoOrdenCompraRecepcion;
 use App\Shared\Enums\OrdenCompra\EstadoOrdenCompraRecepcionDetalle;
 use App\Shared\Helpers\ArchivoHelper;
@@ -180,11 +182,12 @@ class RecepcionesOCService
 
             // 9. Crear Detalles de Recepción (Agrupados por OC Detalle)
             foreach ($detallesAgrupados as $id_oc_det => $data) {
-                // Determinar estado del detalle de recepción
-                // (Ojo: aquí el estado es del detalle de la recepción, no de la OC)
                 $oc_det = RecepcionesOCData::get_oc_detalle_by_id($id_oc_det);
-                $total_ya_recibido = RecepcionesOCData::get_cantidad_recepcionada_total_base_detalle($id_oc_det);
-                $total_acumulado = $total_ya_recibido + $data['cantidad_recepcionada_base'];
+                if (!$oc_det)
+                    continue;
+
+                $total_ya_recibido_antes = RecepcionesOCData::get_cantidad_recepcionada_total_base_detalle($id_oc_det);
+                $total_acumulado = $total_ya_recibido_antes + $data['cantidad_recepcionada_base'];
 
                 $estado_det_recep = ($total_acumulado >= $oc_det->cantidad_requerida_base - 0.001)
                     ? EstadoOrdenCompraRecepcionDetalle::RecepcionCompleta
@@ -201,6 +204,33 @@ class RecepcionesOCService
 
                 // 10. Actualizar estados post-recepción
                 self::actualizar_estados_post_recepcion_oc($id_oc_det);
+
+                // 11. Log de Trazabilidad ---
+                // Si es la primera recepción
+                if ($total_ya_recibido_antes == 0) {
+                    OrdenCompraData::registrar_log_detalle(
+                        $id_oc_det,
+                        $id_empleado_registro,
+                        EstadoOrdenCompraDetalleLog::EnRecepcion
+                    );
+                }
+
+                // Registro de la nueva recepción (cantidad en unidad de OC para la glosa)
+                OrdenCompraData::registrar_log_detalle(
+                    $id_oc_det,
+                    $id_empleado_registro,
+                    EstadoOrdenCompraDetalleLog::NuevaRecepcion,
+                    (string) round($data['cantidad_recepcionada'], 2)
+                );
+
+                // Si ya finalizó la recepción de este item
+                if ($total_acumulado >= $oc_det->cantidad_requerida_base - 0.001) {
+                    OrdenCompraData::registrar_log_detalle(
+                        $id_oc_det,
+                        $id_empleado_registro,
+                        EstadoOrdenCompraDetalleLog::RecepcionCompleta
+                    );
+                }
             }
 
             $lotes_data = !empty($ids_lotes_nuevos)
