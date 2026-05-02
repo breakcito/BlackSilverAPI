@@ -18,6 +18,9 @@ class OrdenCompraTransferencia extends Model
         'id_empleado_transferencia', // quien registra la transferencia
         'id_personal_recibe', // la persona que recibe los productos para el envio
         //
+        'correlativo', // TRN | anual | por almacen de destino
+        'numero_correlativo',
+        //
         'observacion',
         'fecha_hora_transferencia',
         'evidencias',
@@ -32,6 +35,8 @@ class OrdenCompraTransferencia extends Model
         int $id_orden_compra_recepcion,
         int $id_empleado_transferencia,
         int $id_personal_recibe,
+        string $correlativo,
+        int $numero_correlativo,
         ?string $fecha_hora_transferencia = null,
         ?string $observacion = null,
         $evidencias = null
@@ -41,6 +46,8 @@ class OrdenCompraTransferencia extends Model
             'id_almacen_destino' => $id_almacen_destino,
             'id_empleado_transferencia' => $id_empleado_transferencia,
             'id_personal_recibe' => $id_personal_recibe,
+            'correlativo' => $correlativo,
+            'numero_correlativo' => $numero_correlativo,
             'fecha_hora_transferencia' => $fecha_hora_transferencia ?? now(),
             'observacion' => $observacion ?? '',
             'evidencias' => $evidencias ? json_encode($evidencias) : null,
@@ -57,11 +64,15 @@ class OrdenCompraTransferencia extends Model
         ?int $id_transferencia = null,
         ?int $id_orden_compra_recepcion = null,
         ?int $id_almacen_destino = null,
+        ?int $mes = null,
+        ?int $yearcito = null
     ) {
         $sql = '
         SELECT
             trn.id AS id_transferencia,
             trn.id_orden_compra_recepcion,
+            --
+            trn.correlativo,
             --
             trn.id_almacen_destino,
             alm.nombre as almacen_destino,
@@ -86,20 +97,30 @@ class OrdenCompraTransferencia extends Model
         ';
 
         $params = [];
-        if ($id_transferencia) {
+        if ($id_transferencia !== null) {
             $sql .= ' AND trn.id = :id_transferencia';
             $params['id_transferencia'] = $id_transferencia;
             return DB::selectOne($sql, $params);
         }
 
-        if ($id_orden_compra_recepcion) {
+        if ($id_orden_compra_recepcion !== null) {
             $sql .= ' AND trn.id_orden_compra_recepcion = :id_orden_compra_recepcion';
             $params['id_orden_compra_recepcion'] = $id_orden_compra_recepcion;
         }
 
-        if ($id_almacen_destino) {
+        if ($id_almacen_destino !== null) {
             $sql .= ' AND trn.id_almacen_destino = :id_almacen_destino';
             $params['id_almacen_destino'] = $id_almacen_destino;
+        }
+
+        if ($mes !== null) {
+            $sql .= ' AND MONTH(trn.fecha_hora_transferencia) = :mes';
+            $params['mes'] = $mes;
+        }
+
+        if ($yearcito !== null) {
+            $sql .= ' AND YEAR(trn.fecha_hora_transferencia) = :yearcito';
+            $params['yearcito'] = $yearcito;
         }
 
         $sql .= ' ORDER BY trn.created_at DESC;';

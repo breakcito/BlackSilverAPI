@@ -66,7 +66,7 @@ class OrdenCompraTransferenciaDetalle extends Model
      */
     public static function get_detalles(
         ?int $id_transferencia_detalle = null,
-        ?int $id_transferencia = null
+        null|array|int $ids_transferencias = null
     ) {
         $sql = '
         SELECT
@@ -138,9 +138,12 @@ class OrdenCompraTransferenciaDetalle extends Model
             return DB::selectOne($sql, $params);
         }
 
-        if ($id_transferencia) {
+        if (is_array($ids_transferencias)) {
+            $sql .= ' AND trnd.id_orden_compra_transferencia IN (:ids_transferencias)';
+            $params['ids_transferencias'] = implode(',', $ids_transferencias);
+        } elseif ($ids_transferencias) {
             $sql .= ' AND trnd.id_orden_compra_transferencia = :id_transferencia';
-            $params['id_transferencia'] = $id_transferencia;
+            $params['id_transferencia'] = $ids_transferencias;
         }
 
         $sql .= ' ORDER BY prod.nombre ASC';

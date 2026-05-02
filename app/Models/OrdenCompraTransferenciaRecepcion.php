@@ -20,6 +20,8 @@ class OrdenCompraTransferenciaRecepcion extends Model
         'id_orden_compra_transferencia', // de que transferencia se esta recepcionando
         'id_empleado_registro', // el empleado que recepciona/registra
         //
+        'numero_correlativo', // por transferencia
+        // 
         'observacion',
         'fecha_hora_recepcion',
         'evidencias',
@@ -29,8 +31,10 @@ class OrdenCompraTransferenciaRecepcion extends Model
         'estado', // Recepcionado / Recepcionado parcialmente
     ];
 
-    public static function get_recepciones(?int $id_recepcion = null, ?int $id_transferencia = null)
-    {
+    public static function get_recepciones(
+        ?int $id_recepcion = null,
+        ?int $id_transferencia = null
+    ) {
         $sql = '
         SELECT
             r.id as id_recepcion,

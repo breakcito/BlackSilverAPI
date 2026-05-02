@@ -25,8 +25,10 @@ class OrdenCompraTransferenciaRecepcionDetalle extends Model
         'estado', // Recepcionado / Recepcionado parcialmente
     ];
 
-    public static function get_detalles(?int $id_detalle = null, ?int $id_recepcion = null)
-    {
+    public static function get_detalles(
+        ?int $id_detalle = null,
+        null|array|int $ids_recepciones = null
+    ) {
         $sql = '
         SELECT
             rd.id AS id_recepcion_detalle,
@@ -73,9 +75,14 @@ class OrdenCompraTransferenciaRecepcionDetalle extends Model
             return DB::selectOne($sql, $params);
         }
 
-        if ($id_recepcion !== null) {
-            $sql .= " AND rd.id_orden_compra_transferencia_recepcion = :id_recepcion";
-            $params['id_recepcion'] = $id_recepcion;
+        if ($ids_recepciones !== null) {
+            if (is_array($ids_recepciones)) {
+                $sql .= " AND rd.id_orden_compra_transferencia_recepcion IN (:ids_recepciones)";
+                $params['ids_recepciones'] = implode(',', $ids_recepciones);
+            } else {
+                $sql .= " AND rd.id_orden_compra_transferencia_recepcion = :ids_recepciones";
+                $params['ids_recepciones'] = $ids_recepciones;
+            }
         }
 
         $sql .= " ORDER BY prod.nombre ASC";

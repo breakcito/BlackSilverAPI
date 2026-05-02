@@ -6,6 +6,8 @@ use App\Models\SolicitudReabastecimientoRecepcion;
 use App\Models\SolicitudReabastecimientoRecepcionDetalle;
 use App\Models\SolicitudReabastecimientoEntrega;
 use App\Models\SolicitudReabastecimientoEntregaDetalle;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudEntregaRecepcion;
+use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudEntregaRecepcionDetalle;
 
 class RecepcionesData
 {
@@ -28,7 +30,7 @@ class RecepcionesData
             'evidencias' => $evidencias,
             'con_incidencia' => $con_incidencia ? 1 : 0,
             'created_at' => now(),
-            'estado' => 'Recepcionado',
+            'estado' => EstadoSolicitudEntregaRecepcion::RecepcionCompleta->value,
         ]);
     }
 
@@ -44,7 +46,7 @@ class RecepcionesData
             'id_solicitud_reabastecimiento_recepcion' => $id_recepcion,
             'id_solicitud_reabastecimiento_entrega_detalle' => $id_entrega_detalle,
             'cantidad_recepcionada_base' => $cantidad_recepcionada_base,
-            'estado' => 'Recepcionado',
+            'estado' => EstadoSolicitudEntregaRecepcionDetalle::RecepcionCompleta->value,
         ]);
     }
 

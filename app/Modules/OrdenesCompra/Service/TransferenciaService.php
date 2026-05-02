@@ -10,6 +10,7 @@ use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\OrdenCompra\EstadoOCTransferenciaDetalle;
 use App\Shared\Helpers\ArchivoHelper;
+use App\Shared\Helpers\CorrelativoHelper;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -48,12 +49,24 @@ class TransferenciaService
                 }
             }
 
+            // Obtener correlativo
+            $correlativo_data = CorrelativoHelper::generar(
+                tabla: 'orden_compra_transferencia',
+                prefijo: 'TRN',
+                filtros: [
+                    'id_almacen_destino' => $id_almacen_destino
+                ],
+                columnaFecha: 'fecha_hora_transferencia'
+            );
+
             // Crear Cabecera de Transferencia
             $id_transferencia = OrdenCompraTransferencia::crear_transferencia(
                 id_almacen_destino: $id_almacen_destino,
                 id_orden_compra_recepcion: $id_orden_compra_recepcion,
                 id_empleado_transferencia: $id_empleado_transferencia,
                 id_personal_recibe: $id_personal_recibe,
+                correlativo: $correlativo_data['correlativo'],
+                numero_correlativo: $correlativo_data['numero_correlativo'],
                 fecha_hora_transferencia: $fecha_hora_transferencia,
                 observacion: $observacion,
                 evidencias: $evidenciasData
