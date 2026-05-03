@@ -52,7 +52,7 @@ class OrdenCompraDetalleLog extends Model
             FROM orden_compra_detalle_log log
             INNER JOIN empleado e ON e.id = log.id_empleado
             WHERE log.id_orden_compra_detalle = :id_orden_compra_detalle
-            ORDER BY log.created_at DESC
+            ORDER BY log.id DESC
         ', ['id_orden_compra_detalle' => $id_orden_compra_detalle]);
     }
 }
