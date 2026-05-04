@@ -70,14 +70,23 @@ class OrdenCompraTransferencia extends Model
         $sql = '
         SELECT
             trn.id AS id_transferencia,
-            trn.id_orden_compra_recepcion,
-            --
             trn.correlativo,
-            --
+            -- 
+            oc.correlativo as codigo_orden_compra,
+            -- 
+            -- de que recepcion de la orden de compra se hizo la transferencia
+            trn.id_orden_compra_recepcion as id_recepcion,
+            ocr.numero_correlativo as numero_recepcion,
+            -- 
+            -- de donde viene la transferencia
+            alm.nombre as almacen_origen,
+            alm.es_principal as desde_un_almacen_principal,
+            -- 
+            -- hacia donde va la transferencia
             trn.id_almacen_destino,
-            alm.nombre as almacen_destino,
-            alm.es_principal as es_para_un_almacen_principal,
-            --
+            alm_dest.nombre as almacen_destino,
+            alm_dest.es_principal as es_para_un_almacen_principal,
+            -- 
             CONCAT(emp_ent.nombre, " ", emp_ent.apellido) AS empleado_transferencia,
             TRIM(CONCAT_WS(" ", NULLIF(TRIM(per_rec.nombre), ""), NULLIF(TRIM(per_rec.apellido), ""))) AS personal_recibe,
             -- 
@@ -89,9 +98,12 @@ class OrdenCompraTransferencia extends Model
             trn.estado
         FROM
             orden_compra_transferencia trn
+		INNER JOIN orden_compra_recepcion ocr on ocr.id = trn.id_orden_compra_recepcion
+        INNER JOIN orden_compra oc on oc.id = ocr.id_orden_compra
+        INNER JOIN almacen alm on alm.id = ocr.id_almacen_recepcionista
+        INNER JOIN almacen alm_dest on alm_dest.id = trn.id_almacen_destino
         INNER JOIN empleado emp_ent ON emp_ent.id = trn.id_empleado_transferencia
         INNER JOIN personal_externo per_rec ON per_rec.id = trn.id_personal_recibe
-        INNER JOIN almacen alm on alm.id = trn.id_almacen_destino
         WHERE 
             1 = 1
         ';
