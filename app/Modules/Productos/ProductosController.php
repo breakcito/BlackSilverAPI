@@ -52,7 +52,7 @@ class ProductosController
             'nombre' => 'required|string|max:128',
             'es_auditable' => 'required|boolean',
             'es_perecible' => 'required|boolean',
-            'stock_minimo' => 'nullable|numeric|min:0',
+            'stock_minimo_base' => 'nullable|numeric|min:0',
             'tiempo_espera_vencimiento' => 'nullable|integer|min:0',
             'periodo_espera_vencimiento' => ['nullable', new Enum(Periodo::class)],
         ], [
@@ -73,7 +73,7 @@ class ProductosController
             nombre: $request->string('nombre'),
             es_auditable: $request->boolean('es_auditable'),
             es_perecible: $request->boolean('es_perecible'),
-            stock_minimo: (float) ($request->input('stock_minimo') ?? 0),
+            stock_minimo_base: (float) ($request->input('stock_minimo_base') ?? 0),
             tiempo_espera_vencimiento: $request->input('tiempo_espera_vencimiento') ? (int) $request->input('tiempo_espera_vencimiento') : null,
             periodo_espera_vencimiento: $request->input('periodo_espera_vencimiento')
         );

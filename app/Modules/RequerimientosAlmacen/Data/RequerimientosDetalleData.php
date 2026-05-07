@@ -26,7 +26,7 @@ class RequerimientosDetalleData
             --
             pr.id AS id_producto,
             pr.nombre AS producto,
-            pr.stock_minimo,
+            pr.stock_minimo_base,
             --
             -- que producto va a consumir lo que se esta pidiendo: Tractor consume Gasolina
             rad.id_producto_destino,
@@ -158,17 +158,17 @@ class RequerimientosDetalleData
         ?int $id_producto_destino = null
     ) {
         return RequerimientoAlmacenDetalle::insertGetId([
-            'id_requerimiento_almacen'   => $id_requerimiento,
-            'id_producto'                => $id_producto,
-            'id_unidad_medida'           => $id_unidad_medida,
-            'cantidad_solicitada'        => $cantidad,
+            'id_requerimiento_almacen' => $id_requerimiento,
+            'id_producto' => $id_producto,
+            'id_unidad_medida' => $id_unidad_medida,
+            'cantidad_solicitada' => $cantidad,
             'contenido_por_presentacion' => $contenido,
-            'cantidad_solicitada_base'   => $cantidad_base,
-            'cantidad_entregada'         => 0,
-            'cantidad_entregada_base'    => 0,
-            'comentario'                 => $comentario,
-            'id_producto_destino'        => $id_producto_destino,
-            'estado'                     => EstadoRequerimientoDetalle::EsperandoAprobacion->value,
+            'cantidad_solicitada_base' => $cantidad_base,
+            'cantidad_entregada' => 0,
+            'cantidad_entregada_base' => 0,
+            'comentario' => $comentario,
+            'id_producto_destino' => $id_producto_destino,
+            'estado' => EstadoRequerimientoDetalle::EsperandoAprobacion->value,
         ]);
     }
 

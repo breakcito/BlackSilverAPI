@@ -13,13 +13,24 @@ class Producto extends Model
     protected $fillable = [
         'id_categoria',
         'id_unidad_medida_base',
+        //
         'nombre',
+        //
         'es_perecible',
-        'es_auditable', // bool que ayuda a saber si los productos de esa categoria con auditables para ocultarlos
-        'stock_minimo',
+        // bool que ayuda a saber si los productos de 
+        // esa categoria con auditables para ocultarlos
+        'es_auditable',
+        //
+        'stock_minimo_base',
+        // es el costo promedio que tiene el producto, este se 
+        // va actualizando en base a los registros que se van 
+        // teniendo en las ordenes de compra
+        'costo_promedio_base',
+        //
         'tiempo_espera_vencimiento',
         'periodo_espera_vencimiento',
         'dias_espera_vencimiento',
+        //
         'estado',
     ];
 }

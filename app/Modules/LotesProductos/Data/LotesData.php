@@ -32,7 +32,7 @@ class LotesData
             lp.estado,
             p.es_perecible,
             p.es_auditable,
-            p.stock_minimo,
+            p.stock_minimo_base,
             p.dias_espera_vencimiento,
             /* Cálculo de días restantes */
             CASE 

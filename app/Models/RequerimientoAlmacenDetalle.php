@@ -44,7 +44,7 @@ class RequerimientoAlmacenDetalle extends Model
             --
             pr.id AS id_producto,
             pr.nombre AS producto,
-            pr.stock_minimo,
+            pr.stock_minimo_base,
             --
             -- que producto va a consumir lo que se esta pidiendo: Tractor consume Gasolina
             rad.id_producto_destino,

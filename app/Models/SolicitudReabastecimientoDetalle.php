@@ -68,7 +68,7 @@ class SolicitudReabastecimientoDetalle extends Model
             -- 
             pr.id AS id_producto,
             pr.nombre AS producto,
-            pr.stock_minimo,
+            pr.stock_minimo_base,
             --
             -- que producto (tractor, carro, etc) va a consumir este item
             prdt.nombre as producto_destino, 

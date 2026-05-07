@@ -48,19 +48,19 @@ class PrestamoAlmacenDetalle extends Model
         ?string $comentario,
     ): int {
         return PrestamoAlmacenDetalle::insertGetId([
-            'id_prestamo_almacen'                    => $id_prestamo_almacen,
-            'id_solicitud_reabastecimiento_detalle'  => $id_solicitud_reabastecimiento_detalle,
-            'id_producto'                            => $id_producto,
-            'id_unidad_medida'                       => $id_unidad_medida,
-            'contenido_por_presentacion'             => $contenido_por_presentacion,
-            'cantidad_solicitada'                    => $cantidad_solicitada,
-            'cantidad_solicitada_base'               => $cantidad_solicitada_base,
-            'cantidad_prestada'                      => 0,
-            'cantidad_prestada_base'                 => 0,
-            'cantidad_repuesta'                      => 0,
-            'cantidad_repuesta_base'                 => 0,
-            'comentario'                             => $comentario,
-            'estado'                                 => EstadoPrestamoDetalle::EsperandoAprobacion->value,
+            'id_prestamo_almacen' => $id_prestamo_almacen,
+            'id_solicitud_reabastecimiento_detalle' => $id_solicitud_reabastecimiento_detalle,
+            'id_producto' => $id_producto,
+            'id_unidad_medida' => $id_unidad_medida,
+            'contenido_por_presentacion' => $contenido_por_presentacion,
+            'cantidad_solicitada' => $cantidad_solicitada,
+            'cantidad_solicitada_base' => $cantidad_solicitada_base,
+            'cantidad_prestada' => 0,
+            'cantidad_prestada_base' => 0,
+            'cantidad_repuesta' => 0,
+            'cantidad_repuesta_base' => 0,
+            'comentario' => $comentario,
+            'estado' => EstadoPrestamoDetalle::EsperandoAprobacion->value,
         ]);
     }
 
@@ -77,7 +77,7 @@ class PrestamoAlmacenDetalle extends Model
             pad.id_solicitud_reabastecimiento_detalle,
             --
             pad.id_producto,
-            prod.stock_minimo,
+            prod.stock_minimo_base,
             prod.nombre AS producto,
             prdt.nombre as producto_destino,
             (

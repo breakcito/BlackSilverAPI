@@ -26,7 +26,7 @@ class SolicitudesDetalleData
             -- 
             pr.id AS id_producto,
             pr.nombre AS producto,
-            pr.stock_minimo,
+            pr.stock_minimo_base,
             --
             -- segun la unidad base del producto
             pr.id_unidad_medida_base,

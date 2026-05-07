@@ -43,7 +43,7 @@ class ProductosService
         string $nombre,
         bool $es_auditable,
         bool $es_perecible,
-        float $stock_minimo = 0,
+        float $stock_minimo_base = 0,
         ?int $tiempo_espera_vencimiento = null,
         ?string $periodo_espera_vencimiento = null
     ) {
@@ -53,7 +53,7 @@ class ProductosService
         }
 
         // 2. Procesar perecibilidad
-        if (! $es_perecible) {
+        if (!$es_perecible) {
             $tiempo_espera_vencimiento = null;
             $periodo_espera_vencimiento = null;
             $dias_espera_vencimiento = null;
@@ -77,7 +77,7 @@ class ProductosService
             $nombre,
             $es_auditable,
             $es_perecible,
-            $stock_minimo,
+            $stock_minimo_base,
             $tiempo_espera_vencimiento,
             $periodo_espera_vencimiento,
             $dias_espera_vencimiento

@@ -103,7 +103,7 @@ class AuxData
         $sql = "
         SELECT
             lp.id_producto,
-            pr.stock_minimo,
+            pr.stock_minimo_base,
             SUM(lp.stock_actual_base) AS stock_total_base
         FROM
             lote_producto lp
