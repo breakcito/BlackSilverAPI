@@ -118,7 +118,7 @@ class OrdenCompraDetalle extends Model
             	-- informacion del producto
                 ocd.id_producto,
                 pr.nombre AS producto,
-                pr.es_fiscalizado,
+                pr.es_auditable,
                 pr.es_perecible,
                 -- 
                 -- unidad de medida de la orden de compra

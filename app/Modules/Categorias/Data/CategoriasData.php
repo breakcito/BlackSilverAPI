@@ -17,7 +17,7 @@ class CategoriasData
             'id AS id_categoria',
             'nombre',
             'descripcion',
-            'tipo_requerimiento',
+            'tipo_producto',
             'clasificacion_bien',
             'es_consumible',
             'para_cocina',
@@ -57,7 +57,7 @@ class CategoriasData
      */
     public static function crear_categoria(
         string $nombre,
-        string $tipo_requerimiento,
+        string $tipo_producto,
         ?string $descripcion = null,
         ?string $clasificacion_bien = null,
         bool $es_consumible = false,
@@ -67,7 +67,7 @@ class CategoriasData
         return Categoria::insertGetId([
             'nombre' => $nombre,
             'descripcion' => $descripcion,
-            'tipo_requerimiento' => $tipo_requerimiento,
+            'tipo_producto' => $tipo_producto,
             'clasificacion_bien' => $clasificacion_bien,
             'es_consumible' => $es_consumible ? 1 : 0,
             'para_cocina' => $para_cocina ? 1 : 0,
@@ -86,7 +86,8 @@ class CategoriasData
             ->where('id_categoria_consumible', $id_categoria_consumible)
             ->delete();
 
-        if (empty($ids_categorias_consumidoras)) return;
+        if (empty($ids_categorias_consumidoras))
+            return;
 
         // Insertamos nuevas relaciones
         $data = array_map(fn($id) => [

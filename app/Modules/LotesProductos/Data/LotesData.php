@@ -31,7 +31,7 @@ class LotesData
             lp.fecha_vencimiento,
             lp.estado,
             p.es_perecible,
-            p.es_fiscalizado,
+            p.es_auditable,
             p.stock_minimo,
             p.dias_espera_vencimiento,
             /* Cálculo de días restantes */

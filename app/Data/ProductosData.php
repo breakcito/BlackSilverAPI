@@ -18,7 +18,7 @@ class ProductosData
                 p.id AS id_producto,
                 p.nombre as nombre,
                 p.es_perecible,
-                p.es_fiscalizado,
+                p.es_auditable,
                 --
                 c.id AS id_categoria,
                 c.nombre AS categoria,

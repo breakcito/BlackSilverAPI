@@ -119,7 +119,7 @@ class CotizacionDetalle extends Model
             -- informacion del producto
             cpd.id_producto,
             prd.nombre as producto,
-            prd.es_fiscalizado,
+            prd.es_auditable,
             prd.es_perecible,
             -- 
             -- unidad de medida de la cotizacion

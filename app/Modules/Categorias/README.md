@@ -7,7 +7,7 @@ Gestiona la taxonomía de productos y las reglas de negocio que definen qué ár
 ### 1. Controlador (`CategoriasController`)
 
 - **`crear_categoria`**:
-    - **Validación**: Valida campos técnicos (`nombre`, `tipo_requerimiento`) y flags operativos (`para_cocina`, `para_mina`).
+    - **Validación**: Valida campos técnicos (`nombre`, `tipo_producto`) y flags operativos (`para_cocina`, `para_mina`).
 - **`actualizar_consumidoras`**:
     - **Validación**: ID de la categoría y un array de IDs de las categorías que consumirán este insumo.
 

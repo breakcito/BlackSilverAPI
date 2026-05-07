@@ -16,7 +16,7 @@ class AuxData
             pr.nombre,
             uni.abreviatura as unidad_medida_base,
             pr.es_perecible,
-            pr.es_fiscalizado,
+            pr.es_auditable,
             pr.stock_minimo,
             pr.tiempo_espera_vencimiento,
             pr.periodo_espera_vencimiento,

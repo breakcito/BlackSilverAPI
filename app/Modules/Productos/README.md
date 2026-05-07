@@ -30,7 +30,7 @@ Gestiona el catálogo maestro de materiales, herramientas e insumos de la organi
 ## ⚙️ Reglas de Negocio
 
 - **Unidad Base Inmutable**: Una vez creado el producto, su unidad de medida base debe mantenerse para no corromper el historial del Kardex.
-- **Control Fiscalizado**: Los productos marcados como `es_fiscalizado` activan flujos de aprobación adicionales en el módulo de Requerimientos y Compras.
+- **Control Auditable**: Los productos marcados como `es_auditable` activan flujos de aprobación adicionales en el módulo de Requerimientos y Compras.
 
 ## 📂 Esquema de Base de Datos Relacionada
 

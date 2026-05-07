@@ -112,7 +112,7 @@ class RequerimientosDetalleData
         SELECT
             pr.id AS id_producto,
             pr.nombre,
-            pr.es_fiscalizado,
+            pr.es_auditable,
             pr.es_perecible,
 			--
             pr.id_unidad_medida_base,

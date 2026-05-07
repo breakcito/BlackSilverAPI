@@ -14,8 +14,8 @@ class Producto extends Model
         'id_categoria',
         'id_unidad_medida_base',
         'nombre',
-        'es_fiscalizado',
         'es_perecible',
+        'es_auditable', // bool que ayuda a saber si los productos de esa categoria con auditables para ocultarlos
         'stock_minimo',
         'tiempo_espera_vencimiento',
         'periodo_espera_vencimiento',

@@ -54,10 +54,10 @@ class EmpleadosService
      * Registrar un nuevo empleado
      */
     public static function crear_empleado(
-        ?int $id_mina = null,
         int $id_cargo,
         string $nombre,
         string $apellido,
+        ?int $id_mina = null,
         ?string $dni = null,
         ?string $ruc = null,
         ?string $carnet_extranjeria = null,

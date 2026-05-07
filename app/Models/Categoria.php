@@ -13,9 +13,10 @@ class Categoria extends Model
     protected $fillable = [
         'nombre',
         'descripcion',
-        'tipo_requerimiento',
+        'tipo_producto',
         'clasificacion_bien',
         'es_consumible',
+        'es_auditable', // bool que ayuda a saber si los productos de esa categoria con auditables para ocultarlos
         'para_cocina',
         'para_mina',
         'estado',

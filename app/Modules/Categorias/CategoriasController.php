@@ -31,7 +31,7 @@ class CategoriasController extends Controller
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:128',
             'descripcion' => 'nullable|string',
-            'tipo_requerimiento' => 'required|string|max:64',
+            'tipo_producto' => 'required|string|max:64',
             'clasificacion_bien' => 'nullable|string|max:64',
             'es_consumible' => 'boolean',
             'para_cocina' => 'boolean',
@@ -40,7 +40,7 @@ class CategoriasController extends Controller
             'ids_categorias_consumidoras.*' => 'integer',
         ], [
             'nombre.required' => 'El nombre es obligatorio',
-            'tipo_requerimiento.required' => 'El tipo de requerimiento es obligatorio',
+            'tipo_producto.required' => 'El tipo de requerimiento es obligatorio',
         ]);
 
         if ($validator->fails()) {
@@ -49,7 +49,7 @@ class CategoriasController extends Controller
 
         $result = CategoriasService::crear_categoria(
             nombre: (string) $request->input('nombre'),
-            tipo_requerimiento: (string) $request->input('tipo_requerimiento'),
+            tipo_producto: (string) $request->input('tipo_producto'),
             descripcion: $request->input('descripcion'),
             clasificacion_bien: $request->input('clasificacion_bien'),
             es_consumible: (bool) $request->boolean('es_consumible'),

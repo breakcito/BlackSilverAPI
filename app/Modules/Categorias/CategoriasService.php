@@ -22,7 +22,7 @@ class CategoriasService
      */
     public static function crear_categoria(
         string $nombre,
-        string $tipo_requerimiento,
+        string $tipo_producto,
         ?string $descripcion = null,
         ?string $clasificacion_bien = null,
         bool $es_consumible = false,
@@ -41,7 +41,7 @@ class CategoriasService
 
         $id_categoria = CategoriasData::crear_categoria(
             $nombre,
-            $tipo_requerimiento,
+            $tipo_producto,
             $descripcion,
             $clasificacion_bien,
             $es_consumible,
