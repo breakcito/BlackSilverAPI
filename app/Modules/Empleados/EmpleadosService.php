@@ -74,7 +74,8 @@ class EmpleadosService
         if ($foto && $foto->isValid()) {
             $archivos = ArchivoHelper::guardarArchivos('fotos-empleados', [$foto]);
             if (!empty($archivos)) {
-                $path_foto = $archivos[0]['path_relativo'];
+                // Guardar URL completa en BD (no solo el path relativo)
+                $path_foto = asset('storage/' . $archivos[0]['path_relativo']);
             }
         }
 
@@ -133,11 +134,13 @@ class EmpleadosService
             return ApiResponse::error('No se pudo procesar la imagen.');
         }
 
-        $path_foto = $archivos[0]['path_relativo'];
+        // Guardar URL completa en BD (no solo el path relativo)
+        $path_foto = asset('storage/' . $archivos[0]['path_relativo']);
         EmpleadosData::actualizar_foto($id_empleado, $path_foto);
 
         $empleado = EmpleadosData::get_empleado_by_id($id_empleado);
 
+        // path_foto ya viene como URL completa desde la BD
         return ApiResponse::success($empleado, 'Foto de perfil actualizada correctamente');
     }
 }
