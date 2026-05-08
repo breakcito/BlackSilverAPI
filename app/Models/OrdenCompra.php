@@ -27,6 +27,8 @@ class OrdenCompra extends Model
         'metodo_pago', // Contado / credito
         'fecha_vencimiento_pago', // Solo cuando es a credito
         'moneda', // soles o dolares
+        'tipo_cambio_aplicado',
+        'es_auditable',
         //
         'costo_flete',
         'otros_gastos',
@@ -60,6 +62,8 @@ class OrdenCompra extends Model
         int $numero_correlativo,
         string $fecha_hora_orden,
         string $moneda,
+        ?float $tipo_cambio_aplicado,
+        bool $es_auditable,
         string $metodo_pago,
         bool $incluye_igv,
         float $porcentaje_igv,
@@ -80,6 +84,8 @@ class OrdenCompra extends Model
             'observacion' => $observacion,
             'fecha_hora_orden' => $fecha_hora_orden,
             'moneda' => $moneda,
+            'tipo_cambio_aplicado' => $tipo_cambio_aplicado,
+            'es_auditable' => $es_auditable,
             'metodo_pago' => $metodo_pago,
             'fecha_vencimiento_pago' => $fecha_vencimiento_pago,
             'incluye_igv' => $incluye_igv,
@@ -125,6 +131,8 @@ class OrdenCompra extends Model
             oc.metodo_pago,
             oc.fecha_vencimiento_pago,
             oc.moneda,
+            oc.tipo_cambio_aplicado,
+            oc.es_auditable,
             -- 
             oc.costo_flete,
             oc.otros_gastos,
