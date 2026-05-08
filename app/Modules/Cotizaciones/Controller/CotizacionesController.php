@@ -60,11 +60,11 @@ class CotizacionesController
             'id_empresa_compradora' => 'required|integer',
             'detalles_aprobados' => 'required|array|min:1',
             'detalles_aprobados.*' => 'integer',
-            'tipo_cambio_venta_referencial' => 'nullable|numeric',
+            'tipo_cambio_aplicado' => 'nullable|numeric',
         ], [
             'id_empresa_compradora.required' => 'Debe elegir la empresa compradora para la Orden de Compra.',
             'detalles_aprobados.required' => 'Debe incluir al menos un producto a ser aprobado.',
-            'tipo_cambio_venta_referencial.numeric' => 'El tipo de cambio referencial debe ser un número.',
+            'tipo_cambio_aplicado.numeric' => 'El tipo de cambio aplicado debe ser un número.',
         ]);
 
         if ($validator->fails()) {
@@ -76,7 +76,7 @@ class CotizacionesController
             id_empresa_compradora: $request->input('id_empresa_compradora'),
             id_empleado: $request->user()->id_empleado,
             detalles_aprobados: $request->input('detalles_aprobados'),
-            tipo_cambio_venta_referencial: $request->input('tipo_cambio_venta_referencial') ? (float) $request->input('tipo_cambio_venta_referencial') : null
+            tipo_cambio_aplicado: $request->input('tipo_cambio_aplicado') ? (float) $request->input('tipo_cambio_aplicado') : null
         ));
     }
 }

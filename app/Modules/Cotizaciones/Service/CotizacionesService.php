@@ -187,6 +187,8 @@ class CotizacionesService
                                 numero_correlativo: (int) $correlativoOC['numero_correlativo'],
                                 fecha_hora_orden: now()->toDateTimeString(),
                                 moneda: (string) $c['moneda'],
+                                tipo_cambio_aplicado: $c['moneda'] !== 'Soles' ? (isset($c['tipo_cambio_aplicado_oc']) ? (float) $c['tipo_cambio_aplicado_oc'] : (isset($c['tipo_cambio_venta_referencial']) ? (float) $c['tipo_cambio_venta_referencial'] : null)) : 1,
+                                es_auditable: $es_auditable_general ? 1 : 0,
                                 metodo_pago: (string) $c['metodo_pago'],
                                 incluye_igv: (bool) $c['incluye_igv'],
                                 porcentaje_igv: (float) $c['porcentaje_igv'],
@@ -250,19 +252,13 @@ class CotizacionesService
         int $id_empresa_compradora,
         int $id_empleado,
         array $detalles_aprobados,
-        ?float $tipo_cambio_venta_referencial = null
+        ?float $tipo_cambio_aplicado = null
     ): array {
         try {
-            return DB::transaction(function () use ($id_cotizacion, $id_empresa_compradora, $id_empleado, $detalles_aprobados, $tipo_cambio_venta_referencial) {
+            return DB::transaction(function () use ($id_cotizacion, $id_empresa_compradora, $id_empleado, $detalles_aprobados, $tipo_cambio_aplicado) {
 
                 // 1. Marcar cotización como Aprobada
                 CotizacionesData::actualizar_estado($id_cotizacion, EstadoCotizacion::Aprobada);
-
-                if ($tipo_cambio_venta_referencial !== null) {
-                    \Illuminate\Support\Facades\DB::table('cotizacion')
-                        ->where('id', $id_cotizacion)
-                        ->update(['tipo_cambio_venta_referencial' => $tipo_cambio_venta_referencial]);
-                }
 
                 // 2. Marcar detalles como Aprobados / Rechazados
                 CotizacionesData::actualizar_estados_aprobacion($id_cotizacion, $detalles_aprobados);
@@ -311,6 +307,8 @@ class CotizacionesService
                     numero_correlativo: (int) $correlativoData['numero_correlativo'],
                     fecha_hora_orden: now()->toDateTimeString(),
                     moneda: $cotizacion->moneda,
+                    tipo_cambio_aplicado: $cotizacion->moneda !== 'Soles' ? $tipo_cambio_aplicado : 1,
+                    es_auditable: $cotizacion->es_auditable ? 1 : 0,
                     metodo_pago: $cotizacion->metodo_pago,
                     incluye_igv: (bool) $cotizacion->incluye_igv,
                     porcentaje_igv: (float) $cotizacion->porcentaje_igv,
