@@ -117,7 +117,30 @@ class RecepcionesOCService
                 if (!$oc_detalle)
                     continue;
 
-                // 6. Gestión de Lotes
+                // 1. Calcular estado previsto del detalle
+                $total_ya_recibido_antes = $yaRecibidoAntesMap[$id_oc_detalle];
+                $total_final_previsto = $total_ya_recibido_antes + $totalesBaseRequest[$id_oc_detalle];
+
+                $estado_det_recep = ($total_final_previsto >= $oc_detalle->cantidad_requerida_base - 0.001)
+                    ? EstadoOrdenCompraRecepcionDetalle::RecepcionCompleta
+                    : EstadoOrdenCompraRecepcionDetalle::RecepcionadoParcialmente;
+
+                // 2. Crear Detalle de Recepción PRIMERO
+                // Si es nuevo lote, el ID de lote es 0 temporalmente
+                $id_lote_para_detalle = $es_nuevo_lote ? 0 : (int) $item['id_lote_existente'];
+
+                $id_recepcion_detalle = RecepcionesOCData::crear_detalle_recepcion(
+                    id_recepcion: $id_recepcion,
+                    id_oc_detalle: $id_oc_detalle,
+                    id_lote_producto: $id_lote_para_detalle,
+                    es_ajuste_stock: !$es_nuevo_lote,
+                    cantidad_recepcionada: $cantidad_recep_base / $oc_detalle->contenido_por_presentacion,
+                    cantidad_recepcionada_base: $cantidad_recep_base,
+                    comentario: null,
+                    estado: $estado_det_recep
+                );
+
+                // 3. Gestión de Lotes
                 if ($es_nuevo_lote) {
                     $contenido_por_presentacion = (float) $oc_detalle->contenido_por_presentacion;
                     $stock_inicial = $cantidad_recep_base / $contenido_por_presentacion;
@@ -127,6 +150,8 @@ class RecepcionesOCService
                         id_producto: (int) $oc_detalle->id_producto,
                         id_unidad_medida: (int) $oc_detalle->id_unidad_medida,
                         id_almacen: $id_almacen_recepcionista,
+                        id_origen: $id_recepcion_detalle, // AHORA ES EL ID DEL DETALLE DE RECEPCION
+                        tabla_origen: 'orden_compra_recepcion_detalle',
                         correlativo: $correlativoData['correlativo'],
                         numero_correlativo: $correlativoData['numero_correlativo'],
                         stock_inicial: $stock_inicial,
@@ -143,13 +168,16 @@ class RecepcionesOCService
 
                     $ids_lotes_nuevos[] = $id_lote_destino;
 
+                    // Vincular el nuevo lote al detalle de recepción
+                    RecepcionesOCData::update_detalle_lote($id_recepcion_detalle, $id_lote_destino);
+
                     $stock_anterior = 0;
                     $stock_anterior_base = 0;
                     $nuevo_stock = $stock_inicial;
                     $nuevo_stock_base = $cantidad_recep_base;
                     $contenido_lot = $contenido_por_presentacion;
                 } else {
-                    $id_lote_destino = (int) $item['id_lote_existente'];
+                    $id_lote_destino = $id_lote_para_detalle;
                     $lote_existente = $lotesMap->get($id_lote_destino);
 
                     $stock_anterior = (float) $lote_existente['stock_actual'];
@@ -163,7 +191,7 @@ class RecepcionesOCService
                     LotesProductosData::update_stock($id_lote_destino, $nuevo_stock, $nuevo_stock_base);
                 }
 
-                // 7. Registrar Kardex
+                // 4. Registrar Kardex
                 KardexProductosService::registrar_kardex(
                     $id_lote_destino,
                     KardexTipoMovimiento::Ingreso,
@@ -176,25 +204,6 @@ class RecepcionesOCService
                     $id_recepcion,
                     $stock_anterior,
                     $stock_anterior_base
-                );
-
-                // 8. Crear Detalle de Recepción para este item/lote
-                $total_ya_recibido_antes = $yaRecibidoAntesMap[$id_oc_detalle];
-                $total_final_previsto = $total_ya_recibido_antes + $totalesBaseRequest[$id_oc_detalle];
-
-                $estado_det_recep = ($total_final_previsto >= $oc_detalle->cantidad_requerida_base - 0.001)
-                    ? EstadoOrdenCompraRecepcionDetalle::RecepcionCompleta
-                    : EstadoOrdenCompraRecepcionDetalle::RecepcionadoParcialmente;
-
-                RecepcionesOCData::crear_detalle_recepcion(
-                    id_recepcion: $id_recepcion,
-                    id_oc_detalle: $id_oc_detalle,
-                    id_lote_producto: $id_lote_destino,
-                    es_ajuste_stock: $es_nuevo_lote,
-                    cantidad_recepcionada: $cantidad_recep_base / $oc_detalle->contenido_por_presentacion,
-                    cantidad_recepcionada_base: $cantidad_recep_base,
-                    comentario: null,
-                    estado: $estado_det_recep
                 );
 
                 // 9. Acumular para el post-procesamiento agrupado (estados y logs)

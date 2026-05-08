@@ -97,7 +97,20 @@ class RecepcionesReposicionService
                 if (!$repo_det)
                     continue;
 
-                // 5. Gestión de Lotes (Nuevo vs Existente)
+                // 1. Crear Detalle de Recepción PRIMERO
+                // Si es nuevo lote, el ID de lote es 0 temporalmente
+                $id_lote_para_detalle = $es_nuevo_lote ? 0 : (int) $item['id_lote_existente'];
+
+                $id_recepcion_detalle = RecepcionesReposicionData::crear_detalle_recepcion(
+                    id_recepcion: $id_recepcion,
+                    id_reposicion_detalle: $id_repo_det,
+                    id_lote_producto: $id_lote_para_detalle,
+                    es_ajuste_stock: !$es_nuevo_lote,
+                    cantidad_recep_base: $cantidad_recep_base,
+                    estado: $es_nuevo_lote ? EstadoPrestamoReposicionDetalle::RecepcionCompleta : EstadoPrestamoReposicionDetalle::RecepcionadoParcialmente
+                );
+
+                // 2. Gestión de Lotes (Nuevo vs Existente)
                 if ($es_nuevo_lote) {
                     $contenido_por_presentacion = (float) ($item['contenido_por_presentacion'] ?? 1);
                     $stock_inicial = $cantidad_recep_base / $contenido_por_presentacion;
@@ -107,6 +120,8 @@ class RecepcionesReposicionService
                         id_producto: (int) $repo_det->id_producto,
                         id_unidad_medida: (int) $item['id_unidad_medida'],
                         id_almacen: $id_almacen_destino,
+                        id_origen: $id_recepcion_detalle, // AHORA ES EL ID DEL DETALLE DE RECEPCION
+                        tabla_origen: 'prestamo_almacen_reposicion_recepcion_detalle',
                         correlativo: $correlativoData['correlativo'],
                         numero_correlativo: $correlativoData['numero_correlativo'],
                         stock_inicial: $stock_inicial,
@@ -123,14 +138,16 @@ class RecepcionesReposicionService
 
                     $ids_lotes_nuevos[] = $id_lote_destino;
 
-                    // Calcular valores directamente sin re-consultar el lote recién creado
+                    // Vincular el nuevo lote al detalle de recepción
+                    RecepcionesReposicionData::update_detalle_lote($id_recepcion_detalle, $id_lote_destino);
+
                     $stock_anterior = 0;
                     $stock_anterior_base = 0;
                     $nuevo_stock = $stock_inicial;
                     $nuevo_stock_base = $cantidad_recep_base;
                     $contenido_lot = $contenido_por_presentacion;
                 } else {
-                    $id_lote_destino = (int) $item['id_lote_existente'];
+                    $id_lote_destino = $id_lote_para_detalle;
                     $lote_existente = $lotesMap->get($id_lote_destino);
 
                     $stock_anterior = (float) $lote_existente['stock_actual'];
@@ -144,7 +161,7 @@ class RecepcionesReposicionService
                     LotesProductosData::update_stock($id_lote_destino, $nuevo_stock, $nuevo_stock_base);
                 }
 
-                // 6. Registrar Kardex
+                // 3. Registrar Kardex
                 KardexProductosService::registrar_kardex(
                     id_lote: $id_lote_destino,
                     id_origen: $id_recepcion,
@@ -157,16 +174,6 @@ class RecepcionesReposicionService
                     cantidad_movimiento_base: $cantidad_recep_base,
                     nuevo_stock: $nuevo_stock,
                     nuevo_stock_base: $nuevo_stock_base
-                );
-
-                // 7. Crear Detalle de Recepción
-                RecepcionesReposicionData::crear_detalle_recepcion(
-                    id_recepcion: $id_recepcion,
-                    id_reposicion_detalle: $id_repo_det,
-                    id_lote_producto: $id_lote_destino,
-                    es_ajuste_stock: $es_nuevo_lote,
-                    cantidad_recep_base: $cantidad_recep_base,
-                    estado: $es_nuevo_lote ? EstadoPrestamoReposicionDetalle::RecepcionCompleta : EstadoPrestamoReposicionDetalle::RecepcionadoParcialmente
                 );
 
                 // 8. Actualizar estados del detalle de reposición

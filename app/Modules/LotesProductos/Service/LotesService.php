@@ -44,6 +44,8 @@ class LotesService
             id_producto: $id_producto,
             id_unidad_medida: $id_unidad_medida,
             id_almacen: $id_almacen,
+            id_origen: null,
+            tabla_origen: null,
             correlativo: $correlativoData["correlativo"],
             numero_correlativo: $correlativoData["numero_correlativo"],
             stock_inicial: $stock_inicial,

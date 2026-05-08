@@ -54,19 +54,25 @@ class RecepcionesOCData
         float $cantidad_recepcionada_base,
         ?string $comentario = null,
         EstadoOrdenCompraRecepcionDetalle $estado = EstadoOrdenCompraRecepcionDetalle::RecepcionCompleta
-    ) {
-        return OrdenCompraRecepcionDetalle::crear_detalle(
-            id_recepcion: $id_recepcion,
-            detalles: [
-                'id_orden_compra_detalle' => $id_oc_detalle,
-                'id_lote_producto' => $id_lote_producto,
-                'es_ajuste_stock' => $es_ajuste_stock,
-                'cantidad_recepcionada' => $cantidad_recepcionada,
-                'cantidad_recepcionada_base' => $cantidad_recepcionada_base,
-                'comentario' => $comentario,
-                'estado' => $estado,
-            ]
-        );
+    ): int {
+        return (int) OrdenCompraRecepcionDetalle::insertGetId([
+            'id_orden_compra_recepcion' => $id_recepcion,
+            'id_orden_compra_detalle' => $id_oc_detalle,
+            'id_lote_producto' => $id_lote_producto,
+            'es_ajuste_stock' => $es_ajuste_stock ? 1 : 0,
+            'cantidad_recepcionada' => $cantidad_recepcionada,
+            'cantidad_recepcionada_base' => $cantidad_recepcionada_base,
+            'comentario' => $comentario,
+            'estado' => $estado->value,
+        ]);
+    }
+
+    /**
+     * Actualiza el lote asociado a un detalle de recepción.
+     */
+    public static function update_detalle_lote(int $id_detalle, int $id_lote): void
+    {
+        OrdenCompraRecepcionDetalle::where('id', $id_detalle)->update(['id_lote_producto' => $id_lote]);
     }
 
     /**

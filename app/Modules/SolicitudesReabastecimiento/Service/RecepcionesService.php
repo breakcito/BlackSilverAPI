@@ -89,7 +89,19 @@ class RecepcionesService
 
                 $id_almacen_destino = SolicitudesDetalleData::get_almacen_solicitante_id_by_solic_id($detalle_sol->id_solicitud_reabastecimiento);
 
-                // 4. Gestión de Lotes (Ajuste vs Nuevo)
+                // 4. Crear Detalle de Recepción Logística PRIMERO
+                $id_entrega_det = (int) $item['id_entrega_detalle'];
+                $id_lote_para_detalle = $es_nuevo_lote ? 0 : (int) $item['id_lote_existente'];
+
+                $id_recepcion_detalle = RecepcionesData::crear_detalle_recepcion(
+                    id_recepcion: $id_recepcion,
+                    id_entrega_detalle: $id_entrega_det,
+                    id_lote_producto: $id_lote_para_detalle,
+                    es_ajuste_stock: !$es_nuevo_lote,
+                    cantidad_recepcionada_base: $cantidad_recep_base
+                );
+
+                // 5. Gestión de Lotes (Ajuste vs Nuevo)
                 if ($es_nuevo_lote) {
                     $contenido_por_presentacion = (float) ($item['contenido_por_presentacion'] ?? 1);
                     $stock_inicial = $cantidad_recep_base / $contenido_por_presentacion;
@@ -99,6 +111,8 @@ class RecepcionesService
                         id_producto: (int) $detalle_sol->id_producto,
                         id_unidad_medida: (int) $item['id_unidad_medida'],
                         id_almacen: $id_almacen_destino,
+                        id_origen: $id_recepcion_detalle, // AHORA ES EL ID DEL DETALLE DE RECEPCION
+                        tabla_origen: 'solicitud_reabastecimiento_recepcion_detalle',
                         correlativo: $correlativoData['correlativo'],
                         numero_correlativo: $correlativoData['numero_correlativo'],
                         stock_inicial: $stock_inicial,
@@ -115,14 +129,16 @@ class RecepcionesService
 
                     $ids_lotes_nuevos[] = $id_lote_destino;
 
-                    // Calcular valores directamente sin re-consultar el lote recién creado
+                    // Vincular el nuevo lote al detalle de recepción
+                    RecepcionesData::update_detalle_lote($id_recepcion_detalle, $id_lote_destino);
+
                     $stock_anterior = 0;
                     $stock_anterior_base = 0;
                     $nuevo_stock = $stock_inicial;
                     $nuevo_stock_base = $cantidad_recep_base;
                     $contenido_lot = $contenido_por_presentacion;
                 } else {
-                    $id_lote_destino = (int) $item['id_lote_existente'];
+                    $id_lote_destino = $id_lote_para_detalle;
                     $lote_existente = $lotesMap->get($id_lote_destino);
 
                     $stock_anterior = $lote_existente['stock_actual'];
@@ -136,7 +152,7 @@ class RecepcionesService
                     LotesProductosData::update_stock($id_lote_destino, $nuevo_stock, $nuevo_stock_base);
                 }
 
-                // 5. Registrar Kardex
+                // 6. Registrar Kardex
                 KardexProductosService::registrar_kardex(
                     $id_lote_destino,
                     KardexTipoMovimiento::Ingreso,
@@ -149,16 +165,6 @@ class RecepcionesService
                     $id_recepcion,
                     $stock_anterior,
                     $stock_anterior_base
-                );
-
-                // 6. Crear Detalle de Recepción Logística
-                $id_entrega_det = (int) $item['id_entrega_detalle'];
-                RecepcionesData::crear_detalle_recepcion(
-                    id_recepcion: $id_recepcion,
-                    id_entrega_detalle: $id_entrega_det,
-                    id_lote_producto: $id_lote_destino,
-                    es_ajuste_stock: !$es_nuevo_lote,
-                    cantidad_recepcionada_base: $cantidad_recep_base
                 );
 
                 // 7. Actualizar estados de la entrega (Logística)
@@ -255,7 +261,19 @@ class RecepcionesService
 
                 $id_almacen_destino = SolicitudesDetalleData::get_almacen_solicitante_id_by_solic_id($detalle_sol->id_solicitud_reabastecimiento);
 
-                // 4. Gestión de Lotes (Ajuste vs Nuevo)
+                // 4. Crear Detalle de Recepción de Préstamo PRIMERO
+                $id_entrega_det = (int) $item['id_entrega_detalle'];
+                $id_lote_para_detalle = $es_nuevo_lote ? 0 : (int) $item['id_lote_existente'];
+
+                $id_recepcion_detalle = RecepcionesPrestamoData::crear_detalle_recepcion(
+                    id_recepcion: $id_recepcion,
+                    id_entrega_detalle: $id_entrega_det,
+                    id_lote_producto: $id_lote_para_detalle,
+                    es_ajuste_stock: !$es_nuevo_lote,
+                    cantidad_recepcionada_base: $cantidad_recep_base
+                );
+
+                // 5. Gestión de Lotes (Ajuste vs Nuevo)
                 if ($es_nuevo_lote) {
                     $contenido_por_presentacion = (float) ($item['contenido_por_presentacion'] ?? 1);
                     $stock_inicial = $cantidad_recep_base / $contenido_por_presentacion;
@@ -265,6 +283,8 @@ class RecepcionesService
                         id_producto: (int) $detalle_sol->id_producto,
                         id_unidad_medida: (int) $item['id_unidad_medida'],
                         id_almacen: $id_almacen_destino,
+                        id_origen: $id_recepcion_detalle, // AHORA ES EL ID DEL DETALLE DE RECEPCION
+                        tabla_origen: 'prestamo_almacen_entrega_recepcion_detalle',
                         correlativo: $correlativoData['correlativo'],
                         numero_correlativo: $correlativoData['numero_correlativo'],
                         stock_inicial: $stock_inicial,
@@ -281,6 +301,9 @@ class RecepcionesService
 
                     $ids_lotes_nuevos[] = $id_lote_destino;
 
+                    // Vincular el nuevo lote al detalle de recepción
+                    RecepcionesPrestamoData::update_detalle_lote($id_recepcion_detalle, $id_lote_destino);
+
                     // Calcular valores directamente sin re-consultar el lote recién creado
                     $stock_anterior = 0;
                     $stock_anterior_base = 0;
@@ -288,7 +311,7 @@ class RecepcionesService
                     $nuevo_stock_base = $cantidad_recep_base;
                     $contenido_lot = $contenido_por_presentacion;
                 } else {
-                    $id_lote_destino = (int) $item['id_lote_existente'];
+                    $id_lote_destino = $id_lote_para_detalle;
                     $lote_existente = $lotesMap->get($id_lote_destino);
 
                     $stock_anterior = $lote_existente['stock_actual'];
@@ -302,7 +325,7 @@ class RecepcionesService
                     LotesProductosData::update_stock($id_lote_destino, $nuevo_stock, $nuevo_stock_base);
                 }
 
-                // 5. Registrar Kardex
+                // 6. Registrar Kardex
                 KardexProductosService::registrar_kardex(
                     $id_lote_destino,
                     KardexTipoMovimiento::Ingreso,
@@ -315,16 +338,6 @@ class RecepcionesService
                     $id_recepcion,
                     $stock_anterior,
                     $stock_anterior_base
-                );
-
-                // 6. Crear Detalle de Recepción de Préstamo
-                $id_entrega_det = (int) $item['id_entrega_detalle'];
-                RecepcionesPrestamoData::crear_detalle_recepcion(
-                    id_recepcion: $id_recepcion,
-                    id_entrega_detalle: $id_entrega_det,
-                    id_lote_producto: $id_lote_destino,
-                    es_ajuste_stock: !$es_nuevo_lote,
-                    cantidad_recepcionada_base: $cantidad_recep_base
                 );
 
                 // 7. Actualizar estados de la entrega (Préstamo)

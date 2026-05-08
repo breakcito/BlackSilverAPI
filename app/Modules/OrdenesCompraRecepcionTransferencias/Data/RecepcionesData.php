@@ -61,29 +61,32 @@ class RecepcionesData
     // -----------------------------------------------
 
     /**
-     * Crea uno o varios detalles de recepción.
-     * $detalles: [{ 
-     *   id_detalle_transferencia, 
-     *   id_lote_producto, 
-     *   es_ajuste_stock, - bool
-     *   cantidad_recepcionada_base, 
-     *   estado 
-     * }]
+     * Crear un detalle de recepción de transferencia.
      */
-    public static function crear_recepcion_detalle(int $id_recepcion, array $detalles): void
+    public static function crear_recepcion_detalle(
+        int $id_recepcion,
+        int $id_transferencia_detalle,
+        int $id_lote_producto,
+        bool $es_ajuste_stock,
+        float $cantidad_recepcionada_base,
+        string $estado
+    ): int {
+        return (int) OrdenCompraTransferenciaRecepcionDetalle::insertGetId([
+            'id_orden_compra_transferencia_recepcion' => $id_recepcion,
+            'id_orden_compra_transferencia_detalle' => $id_transferencia_detalle,
+            'id_lote_producto' => $id_lote_producto,
+            'es_ajuste_stock' => $es_ajuste_stock ? 1 : 0,
+            'cantidad_recepcionada_base' => $cantidad_recepcionada_base,
+            'estado' => $estado,
+        ]);
+    }
+
+    /**
+     * Actualiza el lote asociado a un detalle de recepción.
+     */
+    public static function update_detalle_lote(int $id_detalle, int $id_lote): void
     {
-        $rows = [];
-        foreach ($detalles as $det) {
-            $rows[] = [
-                'id_orden_compra_transferencia_recepcion' => $id_recepcion,
-                'id_orden_compra_transferencia_detalle' => $det['id_detalle_transferencia'],
-                'id_lote_producto' => $det['id_lote_producto'],
-                'es_ajuste_stock' => $det['es_ajuste_stock'] ? 1 : 0,
-                'cantidad_recepcionada_base' => $det['cantidad_recepcionada_base'],
-                'estado' => $det['estado']->value,
-            ];
-        }
-        OrdenCompraTransferenciaRecepcionDetalle::insert($rows);
+        OrdenCompraTransferenciaRecepcionDetalle::where('id', $id_detalle)->update(['id_lote_producto' => $id_lote]);
     }
 
     /**

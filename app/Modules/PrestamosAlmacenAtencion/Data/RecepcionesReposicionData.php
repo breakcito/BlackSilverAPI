@@ -42,17 +42,23 @@ class RecepcionesReposicionData
         bool $es_ajuste_stock,
         float $cantidad_recep_base,
         EstadoPrestamoReposicionDetalle $estado = EstadoPrestamoReposicionDetalle::RecepcionCompleta
-    ): bool {
-        return PrestamoAlmacenReposicionRecepcionDetalle::crear_detalle(
-            $id_recepcion,
-            [
-                'id_reposicion_detalle' => $id_reposicion_detalle,
-                'id_lote_producto' => $id_lote_producto,
-                'es_ajuste_stock' => $es_ajuste_stock,
-                'cantidad_recepcionada_base' => $cantidad_recep_base,
-                'estado' => $estado
-            ]
-        );
+    ): int {
+        return (int) PrestamoAlmacenReposicionRecepcionDetalle::insertGetId([
+            'id_prestamo_almacen_reposicion_recepcion' => $id_recepcion,
+            'id_prestamo_almacen_reposicion_detalle' => $id_reposicion_detalle,
+            'id_lote_producto' => $id_lote_producto,
+            'es_ajuste_stock' => $es_ajuste_stock ? 1 : 0,
+            'cantidad_recepcionada_base' => $cantidad_recep_base,
+            'estado' => $estado->value,
+        ]);
+    }
+
+    /**
+     * Actualiza el lote asociado a un detalle de recepción.
+     */
+    public static function update_detalle_lote(int $id_detalle, int $id_lote): void
+    {
+        PrestamoAlmacenReposicionRecepcionDetalle::where('id', $id_detalle)->update(['id_lote_producto' => $id_lote]);
     }
 
     /**

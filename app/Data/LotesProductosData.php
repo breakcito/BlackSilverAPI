@@ -127,6 +127,8 @@ class LotesProductosData
         int $id_producto,
         int $id_unidad_medida,
         int $id_almacen,
+        int|null $id_origen,
+        string|null $tabla_origen,
         string $correlativo,
         int $numero_correlativo,
         float $stock_inicial,
@@ -136,16 +138,22 @@ class LotesProductosData
         ?string $descripcion = null,
         ?string $fecha_vencimiento = null
     ) {
+        $costo_promedio_base = self::get_costo_promedio_producto($id_producto);
+        $costo_por_unidad = $costo_promedio_base * $contenido_por_presentacion;
         return LoteProducto::insertGetId([
             'id_producto' => $id_producto,
             'id_unidad_medida' => $id_unidad_medida,
             'id_almacen' => $id_almacen,
+            'id_origen' => $id_origen,
+            'tabla_origen' => $tabla_origen,
             'descripcion' => $descripcion,
             'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
             'stock_actual' => $stock_inicial,
             'contenido_por_presentacion' => $contenido_por_presentacion,
             'stock_actual_base' => $stock_actual_base,
+            'costo_promedio_base' => $costo_promedio_base,
+            'costo_por_unidad' => $costo_por_unidad,
             'fecha_hora_ingreso' => $fecha_hora_ingreso,
             'fecha_vencimiento' => $fecha_vencimiento,
             'created_at' => now(),
@@ -222,7 +230,8 @@ class LotesProductosData
      */
     public static function actualizar_costo_promedio(int $id_producto, array $nuevos_costos_base): void
     {
-        if (empty($nuevos_costos_base)) return;
+        if (empty($nuevos_costos_base))
+            return;
 
         // Obtener el costo promedio actual del producto
         $costo_actual = (float) DB::selectOne(

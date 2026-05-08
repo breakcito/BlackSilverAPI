@@ -131,7 +131,28 @@ class RecepcionesService
                 if (!$detalle_trans)
                     continue;
 
-                // 6. Gestión de lotes
+                // 1. Calcular estado previsto del detalle
+                $total_ya_recepcionado = $yaRecepcionadoMap[$id_detalle_transferencia];
+                $total_final_previsto = $total_ya_recepcionado + $totalesBaseRequest[$id_detalle_transferencia];
+
+                $estado_detalle = ($total_final_previsto >= $detalle_trans->cantidad_transferida_base - 0.001)
+                    ? EstadoOCTransRecepcionDetalle::RecepcionCompleta
+                    : EstadoOCTransRecepcionDetalle::RecepcionadoParcialmente;
+
+                // 2. Crear Detalle de Recepción PRIMERO
+                // Si es nuevo lote, el ID de lote es 0 temporalmente
+                $id_lote_para_detalle = $es_nuevo_lote ? 0 : (int) $item['id_lote_existente'];
+
+                $id_recepcion_detalle = RecepcionesData::crear_recepcion_detalle(
+                    id_recepcion: $id_recepcion,
+                    id_transferencia_detalle: $id_detalle_transferencia,
+                    id_lote_producto: $id_lote_para_detalle,
+                    es_ajuste_stock: !$es_nuevo_lote,
+                    cantidad_recepcionada_base: $cantidad_recep_base,
+                    estado: $estado_detalle->value
+                );
+
+                // 3. Gestión de lotes
                 if ($es_nuevo_lote) {
                     $contenido = (float) $detalle_trans->contenido_por_presentacion_lot;
                     $stock_inicial = $contenido > 0
@@ -143,6 +164,8 @@ class RecepcionesService
                         id_producto: (int) $detalle_trans->id_producto,
                         id_unidad_medida: (int) $detalle_trans->id_unidad_medida_lot,
                         id_almacen: $id_almacen_recepcionista,
+                        id_origen: $id_recepcion_detalle, // AHORA ES EL ID DEL DETALLE DE RECEPCION
+                        tabla_origen: 'orden_compra_transferencia_recepcion_detalle',
                         correlativo: $correlativoData['correlativo'],
                         numero_correlativo: $correlativoData['numero_correlativo'],
                         stock_inicial: $stock_inicial,
@@ -157,13 +180,16 @@ class RecepcionesService
                         : null
                     );
 
+                    // Vincular el nuevo lote al detalle de recepción
+                    RecepcionesData::update_detalle_lote($id_recepcion_detalle, $id_lote);
+
                     $stock_anterior = 0;
                     $stock_anterior_base = 0;
                     $nuevo_stock = $stock_inicial;
                     $nuevo_stock_base = $cantidad_recep_base;
                     $contenido_kardex = $contenido > 0 ? $contenido : 1;
                 } else {
-                    $id_lote = (int) $item['id_lote_existente'];
+                    $id_lote = $id_lote_para_detalle;
                     $lote_existente = $lotesMap->get($id_lote);
 
                     $stock_anterior = (float) $lote_existente['stock_actual'];
@@ -180,7 +206,7 @@ class RecepcionesService
                     LotesProductosData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
                 }
 
-                // 7. Registrar Kardex (Ingreso por recepción de transferencia)
+                // 4. Registrar Kardex
                 KardexProductosService::registrar_kardex(
                     $id_lote,
                     KardexTipoMovimiento::Ingreso,
@@ -193,27 +219,6 @@ class RecepcionesService
                     $id_recepcion,
                     $stock_anterior,
                     $stock_anterior_base
-                );
-
-                // 8. Crear Detalle de Recepción para este item/lote
-                $total_ya_recepcionado = $yaRecepcionadoMap[$id_detalle_transferencia];
-                $total_final_previsto = $total_ya_recepcionado + $totalesBaseRequest[$id_detalle_transferencia];
-
-                $estado_detalle = ($total_final_previsto >= $detalle_trans->cantidad_transferida_base - 0.001)
-                    ? EstadoOCTransRecepcionDetalle::RecepcionCompleta
-                    : EstadoOCTransRecepcionDetalle::RecepcionadoParcialmente;
-
-                RecepcionesData::crear_recepcion_detalle(
-                    id_recepcion: $id_recepcion,
-                    detalles: [
-                        [
-                            'id_detalle_transferencia' => $id_detalle_transferencia,
-                            'id_lote_producto' => $id_lote,
-                            'es_ajuste_stock' => $es_nuevo_lote,
-                            'cantidad_recepcionada_base' => $cantidad_recep_base,
-                            'estado' => $estado_detalle,
-                        ]
-                    ]
                 );
 
                 // 9. Acumular para el post-procesamiento agrupado

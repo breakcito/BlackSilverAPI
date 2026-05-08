@@ -55,6 +55,14 @@ class RecepcionesData
     }
 
     /**
+     * Actualiza el lote asociado a un detalle de recepción.
+     */
+    public static function update_detalle_lote(int $id_detalle, int $id_lote): void
+    {
+        SolicitudReabastecimientoRecepcionDetalle::where('id', $id_detalle)->update(['id_lote_producto' => $id_lote]);
+    }
+
+    /**
      * Obtener el historial de recepciones de una entrega logística
      */
     public static function get_historial_recepciones(int $id_entrega)
