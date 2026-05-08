@@ -14,6 +14,8 @@ class SolicitudReabastecimientoRecepcionDetalle extends Model
     protected $fillable = [
         'id_solicitud_reabastecimiento_recepcion',
         'id_solicitud_reabastecimiento_entrega_detalle',
+        'id_lote_producto', // el lote del que se ajusto el stock o que se genero como nuevo
+        'es_ajuste_stock', // 1 si fue un ajuste de stock o 0 si fue un registro
         'cantidad_recepcionada_base',
         'estado',
     ];

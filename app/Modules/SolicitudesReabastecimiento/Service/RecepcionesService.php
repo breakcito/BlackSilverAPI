@@ -153,7 +153,13 @@ class RecepcionesService
 
                 // 6. Crear Detalle de Recepción Logística
                 $id_entrega_det = (int) $item['id_entrega_detalle'];
-                RecepcionesData::crear_detalle_recepcion($id_recepcion, $id_entrega_det, $cantidad_recep_base);
+                RecepcionesData::crear_detalle_recepcion(
+                    id_recepcion: $id_recepcion,
+                    id_entrega_detalle: $id_entrega_det,
+                    id_lote_producto: $id_lote_destino,
+                    es_ajuste_stock: !$es_nuevo_lote,
+                    cantidad_recepcionada_base: $cantidad_recep_base
+                );
 
                 // 7. Actualizar estados de la entrega (Logística)
                 self::actualizar_estados_post_recepcion_logistica($id_entrega_det);
@@ -313,7 +319,13 @@ class RecepcionesService
 
                 // 6. Crear Detalle de Recepción de Préstamo
                 $id_entrega_det = (int) $item['id_entrega_detalle'];
-                RecepcionesPrestamoData::crear_detalle_recepcion($id_recepcion, $id_entrega_det, $cantidad_recep_base);
+                RecepcionesPrestamoData::crear_detalle_recepcion(
+                    id_recepcion: $id_recepcion,
+                    id_entrega_detalle: $id_entrega_det,
+                    id_lote_producto: $id_lote_destino,
+                    es_ajuste_stock: !$es_nuevo_lote,
+                    cantidad_recepcionada_base: $cantidad_recep_base
+                );
 
                 // 7. Actualizar estados de la entrega (Préstamo)
                 self::actualizar_estados_post_recepcion_prestamo($id_entrega_det);

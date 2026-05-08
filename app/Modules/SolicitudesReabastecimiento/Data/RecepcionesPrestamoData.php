@@ -38,11 +38,15 @@ class RecepcionesPrestamoData
     public static function crear_detalle_recepcion(
         int $id_recepcion,
         int $id_entrega_detalle,
+        int $id_lote_producto,
+        bool $es_ajuste_stock,
         float $cantidad_recepcionada_base
     ) {
         return PrestamoAlmacenEntregaRecepcionDetalle::insertGetId([
             'id_prestamo_almacen_recepcion' => $id_recepcion,
             'id_prestamo_almacen_entrega_detalle' => $id_entrega_detalle,
+            'id_lote_producto' => $id_lote_producto,
+            'es_ajuste_stock' => $es_ajuste_stock ? 1 : 0,
             'cantidad_recepcionada_base' => $cantidad_recepcionada_base,
             'estado' => 'Recepcionado',
         ]);
