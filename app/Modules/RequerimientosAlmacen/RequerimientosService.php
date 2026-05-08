@@ -121,7 +121,7 @@ class RequerimientosService
 
     public function get_data_to_registro(int $id_empleado): array
     {
-        $minas = RequerimientosData::get_minas($id_empleado);
+        $minas = RequerimientosData::get_minas();
         $productos = RequerimientosDetalleData::get_productos();
         $unidades = UnidadesMedidaData::get_unidades();
 

@@ -14,18 +14,18 @@ class EmpleadosController
      */
     public function get_empleados(Request $request): JsonResponse
     {
-        $id_mina = $request->query('id_mina') ? (int) $request->query('id_mina') : null;
-        $result  = EmpleadosService::get_empleados($id_mina);
+        $id_empresa = $request->query('id_empresa') ? (int) $request->query('id_empresa') : null;
+        $result     = EmpleadosService::get_empleados($id_empresa);
 
         return response()->json($result);
     }
 
     /**
-     * Obtener minas activas
+     * Obtener empresas activas
      */
-    public function get_minas(Request $request): JsonResponse
+    public function get_empresas(Request $request): JsonResponse
     {
-        $result = EmpleadosService::get_minas();
+        $result = EmpleadosService::get_empresas();
 
         return response()->json($result);
     }
@@ -36,6 +36,16 @@ class EmpleadosController
     public function get_areas(Request $request): JsonResponse
     {
         $result = EmpleadosService::get_areas();
+
+        return response()->json($result);
+    }
+
+    /**
+     * Obtener minas
+     */
+    public function get_minas(Request $request): JsonResponse
+    {
+        $result = EmpleadosService::get_minas();
 
         return response()->json($result);
     }
@@ -56,7 +66,7 @@ class EmpleadosController
     public function crear_empleado(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'id_mina'            => 'nullable|integer',
+            'id_empresa'         => 'required|integer',
             'id_cargo'           => 'required|integer',
             'nombre'             => 'required|string|max:255',
             'apellido'           => 'required|string|max:255',
@@ -73,7 +83,7 @@ class EmpleadosController
         }
 
         $result = EmpleadosService::crear_empleado(
-            id_mina: $request->input('id_mina') ? (int) $request->input('id_mina') : null,
+            id_empresa: (int) $request->input('id_empresa'),
             id_cargo: (int) $request->input('id_cargo'),
             nombre: (string) $request->input('nombre'),
             apellido: (string) $request->input('apellido'),
@@ -82,8 +92,7 @@ class EmpleadosController
             carnet_extranjeria: $request->input('carnet_extranjeria'),
             pasaporte: $request->input('pasaporte'),
             fecha_nacimiento: $request->input('fecha_nacimiento'),
-            foto: $request->file('path_foto'),
-            ids_labor: (array) $request->input('ids_labor', [])
+            foto: $request->file('path_foto')
         );
 
         return response()->json($result);

@@ -4,15 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Empleado extends Model
+class Contratista extends Model
 {
-    protected $table = 'empleado';
+    protected $table = 'contratista';
 
     public $timestamps = false;
 
     protected $fillable = [
-        'id_cargo',
-        'id_empresa',
+        'id_mina',
+        'path_foto',
         'nombre',
         'apellido',
         'dni',
@@ -20,7 +20,6 @@ class Empleado extends Model
         'carnet_extranjeria',
         'pasaporte',
         'fecha_nacimiento',
-        'path_foto',
         'estado',
     ];
 }

@@ -66,29 +66,17 @@ class RequerimientosData
     /**
      * Obtiene la lista de minas en las que el empleado logueado es responsable
      */
-    public static function get_minas(int $id_empleado)
+    /**
+     * Obtiene la lista de minas activas para que el administrador pueda solicitar
+     */
+    public static function get_minas()
     {
-        $sql = '
-        SELECT DISTINCT
-            mn.id AS id_mina,
-            mn.nombre
-        FROM
-            mina mn
-        INNER JOIN responsable_mina res ON
-            res.id_mina = mn.id
-        WHERE
-            res.id_empleado = :id_empleado AND
-            res.estado = "Activo" AND 
-            res.fecha_fin IS NULL
-        ORDER BY
-            mn.nombre ASC
-        ';
-
-        $params = [
-            'id_empleado' => $id_empleado,
-        ];
-
-        return DB::select($sql, $params);
+        return DB::select('
+            SELECT id AS id_mina, nombre
+            FROM mina
+            WHERE estado = "Activo"
+            ORDER BY nombre ASC
+        ');
     }
 
     /**

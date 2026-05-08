@@ -11,15 +11,15 @@ use Illuminate\Support\Facades\DB;
 class EmpleadosData
 {
     /**
-     * Listar empleados con su mina y labores asignadas
+     * Listar empleados con su empresa y cargo
      */
-    public static function get_empleados(?int $id_mina = null, ?int $id_empleado = null)
+    public static function get_empleados(?int $id_empresa = null, ?int $id_empleado = null)
     {
         $sql = '
         SELECT DISTINCT
             e.id AS id_empleado,
-            e.id_mina,
-            COALESCE(mn.nombre, "No aplica") AS mina,
+            e.id_empresa,
+            COALESCE(emp_asoc.razon_social, "Sin empresa") AS empresa,
             e.id_cargo,
             car.nombre AS cargo,
             car.id_area,
@@ -32,21 +32,10 @@ class EmpleadosData
             e.pasaporte,
             e.fecha_nacimiento,
             e.path_foto,
-            e.estado,
-            COALESCE((
-                SELECT GROUP_CONCAT(lab.correlativo ORDER BY lab.correlativo SEPARATOR " | ")
-                FROM labor_empleado le
-                INNER JOIN labor lab ON lab.id = le.id_labor
-                WHERE le.id_empleado = e.id
-            ), "No aplica") AS labores_asignadas,
-            (
-                SELECT GROUP_CONCAT(le.id_labor)
-                FROM labor_empleado le
-                WHERE le.id_empleado = e.id
-            ) AS ids_labor_asignadas
+            e.estado
         FROM
             empleado e
-        LEFT JOIN mina mn ON mn.id = e.id_mina
+        LEFT JOIN empresa emp_asoc ON emp_asoc.id = e.id_empresa
         INNER JOIN cargo car ON car.id = e.id_cargo
         INNER JOIN area a ON a.id = car.id_area
         WHERE 1 = 1
@@ -61,9 +50,9 @@ class EmpleadosData
             return DB::selectOne($sql, $params);
         }
 
-        if ($id_mina !== null) {
-            $sql .= ' AND e.id_mina = :id_mina';
-            $params['id_mina'] = $id_mina;
+        if ($id_empresa !== null) {
+            $sql .= ' AND e.id_empresa = :id_empresa';
+            $params['id_empresa'] = $id_empresa;
         }
 
         $sql .= ' ORDER BY e.apellido ASC, e.nombre ASC';
@@ -80,10 +69,10 @@ class EmpleadosData
     }
 
     /**
-     * Crear un nuevo empleado con parámetros explícitos
+     * Crear un nuevo empleado
      */
     public static function crear_empleado(
-        ?int $id_mina,
+        int $id_empresa,
         int $id_cargo,
         string $nombre,
         string $apellido,
@@ -95,7 +84,7 @@ class EmpleadosData
         ?string $path_foto
     ) {
         return Empleado::insertGetId([
-            'id_mina'            => $id_mina,
+            'id_empresa'         => $id_empresa,
             'id_cargo'           => $id_cargo,
             'nombre'             => $nombre,
             'apellido'           => $apellido,
@@ -110,6 +99,18 @@ class EmpleadosData
     }
 
     /**
+     * Obtener empresas activas
+     */
+    public static function get_empresas()
+    {
+        return DB::select('
+            SELECT id AS id_empresa, razon_social AS nombre
+            FROM empresa
+            ORDER BY razon_social ASC
+        ');
+    }
+
+    /**
      * Verificar si ya existe un empleado con el mismo DNI
      */
     public static function existe_dni(string $dni): bool
@@ -118,24 +119,19 @@ class EmpleadosData
     }
 
     /**
-     * Obtener minas activas
-     */
-    public static function get_minas()
-    {
-        return DB::select('
-            SELECT id AS id_mina, nombre
-            FROM mina
-            WHERE estado = :estado
-            ORDER BY nombre ASC
-        ', ['estado' => EstadoBase::Activo->value]);
-    }
-
-    /**
      * Obtener todas las áreas activas
      */
     public static function get_areas()
     {
         return DB::select('SELECT id AS id_area, nombre FROM area WHERE estado = "Activo" ORDER BY nombre ASC');
+    }
+
+    /**
+     * Obtener todas las minas activas
+     */
+    public static function get_minas()
+    {
+        return DB::select('SELECT id AS id_mina, nombre FROM mina WHERE estado = "Activo" ORDER BY nombre ASC');
     }
 
     /**
@@ -157,117 +153,5 @@ class EmpleadosData
     public static function actualizar_foto(int $id_empleado, ?string $path_foto): bool
     {
         return (bool) Empleado::where('id', $id_empleado)->update(['path_foto' => $path_foto]);
-    }
-
-    // -------------------------------------------------------------------------
-    // Métodos para el proceso de asignación de labores al empleado
-    // -------------------------------------------------------------------------
-
-    /**
-     * Obtener las labores activas de una mina, excluyendo las ya asignadas al empleado.
-     * Si no se pasa id_empleado, devuelve todas las labores activas de la mina.
-     */
-    public static function get_labores_disponibles_mina(int $id_mina, ?int $id_empleado = null)
-    {
-        $sql = '
-        SELECT
-            lab.id AS id_labor,
-            lab.correlativo,
-            lab.nombre
-        FROM labor lab
-        WHERE lab.id_mina = :id_mina
-        AND lab.estado = :estado
-        ';
-
-        $params = [
-            'id_mina' => $id_mina,
-            'estado'  => EstadoBase::Activo->value,
-        ];
-
-        if ($id_empleado !== null) {
-            $sql .= '
-            AND lab.id NOT IN (
-                SELECT id_labor FROM labor_empleado WHERE id_empleado = :id_empleado
-            )
-            ';
-            $params['id_empleado'] = $id_empleado;
-        }
-
-        $sql .= ' ORDER BY lab.correlativo ASC';
-
-        return DB::select($sql, $params);
-    }
-
-    /**
-     * Obtener las labores ya asignadas a un empleado
-     */
-    public static function get_labores_empleado(int $id_empleado)
-    {
-        return DB::select('
-        SELECT
-            le.id AS id_labor_empleado,
-            lab.id AS id_labor,
-            lab.correlativo,
-            lab.nombre
-        FROM labor_empleado le
-        INNER JOIN labor lab ON lab.id = le.id_labor
-        WHERE le.id_empleado = :id_empleado
-        ORDER BY lab.correlativo ASC
-        ', ['id_empleado' => $id_empleado]);
-    }
-
-    /**
-     * Verificar si una labor ya está asignada al empleado
-     */
-    public static function existe_labor_empleado(int $id_empleado, int $id_labor): bool
-    {
-        return LaborEmpleado::where('id_empleado', $id_empleado)
-            ->where('id_labor', $id_labor)
-            ->exists();
-    }
-
-    /**
-     * Asignar una labor a un empleado
-     */
-    public static function asignar_labor(int $id_empleado, int $id_labor): void
-    {
-        LaborEmpleado::create([
-            'id_empleado' => $id_empleado,
-            'id_labor'    => $id_labor,
-        ]);
-    }
-
-    /**
-     * Eliminar todas las labores asignadas a un empleado
-     */
-    public static function eliminar_labores_empleado(int $id_empleado): void
-    {
-        LaborEmpleado::where('id_empleado', $id_empleado)->delete();
-    }
-
-    /**
-     * Obtener la mina de un empleado
-     */
-    public static function get_mina_empleado(int $id_empleado): ?int
-    {
-        return Empleado::where('id', $id_empleado)->value('id_mina');
-    }
-
-    /**
-     * Verificar si una labor pertenece a una mina
-     */
-    public static function labor_pertenece_a_mina(int $id_labor, int $id_mina): bool
-    {
-        return Labor::where('id', $id_labor)
-            ->where('id_mina', $id_mina)
-            ->exists();
-    }
-
-    /**
-     * Actualizar la mina de un empleado
-     */
-    public static function actualizar_mina(int $id_empleado, ?int $id_mina): bool
-    {
-        return (bool) Empleado::where('id', $id_empleado)->update(['id_mina' => $id_mina]);
     }
 }

@@ -21,21 +21,21 @@ class ResponsablesController extends Controller
         return response()->json(ResponsablesService::get_historial_responsables((int) $id_mina));
     }
 
-    public function get_empleados_disponibles(Request $request): JsonResponse
+    public function get_contratistas_disponibles(Request $request): JsonResponse
     {
         $id_mina = $request->query('id_mina');
         if (!$id_mina) {
             return response()->json(ApiResponse::error('id_mina es requerido'), 400);
         }
 
-        return response()->json(ResponsablesService::get_empleados_disponibles((int) $id_mina));
+        return response()->json(ResponsablesService::get_contratistas_disponibles((int) $id_mina));
     }
 
     public function asignar_responsable(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'id_mina' => 'required|integer',
-            'id_empleado' => 'required|integer',
+            'id_contratista' => 'required|integer',
             'fecha_inicio' => 'required|date',
         ]);
 
@@ -47,7 +47,7 @@ class ResponsablesController extends Controller
 
         return response()->json(ResponsablesService::asignar_responsable(
             id_mina: (int) $v['id_mina'],
-            id_empleado: (int) $v['id_empleado'],
+            id_contratista: (int) $v['id_contratista'],
             fecha_inicio: (string) $v['fecha_inicio'],
         ));
     }

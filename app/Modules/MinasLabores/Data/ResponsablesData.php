@@ -16,17 +16,17 @@ class ResponsablesData
         $sql = '
         SELECT DISTINCT
             res.id AS id_responsable_mina,
-            em.id as id_empleado,
-            CONCAT(em.nombre, " ", em.apellido) as empleado,
-            em.dni,
-            em.path_foto,
+            c.id as id_contratista,
+            CONCAT(c.nombre, " ", c.apellido) as contratista,
+            c.dni,
+            c.path_foto,
             res.fecha_inicio,
             res.fecha_fin,
             res.estado
         FROM
-            empleado em
+            contratista c
         INNER JOIN responsable_mina res ON
-            res.id_empleado = em.id
+            res.id_contratista = c.id
         WHERE
             1 = 1
         ';
@@ -55,11 +55,11 @@ class ResponsablesData
         return self::get_historial_responsables(id_responsable_mina: $id_responsable_mina);
     }
 
-    public static function nuevo_responsable(int $id_mina, int $id_empleado, string $fecha_inicio)
+    public static function nuevo_responsable(int $id_mina, int $id_contratista, string $fecha_inicio)
     {
         return ResponsableMina::insertGetId([
             'id_mina' => $id_mina,
-            'id_empleado' => $id_empleado,
+            'id_contratista' => $id_contratista,
             'fecha_inicio' => $fecha_inicio,
             'fecha_fin' => null,
             'estado' => EstadoBase::Activo->value,
@@ -86,22 +86,22 @@ class ResponsablesData
     }
 
     /**
-     * Posibles empleados a elegir para responsable de una mina específica
+     * Posibles contratistas a elegir para responsable de una mina específica
      */
-    public static function get_empleados_disponibles(int $id_mina)
+    public static function get_contratistas_disponibles(int $id_mina)
     {
         $sql = '
         SELECT DISTINCT
-            em.id AS id_empleado,
-            CONCAT(em.nombre, " ", em.apellido) AS empleado
+            c.id AS id_contratista,
+            CONCAT(c.nombre, " ", c.apellido) AS contratista
         FROM
-            empleado em
+            contratista c
         WHERE
-            em.estado = "Activo" AND
+            c.estado = "Activo" AND
             -- que no sean el responsable actual de esta mina
-            em.id NOT IN (
+            c.id NOT IN (
                 SELECT
-                    res.id_empleado
+                    res.id_contratista
                 FROM
                     responsable_mina res
                 WHERE
