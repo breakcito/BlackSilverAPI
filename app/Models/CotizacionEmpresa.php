@@ -40,6 +40,14 @@ class CotizacionEmpresa extends Model
     }
 
     /**
+     * Eliminar todas las asociaciones de empresas para una cotización
+     */
+    public static function desvincular_todas(int $id_cotizacion): void
+    {
+        self::where('id_cotizacion', $id_cotizacion)->delete();
+    }
+
+    /**
      * Obtener las empresas asociadas a un grupo de cotizaciones o todas
      */
     public static function get_empresas(null|int|array $ids_cotizaciones = null): array

@@ -270,6 +270,89 @@ class CotizacionesService
     }
 
     /**
+     * Actualizar una cotización individual (Cabecera y Detalles)
+     */
+    public static function actualizar_cotizacion(
+        int $id_cotizacion,
+        array $data,
+        int $id_empleado
+    ): array {
+        try {
+            return DB::transaction(function () use ($id_cotizacion, $data, $id_empleado) {
+                // 1. Validar que no esté aprobada
+                $cot = CotizacionesData::get_cotizaciones(id_cotizacion: $id_cotizacion);
+                if (!$cot) {
+                    return ApiResponse::error('La cotización no existe.');
+                }
+
+                if ($cot->estado === EstadoCotizacion::Aprobada->value) {
+                    return ApiResponse::error('No se puede editar una cotización que ya ha sido aprobada.');
+                }
+
+                // 2. Actualizar Cabecera
+                $es_credito = trim((string) $data['metodo_pago']) === MetodoPago::Credito->value;
+                
+                \App\Models\Cotizacion::actualizar_cotizacion(
+                    id: $id_cotizacion,
+                    id_proveedor: (int) $data['id_proveedor'],
+                    metodo_pago: (string) $data['metodo_pago'],
+                    moneda: (string) $data['moneda'],
+                    tipo_cambio_venta_referencial: isset($data['tipo_cambio_venta_referencial']) ? (float) $data['tipo_cambio_venta_referencial'] : null,
+                    costo_flete: (float) ($data['costo_flete'] ?? 0),
+                    otros_gastos: (float) ($data['otros_gastos'] ?? 0),
+                    total_antes_igv: (float) $data['total_antes_igv'],
+                    incluye_igv: (bool) $data['incluye_igv'],
+                    porcentaje_igv: (float) $data['porcentaje_igv'],
+                    monto_igv: (float) $data['monto_igv'],
+                    total_despues_igv: (float) $data['total_despues_igv'],
+                    observacion: $data['observacion'] ?? null,
+                    fecha_vencimiento_pago: $es_credito ? ($data['fecha_vencimiento_pago'] ?? null) : null,
+                );
+
+                // 3. Sync Empresas
+                \App\Models\CotizacionEmpresa::desvincular_todas($id_cotizacion);
+                \App\Models\CotizacionEmpresa::asignar_empresa($id_cotizacion, $data['empresas_ids']);
+
+                // 4. Actualizar Detalles
+                // Nota: Asumimos que los detalles vienen con su ID si existen.
+                // Si no tienen ID, no los crearemos aquí para no romper el comparativo,
+                // ya que los productos del comparativo son fijos en este modo de edición.
+                foreach ($data['detalles'] as $det) {
+                    if (!isset($det['id_cotizacion_detalle'])) continue;
+
+                    $id_det = (int) $det['id_cotizacion_detalle'];
+                    $tipo_despacho = TipoDespachoCompra::from((string) $det['tipo_despacho']);
+                    $periodo = Periodo::from((string) $det['tiempo_entrega_periodo']);
+
+                    \App\Models\CotizacionDetalle::actualizar_detalle(
+                        id: $id_det,
+                        id_unidad_medida: (int) $det['id_unidad_medida'],
+                        id_almacen_recepcionista: (int) $det['id_almacen_recepcionista'],
+                        tipo_despacho: $tipo_despacho,
+                        lugar_recojo: $tipo_despacho === TipoDespachoCompra::Recojo
+                            ? ($det['lugar_recojo'] ?? null)
+                            : null,
+                        tiempo_entrega: (int) $det['tiempo_entrega'],
+                        tiempo_entrega_periodo: $periodo,
+                        tiempo_entrega_dias: (int) $det['tiempo_entrega_dias'],
+                        cantidad: (float) $det['cantidad'],
+                        contenido_por_presentacion: (float) $det['contenido_por_presentacion'],
+                        cantidad_base: (float) $det['cantidad_base'],
+                        precio_unitario: (float) ($det['precio_unitario'] ?? 0),
+                        precio_unitario_base: (float) ($det['precio_unitario_base'] ?? 0),
+                        comentario: $det['comentario'] ?? null,
+                    );
+                }
+
+                // 5. Devolver el comparativo actualizado
+                return self::listar(id_comparativo: (int) $cot->id_comparativo);
+            });
+        } catch (\Exception $e) {
+            return ApiResponse::error('Error al actualizar la cotización: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Aprobar parcialmente una cotización y generar la Orden de Compra
      *
      * @param array $detalles_aprobados IDs de cotizacion_detalle aprobados
