@@ -107,9 +107,20 @@ class RecepcionesService
                 ? collect(LotesProductosData::get_lote_simple_by_id($ids_lotes_existentes))->keyBy('id_lote')
                 : collect();
 
-            // 5. Procesar cada item y acumular por detalle de transferencia
+            // 5. Agrupar y pre-calcular totales de la solicitud por detalle de transferencia
             $detallesAgrupados = [];
+            $totalesBaseRequest = [];
+            $yaRecepcionadoMap = [];
+            foreach ($items as $item) {
+                $id_det = (int) $item['id_detalle_transferencia'];
+                $totalesBaseRequest[$id_det] = ($totalesBaseRequest[$id_det] ?? 0) + (float) $item['cantidad_base'];
 
+                if (!isset($yaRecepcionadoMap[$id_det])) {
+                    $yaRecepcionadoMap[$id_det] = RecepcionesData::get_cantidad_recepcionada_acumulada($id_det);
+                }
+            }
+
+            // Procesar cada item (lote)
             foreach ($items as $item) {
                 $id_detalle_transferencia = (int) $item['id_detalle_transferencia'];
                 $cantidad_recep_base = (float) $item['cantidad_base'];
@@ -184,39 +195,44 @@ class RecepcionesService
                     $stock_anterior_base
                 );
 
-                // 8. Acumular por detalle de transferencia
-                if (!isset($detallesAgrupados[$id_detalle_transferencia])) {
-                    $detallesAgrupados[$id_detalle_transferencia] = 0;
-                }
-                $detallesAgrupados[$id_detalle_transferencia] += $cantidad_recep_base;
-            }
+                // 8. Crear Detalle de Recepción para este item/lote
+                $total_ya_recepcionado = $yaRecepcionadoMap[$id_detalle_transferencia];
+                $total_final_previsto = $total_ya_recepcionado + $totalesBaseRequest[$id_detalle_transferencia];
 
-            // 9. Crear detalles de recepción y determinar estado por detalle
-            $estado_cabecera = EstadoOCTransRecepcion::RecepcionCompleta;
-
-            foreach ($detallesAgrupados as $id_detalle_trans => $cantidad_recepcionada_base) {
-                $ya_recepcionado = RecepcionesData::get_cantidad_recepcionada_acumulada($id_detalle_trans);
-                $detalle_trans = TransferenciasData::get_detalle_by_id($id_detalle_trans);
-                $total_acumulado = $ya_recepcionado + $cantidad_recepcionada_base;
-
-                $estado_detalle = ($total_acumulado >= $detalle_trans->cantidad_transferida_base - 0.001)
+                $estado_detalle = ($total_final_previsto >= $detalle_trans->cantidad_transferida_base - 0.001)
                     ? EstadoOCTransRecepcionDetalle::RecepcionCompleta
                     : EstadoOCTransRecepcionDetalle::RecepcionadoParcialmente;
-
-                if ($estado_detalle === EstadoOCTransRecepcionDetalle::RecepcionadoParcialmente) {
-                    $estado_cabecera = EstadoOCTransRecepcion::RecepcionadoParcialmente;
-                }
 
                 RecepcionesData::crear_recepcion_detalle(
                     id_recepcion: $id_recepcion,
                     detalles: [
                         [
-                            'id_detalle_transferencia' => $id_detalle_trans,
-                            'cantidad_recepcionada_base' => $cantidad_recepcionada_base,
+                            'id_detalle_transferencia' => $id_detalle_transferencia,
+                            'id_lote_producto' => $id_lote,
+                            'es_ajuste_stock' => $es_nuevo_lote,
+                            'cantidad_recepcionada_base' => $cantidad_recep_base,
                             'estado' => $estado_detalle,
                         ]
                     ]
                 );
+
+                // 9. Acumular para el post-procesamiento agrupado
+                if (!isset($detallesAgrupados[$id_detalle_transferencia])) {
+                    $detallesAgrupados[$id_detalle_transferencia] = [
+                        'cantidad_recepcionada_base' => 0,
+                        'estado_final' => $estado_detalle
+                    ];
+                }
+                $detallesAgrupados[$id_detalle_transferencia]['cantidad_recepcionada_base'] += $cantidad_recep_base;
+            }
+
+            // 10. Determinar estado de la cabecera por los detalles procesados
+            $estado_cabecera = EstadoOCTransRecepcion::RecepcionCompleta;
+
+            foreach ($detallesAgrupados as $id_detalle_trans => $data) {
+                if ($data['estado_final'] === EstadoOCTransRecepcionDetalle::RecepcionadoParcialmente) {
+                    $estado_cabecera = EstadoOCTransRecepcion::RecepcionadoParcialmente;
+                }
             }
 
             // 10. Actualizar estado de la cabecera de recepción

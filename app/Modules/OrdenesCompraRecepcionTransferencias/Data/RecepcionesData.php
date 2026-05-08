@@ -4,9 +4,7 @@ namespace App\Modules\OrdenesCompraRecepcionTransferencias\Data;
 
 use App\Models\OrdenCompraTransferenciaRecepcion;
 use App\Models\OrdenCompraTransferenciaRecepcionDetalle;
-use App\Shared\Enums\_Generic\Periodo;
 use App\Shared\Enums\OrdenCompra\EstadoOCTransRecepcion;
-use App\Shared\Helpers\CorrelativoHelper;
 
 class RecepcionesData
 {
@@ -64,7 +62,13 @@ class RecepcionesData
 
     /**
      * Crea uno o varios detalles de recepción.
-     * $detalles: [{ id_detalle_transferencia, cantidad_recepcionada_base, estado }]
+     * $detalles: [{ 
+     *   id_detalle_transferencia, 
+     *   id_lote_producto, 
+     *   es_ajuste_stock, - bool
+     *   cantidad_recepcionada_base, 
+     *   estado 
+     * }]
      */
     public static function crear_recepcion_detalle(int $id_recepcion, array $detalles): void
     {
@@ -73,6 +77,8 @@ class RecepcionesData
             $rows[] = [
                 'id_orden_compra_transferencia_recepcion' => $id_recepcion,
                 'id_orden_compra_transferencia_detalle' => $det['id_detalle_transferencia'],
+                'id_lote_producto' => $det['id_lote_producto'],
+                'es_ajuste_stock' => $det['es_ajuste_stock'] ? 1 : 0,
                 'cantidad_recepcionada_base' => $det['cantidad_recepcionada_base'],
                 'estado' => $det['estado']->value,
             ];
@@ -97,7 +103,8 @@ class RecepcionesData
     public static function get_cantidad_recepcionada_acumulada(int $id_detalle_transferencia): float
     {
         return (float) OrdenCompraTransferenciaRecepcionDetalle::where(
-            'id_orden_compra_transferencia_detalle', $id_detalle_transferencia
+            'id_orden_compra_transferencia_detalle',
+            $id_detalle_transferencia
         )->sum('cantidad_recepcionada_base');
     }
 
