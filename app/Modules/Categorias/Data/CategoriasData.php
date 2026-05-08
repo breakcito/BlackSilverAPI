@@ -22,6 +22,7 @@ class CategoriasData
             'es_consumible',
             'para_cocina',
             'para_mina',
+            'es_auditable',
             'estado'
         )->selectRaw('(
             SELECT GROUP_CONCAT(c_con.nombre SEPARATOR ", ")
@@ -62,7 +63,8 @@ class CategoriasData
         ?string $clasificacion_bien = null,
         bool $es_consumible = false,
         bool $para_cocina = false,
-        bool $para_mina = false
+        bool $para_mina = false,
+        bool $es_auditable = false
     ) {
         return Categoria::insertGetId([
             'nombre' => $nombre,
@@ -72,6 +74,7 @@ class CategoriasData
             'es_consumible' => $es_consumible ? 1 : 0,
             'para_cocina' => $para_cocina ? 1 : 0,
             'para_mina' => $para_mina ? 1 : 0,
+            'es_auditable' => $es_auditable ? 1 : 0,
             'estado' => EstadoBase::Activo->value,
         ]);
     }
