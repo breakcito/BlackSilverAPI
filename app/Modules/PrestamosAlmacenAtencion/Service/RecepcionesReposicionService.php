@@ -160,7 +160,14 @@ class RecepcionesReposicionService
                 );
 
                 // 7. Crear Detalle de Recepción
-                RecepcionesReposicionData::crear_detalle_recepcion($id_recepcion, $id_repo_det, $cantidad_recep_base);
+                RecepcionesReposicionData::crear_detalle_recepcion(
+                    id_recepcion: $id_recepcion,
+                    id_reposicion_detalle: $id_repo_det,
+                    id_lote_producto: $id_lote_destino,
+                    es_ajuste_stock: $es_nuevo_lote,
+                    cantidad_recep_base: $cantidad_recep_base,
+                    estado: $es_nuevo_lote ? EstadoPrestamoReposicionDetalle::RecepcionCompleta : EstadoPrestamoReposicionDetalle::RecepcionadoParcialmente
+                );
 
                 // 8. Actualizar estados del detalle de reposición
                 self::actualizar_estados_post_recepcion($id_repo_det);

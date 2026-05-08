@@ -38,6 +38,8 @@ class RecepcionesReposicionData
     public static function crear_detalle_recepcion(
         int $id_recepcion,
         int $id_reposicion_detalle,
+        int $id_lote_producto,
+        bool $es_ajuste_stock,
         float $cantidad_recep_base,
         EstadoPrestamoReposicionDetalle $estado = EstadoPrestamoReposicionDetalle::RecepcionCompleta
     ): bool {
@@ -45,6 +47,8 @@ class RecepcionesReposicionData
             $id_recepcion,
             [
                 'id_reposicion_detalle' => $id_reposicion_detalle,
+                'id_lote_producto' => $id_lote_producto,
+                'es_ajuste_stock' => $es_ajuste_stock,
                 'cantidad_recepcionada_base' => $cantidad_recep_base,
                 'estado' => $estado
             ]

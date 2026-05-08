@@ -15,8 +15,8 @@ class PrestamoAlmacenReposicionRecepcionDetalle extends Model
     protected $fillable = [
         'id_prestamo_almacen_reposicion_recepcion',
         'id_prestamo_almacen_reposicion_detalle',
-        'id_lote_producto', // El id del posible lote generado 
-        'tipo_movimiento', // Nuevo Lote o Ajuste de Stock
+        'id_lote_producto', // el lote del que se ajusto el stock o que se genero como nuevo
+        'es_ajuste_stock', // 1 si fue un ajuste de stock o 0 si fue un registro
         'cantidad_recepcionada_base',
         'estado', // Recepcionado parcialmente | Recepcionado
     ];
@@ -27,6 +27,8 @@ class PrestamoAlmacenReposicionRecepcionDetalle extends Model
      *  {
      *      id_reposicion_detalle: int, 
      *      cantidad_recepcionada_base: int, 
+     *      id_lote_producto: int, // el lote del que se ajusto el stock o que se genero como nuevo
+     *      es_ajuste_stock: bool, // 1 si fue un ajuste de stock o 0 si fue un registro
      *      estado: EstadoPrestamoReposicionDetalle
      *  }
      */
@@ -45,8 +47,8 @@ class PrestamoAlmacenReposicionRecepcionDetalle extends Model
             $insertData[] = [
                 'id_prestamo_almacen_reposicion_recepcion' => $id_recepcion,
                 'id_prestamo_almacen_reposicion_detalle' => $detalle['id_reposicion_detalle'],
-                'id_lote_producto' => $detalle['id_lote_producto'] ?? null,
-                'tipo_movimiento' => $detalle['tipo_movimiento'] ?? null,
+                'id_lote_producto' => $detalle['id_lote_producto'],
+                'es_ajuste_stock' => $detalle['es_ajuste_stock'] ? 1 : 0,
                 'cantidad_recepcionada_base' => $detalle['cantidad_recepcionada_base'],
                 'estado' => $detalle['estado']->value ?? EstadoPrestamoReposicionDetalle::RecepcionCompleta->value,
             ];
