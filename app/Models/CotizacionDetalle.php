@@ -90,6 +90,42 @@ class CotizacionDetalle extends Model
         ]);
     }
 
+    /**
+     * Actualizar detalle de cotización
+     */
+    public static function actualizar_detalle(
+        int $id,
+        int $id_unidad_medida,
+        int $id_almacen_recepcionista,
+        TipoDespachoCompra $tipo_despacho,
+        ?string $lugar_recojo,
+        int $tiempo_entrega,
+        Periodo $tiempo_entrega_periodo,
+        int $tiempo_entrega_dias,
+        float $cantidad,
+        float $contenido_por_presentacion,
+        float $cantidad_base,
+        float $precio_unitario,
+        float $precio_unitario_base,
+        ?string $comentario = null
+    ): bool {
+        return self::where('id', $id)->update([
+            'id_unidad_medida' => $id_unidad_medida,
+            'id_almacen_recepcionista' => $id_almacen_recepcionista,
+            'tipo_despacho' => $tipo_despacho->value,
+            'lugar_recojo' => $lugar_recojo,
+            'tiempo_entrega' => $tiempo_entrega,
+            'tiempo_entrega_periodo' => $tiempo_entrega_periodo->value,
+            'tiempo_entrega_dias' => $tiempo_entrega_dias,
+            'cantidad' => $cantidad,
+            'contenido_por_presentacion' => $contenido_por_presentacion,
+            'cantidad_base' => $cantidad_base,
+            'precio_unitario' => $precio_unitario,
+            'precio_unitario_base' => $precio_unitario_base,
+            'comentario' => $comentario,
+        ]) >= 0;
+    }
+
 
 
     public static function get_detalles(

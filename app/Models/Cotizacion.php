@@ -119,6 +119,42 @@ class Cotizacion extends Model
         ]);
     }
 
+    /**
+     * Actualizar cabecera de cotización
+     */
+    public static function actualizar_cotizacion(
+        int $id,
+        int $id_proveedor,
+        string $metodo_pago,
+        string $moneda,
+        ?float $tipo_cambio_venta_referencial = null,
+        float $costo_flete,
+        float $otros_gastos,
+        float $total_antes_igv,
+        bool $incluye_igv,
+        float $porcentaje_igv,
+        float $monto_igv,
+        float $total_despues_igv,
+        ?string $observacion = null,
+        ?string $fecha_vencimiento_pago = null,
+    ): bool {
+        return self::where('id', $id)->update([
+            'id_proveedor' => $id_proveedor,
+            'metodo_pago' => $metodo_pago,
+            'moneda' => $moneda,
+            'tipo_cambio_venta_referencial' => $tipo_cambio_venta_referencial,
+            'costo_flete' => $costo_flete,
+            'otros_gastos' => $otros_gastos,
+            'total_antes_igv' => $total_antes_igv,
+            'incluye_igv' => $incluye_igv ? 1 : 0,
+            'porcentaje_igv' => $porcentaje_igv,
+            'monto_igv' => $monto_igv,
+            'total_despues_igv' => $total_despues_igv,
+            'observacion' => $observacion,
+            'fecha_vencimiento_pago' => $fecha_vencimiento_pago,
+        ]) >= 0;
+    }
+
     public static function get_cotizaciones(
         ?int $id_cotizacion = null,
         null|int|array $ids_comparativos = null,

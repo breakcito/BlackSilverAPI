@@ -41,6 +41,36 @@ class CotizacionesController
     }
 
     /**
+     * Actualizar una cotización existente
+     */
+    public function actualizar_cotizacion(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_proveedor' => 'required|integer',
+            'empresas_ids' => 'required|array|min:1',
+            'empresas_ids.*' => 'integer',
+            'detalles' => 'required|array|min:1',
+            'moneda' => 'required|string',
+            'metodo_pago' => 'required|string',
+            'total_despues_igv' => 'required|numeric',
+        ], [
+            'id_proveedor.required' => 'El proveedor es obligatorio.',
+            'empresas_ids.required' => 'Debe seleccionar al menos una empresa.',
+            'detalles.required' => 'La cotización debe tener detalles.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        return response()->json(CotizacionesService::actualizar_cotizacion(
+            id_cotizacion: $id,
+            data: $request->all(),
+            id_empleado: $request->user()->id_empleado,
+        ));
+    }
+
+    /**
      * Listar comparativos agrupados con cotizaciones y detalles
      */
     public function get_listado(Request $request): JsonResponse

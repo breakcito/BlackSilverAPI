@@ -12,6 +12,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::controller(CotizacionesController::class)->group(function () {
             Route::get('/', 'get_listado');
             Route::post('/registrar', 'registrar_comparativo');
+            Route::put('/{id}', 'actualizar_cotizacion');
             Route::post('/{id}/aprobar', 'aprobar_cotizacion_parcial');
         });
 
