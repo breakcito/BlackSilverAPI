@@ -16,6 +16,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::get('/data-to-registro', 'get_data_to_registro');
             Route::get('/minas-by-almacen', 'get_minas_by_almacen');
             Route::get('/data-by-mina', 'get_data_by_mina');
+            Route::get('/empleados', 'get_empleados');
         });
 
         Route::controller(AtencionController::class)->group(function () {

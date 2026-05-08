@@ -19,6 +19,7 @@ class LoteProducto extends Model
         'numero_correlativo',
         'stock_actual',
         'contenido_por_presentacion',
+        'costo_base', // el costo en base a la unidad base
         'stock_actual_base',
         'fecha_hora_ingreso',
         'fecha_vencimiento',
