@@ -15,6 +15,8 @@ class OrdenCompraRecepcionDetalle extends Model
     protected $fillable = [
         'id_orden_compra_recepcion', // la recepcion
         'id_orden_compra_detalle', // el detalle de la compra
+        'id_lote_producto', // el lote del que se ajusto el stock o que se genero como nuevo
+        'es_ajuste_stock', // 1 si fue un ajuste de stock o 0 si fue un registro
         'cantidad_recepcionada', // segun la unidad de la orden de compra
         'cantidad_recepcionada_base', // segun la unidad base del producto
         'comentario', // alguna observacion del detalle recibido
@@ -26,6 +28,8 @@ class OrdenCompraRecepcionDetalle extends Model
      * @param array $detalles:
      *  {
      *      id_orden_compra_detalle: int, 
+     *      id_lote_producto: int, // el lote del que se ajusto el stock o que se genero como nuevo
+     *      es_ajuste_stock: bool, // 1 si fue un ajuste de stock o 0 si fue un registro
      *      cantidad_recepcionada: int, 
      *      cantidad_recepcionada_base: int, 
      *      comentario: string | null,
@@ -47,6 +51,8 @@ class OrdenCompraRecepcionDetalle extends Model
             $insertData[] = [
                 'id_orden_compra_recepcion' => $id_recepcion,
                 'id_orden_compra_detalle' => $detalle['id_orden_compra_detalle'],
+                'id_lote_producto' => $detalle['id_lote_producto'],
+                'es_ajuste_stock' => $detalle['es_ajuste_stock'] ? 1 : 0,
                 'cantidad_recepcionada' => $detalle['cantidad_recepcionada'],
                 'cantidad_recepcionada_base' => $detalle['cantidad_recepcionada_base'],
                 'comentario' => $detalle['comentario'],

@@ -48,6 +48,8 @@ class RecepcionesOCData
     public static function crear_detalle_recepcion(
         int $id_recepcion,
         int $id_oc_detalle,
+        int $id_lote_producto,
+        bool $es_ajuste_stock,
         float $cantidad_recepcionada,
         float $cantidad_recepcionada_base,
         ?string $comentario = null,
@@ -57,6 +59,8 @@ class RecepcionesOCData
             id_recepcion: $id_recepcion,
             detalles: [
                 'id_orden_compra_detalle' => $id_oc_detalle,
+                'id_lote_producto' => $id_lote_producto,
+                'es_ajuste_stock' => $es_ajuste_stock,
                 'cantidad_recepcionada' => $cantidad_recepcionada,
                 'cantidad_recepcionada_base' => $cantidad_recepcionada_base,
                 'comentario' => $comentario,

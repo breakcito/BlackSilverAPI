@@ -93,8 +93,18 @@ class RecepcionesOCService
                 ? collect(LotesProductosData::get_lote_simple_by_id($ids_lotes_existentes))->keyBy('id_lote')
                 : collect();
 
-            // 5. Agrupar items por detalle de OC para el registro de orden_compra_recepcion_detalle
+            // 5. Agrupar y pre-calcular totales de la solicitud por detalle de OC
             $detallesAgrupados = [];
+            $totalesBaseRequest = [];
+            $yaRecibidoAntesMap = [];
+            foreach ($items as $item) {
+                $id_det = (int) $item['id_orden_compra_detalle'];
+                $totalesBaseRequest[$id_det] = ($totalesBaseRequest[$id_det] ?? 0) + (float) $item['cantidad_base'];
+
+                if (!isset($yaRecibidoAntesMap[$id_det])) {
+                    $yaRecibidoAntesMap[$id_det] = RecepcionesOCData::get_cantidad_recepcionada_total_base_detalle($id_det);
+                }
+            }
 
             // Procesar cada item (lote)
             $ids_lotes_nuevos = [];
@@ -168,46 +178,51 @@ class RecepcionesOCService
                     $stock_anterior_base
                 );
 
-                // 8. Acumular para el detalle de recepción
-                if (!isset($detallesAgrupados[$id_oc_detalle])) {
-                    $detallesAgrupados[$id_oc_detalle] = [
-                        'cantidad_recepcionada' => 0,
-                        'cantidad_recepcionada_base' => 0
-                    ];
-                }
-                $detallesAgrupados[$id_oc_detalle]['cantidad_recepcionada_base'] += $cantidad_recep_base;
-                // Convertir la base a la unidad de la OC para el registro de detalle
-                $detallesAgrupados[$id_oc_detalle]['cantidad_recepcionada'] += ($cantidad_recep_base / $oc_detalle->contenido_por_presentacion);
-            }
+                // 8. Crear Detalle de Recepción para este item/lote
+                $total_ya_recibido_antes = $yaRecibidoAntesMap[$id_oc_detalle];
+                $total_final_previsto = $total_ya_recibido_antes + $totalesBaseRequest[$id_oc_detalle];
 
-            // 9. Crear Detalles de Recepción (Agrupados por OC Detalle)
-            foreach ($detallesAgrupados as $id_oc_det => $data) {
-                $oc_det = RecepcionesOCData::get_oc_detalle_by_id($id_oc_det);
-                if (!$oc_det)
-                    continue;
-
-                $total_ya_recibido_antes = RecepcionesOCData::get_cantidad_recepcionada_total_base_detalle($id_oc_det);
-                $total_acumulado = $total_ya_recibido_antes + $data['cantidad_recepcionada_base'];
-
-                $estado_det_recep = ($total_acumulado >= $oc_det->cantidad_requerida_base - 0.001)
+                $estado_det_recep = ($total_final_previsto >= $oc_detalle->cantidad_requerida_base - 0.001)
                     ? EstadoOrdenCompraRecepcionDetalle::RecepcionCompleta
                     : EstadoOrdenCompraRecepcionDetalle::RecepcionadoParcialmente;
 
                 RecepcionesOCData::crear_detalle_recepcion(
                     id_recepcion: $id_recepcion,
-                    id_oc_detalle: $id_oc_det,
-                    cantidad_recepcionada: $data['cantidad_recepcionada'],
-                    cantidad_recepcionada_base: $data['cantidad_recepcionada_base'],
+                    id_oc_detalle: $id_oc_detalle,
+                    id_lote_producto: $id_lote_destino,
+                    es_ajuste_stock: $es_nuevo_lote,
+                    cantidad_recepcionada: $cantidad_recep_base / $oc_detalle->contenido_por_presentacion,
+                    cantidad_recepcionada_base: $cantidad_recep_base,
                     comentario: null,
                     estado: $estado_det_recep
                 );
 
-                // 10. Actualizar estados post-recepción
+                // 9. Acumular para el post-procesamiento agrupado (estados y logs)
+                if (!isset($detallesAgrupados[$id_oc_detalle])) {
+                    $detallesAgrupados[$id_oc_detalle] = [
+                        'cantidad_recepcionada' => 0,
+                        'cantidad_recepcionada_base' => 0,
+                        'total_ya_recibido_antes' => $total_ya_recibido_antes
+                    ];
+                }
+                $detallesAgrupados[$id_oc_detalle]['cantidad_recepcionada_base'] += $cantidad_recep_base;
+                $detallesAgrupados[$id_oc_detalle]['cantidad_recepcionada'] += ($cantidad_recep_base / $oc_detalle->contenido_por_presentacion);
+            }
+
+            // 10. Actualizar Estados y Registrar Logs (Agrupados por OC Detalle)
+            foreach ($detallesAgrupados as $id_oc_det => $data) {
+                $oc_det = RecepcionesOCData::get_oc_detalle_by_id($id_oc_det);
+                if (!$oc_det)
+                    continue;
+
+                $total_acumulado = $data['total_ya_recibido_antes'] + $data['cantidad_recepcionada_base'];
+
+                // 11. Actualizar estados post-recepción
                 self::actualizar_estados_post_recepcion_oc($id_oc_det);
 
-                // 11. Log de Trazabilidad ---
-                // Si es la primera recepción
-                if ($total_ya_recibido_antes == 0) {
+                // 12. Log de Trazabilidad
+                // Si es la primera recepción de este item
+                if ($data['total_ya_recibido_antes'] == 0) {
                     OrdenCompraData::registrar_log_detalle(
                         $id_oc_det,
                         $id_empleado_registro,
@@ -215,7 +230,7 @@ class RecepcionesOCService
                     );
                 }
 
-                // Registro de la nueva recepción (cantidad en unidad de OC para la glosa)
+                // Registro de la nueva recepción (cantidad total en esta transacción)
                 OrdenCompraData::registrar_log_detalle(
                     $id_oc_det,
                     $id_empleado_registro,
