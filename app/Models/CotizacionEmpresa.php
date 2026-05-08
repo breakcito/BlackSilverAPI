@@ -48,7 +48,8 @@ class CotizacionEmpresa extends Model
             SELECT
                 ce.id_cotizacion,
                 ce.id_empresa,
-                emp.razon_social
+                emp.razon_social,
+                emp.path_logo
             FROM cotizacion_empresa ce
             INNER JOIN empresa emp ON emp.id = ce.id_empresa
             WHERE 1 = 1
@@ -71,6 +72,37 @@ class CotizacionEmpresa extends Model
 
         $sql .= " ORDER BY emp.razon_social ASC";
 
-        return DB::select($sql, $params);
+        $results = DB::select($sql, $params);
+
+        // Embeber logo como base64 en la respuesta JSON
+        // Evita requests adicionales desde el frontend (php artisan serve es single-threaded)
+        foreach ($results as $row) {
+            if ($row->path_logo) {
+                // Normalizar a ruta relativa
+                if (str_starts_with($row->path_logo, 'http')) {
+                    $parsed = parse_url($row->path_logo, PHP_URL_PATH);
+                    $relativePath = ltrim(str_replace('/storage/', '', $parsed ?? ''), '/');
+                } else {
+                    $relativePath = ltrim($row->path_logo, '/');
+                }
+
+                $fullPath = storage_path('app/public/' . $relativePath);
+                if (file_exists($fullPath)) {
+                    $ext  = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+                    $mime = match ($ext) {
+                        'png'  => 'image/png',
+                        'gif'  => 'image/gif',
+                        'webp' => 'image/webp',
+                        'svg'  => 'image/svg+xml',
+                        default => 'image/jpeg',
+                    };
+                    $row->path_logo = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($fullPath));
+                } else {
+                    $row->path_logo = null;
+                }
+            }
+        }
+
+        return $results;
     }
 }

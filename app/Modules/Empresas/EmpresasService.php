@@ -69,6 +69,11 @@ class EmpresasService
 
         $empresa = EmpresasData::get_empresa_by_id($id_empresa);
 
+        // Convertir path_logo a URL completa (igual que get_empresas)
+        if ($empresa && $empresa->path_logo && !str_starts_with($empresa->path_logo, 'http')) {
+            $empresa->path_logo = asset('storage/' . $empresa->path_logo);
+        }
+
         return ApiResponse::success($empresa, 'Logo de empresa actualizado correctamente');
     }
 }

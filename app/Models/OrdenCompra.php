@@ -119,6 +119,7 @@ class OrdenCompra extends Model
             oc.id_empresa,
             emp.razon_social AS empresa,
             emp.ruc	AS empresa_ruc,
+            emp.path_logo AS empresa_logo,
             -- 
             oc.id_proveedor,
             prov.razon_social AS proveedor,
@@ -157,7 +158,11 @@ class OrdenCompra extends Model
         if ($id_orden !== null) {
             $sql .= ' AND oc.id = :id_orden';
             $params['id_orden'] = $id_orden;
-            return DB::selectOne($sql, $params);
+            $result = DB::selectOne($sql, $params);
+            if ($result && $result->empresa_logo) {
+                $result->empresa_logo = self::logo_a_base64($result->empresa_logo);
+            }
+            return $result;
         }
 
         if ($mes !== null) {
@@ -183,6 +188,40 @@ class OrdenCompra extends Model
             oc.created_at DESC
         ';
 
-        return DB::select($sql, $params);
+        $results = DB::select($sql, $params);
+        foreach ($results as $oc) {
+            if ($oc->empresa_logo) {
+                $oc->empresa_logo = self::logo_a_base64($oc->empresa_logo);
+            }
+        }
+        return $results;
+    }
+
+    /**
+     * Convierte un path_logo (relativo o URL completa) a data URL base64.
+     */
+    private static function logo_a_base64(string $logo): ?string
+    {
+        if (str_starts_with($logo, 'http')) {
+            $parsed      = parse_url($logo, PHP_URL_PATH);
+            $relativePath = ltrim(str_replace('/storage/', '', $parsed ?? ''), '/');
+        } else {
+            $relativePath = ltrim($logo, '/');
+        }
+
+        $fullPath = storage_path('app/public/' . $relativePath);
+        if (!file_exists($fullPath)) return null;
+
+        $ext  = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+        $mime = match ($ext) {
+            'png'  => 'image/png',
+            'gif'  => 'image/gif',
+            'webp' => 'image/webp',
+            'svg'  => 'image/svg+xml',
+            default => 'image/jpeg',
+        };
+
+        return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($fullPath));
     }
 }
+
