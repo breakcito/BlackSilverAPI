@@ -19,6 +19,8 @@ class PrestamoAlmacenEntregaRecepcionDetalle extends Model
     protected $fillable = [
         'id_prestamo_almacen_recepcion', // la recepcion
         'id_prestamo_almacen_entrega_detalle', // que producto de una entrega se esta recepcionando
+        'id_lote_producto', // el lote del que se ajusto el stock o que se genero como nuevo
+        'es_ajuste_stock', // 1 si fue un ajuste de stock o 0 si fue un registro
         'cantidad_recepcionada_base',
         'estado',
     ];
