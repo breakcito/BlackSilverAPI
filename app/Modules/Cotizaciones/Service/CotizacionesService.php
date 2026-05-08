@@ -65,6 +65,13 @@ class CotizacionesService
                     $mapa_productos[$index] = $id_det;
                 }
 
+                // Determinar si alguna cotización del comparativo es auditable basado en los productos
+                $ids_productos_comparativo = array_column($productos, 'id_producto');
+                $es_auditable_general = \Illuminate\Support\Facades\DB::table('producto')
+                    ->whereIn('id', $ids_productos_comparativo)
+                    ->where('es_auditable', 1)
+                    ->exists();
+
                 // 3. Registrar cada cotización con su estado final real
                 foreach ($cotizaciones as $c) {
                     $correlativoData = CotizacionesData::get_nuevo_correlativo();
@@ -80,6 +87,8 @@ class CotizacionesService
                         fecha_hora_cotizacion: now()->toDateTimeString(),
                         metodo_pago: (string) $c['metodo_pago'],
                         moneda: (string) $c['moneda'],
+                        tipo_cambio_venta_referencial: isset($c['tipo_cambio_venta_referencial']) ? (float) $c['tipo_cambio_venta_referencial'] : null,
+                        es_auditable: $es_auditable_general,
                         costo_flete: (float) ($c['costo_flete'] ?? 0),
                         otros_gastos: (float) ($c['otros_gastos'] ?? 0),
                         total_antes_igv: (float) $c['total_antes_igv'],
@@ -122,8 +131,8 @@ class CotizacionesService
                             cantidad: (float) $det['cantidad'],
                             contenido_por_presentacion: (float) $det['contenido_por_presentacion'],
                             cantidad_base: (float) $det['cantidad_base'],
-                            precio_unitario: (float) $det['precio_unitario'],
-                            precio_unitario_base: (float) $det['precio_unitario_base'],
+                            precio_unitario: (float) ($det['precio_unitario'] ?? 0),
+                            precio_unitario_base: (float) ($det['precio_unitario_base'] ?? 0),
                             comentario: $det['comentario'] ?? null,
                             estado: $estado_det,
                         );
@@ -240,13 +249,20 @@ class CotizacionesService
         int $id_cotizacion,
         int $id_empresa_compradora,
         int $id_empleado,
-        array $detalles_aprobados
+        array $detalles_aprobados,
+        ?float $tipo_cambio_venta_referencial = null
     ): array {
         try {
-            return DB::transaction(function () use ($id_cotizacion, $id_empresa_compradora, $id_empleado, $detalles_aprobados) {
+            return DB::transaction(function () use ($id_cotizacion, $id_empresa_compradora, $id_empleado, $detalles_aprobados, $tipo_cambio_venta_referencial) {
 
                 // 1. Marcar cotización como Aprobada
                 CotizacionesData::actualizar_estado($id_cotizacion, EstadoCotizacion::Aprobada);
+
+                if ($tipo_cambio_venta_referencial !== null) {
+                    \Illuminate\Support\Facades\DB::table('cotizacion')
+                        ->where('id', $id_cotizacion)
+                        ->update(['tipo_cambio_venta_referencial' => $tipo_cambio_venta_referencial]);
+                }
 
                 // 2. Marcar detalles como Aprobados / Rechazados
                 CotizacionesData::actualizar_estados_aprobacion($id_cotizacion, $detalles_aprobados);

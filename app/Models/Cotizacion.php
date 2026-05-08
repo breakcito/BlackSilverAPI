@@ -26,6 +26,8 @@ class Cotizacion extends Model
         'metodo_pago', // Contado / Credito
         'fecha_vencimiento_pago', // Solo cuando es a credito
         'moneda', // Soles o Dolares
+        'tipo_cambio_venta_referencial',
+        'es_auditable',
         //
         'costo_flete',
         'otros_gastos',
@@ -68,6 +70,8 @@ class Cotizacion extends Model
         //
         string $metodo_pago,
         string $moneda,
+        ?float $tipo_cambio_venta_referencial = null,
+        bool $es_auditable = false,
         //
         float $costo_flete,
         float $otros_gastos,
@@ -96,6 +100,8 @@ class Cotizacion extends Model
             'metodo_pago' => $metodo_pago,
             'fecha_vencimiento_pago' => $fecha_vencimiento_pago,
             'moneda' => $moneda,
+            'tipo_cambio_venta_referencial' => $tipo_cambio_venta_referencial,
+            'es_auditable' => $es_auditable ? 1 : 0,
             //
             'costo_flete' => $costo_flete,
             'otros_gastos' => $otros_gastos,
@@ -136,6 +142,8 @@ class Cotizacion extends Model
             ct.metodo_pago,
             ct.fecha_vencimiento_pago,
             ct.moneda,
+            ct.tipo_cambio_venta_referencial,
+            ct.es_auditable,
             -- 
             ct.costo_flete,
             ct.otros_gastos,
