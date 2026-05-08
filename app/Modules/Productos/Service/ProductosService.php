@@ -27,6 +27,7 @@ class ProductosService
         bool $es_auditable,
         bool $es_perecible,
         float $stock_minimo_base = 0,
+        float $costo_promedio_base = 0,
         ?int $tiempo_espera_vencimiento = null,
         ?string $periodo_espera_vencimiento = null
     ) {
@@ -61,6 +62,7 @@ class ProductosService
             $es_auditable,
             $es_perecible,
             $stock_minimo_base,
+            $costo_promedio_base,
             $tiempo_espera_vencimiento,
             $periodo_espera_vencimiento,
             $dias_espera_vencimiento
