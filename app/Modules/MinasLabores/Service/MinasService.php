@@ -42,19 +42,19 @@ class MinasService
         return ApiResponse::success($historial);
     }
 
-    public static function get_empleados_disponibles(int $id_mina): array|object
+    public static function get_contratistas_disponibles(int $id_mina): array|object
     {
-        $empleados = ResponsablesData::get_empleados_disponibles($id_mina);
+        $contratistas = ResponsablesData::get_contratistas_disponibles($id_mina);
 
-        return ApiResponse::success($empleados);
+        return ApiResponse::success($contratistas);
     }
 
-    public static function asignar_responsable(int $id_mina, int $id_empleado, string $fecha_inicio): array|object
+    public static function asignar_responsable(int $id_mina, int $id_contratista, string $fecha_inicio): array|object
     {
         // Cerrar la asignación activa anterior
         ResponsablesData::update_fecha_fin_responsabilidad($id_mina, $fecha_inicio);
 
-        $id_res = ResponsablesData::nuevo_responsable($id_mina, $id_empleado, $fecha_inicio);
+        $id_res = ResponsablesData::nuevo_responsable($id_mina, $id_contratista, $fecha_inicio);
 
         $asignado = ResponsablesData::get_responsable_by_id($id_res);
 

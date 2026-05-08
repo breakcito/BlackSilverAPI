@@ -22,9 +22,9 @@ class MinasData
             mn.descripcion,
             -- Lista de responsables concatenada (Similar a almacenes)
             (
-                SELECT GROUP_CONCAT(CONCAT(emp.nombre, " ", emp.apellido) ORDER BY res.id DESC SEPARATOR ", ")
+                SELECT GROUP_CONCAT(CONCAT(con.nombre, " ", con.apellido) ORDER BY res.id DESC SEPARATOR ", ")
                 FROM responsable_mina res
-                INNER JOIN empleado emp ON emp.id = res.id_empleado
+                INNER JOIN contratista con ON con.id = res.id_contratista
                 WHERE 
                     res.id_mina = mn.id AND 
                     res.estado = "Activo" AND 
