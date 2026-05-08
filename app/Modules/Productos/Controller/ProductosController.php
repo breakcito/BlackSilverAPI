@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Modules\Productos;
+namespace App\Modules\Productos\Controller;
 
+use App\Modules\Productos\Service\ProductosService;
 use App\Shared\Enums\_Generic\Periodo;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -17,26 +18,6 @@ class ProductosController
     public function get_productos(Request $request): JsonResponse
     {
         $result = ProductosService::get_productos();
-
-        return response()->json($result);
-    }
-
-    /**
-     * Obtener unidades de medida base
-     */
-    public function get_unidades_medida(Request $request): JsonResponse
-    {
-        $result = ProductosService::get_unidades_medida();
-
-        return response()->json($result);
-    }
-
-    /**
-     * Obtener categorías internas del módulo de productos
-     */
-    public function get_categorias(Request $request): JsonResponse
-    {
-        $result = ProductosService::get_categorias();
 
         return response()->json($result);
     }

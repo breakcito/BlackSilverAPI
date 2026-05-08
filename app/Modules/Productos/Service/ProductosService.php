@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Modules\Productos;
+namespace App\Modules\Productos\Service;
 
-use App\Data\UnidadesMedidaData;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\Productos\Data\ProductosData;
 
@@ -16,22 +15,6 @@ class ProductosService
         $productos = ProductosData::get_productos();
 
         return ApiResponse::success($productos);
-    }
-
-    /**
-     * Obtener unidades de medida base
-     */
-    public static function get_unidades_medida()
-    {
-        return ApiResponse::success(UnidadesMedidaData::get_unidades());
-    }
-
-    /**
-     * Obtener categorías de tipo bien
-     */
-    public static function get_categorias()
-    {
-        return ApiResponse::success(ProductosData::get_categorias());
     }
 
     /**

@@ -22,7 +22,7 @@ class Producto extends Model
         'es_auditable',
         //
         'stock_minimo_base',
-        // es el costo promedio que tiene el producto, este se 
+        // es el costo promedio en soles que tiene el producto, este se 
         // va actualizando en base a los registros que se van 
         // teniendo en las ordenes de compra
         'costo_promedio_base',
