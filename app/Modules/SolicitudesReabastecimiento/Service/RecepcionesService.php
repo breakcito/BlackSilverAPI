@@ -2,8 +2,9 @@
 
 namespace App\Modules\SolicitudesReabastecimiento\Service;
 
-use App\Data\KardexProductosData;
+
 use App\Data\LotesProductosData;
+use App\Services\KardexProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Helpers\ArchivoHelper;
@@ -41,15 +42,7 @@ class RecepcionesService
          */
         array $evidencias = []
     ) {
-        return DB::transaction(function () use (
-            $id_reabastecimiento_entrega,
-            $id_empleado_registro,
-            $con_incidencia,
-            $observacion,
-            $fecha_hora_recepcion,
-            $items,
-            $evidencias
-        ) {
+        return DB::transaction(function () use ($id_reabastecimiento_entrega, $id_empleado_registro, $con_incidencia, $observacion, $fecha_hora_recepcion, $items, $evidencias) {
 
             $fecha_mysql = $fecha_hora_recepcion
                 ? Carbon::parse($fecha_hora_recepcion)->toDateTimeString()
@@ -112,12 +105,12 @@ class RecepcionesService
                         contenido_por_presentacion: $contenido_por_presentacion,
                         stock_actual_base: $cantidad_recep_base,
                         fecha_hora_ingreso: isset($item['fecha_ingreso'])
-                            ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
-                            : $fecha_mysql,
+                        ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
+                        : $fecha_mysql,
                         descripcion: $item['descripcion'] ?? "Ingreso por recepción en reabastecimiento",
                         fecha_vencimiento: isset($item['fecha_vencimiento'])
-                            ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
-                            : null
+                        ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
+                        : null
                     );
 
                     $ids_lotes_nuevos[] = $id_lote_destino;
@@ -144,7 +137,7 @@ class RecepcionesService
                 }
 
                 // 5. Registrar Kardex
-                KardexProductosData::registrar_kardex(
+                KardexProductosService::registrar_kardex(
                     $id_lote_destino,
                     KardexTipoMovimiento::Ingreso,
                     KardexOrigenMovimiento::Recepcion,
@@ -209,15 +202,7 @@ class RecepcionesService
         array $items,
         array $evidencias = []
     ) {
-        return DB::transaction(function () use (
-            $id_reabastecimiento_entrega,
-            $id_empleado_registro,
-            $con_incidencia,
-            $observacion,
-            $fecha_hora_recepcion,
-            $items,
-            $evidencias
-        ) {
+        return DB::transaction(function () use ($id_reabastecimiento_entrega, $id_empleado_registro, $con_incidencia, $observacion, $fecha_hora_recepcion, $items, $evidencias) {
 
             $fecha_mysql = $fecha_hora_recepcion
                 ? Carbon::parse($fecha_hora_recepcion)->toDateTimeString()
@@ -280,12 +265,12 @@ class RecepcionesService
                         contenido_por_presentacion: $contenido_por_presentacion,
                         stock_actual_base: $cantidad_recep_base,
                         fecha_hora_ingreso: isset($item['fecha_ingreso'])
-                            ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
-                            : $fecha_mysql,
+                        ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
+                        : $fecha_mysql,
                         descripcion: $item['descripcion'] ?? "Ingreso por recepción en reabastecimiento",
                         fecha_vencimiento: isset($item['fecha_vencimiento'])
-                            ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
-                            : null
+                        ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
+                        : null
                     );
 
                     $ids_lotes_nuevos[] = $id_lote_destino;
@@ -312,7 +297,7 @@ class RecepcionesService
                 }
 
                 // 5. Registrar Kardex
-                KardexProductosData::registrar_kardex(
+                KardexProductosService::registrar_kardex(
                     $id_lote_destino,
                     KardexTipoMovimiento::Ingreso,
                     KardexOrigenMovimiento::Recepcion,
@@ -380,7 +365,8 @@ class RecepcionesService
     private static function actualizar_estados_post_recepcion_logistica(int $id_entrega_detalle)
     {
         $detalle = RecepcionesData::get_entrega_detalle_by_id($id_entrega_detalle);
-        if (!$detalle) return;
+        if (!$detalle)
+            return;
 
         $total_recibido = RecepcionesData::get_cantidad_recepcionada_total_base_detalle($id_entrega_detalle);
 
@@ -405,7 +391,8 @@ class RecepcionesService
     private static function actualizar_estados_post_recepcion_prestamo(int $id_entrega_detalle)
     {
         $detalle = RecepcionesPrestamoData::get_entrega_detalle_by_id($id_entrega_detalle);
-        if (!$detalle) return;
+        if (!$detalle)
+            return;
 
         $total_recibido = RecepcionesPrestamoData::get_cantidad_recepcionada_total_base_detalle($id_entrega_detalle);
 

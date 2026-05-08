@@ -2,11 +2,11 @@
 
 namespace App\Modules\OrdenesCompraRecepcionTransferencias\Service;
 
-use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
 use App\Models\OrdenCompraTransferencia;
 use App\Modules\OrdenesCompraRecepcionTransferencias\Data\RecepcionesData;
 use App\Modules\OrdenesCompraRecepcionTransferencias\Data\TransferenciasData;
+use App\Services\KardexProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\OrdenCompra\EstadoOCTransferencia;
@@ -68,10 +68,7 @@ class RecepcionesService
         array $items,
         array $evidencias = []
     ) {
-        return DB::transaction(function () use (
-            $id_transferencia, $id_almacen_recepcionista, $id_empleado,
-            $con_incidencia, $observacion, $fecha_hora_recepcion, $items, $evidencias
-        ) {
+        return DB::transaction(function () use ($id_transferencia, $id_almacen_recepcionista, $id_empleado, $con_incidencia, $observacion, $fecha_hora_recepcion, $items, $evidencias) {
             $fecha_mysql = $fecha_hora_recepcion
                 ? Carbon::parse($fecha_hora_recepcion)->toDateTimeString()
                 : now()->toDateTimeString();
@@ -120,7 +117,8 @@ class RecepcionesService
 
                 // Obtener datos del detalle de transferencia para conocer id_producto y unidades
                 $detalle_trans = TransferenciasData::get_detalle_by_id($id_detalle_transferencia);
-                if (!$detalle_trans) continue;
+                if (!$detalle_trans)
+                    continue;
 
                 // 6. Gestión de lotes
                 if ($es_nuevo_lote) {
@@ -140,12 +138,12 @@ class RecepcionesService
                         contenido_por_presentacion: $contenido,
                         stock_actual_base: $cantidad_recep_base,
                         fecha_hora_ingreso: isset($item['fecha_ingreso'])
-                            ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
-                            : $fecha_mysql,
+                        ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
+                        : $fecha_mysql,
                         descripcion: $item['descripcion'] ?? 'Ingreso por recepción de transferencia OC',
                         fecha_vencimiento: isset($item['fecha_vencimiento']) && $item['fecha_vencimiento']
-                            ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
-                            : null
+                        ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
+                        : null
                     );
 
                     $stock_anterior = 0;
@@ -172,7 +170,7 @@ class RecepcionesService
                 }
 
                 // 7. Registrar Kardex (Ingreso por recepción de transferencia)
-                KardexProductosData::registrar_kardex(
+                KardexProductosService::registrar_kardex(
                     $id_lote,
                     KardexTipoMovimiento::Ingreso,
                     KardexOrigenMovimiento::Recepcion,
@@ -211,11 +209,13 @@ class RecepcionesService
 
                 RecepcionesData::crear_recepcion_detalle(
                     id_recepcion: $id_recepcion,
-                    detalles: [[
-                        'id_detalle_transferencia' => $id_detalle_trans,
-                        'cantidad_recepcionada_base' => $cantidad_recepcionada_base,
-                        'estado' => $estado_detalle,
-                    ]]
+                    detalles: [
+                        [
+                            'id_detalle_transferencia' => $id_detalle_trans,
+                            'cantidad_recepcionada_base' => $cantidad_recepcionada_base,
+                            'estado' => $estado_detalle,
+                        ]
+                    ]
                 );
             }
 
@@ -236,7 +236,8 @@ class RecepcionesService
     private static function actualizar_estado_transferencia(int $id_transferencia): void
     {
         $detalles = TransferenciasData::get_detalles_transferencia($id_transferencia);
-        if (empty($detalles)) return;
+        if (empty($detalles))
+            return;
 
         $todos_completos = true;
         $alguno_recepcionado = false;

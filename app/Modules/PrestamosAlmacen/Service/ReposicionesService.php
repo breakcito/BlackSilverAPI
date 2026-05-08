@@ -2,8 +2,8 @@
 
 namespace App\Modules\PrestamosAlmacen\Service;
 
-use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
+use App\Services\KardexProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Responses\ApiResponse;
@@ -48,16 +48,7 @@ class ReposicionesService
         ?string $observacion,
         ?array $evidencias = null
     ) {
-        return DB::transaction(function () use (
-            $id_prestamo_almacen,
-            $id_almacen_entrega,
-            $id_empleado_entrega,
-            $id_personal_recibe,
-            $fecha_hora_reposicion,
-            $observacion,
-            $items,
-            $evidencias
-        ) {
+        return DB::transaction(function () use ($id_prestamo_almacen, $id_almacen_entrega, $id_empleado_entrega, $id_personal_recibe, $fecha_hora_reposicion, $observacion, $items, $evidencias) {
             // 1. Obtener el correlativo del prestamo
             $prestamo = PrestamosData::get_correlativo_by_id($id_prestamo_almacen);
 
@@ -129,7 +120,7 @@ class ReposicionesService
 
                 // E. Registrar movimiento en Kardex
                 $descripcion_kardex = "Salida por reposición de préstamo N° " . $prestamo->correlativo . " (Ref: " . $correlativoData['correlativo'] . ")";
-                KardexProductosData::registrar_kardex(
+                KardexProductosService::registrar_kardex(
                     id_lote: $id_lote_producto,
                     id_origen: $id_reposicion,
                     tipo_movimiento: KardexTipoMovimiento::Salida,

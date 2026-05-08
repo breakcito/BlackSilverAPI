@@ -28,6 +28,7 @@ class CategoriasService
         bool $es_consumible = false,
         bool $para_cocina = false,
         bool $para_mina = false,
+        bool $es_auditable = false,
         array $ids_categorias_consumidoras = []
     ) {
         if (CategoriasData::verificar_nombre_duplicado($nombre)) {
@@ -46,7 +47,8 @@ class CategoriasService
             $clasificacion_bien,
             $es_consumible,
             $para_cocina,
-            $para_mina
+            $para_mina,
+            $es_auditable
         );
 
         // Si es consumible, guardamos sus relaciones

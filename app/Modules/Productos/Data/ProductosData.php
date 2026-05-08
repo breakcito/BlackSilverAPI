@@ -23,7 +23,7 @@ class ProductosData
                 --
                 p.id_unidad_medida_base,
                 um.nombre as unidad_medida_base,
-                um.abreviatura as unidad_medida_abreviatura,
+                um.abreviatura as unidad_medida_base_abreviatura,
                 -- 
                 p.es_auditable,
                 p.es_perecible,
@@ -76,6 +76,7 @@ class ProductosData
         bool $es_auditable,
         bool $es_perecible,
         float $stock_minimo_base,
+        float $costo_promedio_base,
         ?int $tiempo_espera_vencimiento,
         ?string $periodo_espera_vencimiento,
         ?int $dias_espera_vencimiento
@@ -87,6 +88,7 @@ class ProductosData
             'es_auditable' => $es_auditable,
             'es_perecible' => $es_perecible,
             'stock_minimo_base' => $stock_minimo_base,
+            'costo_promedio_base' => $costo_promedio_base,
             'tiempo_espera_vencimiento' => $tiempo_espera_vencimiento,
             'periodo_espera_vencimiento' => $periodo_espera_vencimiento,
             'dias_espera_vencimiento' => $dias_espera_vencimiento,

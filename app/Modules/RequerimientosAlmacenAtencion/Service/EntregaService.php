@@ -2,8 +2,8 @@
 
 namespace App\Modules\RequerimientosAlmacenAtencion\Service;
 
-use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
+use App\Services\KardexProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalle;
@@ -57,15 +57,7 @@ class EntregaService
         ?array $evidencias, // archivos
         array $detalles
     ) {
-        return DB::transaction(function () use (
-            $id_empleado_entrega,
-            $id_requerimiento,
-            $id_empleado_recibe,
-            $fecha_entrega,
-            $observacion,
-            $evidencias,
-            $detalles
-        ) {
+        return DB::transaction(function () use ($id_empleado_entrega, $id_requerimiento, $id_empleado_recibe, $fecha_entrega, $observacion, $evidencias, $detalles) {
 
             // Procesar Evidencias si existen
             $evidenciasData = null;
@@ -127,7 +119,7 @@ class EntregaService
                 LotesProductosData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
 
                 // Registrar Kardex (Salida)
-                KardexProductosData::registrar_kardex(
+                KardexProductosService::registrar_kardex(
                     id_lote: $id_lote,
                     id_origen: $id_detalle_entrega,
                     tipo_movimiento: KardexTipoMovimiento::Salida,
@@ -170,7 +162,7 @@ class EntregaService
                 RequerimientosDetalleData::insert_detalle_log(
                     $id_rad,
                     $id_empleado_entrega,
-                    EstadoRequerimientoDetalleLog::NuevaEntrega->getGlosa((string)$item['cantidad_requerimiento']),
+                    EstadoRequerimientoDetalleLog::NuevaEntrega->getGlosa((string) $item['cantidad_requerimiento']),
                     EstadoRequerimientoDetalleLog::NuevaEntrega
                 );
 

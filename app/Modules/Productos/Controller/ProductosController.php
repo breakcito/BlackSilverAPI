@@ -34,6 +34,7 @@ class ProductosController
             'es_auditable' => 'required|boolean',
             'es_perecible' => 'required|boolean',
             'stock_minimo_base' => 'nullable|numeric|min:0',
+            'costo_promedio_base' => 'nullable|numeric|min:0',
             'tiempo_espera_vencimiento' => 'nullable|integer|min:0',
             'periodo_espera_vencimiento' => ['nullable', new Enum(Periodo::class)],
         ], [
@@ -55,6 +56,7 @@ class ProductosController
             es_auditable: $request->boolean('es_auditable'),
             es_perecible: $request->boolean('es_perecible'),
             stock_minimo_base: (float) ($request->input('stock_minimo_base') ?? 0),
+            costo_promedio_base: (float) ($request->input('costo_promedio_base') ?? 0),
             tiempo_espera_vencimiento: $request->input('tiempo_espera_vencimiento') ? (int) $request->input('tiempo_espera_vencimiento') : null,
             periodo_espera_vencimiento: $request->input('periodo_espera_vencimiento')
         );

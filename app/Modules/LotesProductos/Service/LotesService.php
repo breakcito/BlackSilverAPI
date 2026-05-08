@@ -2,8 +2,8 @@
 
 namespace App\Modules\LotesProductos\Service;
 
-use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
+use App\Services\KardexProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Responses\ApiResponse;
@@ -55,7 +55,7 @@ class LotesService
         );
 
         if ($stock_inicial > 0) {
-            KardexProductosData::registrar_kardex(
+            KardexProductosService::registrar_kardex(
                 id_lote: $id_lote,
                 tipo_movimiento: KardexTipoMovimiento::Ingreso,
                 tipo_origen: KardexOrigenMovimiento::NuevoLote,
@@ -108,7 +108,7 @@ class LotesService
             LotesProductosData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
 
             // Registrar movimiento en Kardex
-            KardexProductosData::registrar_kardex(
+            KardexProductosService::registrar_kardex(
                 id_lote: $id_lote,
                 tipo_movimiento: $tipo_movimiento,
                 tipo_origen: KardexOrigenMovimiento::AjusteStock,

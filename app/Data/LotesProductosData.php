@@ -187,4 +187,26 @@ class LotesProductosData
 
         return DB::select($sql, $ids_lotes);
     }
+
+    /**
+     * Obtiene el costo promedio del producto del lote
+     */
+    public static function get_costo_promedio_producto(int $id_lote): float
+    {
+        $sql = '
+        SELECT
+            pr.costo_promedio_base
+        FROM
+            lote_producto lot
+        INNER JOIN producto pr ON
+            pr.id = lot.id_producto
+        WHERE lot.id = :id_lote
+        ';
+
+        $resultado = DB::selectOne($sql, [
+            'id_lote' => $id_lote
+        ]);
+
+        return (float) $resultado->costo_promedio_base ?? 0.0;
+    }
 }

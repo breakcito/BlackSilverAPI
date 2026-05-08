@@ -7,9 +7,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rules\Enum;
-use App\Shared\Enums\_Generic\TipoProducto;
-use App\Shared\Enums\_Generic\TipoBien;
 
 class CategoriasController extends Controller
 {
@@ -36,6 +33,7 @@ class CategoriasController extends Controller
             'es_consumible' => 'boolean',
             'para_cocina' => 'boolean',
             'para_mina' => 'boolean',
+            'es_auditable' => 'boolean',
             'ids_categorias_consumidoras' => 'array',
             'ids_categorias_consumidoras.*' => 'integer',
         ], [
@@ -55,6 +53,7 @@ class CategoriasController extends Controller
             es_consumible: (bool) $request->boolean('es_consumible'),
             para_cocina: (bool) $request->boolean('para_cocina'),
             para_mina: (bool) $request->boolean('para_mina'),
+            es_auditable: (bool) $request->boolean('es_auditable'),
             ids_categorias_consumidoras: (array) $request->input('ids_categorias_consumidoras', [])
         );
 

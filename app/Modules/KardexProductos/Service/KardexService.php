@@ -12,14 +12,9 @@ class KardexService
     /**
      * Listar almacenes.
      */
-    public static function get_almacenes(int $id_usuario, int $id_empleado)
+    public static function get_almacenes(int $id_empleado)
     {
-        // Verificar si el usuario puede ver todos los almacenes
-        $puede_ver_todos = AuxData::puede_ver_almacenes_all($id_usuario);
-
-        // si puede ver todos, no filtramos nada
-        // si NO puede ver todos, filtramos por los almacenes donde es responsable
-        $almacenes = AlmacenesData::get_almacenes(id_responsable: $puede_ver_todos ? null : $id_empleado);
+        $almacenes = AlmacenesData::get_almacenes(id_responsable: $id_empleado);
 
         return ApiResponse::success($almacenes);
     }
