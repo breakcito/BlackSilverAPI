@@ -15,7 +15,7 @@ class Acceso extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_seccion',
+        'id_modulo',
         'nombre',
         'descripcion',
     ];

@@ -38,26 +38,4 @@ class AuxData
     {
         return DB::table('unidad_medida')->where('id', $id_unidad_medida)->value('abreviatura') ?? '';
     }
-
-    /**
-     * Consulta para verificar si un usuario puede ver
-     */
-    public static function puede_ver_almacenes_all(int $id_usuario)
-    {
-        $sql = '
-        SELECT
-            1
-        FROM
-            acceso_usuario acu
-        WHERE
-            -- acceso para ver todos los almacenes para la vista de lotes
-            acu.id_acceso = 1 AND 
-            -- verificar si el usuario puede hacer eso
-            acu.id_usuario = :id_usuario
-        ';
-
-        $result = DB::selectOne($sql, ['id_usuario' => $id_usuario]);
-
-        return $result ? true : false;
-    }
 }

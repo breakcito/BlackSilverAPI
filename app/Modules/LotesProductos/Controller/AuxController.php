@@ -17,7 +17,7 @@ class AuxController extends Controller
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
-        $result = AuxService::get_almacenes($authUser->id_usuario, $authUser->id_empleado);
+        $result = AuxService::get_almacenes($authUser->id_empleado);
         return response()->json($result);
     }
 
