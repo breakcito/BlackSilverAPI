@@ -107,6 +107,8 @@ class CotizacionesService
 
                     // 5. Registrar detalles con su estado final real
                     $detalles_aprobados_ids = [];
+                    // Mapa: id_cotizacion_detalle → precio_confirmado_oc (del request del wizard)
+                    $mapa_precios_oc = [];
                     foreach ($c['detalles'] as $index => $det) {
                         $id_comp_det = $mapa_productos[$index] ?? null;
                         if ($id_comp_det === null)
@@ -139,6 +141,10 @@ class CotizacionesService
 
                         if ($estado_det === EstadoCotizacionDetalle::Aprobado) {
                             $detalles_aprobados_ids[] = $id_cot_det;
+                            // Capturar precio confirmado OC si viene del wizard
+                            if (isset($det['precio_confirmado_oc']) && $det['precio_confirmado_oc'] !== null) {
+                                $mapa_precios_oc[$id_cot_det] = (float) $det['precio_confirmado_oc'];
+                            }
                         }
                     }
 
@@ -147,6 +153,7 @@ class CotizacionesService
                         $id_empresa_compradora = (int) ($c['id_empresa_compradora'] ?? 0);
 
                         if ($id_empresa_compradora > 0) {
+
                             // Obtener los detalles recién insertados para calcular totales de la OC
                             $detalles_cot = CotizacionesData::get_detalles_cotizacion(ids_cotizaciones: $id_cotizacion);
                             $detalles_aprobados_data = array_filter(
@@ -154,8 +161,9 @@ class CotizacionesService
                                 fn($d) => in_array($d->id_cotizacion_detalle, $detalles_aprobados_ids)
                             );
 
+                            // Subtotal usando precio_confirmado_oc si existe, si no el precio de BD
                             $subtotal = array_sum(array_map(
-                                fn($d) => (float) $d->cantidad * (float) $d->precio_unitario,
+                                fn($d) => (float) $d->cantidad * (float) ($mapa_precios_oc[$d->id_cotizacion_detalle] ?? $d->precio_unitario),
                                 $detalles_aprobados_data
                             ));
 
@@ -219,8 +227,13 @@ class CotizacionesService
                                     contenido_por_presentacion: (float) $det->contenido_por_presentacion,
                                     cantidad_requerida: (float) $det->cantidad,
                                     cantidad_requerida_base: (float) $det->cantidad_base,
-                                    precio_unitario: (float) $det->precio_unitario,
-                                    precio_unitario_base: (float) $det->precio_unitario_base,
+                                    // Usar precio_confirmado_oc del wizard si existe, si no el de la cotización
+                                    precio_unitario: isset($mapa_precios_oc[$det->id_cotizacion_detalle])
+                                        ? $mapa_precios_oc[$det->id_cotizacion_detalle]
+                                        : (float) $det->precio_unitario,
+                                    precio_unitario_base: isset($mapa_precios_oc[$det->id_cotizacion_detalle])
+                                        ? round($mapa_precios_oc[$det->id_cotizacion_detalle] / max((float) $det->contenido_por_presentacion, 1), 4)
+                                        : (float) $det->precio_unitario_base,
                                     comentario: $det->comentario ?? null,
                                 );
 
@@ -251,7 +264,7 @@ class CotizacionesService
         int $id_cotizacion,
         int $id_empresa_compradora,
         int $id_empleado,
-        array $detalles_aprobados,
+        array $detalles_aprobados, // [{id, precio_confirmado}]
         ?float $tipo_cambio_aplicado = null
     ): array {
         try {
@@ -260,21 +273,28 @@ class CotizacionesService
                 // 1. Marcar cotización como Aprobada
                 CotizacionesData::actualizar_estado($id_cotizacion, EstadoCotizacion::Aprobada);
 
+                // Extraer IDs y mapa de precios confirmados
+                $ids_aprobados = array_column($detalles_aprobados, 'id');
+                $precios_map = [];
+                foreach ($detalles_aprobados as $da) {
+                    $precios_map[(int)$da['id']] = (float)$da['precio_confirmado'];
+                }
+
                 // 2. Marcar detalles como Aprobados / Rechazados
-                CotizacionesData::actualizar_estados_aprobacion($id_cotizacion, $detalles_aprobados);
+                CotizacionesData::actualizar_estados_aprobacion($id_cotizacion, $ids_aprobados);
 
                 // 3. Datos de la cotización aprobada
                 $cotizacion = CotizacionesData::get_cotizaciones(id_cotizacion: $id_cotizacion);
 
-                // 4. Calcular totales sobre los ítems aprobados (netos), más flete y otros gastos
+                // 4. Calcular totales usando precios CONFIRMADOS de la OC
                 $detalles_cot = CotizacionesData::get_detalles_cotizacion(ids_cotizaciones: $id_cotizacion);
                 $detalles_aprobados_data = array_filter(
                     is_array($detalles_cot) ? $detalles_cot : iterator_to_array($detalles_cot),
-                    fn($d) => in_array($d->id_cotizacion_detalle, $detalles_aprobados)
+                    fn($d) => in_array($d->id_cotizacion_detalle, $ids_aprobados)
                 );
 
                 $subtotal = array_sum(array_map(
-                    fn($d) => (float) $d->cantidad * (float) $d->precio_unitario,
+                    fn($d) => (float) $d->cantidad * ($precios_map[$d->id_cotizacion_detalle] ?? (float) $d->precio_unitario),
                     $detalles_aprobados_data
                 ));
 
@@ -339,8 +359,11 @@ class CotizacionesService
                         contenido_por_presentacion: (float) $det->contenido_por_presentacion,
                         cantidad_requerida: (float) $det->cantidad,
                         cantidad_requerida_base: (float) $det->cantidad_base,
-                        precio_unitario: (float) $det->precio_unitario,
-                        precio_unitario_base: (float) $det->precio_unitario_base,
+                        // Usar el precio confirmado de la OC (no el de la cotización)
+                        precio_unitario: $precios_map[$det->id_cotizacion_detalle] ?? (float) $det->precio_unitario,
+                        precio_unitario_base: isset($precios_map[$det->id_cotizacion_detalle])
+                            ? round($precios_map[$det->id_cotizacion_detalle] / max((float)$det->contenido_por_presentacion, 1), 4)
+                            : (float) $det->precio_unitario_base,
                         comentario: $det->comentario ?? null,
                     );
 

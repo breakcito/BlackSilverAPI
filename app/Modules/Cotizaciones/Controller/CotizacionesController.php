@@ -59,11 +59,13 @@ class CotizacionesController
         $validator = Validator::make($request->all(), [
             'id_empresa_compradora' => 'required|integer',
             'detalles_aprobados' => 'required|array|min:1',
-            'detalles_aprobados.*' => 'integer',
+            'detalles_aprobados.*.id' => 'required|integer',
+            'detalles_aprobados.*.precio_confirmado' => 'required|numeric|min:0',
             'tipo_cambio_aplicado' => 'nullable|numeric',
         ], [
             'id_empresa_compradora.required' => 'Debe elegir la empresa compradora para la Orden de Compra.',
             'detalles_aprobados.required' => 'Debe incluir al menos un producto a ser aprobado.',
+            'detalles_aprobados.*.precio_confirmado.required' => 'Cada producto aprobado debe tener un precio confirmado.',
             'tipo_cambio_aplicado.numeric' => 'El tipo de cambio aplicado debe ser un número.',
         ]);
 
