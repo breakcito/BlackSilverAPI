@@ -26,6 +26,7 @@ class KardexProductosData
         ?int $id_origen = null,
         ?float $stock_anterior = null,
         ?float $stock_anterior_base = null,
+        ?float $costo_promedio = null,
         ?string $created_at = null
     ) {
         return KardexProducto::insertGetId([
@@ -42,6 +43,7 @@ class KardexProductosData
             'cantidad_movimiento_base' => $cantidad_movimiento_base,
             'stock_resultante' => $nuevo_stock,
             'stock_resultante_base' => $nuevo_stock_base,
+            'costo_promedio_base' => $costo_promedio,
             'created_at' => $created_at ?? now(),
         ]);
     }

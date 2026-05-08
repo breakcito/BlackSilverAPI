@@ -2,9 +2,9 @@
 
 namespace App\Modules\OrdenesCompra\Service;
 
-use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
 use App\Modules\OrdenesCompra\Data\TransferenciaOCData;
+use App\Services\KardexProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\OrdenCompra\EstadoOCTransferenciaDetalle;
@@ -102,7 +102,7 @@ class TransferenciaService
                 LotesProductosData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
 
                 // Registrar Kardex (Salida por Transferencia)
-                KardexProductosData::registrar_kardex(
+                KardexProductosService::registrar_kardex(
                     id_lote: $id_lote,
                     id_origen: $id_transferencia, // vinculamos a la cabecera
                     tipo_movimiento: KardexTipoMovimiento::Salida,

@@ -2,8 +2,8 @@
 
 namespace App\Modules\PrestamosAlmacenAtencion\Service;
 
-use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
+use App\Services\KardexProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Helpers\ArchivoHelper;
@@ -94,7 +94,8 @@ class RecepcionesReposicionService
                 // Obtener detalle de la reposicion para saber el producto
                 $repo_det = RecepcionesReposicionData::get_producto_id_by_repo_det($id_repo_det);
 
-                if (!$repo_det) continue;
+                if (!$repo_det)
+                    continue;
 
                 // 5. Gestión de Lotes (Nuevo vs Existente)
                 if ($es_nuevo_lote) {
@@ -112,12 +113,12 @@ class RecepcionesReposicionService
                         contenido_por_presentacion: $contenido_por_presentacion,
                         stock_actual_base: $cantidad_recep_base,
                         fecha_hora_ingreso: isset($item['fecha_ingreso'])
-                            ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
-                            : $fecha_mysql,
+                        ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
+                        : $fecha_mysql,
                         descripcion: $item['descripcion'] ?? "Ingreso por recepción de reposición",
                         fecha_vencimiento: isset($item['fecha_vencimiento'])
-                            ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
-                            : null
+                        ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
+                        : null
                     );
 
                     $ids_lotes_nuevos[] = $id_lote_destino;
@@ -144,7 +145,7 @@ class RecepcionesReposicionService
                 }
 
                 // 6. Registrar Kardex
-                KardexProductosData::registrar_kardex(
+                KardexProductosService::registrar_kardex(
                     id_lote: $id_lote_destino,
                     id_origen: $id_recepcion,
                     tipo_movimiento: KardexTipoMovimiento::Ingreso,
@@ -194,7 +195,8 @@ class RecepcionesReposicionService
     private static function actualizar_estados_post_recepcion(int $id_reposicion_detalle)
     {
         $detalle = RecepcionesReposicionData::get_reposicion_detalle_by_id($id_reposicion_detalle);
-        if (!$detalle) return;
+        if (!$detalle)
+            return;
 
         $total_recepcionado = RecepcionesReposicionData::get_cantidad_recepcionada_total_base_detalle($id_reposicion_detalle);
 

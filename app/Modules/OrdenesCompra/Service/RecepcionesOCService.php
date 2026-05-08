@@ -2,10 +2,10 @@
 
 namespace App\Modules\OrdenesCompra\Service;
 
-use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
 use App\Modules\OrdenesCompra\Data\OrdenCompraData;
 use App\Modules\OrdenesCompra\Data\RecepcionesOCData;
+use App\Services\KardexProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\OrdenCompra\EstadoOrdenCompra;
@@ -154,7 +154,7 @@ class RecepcionesOCService
                 }
 
                 // 7. Registrar Kardex
-                KardexProductosData::registrar_kardex(
+                KardexProductosService::registrar_kardex(
                     $id_lote_destino,
                     KardexTipoMovimiento::Ingreso,
                     KardexOrigenMovimiento::Recepcion,

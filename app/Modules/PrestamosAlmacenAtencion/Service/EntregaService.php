@@ -2,8 +2,8 @@
 
 namespace App\Modules\PrestamosAlmacenAtencion\Service;
 
-use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
+use App\Services\KardexProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoDetalle;
@@ -33,15 +33,7 @@ class EntregaService
         ?array $evidencias, // Archivos
         array $detalles
     ) {
-        return DB::transaction(function () use (
-            $id_prestamo,
-            $id_empleado_entrega,
-            $id_personal_recibe,
-            $fecha_hora_entrega,
-            $observacion,
-            $evidencias,
-            $detalles
-        ) {
+        return DB::transaction(function () use ($id_prestamo, $id_empleado_entrega, $id_personal_recibe, $fecha_hora_entrega, $observacion, $evidencias, $detalles) {
             $fecha_mysql = ($fecha_hora_entrega && $fecha_hora_entrega !== "null")
                 ? Carbon::parse($fecha_hora_entrega)->toDateTimeString()
                 : now()->toDateTimeString();
@@ -120,7 +112,7 @@ class EntregaService
                 LotesProductosData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
 
                 // 4.4 Registrar Kardex (Salida)
-                KardexProductosData::registrar_kardex(
+                KardexProductosService::registrar_kardex(
                     id_lote: $id_lote,
                     id_origen: $id_det_entrega,
                     tipo_movimiento: KardexTipoMovimiento::Salida,
@@ -161,7 +153,7 @@ class EntregaService
                     EntregasData::incrementar_entregado_reabastecimiento($id_sol_det, $cant_solicitud, $cant_base);
 
                     // LOG DE REABASTECIMIENTO (Original)
-                    $reabastecimientoLogGlosa = EstadoSolicitudDetalleLog::NuevaEntrega->getGlosa((string)$cant_solicitud);
+                    $reabastecimientoLogGlosa = EstadoSolicitudDetalleLog::NuevaEntrega->getGlosa((string) $cant_solicitud);
                     EntregasData::insertar_log_reabastecimiento(
                         $id_sol_det,
                         $id_empleado_entrega,
@@ -171,7 +163,7 @@ class EntregaService
                 }
 
                 // 4.7 LOG DE TRAZABILIDAD DEL PRÉSTAMO
-                $prestamoLogGlosa = EstadoPrestamoDetalleLog::NuevaEntrega->getGlosa((string)$cant_lote);
+                $prestamoLogGlosa = EstadoPrestamoDetalleLog::NuevaEntrega->getGlosa((string) $cant_lote);
                 PrestamosDetalleData::insert_detalle_log(
                     $id_prestamo_detalle,
                     $id_empleado_entrega,

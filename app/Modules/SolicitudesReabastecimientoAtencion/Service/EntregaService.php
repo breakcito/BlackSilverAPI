@@ -2,8 +2,9 @@
 
 namespace App\Modules\SolicitudesReabastecimientoAtencion\Service;
 
-use App\Data\KardexProductosData;
+
 use App\Data\LotesProductosData;
+use App\Services\KardexProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
@@ -55,16 +56,7 @@ class EntregaService
         ?array $evidencias, // archivos
         array $detalles // {id_solicitud_detalle, id_lote_producto, cantidad_base, cantidad_lote, cantidad_solicitud
     ) {
-        return DB::transaction(function () use (
-            $id_almacen_entrega,
-            $id_empleado_entrega,
-            $id_solicitud,
-            $id_personal_recibe,
-            $fecha_hora_entrega,
-            $observacion,
-            $evidencias,
-            $detalles
-        ) {
+        return DB::transaction(function () use ($id_almacen_entrega, $id_empleado_entrega, $id_solicitud, $id_personal_recibe, $fecha_hora_entrega, $observacion, $evidencias, $detalles) {
 
             // Procesar Evidencias si existen
             $evidenciasData = null;
@@ -126,7 +118,7 @@ class EntregaService
                 LotesProductosData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
 
                 // Registrar Kardex (Salida)
-                KardexProductosData::registrar_kardex(
+                KardexProductosService::registrar_kardex(
                     $id_lote,
                     KardexTipoMovimiento::Salida,
                     KardexOrigenMovimiento::Entrega,
@@ -169,7 +161,7 @@ class EntregaService
                 SolicitudesDetalleData::insert_detalle_log(
                     $id_detalle_sol,
                     $id_empleado_entrega,
-                    EstadoSolicitudDetalleLog::NuevaEntrega->getGlosa((string)$item['cantidad_solicitud']),
+                    EstadoSolicitudDetalleLog::NuevaEntrega->getGlosa((string) $item['cantidad_solicitud']),
                     EstadoSolicitudDetalleLog::NuevaEntrega
                 );
 
