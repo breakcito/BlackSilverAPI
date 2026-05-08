@@ -5,6 +5,7 @@ namespace App\Modules\Cotizaciones\Service;
 use App\Modules\Cotizaciones\Data\OrdenesCompraData;
 use App\Modules\Cotizaciones\Data\ComparativoData;
 use App\Modules\Cotizaciones\Data\CotizacionesData;
+use App\Data\LotesProductosData;
 use App\Shared\Enums\_Generic\MetodoPago;
 use App\Shared\Enums\_Generic\Periodo;
 use App\Shared\Enums\_Generic\TipoDespachoCompra;
@@ -243,6 +244,19 @@ class CotizacionesService
                                     estado: EstadoOrdenCompraDetalleLog::Pendiente,
                                 );
                             }
+
+                            // 8. Actualizar costo promedio de cada producto aprobado
+                            // Agrupar precios_base por id_producto
+                            $costos_por_producto = [];
+                            foreach ($detalles_aprobados_data as $det) {
+                                $precio_oc = $mapa_precios_oc[$det->id_cotizacion_detalle] ?? (float) $det->precio_unitario;
+                                $contenido = max((float) $det->contenido_por_presentacion, 1);
+                                $precio_base = round($precio_oc / $contenido, 4);
+                                $costos_por_producto[(int) $det->id_producto][] = $precio_base;
+                            }
+                            foreach ($costos_por_producto as $id_prod => $costos) {
+                                LotesProductosData::actualizar_costo_promedio($id_prod, $costos);
+                            }
                         }
                     }
                 }
@@ -372,6 +386,18 @@ class CotizacionesService
                         id_empleado: $id_empleado,
                         estado: EstadoOrdenCompraDetalleLog::Pendiente,
                     );
+                }
+
+                // 7. Actualizar costo promedio de cada producto aprobado
+                $costos_por_producto = [];
+                foreach ($detalles_aprobados_data as $det) {
+                    $precio_oc = $precios_map[$det->id_cotizacion_detalle] ?? (float) $det->precio_unitario;
+                    $contenido = max((float) $det->contenido_por_presentacion, 1);
+                    $precio_base = round($precio_oc / $contenido, 4);
+                    $costos_por_producto[(int) $det->id_producto][] = $precio_base;
+                }
+                foreach ($costos_por_producto as $id_prod => $costos) {
+                    LotesProductosData::actualizar_costo_promedio($id_prod, $costos);
                 }
 
                 return ApiResponse::success(

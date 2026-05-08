@@ -209,4 +209,34 @@ class LotesProductosData
 
         return (float) $resultado->costo_promedio_base ?? 0.0;
     }
+
+    /**
+     * Actualiza el costo promedio por unidad base de un producto al registrar una nueva compra.
+     *
+     * Fórmula:
+     *   nuevo_promedio = (costo_actual + suma(nuevos_costos)) / (1 + cantidad_nuevos)
+     *
+     * @param int   $id_producto       ID del producto a actualizar.
+     * @param array $nuevos_costos_base Lista de precios por unidad base de la nueva compra.
+     *                                  Ej: [3.2, 3.2] si se compraron 2 lotes del mismo producto.
+     */
+    public static function actualizar_costo_promedio(int $id_producto, array $nuevos_costos_base): void
+    {
+        if (empty($nuevos_costos_base)) return;
+
+        // Obtener el costo promedio actual del producto
+        $costo_actual = (float) DB::selectOne(
+            'SELECT costo_promedio_base FROM producto WHERE id = :id',
+            ['id' => $id_producto]
+        )?->costo_promedio_base ?? 0.0;
+
+        // Calcular nuevo promedio: (actual + nuevo1 + nuevo2 + ...) / (1 + N)
+        $suma_nuevos = array_sum($nuevos_costos_base);
+        $divisor = 1 + count($nuevos_costos_base);
+        $nuevo_promedio = round(($costo_actual + $suma_nuevos) / $divisor, 4);
+
+        DB::table('producto')
+            ->where('id', $id_producto)
+            ->update(['costo_promedio_base' => $nuevo_promedio]);
+    }
 }
