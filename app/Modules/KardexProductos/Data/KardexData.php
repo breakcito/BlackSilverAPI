@@ -19,6 +19,7 @@ class KardexData
             cat.nombre as categoria,
             p.nombre AS producto,
             lp.correlativo,
+            lp.contenido_por_presentacion,
             um_lote.nombre as unidad_lote,
             um_lote.abreviatura as unidad_lote_abv,
             um_base.nombre as unidad_base,
@@ -32,6 +33,7 @@ class KardexData
             k.cantidad_movimiento_base,
             k.stock_resultante,
             k.stock_resultante_base,
+            k.costo_promedio_base,
             k.created_at
         FROM
             kardex_producto k
