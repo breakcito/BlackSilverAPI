@@ -3,6 +3,7 @@
 namespace App\Modules\RequerimientosAlmacenAtencion\Service;
 
 use App\Data\AlmacenesData;
+use App\Data\EmpleadosData;
 use App\Data\LotesProductosData;
 use App\Data\UnidadesMedidaData;
 use App\Shared\Responses\ApiResponse;
@@ -42,7 +43,7 @@ class AuxService
     public static function get_minas_by_almacen(int $id_almacen)
     {
         $minas = RequerimientosData::get_minas_by_almacen($id_almacen);
-        return ApiResponse::success(['minas' => $minas]);
+        return ApiResponse::success($minas);
     }
 
     /**
@@ -57,6 +58,15 @@ class AuxService
             'responsables' => $responsables,
             'labores' => $labores,
         ]);
+    }
+
+    /**
+     * Busca los empleados por nombre, codigo
+     */
+    public static function get_empleados()
+    {
+        $data = EmpleadosData::get_empleados();
+        return ApiResponse::success($data);
     }
 
     /**

@@ -110,8 +110,7 @@ class RequerimientosData
         $sql = '
         SELECT DISTINCT
             em.id AS id_empleado,
-            em.nombre,
-            CONCAT(em.nombre, " ", em.apellido) AS empleado
+            CONCAT(em.nombre, " ", em.apellido) AS nombre_completo
         FROM
             empleado em
         INNER JOIN responsable_mina res ON
@@ -120,7 +119,7 @@ class RequerimientosData
             res.id_mina = :id_mina AND
             res.estado = "Activo" AND
             res.fecha_fin IS NULL
-        ORDER BY em.nombre ASC
+        ORDER BY nombre_completo ASC
         ';
 
         return DB::select($sql, ['id_mina' => $id_mina]);

@@ -19,6 +19,9 @@ class EntregasDetalleData
         float $cantidad_base,
         float $cantidad_lote,
         float $cantidad_requerimiento,
+        float $costo_promedio,
+        float $costo_unidad_lote,
+        float $subtotal,
     ) {
         return RequerimientoAlmacenEntregaDetalle::insertGetId([
             'id_requerimiento_almacen_entrega' => $id_entrega,
@@ -27,6 +30,9 @@ class EntregasDetalleData
             'cantidad_base' => $cantidad_base,
             'cantidad_lote' => $cantidad_lote,
             'cantidad_requerimiento' => $cantidad_requerimiento,
+            'costo_promedio_base' => $costo_promedio,
+            'costo_unidad_lote' => $costo_unidad_lote,
+            'subtotal' => $subtotal,
             'created_at' => now(),
             'estado' => EstadoRequerimientoDetalleEntrega::RecepcionCompleta->value,
         ]);

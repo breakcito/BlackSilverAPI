@@ -17,6 +17,11 @@ class RequerimientoAlmacenEntregaDetalle extends Model
         'cantidad_base',
         'cantidad_lote',
         'cantidad_requerimiento',
+        //
+        'costo_promedio_base',
+        'costo_unidad_lote',
+        'subtotal',
+        //
         'created_at',
         'estado',
     ];

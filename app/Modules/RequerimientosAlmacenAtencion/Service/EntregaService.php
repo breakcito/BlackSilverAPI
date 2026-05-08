@@ -97,6 +97,12 @@ class EntregaService
             foreach ($detalles as $item) {
                 $id_rad = $item['id_requerimiento_almacen_detalle'];
                 $id_lote = $item['id_lote_producto'];
+                $lote = $lotesMap->get((int) $id_lote);
+
+                // Calcular el costo de lo entregado
+                $costo_promedio_base = LotesProductosData::get_costo_promedio_producto($id_lote);
+                $costo_unidad_lote = (float) $costo_promedio_base * (float) $lote['contenido_por_presentacion'];
+                $subtotal = $costo_unidad_lote * $item['cantidad_base'];
 
                 // Crear Detalle de Entrega
                 $id_detalle_entrega = EntregasDetalleData::crear_detalle_entrega(
@@ -105,11 +111,13 @@ class EntregaService
                     $id_lote,
                     $item['cantidad_base'],
                     $item['cantidad_lote'],
-                    $item['cantidad_requerimiento']
+                    $item['cantidad_requerimiento'],
+                    $costo_promedio_base,
+                    $costo_unidad_lote,
+                    $subtotal
                 );
 
                 // Obtener lote desde el mapa pre-cargado
-                $lote = $lotesMap->get((int) $id_lote);
                 $stock_anterior = $lote['stock_actual'];
                 $stock_anterior_base = $lote['stock_actual_base'];
                 $nuevo_stock = $stock_anterior - $item['cantidad_lote'];

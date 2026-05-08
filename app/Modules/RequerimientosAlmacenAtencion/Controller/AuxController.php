@@ -61,6 +61,13 @@ class AuxController extends Controller
         return response()->json($result);
     }
 
+    public function get_empleados(Request $request): JsonResponse
+    {
+        $result = AuxService::get_empleados();
+
+        return response()->json($result);
+    }
+
     /**
      * Obtener lotes disponibles para varios productos (Batch).
      */
@@ -78,6 +85,6 @@ class AuxController extends Controller
 
         $lotes = AuxService::get_lotes_disponibles((int) $id_almacen, $ids_productos);
 
-        return response()->json(ApiResponse::success($lotes));
+        return response()->json($lotes);
     }
 }
