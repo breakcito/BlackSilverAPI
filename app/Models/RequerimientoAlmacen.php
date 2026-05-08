@@ -44,7 +44,7 @@ class RequerimientoAlmacen extends Model
             alm.nombre AS almacen_destino,
             --
             ra.id_empleado_solicitante,
-            CONCAT(emp.nombre, " ", emp.apellido) AS solicitante,
+            CONCAT(COALESCE(con.nombre, emp.nombre), " ", COALESCE(con.apellido, emp.apellido)) AS solicitante,
             CONCAT(empr.nombre, " ", empr.apellido) AS responsable,
             --
             ra.id_mina,
@@ -61,7 +61,8 @@ class RequerimientoAlmacen extends Model
             requerimiento_almacen ra
         INNER JOIN mina m ON m.id = ra.id_mina
         INNER JOIN almacen alm ON alm.id = ra.id_almacen_destino
-        INNER JOIN empleado emp ON emp.id = ra.id_empleado_solicitante
+        LEFT JOIN contratista con ON con.id = ra.id_empleado_solicitante
+        LEFT JOIN empleado emp ON emp.id = ra.id_empleado_solicitante
         INNER JOIN empleado empr ON empr.id = ra.id_empleado_registro
         WHERE 1=1
         ';

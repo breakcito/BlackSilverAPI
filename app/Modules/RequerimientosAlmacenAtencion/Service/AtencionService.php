@@ -50,7 +50,7 @@ class AtencionService
      * ]
      */
     public static function registrar_requerimiento(
-        int $id_empleado_solicitante,
+        int $id_contratista_solicitante,
         int $id_empleado_registro,
         int $id_mina,
         int $id_almacen_destino,
@@ -62,7 +62,7 @@ class AtencionService
         ?array $evidencias = null
     ) {
         return DB::transaction(function () use (
-            $id_empleado_solicitante,
+            $id_contratista_solicitante,
             $id_empleado_registro,
             $id_mina,
             $id_almacen_destino,
@@ -84,7 +84,7 @@ class AtencionService
 
             // 3. Crear cabecera
             $id_requerimiento = RequerimientosData::crear_requerimiento(
-                $id_empleado_solicitante,
+                $id_contratista_solicitante,
                 $id_empleado_registro,
                 $id_mina,
                 $id_almacen_destino,
@@ -120,7 +120,7 @@ class AtencionService
                     $detalle['id_producto_destino'] ?? null
                 );
 
-                RequerimientosDetalleData::registrar_trazabilidad($id_detalle, $id_empleado_solicitante);
+                RequerimientosDetalleData::registrar_trazabilidad($id_detalle, $id_contratista_solicitante);
             }
 
             // 5. Obtener resumen para el front

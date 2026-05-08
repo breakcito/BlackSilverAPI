@@ -26,13 +26,13 @@ class PerfilData
             rol.nombre as nombre_rol,
             car.nombre as nombre_cargo,
             are.nombre as nombre_area,
-            mn.nombre as mina_nombre
+            em.razon_social as empresa_nombre
         FROM usuario usu
         INNER JOIN empleado emp ON emp.id = usu.id_empleado
         INNER JOIN rol ON rol.id = usu.id_rol
         LEFT JOIN cargo car ON car.id = emp.id_cargo
         LEFT JOIN area are ON are.id = car.id_area
-        LEFT JOIN mina mn ON mn.id = emp.id_mina
+        LEFT JOIN empresa em ON em.id = emp.id_empresa
         WHERE usu.id = :id_usuario
         ';
 

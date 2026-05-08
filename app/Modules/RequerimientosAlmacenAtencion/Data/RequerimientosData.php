@@ -109,12 +109,12 @@ class RequerimientosData
     {
         $sql = '
         SELECT DISTINCT
-            em.id AS id_empleado,
-            CONCAT(em.nombre, " ", em.apellido) AS nombre_completo
+            c.id AS id_contratista,
+            CONCAT(c.nombre, " ", c.apellido) AS nombre_completo
         FROM
-            empleado em
+            contratista c
         INNER JOIN responsable_mina res ON
-            res.id_empleado = em.id
+            res.id_contratista = c.id
         WHERE
             res.id_mina = :id_mina AND
             res.estado = "Activo" AND
@@ -147,7 +147,7 @@ class RequerimientosData
     }
 
     public static function crear_requerimiento(
-        int $id_empleado_solicitante,
+        int $id_contratista_solicitante,
         int $id_empleado_registro,
         int $id_mina,
         int $id_almacen_destino,
@@ -159,7 +159,7 @@ class RequerimientosData
         ?array $evidencias = null
     ) {
         return RequerimientoAlmacen::insertGetId([
-            'id_empleado_solicitante' => $id_empleado_solicitante,
+            'id_empleado_solicitante' => $id_contratista_solicitante,
             'id_empleado_registro' => $id_empleado_registro,
             'id_mina' => $id_mina,
             'id_almacen_destino' => $id_almacen_destino,
