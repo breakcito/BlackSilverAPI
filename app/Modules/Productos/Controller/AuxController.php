@@ -8,17 +8,6 @@ use Illuminate\Http\Request;
 
 class AuxController
 {
-
-    /**
-     * Obtener unidades de medida base
-     */
-    public function get_unidades_medida(Request $request): JsonResponse
-    {
-        $result = AuxService::get_unidades_medida();
-
-        return response()->json($result);
-    }
-
     /**
      * Obtener categorías internas del módulo de productos
      */

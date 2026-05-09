@@ -156,7 +156,6 @@ class RecepcionesOCService
                         numero_correlativo: $correlativoData['numero_correlativo'],
                         stock_inicial: $stock_inicial,
                         contenido_por_presentacion: $contenido_por_presentacion,
-                        stock_actual_base: $cantidad_recep_base,
                         fecha_hora_ingreso: isset($item['fecha_ingreso'])
                         ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
                         : $fecha_mysql,

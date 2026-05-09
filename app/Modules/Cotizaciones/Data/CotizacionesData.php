@@ -34,8 +34,6 @@ class CotizacionesData
         //
         string $metodo_pago,
         string $moneda,
-        ?float $tipo_cambio_venta_referencial = null,
-        bool $es_auditable = false,
         //
         float $costo_flete,
         float $otros_gastos,
@@ -46,6 +44,8 @@ class CotizacionesData
         float $monto_igv,
         float $total_despues_igv,
         //
+        bool $es_auditable = false,
+        ?float $tipo_cambio_venta_referencial = null,
         ?string $observacion = null,
         ?string $fecha_vencimiento_pago = null,
         ?string $evidencias = null,

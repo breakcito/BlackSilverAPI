@@ -2,6 +2,7 @@
 
 namespace App\Data;
 
+use App\Models\Producto;
 use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
@@ -11,30 +12,107 @@ class ProductosData
     /**
      * Listado de productos
      */
-    public static function get_productos()
-    {
+    public static function get_productos(
+        ?EstadoBase $estado = EstadoBase::Activo,
+        ?bool $con_categorias_consumidoras = false
+    ) {
         $sql = '
-            SELECT 
-                p.id AS id_producto,
-                p.nombre as nombre,
-                p.es_perecible,
-                p.es_auditable,
-                --
-                c.id AS id_categoria,
-                c.nombre AS categoria,
-                --
-                p.id_unidad_medida_base,
-                um.nombre AS unidad_medida_base,
-                um.abreviatura AS unidad_medida_base_abv
-            FROM producto p
-            INNER JOIN categoria c ON c.id = p.id_categoria
-            INNER JOIN unidad_medida um ON um.id = p.id_unidad_medida_base
-            WHERE p.estado = :estado
-            ORDER BY p.nombre ASC
+        SELECT
+            p.id as id_producto,
+            p.nombre as nombre,
+            
+            -- categoria
+            p.id_categoria,
+            c.nombre AS categoria,
+            c.es_consumible,
+            -- las categorias que consumen esta categoria del producto
+            CASE
+            	WHEN :con_categorias_consumidoras = 1 THEN
+                (
+                    SELECT 
+                        GROUP_CONCAT(DISTINCT cc.id_categoria_consumidora)
+                    FROM categoria_consumible cc
+                    WHERE 
+                        cc.id_categoria_consumible = c.id
+                )
+                ELSE NULL
+            END AS ids_categorias_consumidoras, 
+            
+            p.stock_minimo_base, -- cuanto deberia tener como minimo
+            
+            -- unidad base
+            p.id_unidad_medida_base,
+            um_base.nombre as unidad_medida_base,
+            um_base.abreviatura as unidad_medida_base_abv,
+            
+            -- indicadores del producto
+            p.es_perecible,
+            p.es_auditable,
+            
+            -- cuantos dias antes debemos alertar el vencimiento de productos
+            p.dias_espera_vencimiento
+        FROM producto p
+        INNER JOIN categoria c ON
+            c.id = p.id_categoria
+        INNER JOIN unidad_medida um_base ON
+            um_base.id = p.id_unidad_medida_base
+        WHERE
+            p.estado = :estado
         ';
 
-        return DB::select($sql, [
-            'estado' => EstadoBase::Activo->value
+        $params = [];
+
+        $params['estado'] = $estado->value;
+        $params['con_categorias_consumidoras'] = $con_categorias_consumidoras ? 1 : 0;
+
+        $sql .= ' ORDER BY p.nombre ASC';
+
+        return DB::select($sql, $params);
+    }
+
+    /**
+     * Obtiene el costo promedio del producto
+     */
+    public static function get_costo_promedio_producto(int $id_producto): float
+    {
+        $sql = '
+        SELECT
+            pr.costo_promedio_base
+        FROM
+            producto pr
+        WHERE pr.id = :id_producto
+        ';
+
+        $resultado = DB::selectOne($sql, [
+            'id_producto' => $id_producto
         ]);
+
+        return (float) $resultado->costo_promedio_base ?? 0.0;
+    }
+
+    /**
+     * Actualiza el costo promedio por unidad base de un producto al registrar una nueva compra.
+     *
+     * Fórmula:
+     *   nuevo_promedio = (costo_actual + suma(nuevos_costos)) / (1 + cantidad_nuevos)
+     *
+     * @param int   $id_producto       ID del producto a actualizar.
+     * @param array $nuevos_costos_base Lista de precios por unidad base de la nueva compra.
+     *                                  Ej: [3.2, 3.2] si se compraron 2 lotes del mismo producto.
+     */
+    public static function actualizar_costo_promedio(int $id_producto, array $nuevos_costos_base): void
+    {
+        if (empty($nuevos_costos_base))
+            return;
+
+        // costo promedio actual
+        $costo_actual = self::get_costo_promedio_producto($id_producto);
+
+        // Calcular nuevo promedio: (actual + nuevo1 + nuevo2 + ...) / (1 + N)
+        $suma_nuevos = array_sum($nuevos_costos_base);
+        $divisor = 1 + count($nuevos_costos_base);
+        $nuevo_promedio = round(($costo_actual + $suma_nuevos) / $divisor, 4);
+
+        Producto::where('id', $id_producto)->update(['costo_promedio_base' => $nuevo_promedio]);
     }
 }

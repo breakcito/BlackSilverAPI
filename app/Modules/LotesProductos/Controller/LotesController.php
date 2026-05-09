@@ -15,7 +15,7 @@ class LotesController extends Controller
     public function get_resumen_lotes(Request $request): JsonResponse
     {
         $id_almacen = $request->query('id_almacen');
-        if (! $id_almacen) {
+        if (!$id_almacen) {
             return response()->json(ApiResponse::error('El id_almacen es requerido'), 400);
         }
 
@@ -65,14 +65,11 @@ class LotesController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id_lote' => 'required|integer',
-            'nuevo_stock' => 'required|numeric|min:0',
             'nuevo_stock_base' => 'required|numeric|min:0',
             'motivo' => 'nullable|string',
         ], [
             'id_lote.required' => 'El lote es requerido',
-            'nuevo_stock.required' => 'El nuevo stock es requerido',
             'nuevo_stock_base.required' => 'El nuevo stock base es requerido',
-            'nuevo_stock.min' => 'El stock no puede ser negativo',
             'nuevo_stock_base.min' => 'El stock base no puede ser negativo',
         ]);
 
@@ -82,7 +79,6 @@ class LotesController extends Controller
 
         $result = LotesService::ajustar_stock(
             (int) $request->id_lote,
-            (float) $request->nuevo_stock,
             (float) $request->nuevo_stock_base,
             $request->motivo ?? null
         );

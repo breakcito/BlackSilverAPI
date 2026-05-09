@@ -24,15 +24,4 @@ class KardexController extends Controller
 
         return response()->json($result);
     }
-
-    public function get_almacenes(Request $request): JsonResponse
-    {
-        $authUser = $request->attributes->get('auth_user');
-        if (!$authUser) {
-            return response()->json(ApiResponse::error('No autorizado'), 401);
-        }
-
-        $result = KardexService::get_almacenes($authUser->id_empleado);
-        return response()->json($result);
-    }
 }

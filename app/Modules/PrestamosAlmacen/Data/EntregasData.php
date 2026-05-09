@@ -4,6 +4,8 @@ namespace App\Modules\PrestamosAlmacen\Data;
 
 use App\Models\PrestamoAlmacenEntrega;
 use App\Models\PrestamoAlmacenEntregaDetalle;
+use App\Models\PrestamoAlmacenEntregaRecepcion;
+use App\Models\PrestamoAlmacenEntregaRecepcionDetalle;
 
 class EntregasData
 {
@@ -29,7 +31,7 @@ class EntregasData
      */
     public static function get_recepciones_por_entrega(int $id_entrega)
     {
-        return \App\Models\PrestamoAlmacenEntregaRecepcion::get_recepciones(id_entrega: $id_entrega);
+        return PrestamoAlmacenEntregaRecepcion::get_recepciones(id_entrega: $id_entrega);
     }
 
     /**
@@ -37,6 +39,6 @@ class EntregasData
      */
     public static function get_detalles_recepcion(int $id_recepcion)
     {
-        return \App\Models\PrestamoAlmacenEntregaRecepcionDetalle::get_detalles(id_recepcion: $id_recepcion);
+        return PrestamoAlmacenEntregaRecepcionDetalle::get_detalles(id_recepcion: $id_recepcion);
     }
 }

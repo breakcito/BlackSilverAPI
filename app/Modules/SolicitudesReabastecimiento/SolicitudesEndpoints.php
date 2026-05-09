@@ -1,7 +1,6 @@
 <?php
 
 use App\Modules\SolicitudesReabastecimiento\Controller\SolicitudesController;
-use App\Modules\SolicitudesReabastecimiento\Controller\AuxController;
 use App\Modules\SolicitudesReabastecimiento\Controller\EntregasController;
 use App\Modules\SolicitudesReabastecimiento\Controller\RecepcionesController;
 use Illuminate\Support\Facades\Route;
@@ -36,13 +35,5 @@ Route::middleware('auth.jwt.custom')->prefix('solicitudes-reabastecimiento')->gr
         Route::post('/registrar-recepcion-prestamo', 'registrar_recepcion_prestamo');
         // Obtener el historial de recepciones de una entrega
         Route::get('/historial', 'get_historial_recepciones_entrega');
-    });
-
-    Route::controller(AuxController::class)->prefix('catalogos')->group(function () {
-        // Obtener la lista de almacenes donde el empleado es responsable,
-        // productos y unidades de medida
-        Route::get('/', 'get_catalogos');
-        // Obtener los lotes disponibles del almacén solicitante para la recepcion
-        Route::get('/lotes-destino', 'get_lotes_destino');
     });
 });

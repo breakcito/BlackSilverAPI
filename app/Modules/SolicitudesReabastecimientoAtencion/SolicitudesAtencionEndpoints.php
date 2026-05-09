@@ -1,5 +1,3 @@
-
-
 <?php
 
 use App\Modules\SolicitudesReabastecimientoAtencion\Controller\SolicitudesController;
@@ -24,11 +22,10 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::post('/', 'crear_entrega'); // registrar una entrega
         });
 
-        Route::prefix('auxiliares')->controller(AuxController::class)->group(function () {
-            Route::get('/almacenes', 'get_almacenes'); // listar almacenes principales o secundarios
-            Route::get('/personal-externo', 'get_personal_externo'); // listar personal externo para recibir material
-            Route::post('/personal-externo', 'crear_personal_externo'); // agregar personal externo
-            Route::get('/lotes', 'get_lotes_disponibles'); // listar lotes disponibles de un almacen
+        Route::prefix('aux')->controller(AuxController::class)->group(function () {
+            Route::get('/almacenes-con-stock', 'get_almacenes_con_stock');
+            Route::get('/stock-total-almacen', 'get_stock_total_almacen_por_productos');
+
         });
 
         // Prestamos
@@ -36,11 +33,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::get('/por-solicitud', 'get_prestamos_por_solicitud');
             Route::post('/nuevo', 'crear_prestamo');
             Route::get('/ver', 'obtener_por_id');
-
-            // Auxiliares para prestamos
-            Route::get('/almacenes-con-stock', 'get_almacenes_con_stock');
-            Route::get('/stock-total-almacen', 'get_stock_total_almacen_por_productos');
-            Route::get('/lotes-disponibles', 'get_lotes_disponibles_por_almacen_y_producto');
         });
     });
 });

@@ -4,7 +4,6 @@ namespace App\Modules\OrdenesCompra\Data;
 
 use App\Models\OrdenCompraTransferencia;
 use App\Models\OrdenCompraTransferenciaDetalle;
-use Illuminate\Support\Facades\DB;
 
 class TransferenciaOCData
 {

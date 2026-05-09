@@ -104,47 +104,6 @@ class RequerimientosDetalleData
     /**
      * Obtener detalle por id
      */
-    /**
-     * Obtiene la lista de productos junto a su unidad de medida base
-     */
-    public static function get_productos()
-    {
-        $sql = '
-        SELECT
-            pr.id AS id_producto,
-            pr.nombre,
-            pr.es_auditable,
-            pr.es_perecible,
-			--
-            pr.id_unidad_medida_base,
-            uni.nombre as unidad_medida_base,
-            uni.abreviatura as unidad_medida_base_abv,
-            --
-            cat.id as id_categoria,
-            cat.nombre as categoria,
-            cat.es_consumible,
-            --
-            (
-                SELECT 
-                	GROUP_CONCAT(DISTINCT cc.id_categoria_consumidora)
-                FROM categoria_consumible cc
-                WHERE 
-                	cc.id_categoria_consumible = cat.id
-            ) as ids_categorias_consumidoras
-        FROM
-            producto pr
-        INNER JOIN unidad_medida uni ON
-            uni.id = pr.id_unidad_medida_base
-        INNER JOIN categoria cat ON
-            cat.id = pr.id_categoria
-        WHERE
-            pr.estado = "Activo"
-        ORDER BY
-            pr.nombre;
-        ';
-
-        return DB::select($sql, []);
-    }
 
     /**
      * Crear el detalle de un requerimiento de almacén.

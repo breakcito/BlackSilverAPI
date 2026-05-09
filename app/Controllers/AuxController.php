@@ -1,20 +1,25 @@
 <?php
 
-namespace App\Modules\OrdenesCompra\Controller;
+namespace App\Controllers;
 
-use App\Modules\OrdenesCompra\Service\AuxService;
+use App\Services\AlmacenesService;
+use App\Services\EmpleadosService;
+use App\Services\LotesProductosService;
+use App\Services\PersonalExternoService;
+use App\Services\UnidadesMedidaService;
 use App\Shared\Responses\ApiResponse;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Illuminate\Http\JsonResponse;
 
-class AuxController
+class AuxController extends Controller
 {
     /**
      * Catálogo de almacenes para el módulo de OC.
      */
     public function get_almacenes(): JsonResponse
     {
-        return response()->json(AuxService::get_almacenes());
+        return response()->json(AlmacenesService::get_almacenes());
     }
 
     /**
@@ -29,12 +34,12 @@ class AuxController
             return response()->json(ApiResponse::error('ID de almacén y arreglo de productos son requeridos'), 400);
         }
 
-        return response()->json(AuxService::get_lotes_disponibles($id_almacen, $id_productos));
+        return response()->json(LotesProductosService::get_lotes_disponibles($id_almacen, $id_productos));
     }
 
     public function get_personal_externo(Request $request): JsonResponse
     {
-        $result = AuxService::get_personal_externo();
+        $result = PersonalExternoService::get_personal();
         return response()->json($result);
     }
 
@@ -46,7 +51,7 @@ class AuxController
             'dni' => 'nullable|string',
         ]);
 
-        $result = AuxService::crear_personal_externo(
+        $result = PersonalExternoService::crear_personal(
             nombre: $request->input('nombre'),
             apellido: $request->input('apellido'),
             dni: $request->input('dni')
@@ -54,4 +59,21 @@ class AuxController
 
         return response()->json($result);
     }
+
+    public function get_empleados(Request $request): JsonResponse
+    {
+        $result = EmpleadosService::get_empleados();
+
+        return response()->json($result);
+    }
+
+    /**
+     * Obtiene las unidades de medida
+     */
+    public function get_unidades_medida(): JsonResponse
+    {
+        $result = UnidadesMedidaService::get_unidades();
+        return response()->json($result);
+    }
+
 }

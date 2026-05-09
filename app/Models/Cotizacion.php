@@ -70,8 +70,6 @@ class Cotizacion extends Model
         //
         string $metodo_pago,
         string $moneda,
-        ?float $tipo_cambio_venta_referencial = null,
-        bool $es_auditable = false,
         //
         float $costo_flete,
         float $otros_gastos,
@@ -82,6 +80,8 @@ class Cotizacion extends Model
         float $monto_igv,
         float $total_despues_igv,
         //
+        bool $es_auditable = false,
+        ?float $tipo_cambio_venta_referencial = null,
         ?string $observacion = null,
         ?string $fecha_vencimiento_pago = null,
         ?string $evidencias = null,
@@ -127,7 +127,6 @@ class Cotizacion extends Model
         int $id_proveedor,
         string $metodo_pago,
         string $moneda,
-        ?float $tipo_cambio_venta_referencial = null,
         float $costo_flete,
         float $otros_gastos,
         float $total_antes_igv,
@@ -135,6 +134,7 @@ class Cotizacion extends Model
         float $porcentaje_igv,
         float $monto_igv,
         float $total_despues_igv,
+        ?float $tipo_cambio_venta_referencial = null,
         ?string $observacion = null,
         ?string $fecha_vencimiento_pago = null,
     ): bool {
@@ -156,8 +156,8 @@ class Cotizacion extends Model
     }
 
     public static function get_cotizaciones(
-        ?int $id_cotizacion = null,
         null|int|array $ids_comparativos = null,
+        ?int $id_cotizacion = null,
     ) {
         $sql = '
         SELECT DISTINCT

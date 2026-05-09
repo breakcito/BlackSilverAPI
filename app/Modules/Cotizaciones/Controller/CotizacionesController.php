@@ -2,7 +2,6 @@
 
 namespace App\Modules\Cotizaciones\Controller;
 
-use App\Modules\Cotizaciones\Service\AuxService;
 use App\Modules\Cotizaciones\Service\CotizacionesService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;

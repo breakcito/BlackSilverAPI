@@ -13,8 +13,10 @@ class LotesProductosData
      * tipo de entregas o ingresos. Solo se traen lotes activos, con stock y
      * no vencidos.
      */
-    public static function get_lotes_disponibles(int $id_almacen, array $ids_productos)
-    {
+    public static function get_lotes_disponibles(
+        int $id_almacen,
+        array $ids_productos
+    ) {
         // 1. Creamos los placeholders (?,?,?)
         $placeholders = implode(',', array_fill(0, count($ids_productos), '?'));
 
@@ -128,17 +130,22 @@ class LotesProductosData
         int $id_unidad_medida,
         int $id_almacen,
         int|null $id_origen,
+        //
         string|null $tabla_origen,
+        //
         string $correlativo,
         int $numero_correlativo,
-        float $stock_inicial,
+        //
         float $contenido_por_presentacion,
-        float $stock_actual_base,
+        float $stock_inicial,
+        //
+        float $costo_promedio_base,
+        //
         string $fecha_hora_ingreso,
         ?string $descripcion = null,
         ?string $fecha_vencimiento = null
     ) {
-        $costo_promedio_base = self::get_costo_promedio_producto($id_producto);
+        $stock_actual_base = $stock_inicial * $contenido_por_presentacion;
         $costo_por_unidad = $costo_promedio_base * $contenido_por_presentacion;
         return LoteProducto::insertGetId([
             'id_producto' => $id_producto,
@@ -216,36 +223,5 @@ class LotesProductosData
         ]);
 
         return (float) $resultado->costo_promedio_base ?? 0.0;
-    }
-
-    /**
-     * Actualiza el costo promedio por unidad base de un producto al registrar una nueva compra.
-     *
-     * Fórmula:
-     *   nuevo_promedio = (costo_actual + suma(nuevos_costos)) / (1 + cantidad_nuevos)
-     *
-     * @param int   $id_producto       ID del producto a actualizar.
-     * @param array $nuevos_costos_base Lista de precios por unidad base de la nueva compra.
-     *                                  Ej: [3.2, 3.2] si se compraron 2 lotes del mismo producto.
-     */
-    public static function actualizar_costo_promedio(int $id_producto, array $nuevos_costos_base): void
-    {
-        if (empty($nuevos_costos_base))
-            return;
-
-        // Obtener el costo promedio actual del producto
-        $costo_actual = (float) DB::selectOne(
-            'SELECT costo_promedio_base FROM producto WHERE id = :id',
-            ['id' => $id_producto]
-        )?->costo_promedio_base ?? 0.0;
-
-        // Calcular nuevo promedio: (actual + nuevo1 + nuevo2 + ...) / (1 + N)
-        $suma_nuevos = array_sum($nuevos_costos_base);
-        $divisor = 1 + count($nuevos_costos_base);
-        $nuevo_promedio = round(($costo_actual + $suma_nuevos) / $divisor, 4);
-
-        DB::table('producto')
-            ->where('id', $id_producto)
-            ->update(['costo_promedio_base' => $nuevo_promedio]);
     }
 }

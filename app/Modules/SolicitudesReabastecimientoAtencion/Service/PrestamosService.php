@@ -49,7 +49,8 @@ class PrestamosService
             foreach ($detalles as $detalle) {
                 // Obtener el detalle de la solicitud usando la capa de datos de la vista
                 $srd = SolicitudesDetalleData::get_detalle_para_prestamo($detalle['id_solicitud_reabastecimiento_detalle']);
-                if (!$srd) continue;
+                if (!$srd)
+                    continue;
 
                 SolicitudesDetalleData::insert_detalle_log(
                     $srd->id,
@@ -100,7 +101,8 @@ class PrestamosService
     public static function get_prestamo_por_id(int $id_prestamo)
     {
         $cabecera = (array) PrestamosData::get_prestamo_por_id($id_prestamo);
-        if (!$cabecera) return ApiResponse::error('Préstamo no encontrado');
+        if (!$cabecera)
+            return ApiResponse::error('Préstamo no encontrado');
 
         $cabecera['detalles'] = PrestamosData::get_detalles_por_prestamo($id_prestamo);
         return ApiResponse::success($cabecera);

@@ -21,7 +21,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
         });
 
         Route::prefix('aux')->controller(AuxController::class)->group(function () {
-            Route::get('/unidades-medida', 'get_unidades_medida');
             Route::get('/categorias', 'get_categorias');
         });
     });

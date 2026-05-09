@@ -3,7 +3,6 @@
 namespace App\Modules\SolicitudesReabastecimientoAtencion\Data;
 
 use App\Models\SolicitudReabastecimiento;
-use Illuminate\Support\Facades\DB;
 
 class SolicitudesData
 {

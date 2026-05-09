@@ -28,7 +28,7 @@ class UnidadesMedidaData
         if ($id_unidad_medida) {
             $sql .= " AND id = :id_unidad_medida";
             $params['id_unidad_medida'] = $id_unidad_medida;
-            return DB::select($sql, $params);
+            return DB::selectOne($sql, $params);
         }
 
         if ($solo_base) {

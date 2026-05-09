@@ -20,18 +20,25 @@ class KardexProductosData
         //
         float $cantidad_movimiento,
         float $cantidad_movimiento_base,
+        //
         float $nuevo_stock,
         float $nuevo_stock_base,
         //
         ?int $id_origen = null,
+        ?string $tabla_origen = null,
+        //
         ?float $stock_anterior = null,
         ?float $stock_anterior_base = null,
-        ?float $costo_promedio = null,
+        //
+        ?float $costo_promedio_base = null,
+        //
         ?string $created_at = null
     ) {
         return KardexProducto::insertGetId([
             'id_lote_producto' => $id_lote,
             'id_origen' => $id_origen,
+            //
+            'tabla_origen' => $tabla_origen,
             //
             'tipo_movimiento' => $tipo_movimiento->value,
             'tipo_origen' => $tipo_origen->value,
@@ -39,11 +46,15 @@ class KardexProductosData
             //
             'stock_anterior' => $stock_anterior,
             'stock_anterior_base' => $stock_anterior_base,
+            //
             'cantidad_movimiento' => $cantidad_movimiento,
             'cantidad_movimiento_base' => $cantidad_movimiento_base,
+            //
             'stock_resultante' => $nuevo_stock,
             'stock_resultante_base' => $nuevo_stock_base,
-            'costo_promedio_base' => $costo_promedio,
+            //
+            'costo_promedio_base' => $costo_promedio_base,
+            //
             'created_at' => $created_at ?? now(),
         ]);
     }

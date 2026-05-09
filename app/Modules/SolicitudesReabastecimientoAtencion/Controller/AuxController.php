@@ -10,68 +10,33 @@ use Illuminate\Routing\Controller;
 
 class AuxController extends Controller
 {
-
-    public function get_almacenes(Request $request): JsonResponse
-    {
-        $es_principal = (bool)$request->input('es_principal');
-
-        $result = AuxService::get_almacenes($es_principal);
-
-        return response()->json($result);
-    }
-
-    public function get_personal_externo(Request $request): JsonResponse
-    {
-        $result = AuxService::get_personal_externo();
-        return response()->json($result);
-    }
-
-    public function crear_personal_externo(Request $request): JsonResponse
-    {
-        $request->validate([
-            'nombre' => 'required|string',
-            'apellido' => 'nullable|string',
-            'dni' => 'nullable|string',
-        ]);
-
-        $result = AuxService::crear_personal_externo(
-            nombre: $request->input('nombre'),
-            apellido: $request->input('apellido'),
-            dni: $request->input('dni')
-        );
-
-        return response()->json($result);
-    }
-
-    /**
-     * Obtener lotes disponibles para productos en un almacén.
-     */
-    public function get_lotes_disponibles(Request $request): JsonResponse
-    {
-        $ids_productos = $request->input('ids_productos');
-        $id_almacen = $request->input('id_almacen');
-
-        if (is_null($ids_productos) || is_null($id_almacen)) {
-            return response()->json(ApiResponse::error('ids_productos e id_almacen son requeridos'));
-        }
-
-        $ids_productos = is_array($ids_productos) ? array_map('intval', $ids_productos) : [(int) $ids_productos];
-
-        $result = AuxService::get_lotes_disponibles((int) $id_almacen, $ids_productos);
-
-        return response()->json($result);
-    }
-
     public function get_almacenes_con_stock(Request $request): JsonResponse
     {
-        $ids_productos = (array) $request->query('ids_productos');
         $id_almacen_excluido = (int) $request->query('id_almacen_excluido');
+        $ids_productos = (array) $request->query('ids_productos', []);
 
         if (empty($ids_productos)) {
-            return response()->json(ApiResponse::error('ids_productos es requerido'), 400);
+            return response()->json(ApiResponse::error('No se han especificado productos'), 400);
         }
 
         $result = AuxService::get_almacenes_con_stock($id_almacen_excluido, $ids_productos);
+        return response()->json($result);
+    }
+
+    public function get_stock_total_almacen_por_productos(Request $request): JsonResponse
+    {
+        $id_almacen = (int) $request->query('id_almacen');
+        $ids_productos = (array) $request->query('ids_productos', []);
+
+        if (!$id_almacen) {
+            return response()->json(ApiResponse::error('El id_almacen es requerido'), 400);
+        }
+
+        if (empty($ids_productos)) {
+            return response()->json(ApiResponse::error('No se han especificado productos'), 400);
+        }
+
+        $result = AuxService::get_stock_total_almacen_por_productos($id_almacen, $ids_productos);
         return response()->json($result);
     }
 }

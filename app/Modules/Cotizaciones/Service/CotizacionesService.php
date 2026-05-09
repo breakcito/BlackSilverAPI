@@ -2,10 +2,10 @@
 
 namespace App\Modules\Cotizaciones\Service;
 
+use App\Data\ProductosData;
 use App\Modules\Cotizaciones\Data\OrdenesCompraData;
 use App\Modules\Cotizaciones\Data\ComparativoData;
 use App\Modules\Cotizaciones\Data\CotizacionesData;
-use App\Data\LotesProductosData;
 use App\Shared\Enums\_Generic\MetodoPago;
 use App\Shared\Enums\_Generic\Periodo;
 use App\Shared\Enums\_Generic\TipoDespachoCompra;
@@ -126,8 +126,8 @@ class CotizacionesService
                             id_almacen_recepcionista: (int) $det['id_almacen_recepcionista'],
                             tipo_despacho: $tipo_despacho,
                             lugar_recojo: $tipo_despacho === TipoDespachoCompra::Recojo
-                                ? ($det['lugar_recojo'] ?? null)
-                                : null,
+                            ? ($det['lugar_recojo'] ?? null)
+                            : null,
                             tiempo_entrega: (int) $det['tiempo_entrega'],
                             tiempo_entrega_periodo: $periodo,
                             tiempo_entrega_dias: (int) $det['tiempo_entrega_dias'],
@@ -230,11 +230,11 @@ class CotizacionesService
                                     cantidad_requerida_base: (float) $det->cantidad_base,
                                     // Usar precio_confirmado_oc del wizard si existe, si no el de la cotización
                                     precio_unitario: isset($mapa_precios_oc[$det->id_cotizacion_detalle])
-                                        ? $mapa_precios_oc[$det->id_cotizacion_detalle]
-                                        : (float) $det->precio_unitario,
+                                    ? $mapa_precios_oc[$det->id_cotizacion_detalle]
+                                    : (float) $det->precio_unitario,
                                     precio_unitario_base: isset($mapa_precios_oc[$det->id_cotizacion_detalle])
-                                        ? round($mapa_precios_oc[$det->id_cotizacion_detalle] / max((float) $det->contenido_por_presentacion, 1), 4)
-                                        : (float) $det->precio_unitario_base,
+                                    ? round($mapa_precios_oc[$det->id_cotizacion_detalle] / max((float) $det->contenido_por_presentacion, 1), 4)
+                                    : (float) $det->precio_unitario_base,
                                     comentario: $det->comentario ?? null,
                                 );
 
@@ -255,7 +255,7 @@ class CotizacionesService
                                 $costos_por_producto[(int) $det->id_producto][] = $precio_base;
                             }
                             foreach ($costos_por_producto as $id_prod => $costos) {
-                                LotesProductosData::actualizar_costo_promedio($id_prod, $costos);
+                                ProductosData::actualizar_costo_promedio($id_prod, $costos);
                             }
                         }
                     }
@@ -291,7 +291,7 @@ class CotizacionesService
 
                 // 2. Actualizar Cabecera
                 $es_credito = trim((string) $data['metodo_pago']) === MetodoPago::Credito->value;
-                
+
                 \App\Models\Cotizacion::actualizar_cotizacion(
                     id: $id_cotizacion,
                     id_proveedor: (int) $data['id_proveedor'],
@@ -318,7 +318,8 @@ class CotizacionesService
                 // Si no tienen ID, no los crearemos aquí para no romper el comparativo,
                 // ya que los productos del comparativo son fijos en este modo de edición.
                 foreach ($data['detalles'] as $det) {
-                    if (!isset($det['id_cotizacion_detalle'])) continue;
+                    if (!isset($det['id_cotizacion_detalle']))
+                        continue;
 
                     $id_det = (int) $det['id_cotizacion_detalle'];
                     $tipo_despacho = TipoDespachoCompra::from((string) $det['tipo_despacho']);
@@ -330,8 +331,8 @@ class CotizacionesService
                         id_almacen_recepcionista: (int) $det['id_almacen_recepcionista'],
                         tipo_despacho: $tipo_despacho,
                         lugar_recojo: $tipo_despacho === TipoDespachoCompra::Recojo
-                            ? ($det['lugar_recojo'] ?? null)
-                            : null,
+                        ? ($det['lugar_recojo'] ?? null)
+                        : null,
                         tiempo_entrega: (int) $det['tiempo_entrega'],
                         tiempo_entrega_periodo: $periodo,
                         tiempo_entrega_dias: (int) $det['tiempo_entrega_dias'],
@@ -374,7 +375,7 @@ class CotizacionesService
                 $ids_aprobados = array_column($detalles_aprobados, 'id');
                 $precios_map = [];
                 foreach ($detalles_aprobados as $da) {
-                    $precios_map[(int)$da['id']] = (float)$da['precio_confirmado'];
+                    $precios_map[(int) $da['id']] = (float) $da['precio_confirmado'];
                 }
 
                 // 2. Marcar detalles como Aprobados / Rechazados
@@ -459,8 +460,8 @@ class CotizacionesService
                         // Usar el precio confirmado de la OC (no el de la cotización)
                         precio_unitario: $precios_map[$det->id_cotizacion_detalle] ?? (float) $det->precio_unitario,
                         precio_unitario_base: isset($precios_map[$det->id_cotizacion_detalle])
-                            ? round($precios_map[$det->id_cotizacion_detalle] / max((float)$det->contenido_por_presentacion, 1), 4)
-                            : (float) $det->precio_unitario_base,
+                        ? round($precios_map[$det->id_cotizacion_detalle] / max((float) $det->contenido_por_presentacion, 1), 4)
+                        : (float) $det->precio_unitario_base,
                         comentario: $det->comentario ?? null,
                     );
 
@@ -480,7 +481,7 @@ class CotizacionesService
                     $costos_por_producto[(int) $det->id_producto][] = $precio_base;
                 }
                 foreach ($costos_por_producto as $id_prod => $costos) {
-                    LotesProductosData::actualizar_costo_promedio($id_prod, $costos);
+                    ProductosData::actualizar_costo_promedio($id_prod, $costos);
                 }
 
                 return ApiResponse::success(
