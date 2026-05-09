@@ -1,111 +1,103 @@
-# BlackSilver API - Documentación Técnica Integral
+# BlackSilver API - Arquitectura y Convenciones Técnicas
 
-Backend robusto diseñado para la gestión integral de operaciones mineras y logística ERP. Construido sobre **Laravel 12** y **PHP 8.2+**, utiliza una arquitectura modular personalizada que garantiza escalabilidad, desacoplamiento y una trazabilidad absoluta de cada movimiento operativo.
+Backend robusto diseñado para la gestión integral de operaciones mineras y logística ERP. Construido sobre **Laravel 12** y **PHP 8.2+**, utiliza una arquitectura modular híbrida personalizada que garantiza escalabilidad, desacoplamiento y alta reutilización de código.
+
+---
 
 ## 🏗 Arquitectura del Sistema: "Hybrid Modular Architecture"
 
-El proyecto no sigue la estructura estándar de Laravel. Implementa un patrón de **Módulos Independientes** que conviven con una **Capa Global de Datos y Servicios**.
+El proyecto no sigue la estructura monolítica estándar de Laravel. Implementa un patrón de **Módulos Independientes** que conviven con una **Capa Global de Datos y Servicios** para evitar duplicidad de código.
 
-### 📁 Organización de la Aplicación (`/app`)
+### 1. `app/Modules/` - El Núcleo de Dominio
 
-#### 1. `Modules/` - El Núcleo del Negocio
+Cada carpeta dentro de `Modules` representa un micro-servicio interno enfocado en un proceso de negocio específico (ej. `Cotizaciones`, `RequerimientosAlmacenAtencion`).
 
-Es el corazón del ERP. Cada carpeta representa un dominio funcional (ej. `Almacenes`, `Cotizaciones`) que actúa como un micro-servicio interno.
-
-- **Endpoints (`XEndpoints.php`)**: Definición de rutas tipo API. Se registran manualmente en `bootstrap/app.php`.
-- **Controllers**: Validadores de entrada y orquestadores de flujo.
-- **Services**: Contenedores de la **lógica de negocio pesada**. Aquí se manejan cálculos, transacciones financieras y validaciones de stock en tiempo real.
+- **Endpoints (`XEndpoints.php`)**: Definición manual de rutas tipo API.
+- **Controllers**: Validadores de entrada (Requests) y orquestadores del flujo.
+- **Services**: Contenedores de la **lógica de negocio exclusiva del módulo**.
 - **Data (Local)**: Consultas SQL específicas que solo atañen al módulo.
 
-#### 2. `Data/` - Capa de Acceso a Datos Global (DAL)
+### 2. Capa Global: Servicios y Datos Compartidos (`app/Services/` y `app/Data/`)
 
-A diferencia de los modelos Eloquent puros, se utilizan clases `Data` para centralizar consultas complejas (SQL Raw optimizado) y operaciones de persistencia compartidas.
+Existen entidades transversales que son requeridas constantemente por múltiples módulos (ej. consultar un producto, actualizar el stock). Para no repetir código, esta lógica se centraliza globalmente:
 
-- **Ejemplo**: `KardexProductosData.php` es el único punto de entrada autorizado para registrar movimientos de stock, asegurando que todos los módulos (Requerimientos, Compras, Préstamos) sigan la misma regla de auditoría.
+- **Maestros Corporativos**: `AlmacenesData/Service`, `EmpleadosData/Service`, `EmpresasData/Service`.
+- **Catálogos y Terceros**: `ProductosData/Service`, `UnidadesMedidaData/Service`, `ProveedoresData/Service`, `PersonalExternoData/Service`.
+- **Motor de Inventario (Crítico)**:
+    - `LotesProductosData/Service`: **Punto de entrada principal** para registrar movimientos de inventario. Este servicio encapsula la actualización del stock físico y la inyección automática en el Kardex. Todo módulo que altere el inventario debe invocarlo (`update_stock` o `crear_lote`) para evitar duplicar lógica de auditoría.
+    - `KardexProductosData/Service`: Servicio interno gestionado automáticamente por Lotes. Mantiene el registro de auditoría (doble saldo) de la empresa, pero **no debe ser invocado directamente** por los módulos para no corromper el flujo.
+- **Estructura UI**: `MenuNavData/Service` (para navegación basada en permisos).
 
-#### 3. `Shared/` - Utilidades Transversales
+### 3. El Controlador Auxiliar (`AuxController.php` y `AuxEndpoints.php`)
 
-- **`Responses/`**: Estandarización vía `ApiResponse`. Toda petición retorna un JSON predecible.
-- **`Helpers/`**:
-    - `ArchivoHelper`: Gestión centralizada de documentos, fotos de empleados y archivos adjuntos.
-    - `CorrelativoHelper`: El "notario" del sistema. Genera y reserva números de documentos (OC, REQ, LOT) garantizando que no haya huecos ni duplicados.
-- **`Enums/`**: Diccionario maestro de estados (`Pendiente`, `Aprobado`, `En_Despacho`) y tipos (`Metálico`, `Ferretería`).
+Para evitar que cada módulo defina sus propios endpoints redundantes (ej. pedir la lista de almacenes desde Cotizaciones y nuevamente desde Requerimientos), se implementó el ecosistema `Aux`.
 
-#### 4. `Middlewares/` - Seguridad Perimetral
+- **Propósito**: Actúa como un _Hub_ centralizado para peticiones de catálogos y selects recurrentes (`get_almacenes`, `get_productos`, `get_lotes_disponibles`).
+- **Regla de Consumo**: El Frontend (y específicamente el `AuxService` de React) debe apuntar siempre a los endpoints auxiliares `/api/aux/...` para popular modales de búsqueda o filtros genéricos.
 
-- **`JwtAuthMiddleware`**: No solo valida el token; inyecta el contexto del usuario (`id_empleado`, `id_rol`) en la petición para que los servicios operen con la identidad correcta.
+### 4. Estandarización de Estados (`app/Shared/Enums/`)
 
-#### 5. `Models/` - El Mapa Relacional
+El sistema hace un uso intensivo de _Backed Enums_ de PHP para evitar "magic strings" y mantener integridad de datos.
 
-Más de 60 modelos Eloquent que definen las relaciones de integridad referencial. El sistema utiliza intensivamente tablas de **Logs de Seguimiento** (ej. `requerimiento_almacen_detalle_log`) para reconstruir el historial de cualquier item.
-
----
-
-## 🔒 Seguridad y Contexto de Usuario
-
-### Autenticación JWT
-
-Se utiliza `PHPOpenSourceSaver\JWTAuth`. El token no es opaco; contiene un payload enriquecido:
-
-- **Claims Personalizados**: `id_usuario`, `id_rol`, `id_empleado`.
-- **Validación Dual**: El sistema verifica que tanto la cuenta de usuario como el contrato del empleado estén en estado `Activo` antes de autorizar cualquier operación.
-
-### Control de Acceso (RBAC)
-
-Los permisos no son solo booleanos; se basan en una estructura jerárquica:
-
-- **Módulos -> Submódulos -> Acciones**.
-- El middleware protege las rutas, mientras que el frontend consume la estructura de permisos para renderizar la navegación dinámicamente.
+- **Regla de Ordenamiento Estricta**: Cada tabla o proceso operativo físico (Ej. `Entrega`, `Recepcion`, `Solicitud`, `OrdenCompra`) **debe tener su propio Enum dedicado** en su respectiva subcarpeta dentro de `Shared/Enums`.
+- **Ejemplo**: Las recepciones usan `EstadoOCTransRecepcion`, y las transferencias usan `EstadoOCTransferencia`. No se reciclan Enums genéricos entre procesos distintos para evitar choques lógicos.
 
 ---
 
-## 🏛️ Patrones de Diseño y Reglas Críticas
+## 📦 Módulos del Sistema
 
-### 🛠️ Reglas de Oro Arquitectónicas
+Los módulos de la API están organizados bajo los mismos dominios funcionales que el Frontend:
 
-1. **Aislamiento de Endpoints**: Cada módulo debe proveer todos los puntos de entrada necesarios para su funcionamiento en el Frontend. Aunque los Services pueden ser compartidos o reutilizar lógica transversal, los Controladores deben centralizar los endpoints de su dominio funcional.
-2. **Prohibición de "Saltos" de Módulo**: El Frontend tiene prohibido llamar a un controlador de un módulo `A` para una funcionalidad del módulo `B`. Si el módulo `B` necesita una lista de almacenes, el controlador de `B` debe exponer `/api/B/almacenes`.
-3. **Consistencia de Respuestas**: Todas las respuestas deben usar el helper `ApiResponse`.
+### Configuración y Operaciones
 
-### 1. Normalización de Unidades (La "Unidad Base")
+- `almacenes`
+- `concesiones`
+- `contratistas` (API)
+- `empresas`
+- `minas-labores`
 
-Para evitar errores de inventario, el sistema maneja dos cantidades:
+### Inventarios y Maestros
 
-- **`cantidad_solicitada`**: En la unidad de compra/pedido (ej. 1 Caja).
-- **`cantidad_base`**: El equivalente en la unidad mínima (ej. 10 Unidades).
-  Todos los cálculos de stock y Kardex se realizan sobre la **unidad base**.
+- `productos`
+- `categorias`
+- `lotes-productos`
+- `kardex-productos`
 
-### 2. Trazabilidad "Timeline"
+### Gestión de Compras
 
-Cada cambio de estado en un documento genera un hito. Esto permite saber:
+- `proveedores`
+- `cotizaciones`
+- `ordenes-compra`
+- `ordenes-compra-recepcion-transferencias`
 
-- Quién pidió, quién aprobó, quién despachó y quién recibió.
-- Comentarios asociados a cada decisión técnica.
+### Flujos de Almacén (Salidas)
 
-### 3. Consultas N+1 y Eager Loading
+- `requerimientos-almacen` & `atencion`
+- `solicitudes-reabastecimiento` & `atencion`
+- `prestamos-almacen` & `atencion`
 
-En módulos críticos como `Cotizaciones` o `Atención`, se prefiere el uso de **SQL Raw** y la indexación manual de arrays para manejar volúmenes masivos de datos (ej. comparar 50 cotizaciones con 100 items cada una) sin degradar el rendimiento.
+### Personal y Accesos
+
+- `personal` (Empleados y Contratistas)
+- `organigrama`
+- `login`
+- `perfil`
+- `cuentas`
+- `roles`
 
 ---
 
-## 📖 Documentación de Módulos (Deep Dive)
+## 🏛️ Reglas Críticas de Desarrollo
 
-Cada módulo cuenta con su propia documentación técnica detallada. Si necesitas profundizar en un flujo específico, consulta los READMEs internos:
+1. **Consistencia de Respuestas**: Toda respuesta de cualquier servicio o controlador debe retornar obligatoriamente a través de los helpers globales `ApiResponse::success()` o `ApiResponse::error()`.
+2. **Prohibición de Rutas Redundantes**: No crear endpoints en módulos específicos para devolver listados recurrentes. Para eso existe `AuxController`.
+3. **Atomicidad Lógica**: Cualquier proceso que implique registros o actualizaciones (como `KardexProductosService`) debe estar envuelta en un `DB::transaction()`.
 
-> [!IMPORTANT]
-> **Rutas de Documentación Específica:**
->
-> - [Atención de Requerimientos](app/Modules/RequerimientosAlmacenAtencion/README.md): Lógica de despacho y stock.
-> - [Reabastecimiento Logístico](app/Modules/SolicitudesReabastecimiento/README.md): Gestión de préstamos e ingresos.
-> - [Cotizaciones y Compras](app/Modules/Cotizaciones/README.md): El flujo financiero desde la oferta hasta la OC.
 
----
+## ⚙️ Ejecución
 
-## 🚀 Guía de Inicio Rápido
-
-1. **Dependencias**: `composer install`
-2. **Entorno**: Configurar `.env` (BD y JWT_SECRET).
-3. **Migraciones**: `php artisan migrate` (Carga la estructura y catálogos maestros).
-4. **Desarrollo**: `php artisan serve`
-
-> **BlackSilver API** es un sistema vivo. Mantener la modularidad y respetar la capa de `Shared` es vital para la integridad del ERP.
+1. Configurar el archivo `.env`
+2. `composer install`
+3. `php artisan key:generate`
+4. `php artisan storage:link` (Crítico para que los archivos multimedia y adjuntos sean públicos).
+5. `php artisan serve`
