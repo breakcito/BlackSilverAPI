@@ -87,7 +87,7 @@ class ProductosData
             'id_producto' => $id_producto
         ]);
 
-        return (float) $resultado->costo_promedio_base ?? 0.0;
+        return (float) ($resultado?->costo_promedio_base ?? 0.0);
     }
 
     /**

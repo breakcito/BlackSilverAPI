@@ -6,6 +6,7 @@ use App\Data\LotesProductosData;
 use App\Modules\OrdenesCompra\Data\TransferenciaOCData;
 use App\Services\LotesProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\OrdenCompra\EstadoOCTransferenciaDetalle;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Helpers\CorrelativoHelper;
@@ -84,14 +85,13 @@ class TransferenciaService
                     'estado' => EstadoOCTransferenciaDetalle::EnDespacho,
                 ]);
 
-                $nuevo_stock_base = (float) $lote['stock_actual_base'] - (float) $item['cantidad_transferida_base'];
-
                 LotesProductosService::update_stock(
                     id_lote: $id_lote,
                     id_origen: $id_detalle,
                     tabla_origen: 'orden_compra_transferencia_detalle',
                     tipo_origen: KardexOrigenMovimiento::Entrega,
-                    nuevo_stock_base: $nuevo_stock_base,
+                    tipo_movimiento: KardexTipoMovimiento::Salida,
+                    cantidad_movimiento_base: (float) $item['cantidad_transferida_base'],
                     descripcion: "Salida por transferencia de OC",
                 );
             }

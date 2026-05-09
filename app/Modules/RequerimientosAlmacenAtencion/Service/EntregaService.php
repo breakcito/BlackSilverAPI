@@ -5,6 +5,7 @@ namespace App\Modules\RequerimientosAlmacenAtencion\Service;
 use App\Data\LotesProductosData;
 use App\Services\LotesProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalle;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalleLog;
 use App\Shared\Helpers\ArchivoHelper;
@@ -116,16 +117,14 @@ class EntregaService
                     $subtotal
                 );
 
-                // Obtener lote desde el mapa pre-cargado
-                $nuevo_stock_base = (float) $lote['stock_actual_base'] - $item['cantidad_base'];
-
                 // Actualizar Stock y registrar Kardex (Salida)
                 LotesProductosService::update_stock(
                     id_lote: $id_lote,
                     id_origen: $id_detalle_entrega,
                     tabla_origen: null,
                     tipo_origen: KardexOrigenMovimiento::Entrega,
-                    nuevo_stock_base: $nuevo_stock_base,
+                    tipo_movimiento: KardexTipoMovimiento::Salida,
+                    cantidad_movimiento_base: $item['cantidad_base'],
                     descripcion: "Salida por entrega N° {$correlativoData['correlativo']}",
                 );
 

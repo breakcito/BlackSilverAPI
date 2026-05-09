@@ -2,6 +2,7 @@
 namespace App\Services;
 
 use App\Data\LotesProductosData;
+use App\Data\ProductosData;
 use App\Data\UnidadesMedidaData;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
@@ -46,7 +47,7 @@ class LotesProductosService
         ?string $fecha_vencimiento = null,
     ) {
         $correlativoData = LotesProductosData::get_nuevo_correlativo($id_almacen);
-        $costo_promedio_base = LotesProductosData::get_costo_promedio_producto($id_producto);
+        $costo_promedio_base = ProductosData::get_costo_promedio_producto($id_producto);
 
         $id_lote = LotesProductosData::crear_lote(
             id_producto: $id_producto,
@@ -108,36 +109,37 @@ class LotesProductosService
         //
         string|null $tabla_origen,
         KardexOrigenMovimiento $tipo_origen,
+        KardexTipoMovimiento $tipo_movimiento,
         //
-        float $nuevo_stock_base,
+        float $cantidad_movimiento_base,
         //
         ?string $descripcion = null,
         ?string $created_at = null
     ) {
-        return DB::transaction(function () use ($id_lote, $id_origen, $tabla_origen, $tipo_origen, $nuevo_stock_base, $descripcion, $created_at) {
+        return DB::transaction(function () use ($id_lote, $id_origen, $tabla_origen, $tipo_origen, $tipo_movimiento, $cantidad_movimiento_base, $descripcion, $created_at) {
             $lote = LotesProductosData::get_lote_simple_by_id($id_lote);
 
             if (!$lote) {
                 return ApiResponse::error('Lote no encontrado');
             }
 
-            if ($lote['stock_actual_base'] == $nuevo_stock_base) {
-                return ApiResponse::error('El nuevo stock es igual al actual');
-            }
-
             // lo que habia antes
             $stock_anterior = $lote['stock_actual'];
             $stock_anterior_base = $lote['stock_actual_base'];
 
+            // Calcular diferencia en base al tipo de movimiento
+            $diferencia_base = $tipo_movimiento === KardexTipoMovimiento::Ingreso 
+                ? $cantidad_movimiento_base 
+                : -$cantidad_movimiento_base;
+
+            $cantidad_movimiento_lote = $cantidad_movimiento_base / $lote['contenido_por_presentacion'];
+            $diferencia_lote = $tipo_movimiento === KardexTipoMovimiento::Ingreso 
+                ? $cantidad_movimiento_lote 
+                : -$cantidad_movimiento_lote;
+
             // el nuevo stock
-            $nuevo_stock = $nuevo_stock_base * $lote['contenido_por_presentacion'];
-
-            // las diferencias
-            $diferencia_lote = $nuevo_stock - $stock_anterior;
-            $diferencia_base = $nuevo_stock_base - $stock_anterior_base;
-
-            // que tipo de movimiento es
-            $tipo_movimiento = $diferencia_base > 0 ? KardexTipoMovimiento::Ingreso : KardexTipoMovimiento::Salida;
+            $nuevo_stock_base = $stock_anterior_base + $diferencia_base;
+            $nuevo_stock = $stock_anterior + $diferencia_lote;
 
             $unidad_lote = UnidadesMedidaData::get_unidades(
                 id_unidad_medida: $lote['id_unidad_medida']
@@ -155,7 +157,7 @@ class LotesProductosService
             LotesProductosData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
 
             // Registrar movimiento en Kardex
-            $costo_promedio_base = LotesProductosData::get_costo_promedio_producto($lote['id_producto']);
+            $costo_promedio_base = ProductosData::get_costo_promedio_producto($lote['id_producto']);
             KardexProductosService::registrar_kardex(
                 id_lote: $id_lote,
                 //

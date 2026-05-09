@@ -222,6 +222,6 @@ class LotesProductosData
             'id_lote' => $id_lote
         ]);
 
-        return (float) $resultado->costo_promedio_base ?? 0.0;
+        return (float) ($resultado?->costo_promedio_base ?? 0.0);
     }
 }

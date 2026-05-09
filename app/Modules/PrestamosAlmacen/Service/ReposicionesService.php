@@ -4,6 +4,7 @@ namespace App\Modules\PrestamosAlmacen\Service;
 
 use App\Services\LotesProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Responses\ApiResponse;
 use App\Data\LotesProductosData;
 use App\Modules\PrestamosAlmacen\Data\PrestamosData;
@@ -107,14 +108,14 @@ class ReposicionesService
 
                 // B. Actualizar stock del lote y registrar Kardex (Salida por Reposición)
                 $descripcion_kardex = "Salida por reposición de préstamo N° " . $prestamo->correlativo . " (Ref: " . $correlativoData['correlativo'] . ")";
-                $nuevo_stock_base = (float) $lote['stock_actual_base'] - $cantidad_base;
 
                 LotesProductosService::update_stock(
                     id_lote: $id_lote_producto,
                     id_origen: $id_detalle_reposicion,
                     tabla_origen: 'prestamo_almacen_reposicion_detalle',
                     tipo_origen: KardexOrigenMovimiento::Reposicion,
-                    nuevo_stock_base: $nuevo_stock_base,
+                    tipo_movimiento: KardexTipoMovimiento::Salida,
+                    cantidad_movimiento_base: $cantidad_base,
                     descripcion: $descripcion_kardex,
                 );
 

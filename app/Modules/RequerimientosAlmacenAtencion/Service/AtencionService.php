@@ -57,7 +57,7 @@ class AtencionService
         string $premura,
         ?string $observacion,
         string $fecha_entrega_requerida,
-        array $labores,
+        array|null $labores,
         array $detalles,
         ?array $evidencias = null
     ) {

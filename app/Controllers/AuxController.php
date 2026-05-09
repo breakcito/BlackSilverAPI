@@ -42,7 +42,7 @@ class AuxController extends Controller
         $id_almacen = (int) $request->input('id_almacen');
         $ids_productos = $request->input('ids_productos');
 
-        if (!$id_almacen || empty($id_productos) || !is_array($ids_productos)) {
+        if (!$id_almacen || empty($ids_productos) || !is_array($ids_productos)) {
             return response()->json(ApiResponse::error('ID de almacén y arreglo de productos son requeridos'), 400);
         }
 

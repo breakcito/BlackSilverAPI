@@ -5,6 +5,7 @@ namespace App\Modules\PrestamosAlmacenAtencion\Service;
 use App\Data\LotesProductosData;
 use App\Services\LotesProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoDetalle;
 use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamo;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleLog;
@@ -102,7 +103,6 @@ class EntregaService
 
                 // 4.2 Obtener lote desde el mapa pre-cargado
                 $lote = $lotesMap->get($id_lote);
-                $nuevo_stock_base = (float) $lote['stock_actual_base'] - $cant_base;
 
                 // 4.3 + 4.4 Actualizar Stock y registrar Kardex (Salida)
                 LotesProductosService::update_stock(
@@ -110,7 +110,8 @@ class EntregaService
                     id_origen: $id_det_entrega,
                     tabla_origen: 'prestamo_almacen_entrega_detalle',
                     tipo_origen: KardexOrigenMovimiento::Entrega,
-                    nuevo_stock_base: $nuevo_stock_base,
+                    tipo_movimiento: KardexTipoMovimiento::Salida,
+                    cantidad_movimiento_base: $cant_base,
                     descripcion: "Entrega N° {$correlativoData['correlativo']} al almacén {$nombreAlmDestino}",
                 );
 

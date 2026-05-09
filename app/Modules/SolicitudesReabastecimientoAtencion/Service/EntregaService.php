@@ -6,6 +6,7 @@ namespace App\Modules\SolicitudesReabastecimientoAtencion\Service;
 use App\Data\LotesProductosData;
 use App\Services\LotesProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\EntregasData;
@@ -108,7 +109,6 @@ class EntregaService
 
                 // Obtener lote desde el mapa pre-cargado
                 $lote = $lotesMap->get((int) $id_lote);
-                $nuevo_stock_base = (float) $lote['stock_actual_base'] - $item['cantidad_base'];
 
                 // Actualizar Stock y registrar Kardex (Salida)
                 LotesProductosService::update_stock(
@@ -116,7 +116,8 @@ class EntregaService
                     id_origen: $id_detalle_entrega,
                     tabla_origen: null,
                     tipo_origen: KardexOrigenMovimiento::Entrega,
-                    nuevo_stock_base: $nuevo_stock_base,
+                    tipo_movimiento: KardexTipoMovimiento::Salida,
+                    cantidad_movimiento_base: $item['cantidad_base'],
                     descripcion: "Salida por entrega N° {$correlativoData['correlativo']} debido a una solicitud de reabastecimiento",
                 );
 

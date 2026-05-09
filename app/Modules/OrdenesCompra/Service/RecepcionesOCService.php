@@ -7,6 +7,7 @@ use App\Modules\OrdenesCompra\Data\OrdenCompraData;
 use App\Modules\OrdenesCompra\Data\RecepcionesOCData;
 use App\Services\LotesProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\OrdenCompra\EstadoOrdenCompra;
 use App\Shared\Enums\OrdenCompra\EstadoOrdenCompraDetalle;
 use App\Shared\Enums\OrdenCompra\EstadoOrdenCompraDetalleLog;
@@ -168,14 +169,14 @@ class RecepcionesOCService
                 } else {
                     $id_lote_destino = $id_lote_para_detalle;
                     $lote_existente = $lotesMap->get($id_lote_destino);
-                    $nuevo_stock_base = (float) $lote_existente['stock_actual_base'] + $cantidad_recep_base;
 
                     LotesProductosService::update_stock(
                         id_lote: $id_lote_destino,
                         id_origen: $id_recepcion_detalle,
                         tabla_origen: null,
                         tipo_origen: KardexOrigenMovimiento::Recepcion,
-                        nuevo_stock_base: $nuevo_stock_base,
+                        tipo_movimiento: KardexTipoMovimiento::Ingreso,
+                        cantidad_movimiento_base: $cantidad_recep_base,
                         descripcion: "Ingreso por recepción de Orden de Compra",
                     );
                 }

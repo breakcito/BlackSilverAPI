@@ -5,6 +5,7 @@ namespace App\Modules\LotesProductos\Service;
 use App\Data\LotesProductosData;
 use App\Services\LotesProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\LotesProductos\Data\LotesData;
 use Illuminate\Support\Facades\DB;
@@ -54,25 +55,36 @@ class LotesService
         return ApiResponse::success(LotesData::get_lote_by_id(id_lote: $id_lote), 'Lote registrado correctamente');
     }
 
-    /**
-     * Ajustar stock de un lote (Corrección manual).
-     */
     public static function ajustar_stock(int $id_lote, float $nuevo_stock_base, ?string $motivo = null)
     {
         return DB::transaction(function () use ($id_lote, $nuevo_stock_base, $motivo) {
+            $lote = LotesProductosData::get_lote_simple_by_id($id_lote);
+            if (!$lote) {
+                return ApiResponse::error('Lote no encontrado');
+            }
+
+            $stock_anterior_base = (float) $lote['stock_actual_base'];
+            if ($stock_anterior_base == $nuevo_stock_base) {
+                return ApiResponse::error('El nuevo stock es igual al actual');
+            }
+
+            $diferencia_base = $nuevo_stock_base - $stock_anterior_base;
+            $tipo_movimiento = $diferencia_base > 0 ? KardexTipoMovimiento::Ingreso : KardexTipoMovimiento::Salida;
+
             LotesProductosService::update_stock(
                 id_lote: $id_lote,
                 id_origen: null,
                 tabla_origen: null,
                 tipo_origen: KardexOrigenMovimiento::AjusteStock,
-                nuevo_stock_base: $nuevo_stock_base,
+                tipo_movimiento: $tipo_movimiento,
+                cantidad_movimiento_base: abs($diferencia_base),
                 descripcion: $motivo
             );
 
             return ApiResponse::success(LotesData::get_lote_by_id(id_lote: $id_lote), 'Stock del lote ajustado correctamente');
         });
     }
-    
+
     /**
      * Obtener información de lotes para impresión de tickets.
      */

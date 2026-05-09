@@ -6,6 +6,7 @@ namespace App\Modules\SolicitudesReabastecimiento\Service;
 use App\Data\LotesProductosData;
 use App\Services\LotesProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimiento\Data\RecepcionesData;
@@ -131,14 +132,14 @@ class RecepcionesService
                     $id_lote_destino = $id_lote_para_detalle;
                     $lote_existente = $lotesMap->get($id_lote_destino);
                     $contenido_lot = $lote_existente['contenido_por_presentacion'];
-                    $nuevo_stock_base = (float) $lote_existente['stock_actual_base'] + $cantidad_recep_base;
 
                     LotesProductosService::update_stock(
                         id_lote: $id_lote_destino,
                         id_origen: $id_recepcion_detalle,
                         tabla_origen: null,
                         tipo_origen: KardexOrigenMovimiento::Recepcion,
-                        nuevo_stock_base: $nuevo_stock_base,
+                        tipo_movimiento: KardexTipoMovimiento::Ingreso,
+                        cantidad_movimiento_base: $cantidad_recep_base,
                         descripcion: "Ingreso por recepción de entrega en reabastecimiento",
                     );
                 }
@@ -280,14 +281,14 @@ class RecepcionesService
                     $id_lote_destino = $id_lote_para_detalle;
                     $lote_existente = $lotesMap->get($id_lote_destino);
                     $contenido_lot = $lote_existente['contenido_por_presentacion'];
-                    $nuevo_stock_base = (float) $lote_existente['stock_actual_base'] + $cantidad_recep_base;
 
                     LotesProductosService::update_stock(
                         id_lote: $id_lote_destino,
                         id_origen: $id_recepcion_detalle,
                         tabla_origen: null,
                         tipo_origen: KardexOrigenMovimiento::Recepcion,
-                        nuevo_stock_base: $nuevo_stock_base,
+                        tipo_movimiento: KardexTipoMovimiento::Ingreso,
+                        cantidad_movimiento_base: $cantidad_recep_base,
                         descripcion: "Ingreso por recepción de entrega en reabastecimiento",
                     );
                 }

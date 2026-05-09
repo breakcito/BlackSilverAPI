@@ -23,9 +23,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
         });
 
         Route::prefix('aux')->controller(AuxController::class)->group(function () {
-            Route::get('/almacenes-con-stock', 'get_almacenes_con_stock');
             Route::get('/stock-total-almacen', 'get_stock_total_almacen_por_productos');
-
+            Route::get('/almacenes-con-stock', 'get_almacenes_con_stock');
         });
 
         // Prestamos
