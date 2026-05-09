@@ -1,20 +1,29 @@
 <?php
 
-use App\Modules\SolicitudesReabastecimientoAtencion\Controller\AuxController;
+use App\Controllers\AuxController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.jwt.custom')->group(function () {
     Route::prefix('aux')->group(function () {
         Route::controller(AuxController::class)->group(function () {
-            // listar almacenes autorizados o todos, principales o secundarios
+            // almacenes
             Route::get('/almacenes', 'get_almacenes');
 
-            // listar y crear personal externo
+            // personal externo
             Route::get('/personal-externo', 'get_personal_externo');
             Route::post('/personal-externo', 'crear_personal_externo');
 
-            // listar lotes disponibles de un almacen en base a una lista de productos
+            // lotes disponibles de un almacen
             Route::get('/lotes', 'get_lotes_disponibles');
+
+            // empleados
+            Route::get('/empleados', 'get_empleados');
+
+            // unidades de medida
+            Route::get('/unidades-medida', 'get_unidades_medida');
+
+            // productos
+            Route::get('/productos', 'get_productos');
         });
     });
 });

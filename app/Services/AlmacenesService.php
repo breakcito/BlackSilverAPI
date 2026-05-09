@@ -10,12 +10,12 @@ class AlmacenesService
      */
     public static function get_almacenes(
         ?int $id_almacen = null,
-        ?int $id_responsable = null,
+        ?int $id_empleado_responsable = null,
         ?int $es_principal = null
     ) {
         $almacenes = AlmacenesData::get_almacenes(
             id_almacen: $id_almacen,
-            id_responsable: $id_responsable,
+            id_empleado_responsable: $id_empleado_responsable,
             es_principal: $es_principal
         );
 

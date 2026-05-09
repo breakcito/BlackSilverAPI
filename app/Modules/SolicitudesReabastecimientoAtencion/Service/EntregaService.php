@@ -4,9 +4,8 @@ namespace App\Modules\SolicitudesReabastecimientoAtencion\Service;
 
 
 use App\Data\LotesProductosData;
-use App\Services\KardexProductosService;
+use App\Services\LotesProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
-use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\EntregasData;
@@ -109,27 +108,16 @@ class EntregaService
 
                 // Obtener lote desde el mapa pre-cargado
                 $lote = $lotesMap->get((int) $id_lote);
-                $stock_anterior = $lote['stock_actual'];
-                $stock_anterior_base = $lote['stock_actual_base'];
-                $nuevo_stock = $stock_anterior - $item['cantidad_lote'];
-                $nuevo_stock_base = $stock_anterior_base - $item['cantidad_base'];
+                $nuevo_stock_base = (float) $lote['stock_actual_base'] - $item['cantidad_base'];
 
-                // Actualizar Stock del Lote
-                LotesProductosData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
-
-                // Registrar Kardex (Salida)
-                KardexProductosService::registrar_kardex(
-                    $id_lote,
-                    KardexTipoMovimiento::Salida,
-                    KardexOrigenMovimiento::Entrega,
-                    "Salida por entrega N° {$correlativoData['correlativo']} debido a una solicitud de reabastecimiento",
-                    $item['cantidad_lote'],
-                    $item['cantidad_base'],
-                    $nuevo_stock,
-                    $nuevo_stock_base,
-                    $id_detalle_entrega,
-                    $stock_anterior,
-                    $stock_anterior_base,
+                // Actualizar Stock y registrar Kardex (Salida)
+                LotesProductosService::update_stock(
+                    id_lote: $id_lote,
+                    id_origen: $id_detalle_entrega,
+                    tabla_origen: null,
+                    tipo_origen: KardexOrigenMovimiento::Entrega,
+                    nuevo_stock_base: $nuevo_stock_base,
+                    descripcion: "Salida por entrega N° {$correlativoData['correlativo']} debido a una solicitud de reabastecimiento",
                 );
 
                 // Actualizar el Detalle de la solicitud

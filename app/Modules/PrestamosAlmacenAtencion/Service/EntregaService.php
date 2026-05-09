@@ -3,9 +3,8 @@
 namespace App\Modules\PrestamosAlmacenAtencion\Service;
 
 use App\Data\LotesProductosData;
-use App\Services\KardexProductosService;
+use App\Services\LotesProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
-use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoDetalle;
 use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamo;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleLog;
@@ -103,27 +102,16 @@ class EntregaService
 
                 // 4.2 Obtener lote desde el mapa pre-cargado
                 $lote = $lotesMap->get($id_lote);
-                $stock_anterior = $lote['stock_actual'];
-                $stock_anterior_base = $lote['stock_actual_base'];
-                $nuevo_stock = $stock_anterior - $cant_lote;
-                $nuevo_stock_base = $stock_anterior_base - $cant_base;
+                $nuevo_stock_base = (float) $lote['stock_actual_base'] - $cant_base;
 
-                // 4.3 Actualizar Stock del Lote
-                LotesProductosData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
-
-                // 4.4 Registrar Kardex (Salida)
-                KardexProductosService::registrar_kardex(
+                // 4.3 + 4.4 Actualizar Stock y registrar Kardex (Salida)
+                LotesProductosService::update_stock(
                     id_lote: $id_lote,
                     id_origen: $id_det_entrega,
-                    tipo_movimiento: KardexTipoMovimiento::Salida,
+                    tabla_origen: 'prestamo_almacen_entrega_detalle',
                     tipo_origen: KardexOrigenMovimiento::Entrega,
-                    descripcion: "Entrega N° {$correlativoData['correlativo']} al almacén {$nombreAlmDestino}",
-                    stock_anterior: $stock_anterior,
-                    stock_anterior_base: $stock_anterior_base,
-                    cantidad_movimiento: $cant_lote,
-                    cantidad_movimiento_base: $cant_base,
-                    nuevo_stock: $nuevo_stock,
                     nuevo_stock_base: $nuevo_stock_base,
+                    descripcion: "Entrega N° {$correlativoData['correlativo']} al almacén {$nombreAlmDestino}",
                 );
 
                 // 4.5 Actualizar cantidad acumulada en el Préstamo

@@ -3,9 +3,8 @@
 namespace App\Modules\RequerimientosAlmacenAtencion\Service;
 
 use App\Data\LotesProductosData;
-use App\Services\KardexProductosService;
+use App\Services\LotesProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
-use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalle;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalleLog;
 use App\Shared\Helpers\ArchivoHelper;
@@ -118,27 +117,16 @@ class EntregaService
                 );
 
                 // Obtener lote desde el mapa pre-cargado
-                $stock_anterior = $lote['stock_actual'];
-                $stock_anterior_base = $lote['stock_actual_base'];
-                $nuevo_stock = $stock_anterior - $item['cantidad_lote'];
-                $nuevo_stock_base = $stock_anterior_base - $item['cantidad_base'];
+                $nuevo_stock_base = (float) $lote['stock_actual_base'] - $item['cantidad_base'];
 
-                // Actualizar Stock del Lote
-                LotesProductosData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
-
-                // Registrar Kardex (Salida)
-                KardexProductosService::registrar_kardex(
+                // Actualizar Stock y registrar Kardex (Salida)
+                LotesProductosService::update_stock(
                     id_lote: $id_lote,
                     id_origen: $id_detalle_entrega,
-                    tipo_movimiento: KardexTipoMovimiento::Salida,
+                    tabla_origen: null,
                     tipo_origen: KardexOrigenMovimiento::Entrega,
+                    nuevo_stock_base: $nuevo_stock_base,
                     descripcion: "Salida por entrega N° {$correlativoData['correlativo']}",
-                    stock_anterior: $stock_anterior,
-                    stock_anterior_base: $stock_anterior_base,
-                    cantidad_movimiento: $item['cantidad_lote'],
-                    cantidad_movimiento_base: $item['cantidad_base'],
-                    nuevo_stock: $nuevo_stock,
-                    nuevo_stock_base: $nuevo_stock_base
                 );
 
                 // Actualizar Requerimiento Detalle

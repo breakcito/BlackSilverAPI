@@ -104,9 +104,9 @@ class LotesProductosService
      */
     public static function update_stock(
         int $id_lote,
-        int|null $id_origen = null,
+        int|null $id_origen,
         //
-        string|null $tabla_origen = null,
+        string|null $tabla_origen,
         KardexOrigenMovimiento $tipo_origen,
         //
         float $nuevo_stock_base,

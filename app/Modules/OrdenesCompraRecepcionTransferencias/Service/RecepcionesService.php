@@ -6,9 +6,8 @@ use App\Data\LotesProductosData;
 use App\Models\OrdenCompraTransferencia;
 use App\Modules\OrdenesCompraRecepcionTransferencias\Data\RecepcionesData;
 use App\Modules\OrdenesCompraRecepcionTransferencias\Data\TransferenciasData;
-use App\Services\KardexProductosService;
+use App\Services\LotesProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
-use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\OrdenCompra\EstadoOCTransferencia;
 use App\Shared\Enums\OrdenCompra\EstadoOCTransRecepcion;
 use App\Shared\Enums\OrdenCompra\EstadoOCTransRecepcionDetalle;
@@ -159,18 +158,14 @@ class RecepcionesService
                         ? $cantidad_recep_base / $contenido
                         : $cantidad_recep_base;
 
-                    $correlativoData = LotesProductosData::get_nuevo_correlativo($id_almacen_recepcionista);
-                    $id_lote = LotesProductosData::crear_lote(
+                    $response = LotesProductosService::crear_lote(
                         id_producto: (int) $detalle_trans->id_producto,
                         id_unidad_medida: (int) $detalle_trans->id_unidad_medida_lot,
                         id_almacen: $id_almacen_recepcionista,
-                        id_origen: $id_recepcion_detalle, // AHORA ES EL ID DEL DETALLE DE RECEPCION
+                        id_origen: $id_recepcion_detalle,
                         tabla_origen: 'orden_compra_transferencia_recepcion_detalle',
-                        correlativo: $correlativoData['correlativo'],
-                        numero_correlativo: $correlativoData['numero_correlativo'],
+                        contenido_por_presentacion: $contenido > 0 ? $contenido : 1,
                         stock_inicial: $stock_inicial,
-                        contenido_por_presentacion: $contenido,
-                        stock_actual_base: $cantidad_recep_base,
                         fecha_hora_ingreso: isset($item['fecha_ingreso'])
                         ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
                         : $fecha_mysql,
@@ -179,47 +174,25 @@ class RecepcionesService
                         ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
                         : null
                     );
+                    $id_lote = $response['data'];
 
                     // Vincular el nuevo lote al detalle de recepción
                     RecepcionesData::update_detalle_lote($id_recepcion_detalle, $id_lote);
-
-                    $stock_anterior = 0;
-                    $stock_anterior_base = 0;
-                    $nuevo_stock = $stock_inicial;
-                    $nuevo_stock_base = $cantidad_recep_base;
-                    $contenido_kardex = $contenido > 0 ? $contenido : 1;
                 } else {
                     $id_lote = $id_lote_para_detalle;
                     $lote_existente = $lotesMap->get($id_lote);
+                    $contenido = (float) $lote_existente['contenido_por_presentacion'];
+                    $nuevo_stock_base = (float) $lote_existente['stock_actual_base'] + $cantidad_recep_base;
 
-                    $stock_anterior = (float) $lote_existente['stock_actual'];
-                    $stock_anterior_base = (float) $lote_existente['stock_actual_base'];
-                    $contenido_kardex = (float) $lote_existente['contenido_por_presentacion'];
-
-                    $incremento_lote = $contenido_kardex > 0
-                        ? $cantidad_recep_base / $contenido_kardex
-                        : $cantidad_recep_base;
-
-                    $nuevo_stock = $stock_anterior + $incremento_lote;
-                    $nuevo_stock_base = $stock_anterior_base + $cantidad_recep_base;
-
-                    LotesProductosData::update_stock($id_lote, $nuevo_stock, $nuevo_stock_base);
+                    LotesProductosService::update_stock(
+                        id_lote: $id_lote,
+                        id_origen: $id_recepcion_detalle,
+                        tabla_origen: null,
+                        tipo_origen: KardexOrigenMovimiento::Recepcion,
+                        nuevo_stock_base: $nuevo_stock_base,
+                        descripcion: 'Ingreso por recepción de transferencia OC',
+                    );
                 }
-
-                // 4. Registrar Kardex
-                KardexProductosService::registrar_kardex(
-                    $id_lote,
-                    KardexTipoMovimiento::Ingreso,
-                    KardexOrigenMovimiento::Recepcion,
-                    'Ingreso por recepción de transferencia OC',
-                    $contenido_kardex > 0 ? $cantidad_recep_base / $contenido_kardex : $cantidad_recep_base,
-                    $cantidad_recep_base,
-                    $nuevo_stock,
-                    $nuevo_stock_base,
-                    $id_recepcion,
-                    $stock_anterior,
-                    $stock_anterior_base
-                );
 
                 // 9. Acumular para el post-procesamiento agrupado
                 if (!isset($detallesAgrupados[$id_detalle_transferencia])) {

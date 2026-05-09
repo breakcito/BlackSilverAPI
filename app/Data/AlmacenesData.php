@@ -12,7 +12,7 @@ class AlmacenesData
      */
     public static function get_almacenes(
         ?int $id_almacen = null,
-        ?int $id_responsable = null,
+        ?int $id_empleado_responsable = null,
         ?int $es_principal = null
     ) {
         $query = DB::table('almacen as alm')
@@ -33,10 +33,10 @@ class AlmacenesData
 
 
         // si recibimos el id del responsable
-        if ($id_responsable !== null) {
+        if ($id_empleado_responsable !== null) {
             $query->join('responsable_almacen as res', 'res.id_almacen', '=', 'alm.id')
                 ->where('res.estado', 'Activo')
-                ->where('res.id_empleado', $id_responsable);
+                ->where('res.id_empleado', $id_empleado_responsable);
         }
 
         // Primero ordenamos por es_principal (1 antes que 0) y luego por nombre
