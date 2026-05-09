@@ -4,9 +4,11 @@ namespace App\Controllers;
 
 use App\Services\AlmacenesService;
 use App\Services\EmpleadosService;
+use App\Services\EmpresasService;
 use App\Services\LotesProductosService;
 use App\Services\PersonalExternoService;
 use App\Services\ProductosService;
+use App\Services\ProveedoresService;
 use App\Services\UnidadesMedidaService;
 use App\Shared\Enums\_Generic\EstadoBase;
 use App\Shared\Responses\ApiResponse;
@@ -101,6 +103,25 @@ class AuxController extends Controller
     }
 
     /**
+     * Obtener proveedores habilitados
+     */
+    public function get_proveedores(Request $request): JsonResponse
+    {
+        $id_proveedor = $request->input('id_proveedor') ? (int) $request->input('id_proveedor') : null;
+        $estado_val = $request->input('estado');
+        $estado = $estado_val ? EstadoBase::from($estado_val) : null;
+        $tipo_entidad = $request->input('tipo_entidad');
+
+        $result = ProveedoresService::get_proveedores(
+            id_proveedor: $id_proveedor,
+            estado: $estado,
+            tipoEntidad: $tipo_entidad
+        );
+
+        return response()->json($result);
+    }
+
+    /**
      * Catálogo de productos.
      */
     public function get_productos(Request $request): JsonResponse
@@ -112,4 +133,15 @@ class AuxController extends Controller
         ));
     }
 
+    public function get_empresas(Request $request): JsonResponse
+    {
+        $id_empresa = $request->input('id_empresa') ? (int) $request->input('id_empresa') : null;
+        $estado_val = $request->input('estado');
+        $estado = $estado_val ? EstadoBase::from($estado_val) : null;
+
+        return response()->json(EmpresasService::get_empresas(
+            id_empresa: $id_empresa,
+            estado: $estado
+        ));
+    }
 }

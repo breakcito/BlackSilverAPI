@@ -19,6 +19,7 @@ class EmpleadosData
             emp.id AS id_empleado,
             CONCAT(emp.nombre, " ", emp.apellido) AS nombre_completo,
             emp.dni,
+            emp.ruc,
             emp.path_foto
         FROM
             empleado emp

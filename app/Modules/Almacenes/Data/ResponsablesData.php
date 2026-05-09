@@ -103,7 +103,7 @@ class ResponsablesData
     /**
      * Obtener listado de empleados para asignar como responsable de almacen
      */
-    public static function get_empleados(int $id_almacen): array
+    public static function get_empleados_disponibles(int $id_almacen): array
     {
         $sql = '
         SELECT DISTINCT

@@ -9,14 +9,6 @@ class AuxController
 {
 
     /**
-     * Obtener proveedores habilitados
-     */
-    public function get_proveedores(): JsonResponse
-    {
-        return response()->json(AuxService::get_proveedores());
-    }
-
-    /**
      * Obtener empresas
      */
     public function get_empresas(): JsonResponse

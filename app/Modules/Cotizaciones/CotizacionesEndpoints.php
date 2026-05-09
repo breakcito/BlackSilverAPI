@@ -22,7 +22,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
         });
 
         Route::prefix('aux')->controller(AuxController::class)->group(function () {
-            Route::get('/proveedores', 'get_proveedores');
             Route::get('/empresas', 'get_empresas');
         });
     });

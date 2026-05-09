@@ -49,13 +49,13 @@ class ResponsablesController extends Controller
         return response()->json($result);
     }
 
-    public function get_empleados(Request $request, $id_almacen): JsonResponse
+    public function get_empleados_disponibles(Request $request, $id_almacen): JsonResponse
     {
         if (! $id_almacen) {
             return response()->json(ApiResponse::error('El almacen es requerido'));
         }
 
-        $result = ResponsablesService::get_empleados((int) $id_almacen);
+        $result = ResponsablesService::get_empleados_disponibles((int) $id_almacen);
 
         return response()->json($result);
     }

@@ -22,6 +22,12 @@ Route::middleware('auth.jwt.custom')->group(function () {
             // unidades de medida
             Route::get('/unidades-medida', 'get_unidades_medida');
 
+            // proveedores
+            Route::get('/proveedores', 'get_proveedores');
+
+            // empresas
+            Route::get('/empresas', 'get_empresas');
+
             // productos
             Route::get('/productos', 'get_productos');
         });
