@@ -21,6 +21,7 @@ class ProveedoresData
         SELECT 
             p.id AS id_proveedor,
             p.razon_social,
+            p.direccion,
             IFNULL(p.ruc, p.dni) AS documento
         FROM proveedor p
         WHERE 1 = 1
