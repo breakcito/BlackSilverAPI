@@ -20,9 +20,9 @@ class OrdenCompraData
     /**
      * Obtener los detalles de una OC específica
      */
-    public static function get_detalles(int $id_orden_compra): array
+    public static function get_detalles(int|array $ids_ordenes_compra): array
     {
-        return OrdenCompraDetalle::get_detalles($id_orden_compra);
+        return OrdenCompraDetalle::get_detalles($ids_ordenes_compra);
     }
 
     /**

@@ -93,9 +93,9 @@ class OrdenCompraDetalle extends Model
     /**
      * Obtiene los detalles de una OC con toda la información necesaria
      */
-    public static function get_detalles(int $id_orden_compra): array
+    public static function get_detalles(int|array $ids_ordenes_compra)
     {
-        return DB::select('
+        $sql = '
             SELECT
                 ocd.id AS id_orden_compra_detalle,
                 ocd.id_orden_compra,
@@ -151,8 +151,23 @@ class OrdenCompraDetalle extends Model
             INNER JOIN producto pr  ON pr.id  = ocd.id_producto
             INNER JOIN unidad_medida um  ON um.id  = ocd.id_unidad_medida
             INNER JOIN unidad_medida um_base ON um_base.id = pr.id_unidad_medida_base
-            WHERE ocd.id_orden_compra = :id_orden_compra
-            ORDER BY pr.nombre ASC
-        ', ['id_orden_compra' => $id_orden_compra]);
+            WHERE 1 = 1
+        ';
+
+        $params = [];
+
+        if (is_array($ids_ordenes_compra)) {
+            // Generate ?, ?, ? based on the array length
+            $placeholders = implode(',', array_fill(0, count($ids_ordenes_compra), '?'));
+            $sql .= ' AND ocd.id_orden_compra IN (' . $placeholders . ')';
+            $params = array_merge($params, $ids_ordenes_compra);
+        } else {
+            $sql .= ' AND ocd.id_orden_compra = ?';
+            $params[] = $ids_ordenes_compra;
+        }
+
+        $sql .= ' ORDER BY pr.nombre ASC';
+
+        return DB::select($sql, $params);
     }
 }

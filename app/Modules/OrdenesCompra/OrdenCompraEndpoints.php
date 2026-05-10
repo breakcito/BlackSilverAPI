@@ -1,6 +1,5 @@
 <?php
 
-use App\Modules\OrdenesCompra\Controller\AuxController;
 use App\Modules\OrdenesCompra\Controller\OrdenCompraController;
 use App\Modules\OrdenesCompra\Controller\RecepcionesOCController;
 use App\Modules\OrdenesCompra\Controller\TransferenciaController;

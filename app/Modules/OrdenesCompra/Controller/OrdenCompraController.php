@@ -26,13 +26,22 @@ class OrdenCompraController
      */
     public function get_detalles(Request $request): JsonResponse
     {
-        $id_orden_compra = (int) $request->query('id_orden_compra');
+        $ids_ordenes_compra = $request->query('ids_ordenes_compra');
+        $id_orden_compra = $request->query('id_orden_compra');
 
-        if (!$id_orden_compra) {
-            return response()->json(ApiResponse::error('Debe indicar el id de la Orden de Compra.'));
+        $ids = $ids_ordenes_compra ?? $id_orden_compra;
+
+        if (!$ids) {
+            return response()->json(ApiResponse::error('Debe indicar el id o ids de la(s) Orden(es) de Compra.'));
         }
 
-        $result = OrdenCompraService::get_detalles($id_orden_compra);
+        if (is_array($ids)) {
+            $ids = array_map('intval', $ids);
+        } else {
+            $ids = (int) $ids;
+        }
+
+        $result = OrdenCompraService::get_detalles($ids);
         return response()->json($result);
     }
 

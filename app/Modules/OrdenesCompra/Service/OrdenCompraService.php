@@ -19,11 +19,11 @@ class OrdenCompraService
     /**
      * Obtener el detalle de una orden de compra específica
      *
-     * @param int $id_orden_compra
+     * @param int $ids_ordenes_compra
      */
-    public static function get_detalles(int $id_orden_compra): array
+    public static function get_detalles(int|array $ids_ordenes_compra): array
     {
-        $detalles = OrdenCompraData::get_detalles($id_orden_compra);
+        $detalles = OrdenCompraData::get_detalles($ids_ordenes_compra);
         return ApiResponse::success($detalles);
     }
 
