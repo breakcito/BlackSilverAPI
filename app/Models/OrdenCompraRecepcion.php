@@ -79,9 +79,18 @@ class OrdenCompraRecepcion extends Model
             -- 
             r.observacion,
             r.fecha_hora_recepcion,
-            CONCAT(r.serie_guia_remision, "-", r.numero_guia_remision) as guia_remision,
+            CONCAT(r.serie_guia_remision, " - ", r.numero_guia_remision) as guia_remision,
             r.con_incidencia,
             r.evidencias,
+            -- 
+            CASE 
+                WHEN EXISTS (
+                    SELECT 1 
+                    FROM orden_compra_comprobante_recepcion cmp 
+                    WHERE cmp.id_orden_compra_recepcion = r.id
+                ) THEN 1 
+                ELSE 0 
+            END as tiene_comprobante,
             -- 
             r.created_at,
             r.estado

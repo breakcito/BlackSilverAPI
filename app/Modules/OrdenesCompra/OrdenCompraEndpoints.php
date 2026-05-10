@@ -22,5 +22,10 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::prefix('transferencias')->controller(TransferenciaController::class)->group(function () {
             Route::post('/', 'registrar_transferencia');
         });
+
+        Route::prefix('comprobantes')->controller(\App\Modules\OrdenesCompra\Controller\OCComprobanteController::class)->group(function () {
+            Route::post('/', 'registrar_comprobante');
+            Route::get('/{id_orden_compra}', 'listar_comprobantes');
+        });
     });
 });

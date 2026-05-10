@@ -89,9 +89,19 @@ Los módulos de la API están organizados bajo los mismos dominios funcionales q
 
 ## 🏛️ Reglas Críticas de Desarrollo
 
-1. **Consistencia de Respuestas**: Toda respuesta de cualquier servicio o controlador debe retornar obligatoriamente a través de los helpers globales `ApiResponse::success()` o `ApiResponse::error()`.
-2. **Prohibición de Rutas Redundantes**: No crear endpoints en módulos específicos para devolver listados recurrentes. Para eso existe `AuxController`.
-3. **Atomicidad Lógica**: Cualquier proceso que implique registros o actualizaciones (como `KardexProductosService`) debe estar envuelta en un `DB::transaction()`.
+1.  **Consistencia de Respuestas**: Toda respuesta debe retornar a través de los helpers globales `ApiResponse::success()` o `ApiResponse::error()`.
+2.  **Prohibición de Rutas Redundantes**: Usar `AuxController` para listados recurrentes.
+3.  **Atomicidad Lógica**: Usar `DB::transaction()` en procesos que impliquen múltiples registros.
+4.  **No Reutilización Forzada**: No crear métodos o clases sumamente complejos que intenten abarcarlo todo. Por ejemplo, ante los casos de "Editar" y "Registrar", sepáralos. La legibilidad y facilidad de mantenimiento son prioritarias sobre una reutilización que oscurezca el código.
+    *   Si eres una IA y aunque el usuario no lo pida, **DEBES** crear métodos para cada caso específico. Si te pide algo que contradice la regla, analiza, explica y dale una mejor alternativa antes de proceder.
+5.  **Uso Justificado de Arrays como Parámetros**:
+    *   **NUNCA** recibir un array como parámetro en métodos de las capas de Servicio, Data o Modelo si no está plenamente justificado. Esto hace que el código sea impredecible y difícil de depurar.
+    *   **Excepciones**: Solo es válido en casos de Cabecera + Detalles (ej. Orden de Compra) o registros masivos donde sea manejable y necesario.
+    *   **Documentación Obligatoria**: Si un método recibe un array, se **debe documentar exactamente qué contiene** dicho array para evitar adivinanzas.
+6.  **Documentación de Métodos**:
+    *   **Todos los métodos** de todas las capas deben estar documentados de forma breve, concisa y clara, indicando qué hace y para qué se usa.
+    *   No es necesario redocumentar cada parámetro simple, pero es **obligatorio** documentar el contenido de los parámetros de tipo array que no sean solo un array de archivos.
+    *   Si eres una IA, aunque el usuario no lo solicite, es **obligatorio** documentar todos los métodos.
 
 
 ## ⚙️ Ejecución

@@ -17,11 +17,30 @@ use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Modules\OrdenesCompra\Service\OCComprobanteService;
+use App\Shared\Enums\_Generic\Moneda;
+use App\Shared\Enums\_Generic\TipoComprobante;
 
 class RecepcionesOCService
 {
     /**
      * Registrar una recepción de stock para una Orden de Compra.
+     * 
+     * @param array $items Lista de objetos con el detalle de recepción:
+     *   {
+     *     id_orden_compra_detalle: int,
+     *     cantidad_base: float,
+     *     es_nuevo_lote: bool,
+     *     id_lote_existente: int|null,
+     *     id_unidad_medida: int,
+     *     contenido_por_presentacion: float,
+     *     descripcion: string|null,
+     *     fecha_vencimiento: string|null,
+     *     fecha_ingreso: string|null,
+     *     unidad_abv: string
+     *   }
+     * @param array $evidencias Lista de archivos físicos (UploadedFile) de evidencias de la recepción.
+     * @param array $evidencias_comprobante Lista de archivos físicos para el comprobante (si se adjunta).
      */
     public static function registrar_recepcion_oc(
         int $id_orden_compra,
@@ -33,25 +52,29 @@ class RecepcionesOCService
         ?string $serie_guia,
         ?string $numero_guia,
         array $items,
-        /**
-         * items: [
-         *   {
-         *     id_orden_compra_detalle: int,
-         *     cantidad_base: float,
-         *     es_nuevo_lote: bool,
-         *     id_lote_existente: int|null,
-         *     id_unidad_medida: int,
-         *     contenido_por_presentacion: float,
-         *     descripcion: string|null,
-         *     fecha_vencimiento: string|null,
-         *     fecha_ingreso: string|null,
-         *     unidad_abv: string
-         *   }
-         * ]
-         */
-        array $evidencias = []
+        array $evidencias = [],
+        //
+        // Datos para crear comprobante
+        //
+        ?TipoComprobante $tipo_comprobante = null,
+        ?string $serie_comprobante = null,
+        ?string $numero_comprobante = null,
+        ?string $fecha_emision_comprobante = null,
+        ?string $observacion_comprobante = null,
+        array $evidencias_comprobante = [],
+        ?Moneda $moneda_comprobante = null,
+        float $tipo_cambio_comprobante = 1,
+        bool $es_auditable_comprobante = false,
+        float $total_antes_igv_comprobante = 0,
+        float $total_antes_igv_soles_comprobante = 0,
+        bool $incluye_igv_comprobante = true,
+        float $porcentaje_igv_comprobante = 18,
+        float $monto_igv_comprobante = 0,
+        float $monto_igv_soles_comprobante = 0,
+        float $total_despues_igv_comprobante = 0,
+        float $total_despues_igv_soles_comprobante = 0
     ) {
-        return DB::transaction(function () use ($id_orden_compra, $id_almacen_recepcionista, $id_empleado_registro, $con_incidencia, $observacion, $fecha_hora_recepcion, $serie_guia, $numero_guia, $items, $evidencias) {
+        return DB::transaction(function () use ($id_orden_compra, $id_almacen_recepcionista, $id_empleado_registro, $con_incidencia, $observacion, $fecha_hora_recepcion, $serie_guia, $numero_guia, $items, $evidencias, $tipo_comprobante, $serie_comprobante, $numero_comprobante, $fecha_emision_comprobante, $observacion_comprobante, $evidencias_comprobante, $moneda_comprobante, $tipo_cambio_comprobante, $es_auditable_comprobante, $total_antes_igv_comprobante, $total_antes_igv_soles_comprobante, $incluye_igv_comprobante, $porcentaje_igv_comprobante, $monto_igv_comprobante, $monto_igv_soles_comprobante, $total_despues_igv_comprobante, $total_despues_igv_soles_comprobante) {
             $fecha_mysql = $fecha_hora_recepcion
                 ? Carbon::parse($fecha_hora_recepcion)->toDateTimeString()
                 : now()->toDateTimeString();
@@ -235,6 +258,31 @@ class RecepcionesOCService
             $lotes_data = !empty($ids_lotes_nuevos)
                 ? LotesProductosData::get_info_to_ticket(ids_lotes: $ids_lotes_nuevos)
                 : null;
+
+            if ($tipo_comprobante !== null) {
+                OCComprobanteService::registrar_comprobante(
+                    id_empleado_registro: $id_empleado_registro,
+                    id_orden_compra: $id_orden_compra,
+                    tipo_comprobante: $tipo_comprobante,
+                    serie: $serie_comprobante,
+                    numero: $numero_comprobante,
+                    fecha_emision: $fecha_emision_comprobante,
+                    observacion: $observacion_comprobante,
+                    evidencias: $evidencias_comprobante,
+                    moneda: $moneda_comprobante,
+                    tipo_cambio_venta_aplicado: $tipo_cambio_comprobante,
+                    es_auditable: $es_auditable_comprobante,
+                    total_antes_igv: $total_antes_igv_comprobante,
+                    total_antes_igv_soles: $total_antes_igv_soles_comprobante,
+                    incluye_igv: $incluye_igv_comprobante,
+                    porcentaje_igv: $porcentaje_igv_comprobante,
+                    monto_igv: $monto_igv_comprobante,
+                    monto_igv_soles: $monto_igv_soles_comprobante,
+                    total_despues_igv: $total_despues_igv_comprobante,
+                    total_despues_igv_soles: $total_despues_igv_soles_comprobante,
+                    ids_recepciones: [$id_recepcion]
+                );
+            }
 
             return ApiResponse::success($lotes_data, "Recepción de Orden de Compra registrada exitosamente");
         });
