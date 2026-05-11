@@ -4,6 +4,8 @@ namespace App\Modules\OrdenesCompra\Controller;
 
 use App\Modules\OrdenesCompra\Service\OCComprobanteService;
 use App\Shared\Responses\ApiResponse;
+use App\Shared\Enums\_Generic\Moneda;
+use App\Shared\Enums\_Generic\TipoComprobante;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,14 +17,14 @@ class OCComprobanteController
     public function registrar_comprobante(Request $request): JsonResponse
     {
         $id_orden_compra = (int) $request->input('id_orden_compra');
-        $tipo_comprobante = $request->input('tipo_comprobante');
+        $tipo_comprobante = TipoComprobante::from($request->input('tipo_comprobante'));
         $serie = $request->input('serie');
         $numero = $request->input('numero');
         $fecha_emision = $request->input('fecha_emision');
         $observacion = $request->input('observacion');
         $evidencias = $request->file('evidencias') ?? [];
 
-        $moneda = $request->input('moneda');
+        $moneda = Moneda::from($request->input('moneda'));
         $tipo_cambio_venta_aplicado = (float) $request->input('tipo_cambio_venta_aplicado', 1);
         $es_auditable = (bool) $request->input('es_auditable');
 
