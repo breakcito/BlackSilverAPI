@@ -159,7 +159,7 @@ class RequerimientosData
         ?array $evidencias = null
     ) {
         return RequerimientoAlmacen::insertGetId([
-            'id_empleado_solicitante' => $id_contratista_solicitante,
+            'id_contratista_solicitante' => $id_contratista_solicitante,
             'id_empleado_registro' => $id_empleado_registro,
             'id_mina' => $id_mina,
             'id_almacen_destino' => $id_almacen_destino,

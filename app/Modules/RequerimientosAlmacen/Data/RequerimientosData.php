@@ -16,13 +16,13 @@ class RequerimientosData
      */
     public static function get_resumen_requerimientos(
         ?int $id_requerimiento = null,
-        ?int $id_empleado_solicitante = null,
+        ?int $id_contratista_solicitante = null,
         ?string $mes = null,
         ?string $yearcito = null
     ) {
         return RequerimientoAlmacen::get_requerimientos(
             id_requerimiento: $id_requerimiento,
-            id_empleado_solicitante: $id_empleado_solicitante,
+            id_contratista_solicitante: $id_contratista_solicitante,
             mes: $mes,
             yearcito: $yearcito
         );
@@ -135,7 +135,7 @@ class RequerimientosData
      * Crear un nuevo requerimiento de almacén.
      */
     public static function crear_requerimiento(
-        int $id_empleado_solicitante,
+        int $id_contratista_solicitante,
         int $id_mina,
         int $id_almacen_destino,
         string $correlativo,
@@ -145,7 +145,7 @@ class RequerimientosData
         string $fecha_entrega_requerida
     ) {
         return RequerimientoAlmacen::insertGetId([
-            'id_empleado_solicitante' => $id_empleado_solicitante,
+            'id_contratista_solicitante' => $id_contratista_solicitante,
             'id_mina' => $id_mina,
             'id_almacen_destino' => $id_almacen_destino,
             'correlativo' => $correlativo,

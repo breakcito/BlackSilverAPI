@@ -44,7 +44,7 @@ class AtencionController extends Controller
         }
 
         $reglas = [
-            'id_empleado_solicitante' => 'required|integer',
+            'id_contratista_solicitante' => 'required|integer',
             'id_mina' => 'required|integer',
             'id_almacen_destino' => 'required|integer',
             'premura' => 'required|string',
@@ -74,7 +74,7 @@ class AtencionController extends Controller
 
         try {
             $resultado = AtencionService::registrar_requerimiento(
-                id_contratista_solicitante: (int) $request->id_empleado_solicitante,
+                id_contratista_solicitante: (int) $request->id_contratista_solicitante,
                 id_empleado_registro: (int) $id_empleado_registro,
                 id_mina: (int) $request->id_mina,
                 id_almacen_destino: (int) $request->id_almacen_destino,

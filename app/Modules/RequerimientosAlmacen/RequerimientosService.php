@@ -11,12 +11,12 @@ use Illuminate\Support\Facades\DB;
 class RequerimientosService
 {
     public function get_requerimientos(
-        int $id_empleado,
+        int $id_contratista,
         ?string $mes = null,
         ?string $yearcito = null
     ): array {
         $data = RequerimientosData::get_resumen_requerimientos(
-            id_empleado_solicitante: $id_empleado,
+            id_contratista_solicitante: $id_contratista,
             mes: $mes,
             yearcito: $yearcito
         );
@@ -30,7 +30,7 @@ class RequerimientosService
     }
 
     public function crear_requerimiento(
-        int $id_empleado_solicitante,
+        int $id_contratista,
         int $id_mina,
         int $id_almacen_destino,
         string $premura,
@@ -39,22 +39,13 @@ class RequerimientosService
         ?array $id_labores,
         array $detalles
     ): array {
-        return DB::transaction(function () use (
-            $id_empleado_solicitante,
-            $id_mina,
-            $id_almacen_destino,
-            $premura,
-            $fecha_entrega_requerida,
-            $observacion,
-            $id_labores,
-            $detalles
-        ) {
+        return DB::transaction(function () use ($id_contratista, $id_mina, $id_almacen_destino, $premura, $fecha_entrega_requerida, $observacion, $id_labores, $detalles) {
             // 1. Generar Correlativo
             $correlativoData = RequerimientosData::get_nuevo_correlativo($id_almacen_destino);
 
             // 2. Crear Cabecera
             $id_requerimiento = RequerimientosData::crear_requerimiento(
-                $id_empleado_solicitante,
+                $id_contratista,
                 $id_mina,
                 $id_almacen_destino,
                 $correlativoData['correlativo'],
@@ -88,7 +79,7 @@ class RequerimientosService
                     $detalle['id_producto_destino'] ?? null
                 );
 
-                RequerimientosDetalleData::registrar_trazabilidad($id_detalle, $id_empleado_solicitante);
+                RequerimientosDetalleData::registrar_trazabilidad($id_detalle, $id_contratista);
             }
 
             $resumen = RequerimientosData::get_requerimiento_by_id($id_requerimiento);

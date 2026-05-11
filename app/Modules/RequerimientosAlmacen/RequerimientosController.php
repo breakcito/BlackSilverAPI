@@ -15,16 +15,17 @@ class RequerimientosController extends Controller
 {
     public function __construct(
         private RequerimientosService $requerimientoService
-    ) {}
+    ) {
+    }
 
     public function get_requerimientos(Request $request): JsonResponse
     {
-        $authUser = $request->attributes->get('auth_user');
+        $id_contratista = $request->attributes->get('id_contratista');
         $mes = $request->query('mes');
         $yearcito = $request->query('yearcito');
 
         $result = $this->requerimientoService->get_requerimientos(
-            $authUser->id_empleado,
+            $id_contratista,
             $mes,
             $yearcito
         );
@@ -34,15 +35,10 @@ class RequerimientosController extends Controller
 
     public function crear_requerimiento(Request $request): JsonResponse
     {
-        $authUser = $request->attributes->get('auth_user');
-
-        if (! $authUser) {
-            return response()->json(ApiResponse::error('No autorizado'), 401);
-        }
-
         $validator = Validator::make($request->all(), [
             'id_mina' => 'required|integer',
             'id_almacen_destino' => 'required|integer',
+            'id_contratista' => 'required|integer',
             'premura' => ['required', new Enum(Premura::class)],
             'fecha_entrega_requerida' => 'nullable|date',
             'observacion' => 'nullable|string',
@@ -62,7 +58,7 @@ class RequerimientosController extends Controller
         }
 
         $result = $this->requerimientoService->crear_requerimiento(
-            $authUser->id_empleado,
+            (int) $request->id_contratista,
             (int) $request->id_mina,
             (int) $request->id_almacen_destino,
             $request->premura,
@@ -78,7 +74,7 @@ class RequerimientosController extends Controller
     public function get_detalle_by_requerimiento(Request $request): JsonResponse
     {
         $id = $request->query('id_requerimiento');
-        if (! $id) {
+        if (!$id) {
             return response()->json(ApiResponse::error('El id_requerimiento es requerido'), 400);
         }
 
@@ -102,7 +98,7 @@ class RequerimientosController extends Controller
     public function get_labores_by_requerimiento(Request $request): JsonResponse
     {
         $id = $request->query('id_requerimiento');
-        if (! $id) {
+        if (!$id) {
             return response()->json(ApiResponse::error('El id_requerimiento es requerido'), 400);
         }
 
