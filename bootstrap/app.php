@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
+        channels: __DIR__ . '/../routes/channels.php',
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
         then: function () {
@@ -40,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Modules/Cotizaciones/CotizacionesEndpoints.php');
                 require base_path('app/Modules/OrdenesCompra/OrdenCompraEndpoints.php');
                 require base_path('app/Modules/OrdenesCompraRecepcionTransferencias/OCRecepcionTransferenciasEndpoints.php');
+                require base_path('app/Modules/ModoAuditoria/ModoAuditoriaEndpoints.php');
             });
         },
     )
