@@ -111,3 +111,4 @@ Los módulos de la API están organizados bajo los mismos dominios funcionales q
 3. `php artisan key:generate`
 4. `php artisan storage:link` (Crítico para que los archivos multimedia y adjuntos sean públicos).
 5. `php artisan serve`
+6. `php artisan reverb:start` (En una terminal separada, para que funcionen los eventos en tiempo real)
