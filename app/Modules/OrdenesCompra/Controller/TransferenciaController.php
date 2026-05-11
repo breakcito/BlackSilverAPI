@@ -20,7 +20,6 @@ class TransferenciaController
             'id_almacen_destino' => 'required|integer',
             'id_personal_recibe' => 'required|integer',
             'fecha_hora_transferencia' => 'required|date',
-            'es_auditable' => 'required|boolean',
             'observacion' => 'nullable|string',
             'evidencias' => 'nullable|array',
 
@@ -39,7 +38,6 @@ class TransferenciaController
                 id_almacen_destino: $request->input('id_almacen_destino'),
                 id_personal_recibe: $request->input('id_personal_recibe'),
                 fecha_hora_transferencia: $request->input('fecha_hora_transferencia'),
-                es_auditable: $request->input('es_auditable'),
                 observacion: $request->input('observacion'),
                 evidencias: $request->input('evidencias', []),
                 detalles: $request->input('detalles')
