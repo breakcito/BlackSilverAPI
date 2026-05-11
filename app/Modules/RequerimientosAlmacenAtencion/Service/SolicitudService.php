@@ -2,6 +2,7 @@
 
 namespace App\Modules\RequerimientosAlmacenAtencion\Service;
 
+use App\Shared\Enums\_Generic\Premura;
 use Illuminate\Support\Facades\DB;
 use App\Shared\Responses\ApiResponse;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalle;
@@ -46,19 +47,13 @@ class SolicitudService
     public static function registrarSolicitudLogistica(
         int $id_requerimiento,
         int $id_empleado,
-        string $premura,
+        Premura $premura,
         string $fecha_entrega_requerida,
+        bool $es_auditable,
         array $detalles,
         ?string $observacion = null
     ) {
-        return DB::transaction(function () use (
-            $id_requerimiento,
-            $id_empleado,
-            $observacion,
-            $premura,
-            $fecha_entrega_requerida,
-            $detalles
-        ) {
+        return DB::transaction(function () use ($id_requerimiento, $id_empleado, $observacion, $premura, $fecha_entrega_requerida, $es_auditable, $detalles) {
 
             $requerimiento = RequerimientosData::get_almacen_destino_by_requerimiento($id_requerimiento);
 
@@ -76,6 +71,7 @@ class SolicitudService
                 $correlativoData['numero_correlativo'],
                 $premura,
                 $fecha_entrega_requerida,
+                $es_auditable,
                 $observacion
             );
 
@@ -98,7 +94,7 @@ class SolicitudService
 
                 // b) Registrar en trazabilidad DE LA SOLICITUD el inicio (Generada)
                 SolicitudesData::insert_detalle_log(
-                    (int)$id_srd,
+                    (int) $id_srd,
                     $id_empleado,
                     "Solicitud generada a partir del requerimiento de almacén N° {$correlativo_requerimiento->correlativo}",
                     EstadoSolicitudDetalleLog::EsperandoAprobacion

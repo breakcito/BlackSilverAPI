@@ -5,6 +5,7 @@ namespace App\Modules\RequerimientosAlmacenAtencion\Data;
 use App\Models\Labor;
 use App\Models\RequerimientoAlmacen;
 use App\Models\RequerimientoAlmacenLabor;
+use App\Shared\Enums\_Generic\Premura;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimiento;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Helpers\CorrelativoHelper;
@@ -153,9 +154,10 @@ class RequerimientosData
         int $id_almacen_destino,
         string $correlativo,
         int $numero_correlativo,
-        string $premura,
-        ?string $observacion,
-        string $fecha_entrega_requerida,
+        bool $es_auditable,
+        Premura $premura,
+        ?string $observacion = null,
+        ?string $fecha_entrega_requerida = null,
         ?array $evidencias = null
     ) {
         return RequerimientoAlmacen::insertGetId([
@@ -165,7 +167,8 @@ class RequerimientosData
             'id_almacen_destino' => $id_almacen_destino,
             'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
-            'premura' => $premura,
+            'es_auditable' => $es_auditable,
+            'premura' => $premura->value,
             'observacion' => $observacion,
             'evidencias' => $evidencias ? json_encode($evidencias) : null,
             'fecha_entrega_requerida' => $fecha_entrega_requerida,

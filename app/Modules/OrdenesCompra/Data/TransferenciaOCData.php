@@ -17,9 +17,10 @@ class TransferenciaOCData
         int $id_personal_recibe,
         string $correlativo,
         int $numero_correlativo,
+        bool $es_auditable,
+        ?array $evidencias = null,
         ?string $fecha_hora_transferencia = null,
         ?string $observacion = null,
-        $evidencias = null
     ): int {
         return (int) OrdenCompraTransferencia::crear_transferencia(
             id_almacen_destino: $id_almacen_destino,
@@ -28,6 +29,7 @@ class TransferenciaOCData
             id_personal_recibe: $id_personal_recibe,
             correlativo: $correlativo,
             numero_correlativo: $numero_correlativo,
+            es_auditable: $es_auditable,
             fecha_hora_transferencia: $fecha_hora_transferencia,
             observacion: $observacion,
             evidencias: $evidencias

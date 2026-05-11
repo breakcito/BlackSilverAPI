@@ -22,12 +22,12 @@ class PrestamosService
         int $id_solicitud_reabastecimiento,
         int $id_almacen_prestamista,
         int $id_empleado_registro,
+        bool $es_auditable,
         array $detalles,
         ?string $fecha_limite_devolucion,
         ?string $observacion,
     ) {
-        try {
-            DB::beginTransaction();
+        return DB::transaction(function () use ($id_solicitud_reabastecimiento, $id_almacen_prestamista, $id_empleado_registro, $es_auditable, $detalles, $fecha_limite_devolucion, $observacion) {
 
             $correlativoData = PrestamosData::get_nuevo_correlativo($id_almacen_prestamista);
 
@@ -41,6 +41,7 @@ class PrestamosService
                 $id_empleado_registro,
                 $correlativoData['correlativo'],
                 $correlativoData['numero_correlativo'],
+                $es_auditable,
                 now()->toDateTimeString(),
                 $fecha_limite_devolucion,
                 $observacion
@@ -88,14 +89,7 @@ class PrestamosService
                     id_empleado: $id_empleado_registro,
                 );
             }
-
-            DB::commit();
-
-            return ApiResponse::success(null, 'Préstamo solicitado correctamente');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return ApiResponse::error('Ocurrió un error al procesar el préstamo: ' . $e->getMessage());
-        }
+        });
     }
 
     public static function get_prestamo_por_id(int $id_prestamo)

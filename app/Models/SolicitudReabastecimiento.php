@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Shared\Enums\_Generic\Premura;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitud;
 use App\Shared\Helpers\CorrelativoHelper;
 use Illuminate\Database\Eloquent\Model;
@@ -17,11 +18,16 @@ class SolicitudReabastecimiento extends Model
         'id_almacen_solicitante',
         'id_requerimiento_almacen', // null - sirve para saber si fue generado por un requerimiento
         'id_empleado_solicitante',
+        //
         'correlativo',
         'numero_correlativo',
+        //
         'observacion',
         'premura',
         'fecha_entrega_requerida',
+        //
+        'es_auditable', // bool que ayuda a saber si es auditable para ocultarlo
+        //
         'created_at',
         'estado',
     ];
@@ -42,7 +48,8 @@ class SolicitudReabastecimiento extends Model
         int $id_empleado_solicitante,
         string $correlativo,
         int $numero_correlativo,
-        string $premura,
+        Premura $premura,
+        bool $es_auditable,
         ?int $id_requerimiento_almacen = null,
         ?string $observacion = null,
         ?string $fecha_entrega_requerida = null,
@@ -54,8 +61,9 @@ class SolicitudReabastecimiento extends Model
             'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
             'observacion' => $observacion,
-            'premura' => $premura,
+            'premura' => $premura->value,
             'fecha_entrega_requerida' => $fecha_entrega_requerida,
+            'es_auditable' => $es_auditable ? 1 : 0,
             'created_at' => now(),
             'estado' => EstadoSolicitud::Generada->value,
         ]);
@@ -89,6 +97,8 @@ class SolicitudReabastecimiento extends Model
             scr.observacion,
             scr.premura,
             scr.fecha_entrega_requerida,
+            --
+            scr.es_auditable,
             --
             scr.created_at,
             scr.estado

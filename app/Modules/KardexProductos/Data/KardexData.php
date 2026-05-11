@@ -18,6 +18,7 @@ class KardexData
             lp.id_producto,
             cat.nombre as categoria,
             p.nombre AS producto,
+            p.es_auditable,
             lp.correlativo,
             lp.contenido_por_presentacion,
             um_lote.nombre as unidad_lote,

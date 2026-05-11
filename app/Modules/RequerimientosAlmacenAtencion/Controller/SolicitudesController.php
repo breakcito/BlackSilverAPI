@@ -2,6 +2,7 @@
 
 namespace App\Modules\RequerimientosAlmacenAtencion\Controller;
 
+use App\Shared\Enums\_Generic\Premura;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\RequerimientosAlmacenAtencion\Service\SolicitudService;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +22,7 @@ class SolicitudesController extends Controller
             'id_requerimiento' => 'required|integer',
             'observacion' => 'nullable|string',
             'premura' => 'required|string',
+            'es_auditable' => 'required|boolean',
             'fecha_entrega_requerida' => 'required|date',
             'detalles' => 'required|array|min:1',
             'detalles.*.id_requerimiento_almacen_detalle' => 'required|integer',
@@ -41,13 +43,15 @@ class SolicitudesController extends Controller
             return response()->json(ApiResponse::error('No autorizado'), 401);
         }
 
+        $premura = Premura::from($request->input('premura'));
         $result = SolicitudService::registrarSolicitudLogistica(
-            (int) $request->id_requerimiento,
-            (int) $authUser->id_empleado,
-            $request->premura,
-            $request->fecha_entrega_requerida,
-            $request->detalles,
-            $request->observacion
+            id_requerimiento: (int) $request->id_requerimiento,
+            id_empleado: (int) $authUser->id_empleado,
+            premura: $premura,
+            fecha_entrega_requerida: $request->fecha_entrega_requerida,
+            es_auditable: $request->es_auditable,
+            detalles: $request->detalles,
+            observacion: $request->observacion
         );
 
         return response()->json($result);

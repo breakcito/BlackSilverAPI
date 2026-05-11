@@ -27,6 +27,7 @@ class PrestamosController extends Controller
         $validator = Validator::make($request->all(), [
             'id_solicitud_reabastecimiento' => 'required|integer',
             'id_almacen_prestamista' => 'required|integer',
+            'es_auditable' => 'required|boolean',
             'fecha_limite_devolucion' => 'nullable|date',
             'detalles' => 'required|array|min:1',
             'detalles.*.id_solicitud_reabastecimiento_detalle' => 'required|integer',
@@ -44,15 +45,17 @@ class PrestamosController extends Controller
         }
 
         $fecha_limite = $request->input('fecha_limite_devolucion');
-        if (empty($fecha_limite)) $fecha_limite = null;
+        if (empty($fecha_limite))
+            $fecha_limite = null;
 
         $result = PrestamosService::crear_prestamo(
-            (int) $request->input('id_solicitud_reabastecimiento'),
-            (int) $request->input('id_almacen_prestamista'),
-            (int) $authUser->id_empleado,
-            (array) $request->input('detalles'),
-            $fecha_limite,
-            (string) $request->input('observacion')
+            id_solicitud_reabastecimiento: (int) $request->input('id_solicitud_reabastecimiento'),
+            id_almacen_prestamista: (int) $request->input('id_almacen_prestamista'),
+            id_empleado_registro: (int) $authUser->id_empleado,
+            es_auditable: (bool) $request->input('es_auditable'),
+            detalles: (array) $request->input('detalles'),
+            fecha_limite_devolucion: $fecha_limite,
+            observacion: (string) $request->input('observacion')
         );
 
         return response()->json($result);

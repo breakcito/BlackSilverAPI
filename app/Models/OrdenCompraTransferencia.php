@@ -24,6 +24,7 @@ class OrdenCompraTransferencia extends Model
         'observacion',
         'fecha_hora_transferencia',
         'evidencias',
+        'es_auditable', // bool que ayuda a saber si es auditable para ocultarlo
         //
         'created_at',
         'estado', // Despacahdo / Recepcion completa / Recepcionado parcialmente
@@ -37,9 +38,10 @@ class OrdenCompraTransferencia extends Model
         int $id_personal_recibe,
         string $correlativo,
         int $numero_correlativo,
+        bool $es_auditable,
+        $evidencias = null,
         ?string $fecha_hora_transferencia = null,
-        ?string $observacion = null,
-        $evidencias = null
+        ?string $observacion = null
     ) {
         return self::insertGetId([
             'id_orden_compra_recepcion' => $id_orden_compra_recepcion,
@@ -49,7 +51,8 @@ class OrdenCompraTransferencia extends Model
             'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
             'fecha_hora_transferencia' => $fecha_hora_transferencia ?? now(),
-            'observacion' => $observacion ?? '',
+            'observacion' => $observacion,
+            'es_auditable' => $es_auditable,
             'evidencias' => $evidencias ? json_encode($evidencias) : null,
             'created_at' => now(),
             'estado' => EstadoOCTransferencia::EnDespacho->value,
@@ -71,6 +74,7 @@ class OrdenCompraTransferencia extends Model
         SELECT
             trn.id AS id_transferencia,
             trn.correlativo,
+            trn.es_auditable,
             -- 
             oc.correlativo as codigo_orden_compra,
             -- 

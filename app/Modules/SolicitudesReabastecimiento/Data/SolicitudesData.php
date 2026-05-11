@@ -3,6 +3,7 @@
 namespace App\Modules\SolicitudesReabastecimiento\Data;
 
 use App\Models\SolicitudReabastecimiento;
+use App\Shared\Enums\_Generic\Premura;
 
 class SolicitudesData
 {
@@ -40,7 +41,8 @@ class SolicitudesData
         int $id_empleado_solicitante,
         string $correlativo,
         int $numero_correlativo,
-        string $premura,
+        Premura $premura,
+        bool $es_auditable,
         ?string $observacion = null,
         ?string $fecha_entrega_requerida = null,
     ) {
@@ -52,6 +54,7 @@ class SolicitudesData
             premura: $premura,
             observacion: $observacion,
             fecha_entrega_requerida: $fecha_entrega_requerida,
+            es_auditable: $es_auditable,
         );
     }
 

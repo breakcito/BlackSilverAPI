@@ -23,8 +23,12 @@ class LotesProductosData
         $sql = "
         SELECT
             lp.id AS id_lote,
-            lp.id_producto,
             lp.correlativo,
+            -- 
+            lp.id_almacen,
+            --
+            lp.id_producto,
+            pr.es_auditable,
             --
             lp.stock_actual,
             lp.contenido_por_presentacion,

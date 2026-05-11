@@ -2,6 +2,7 @@
 
 namespace App\Modules\RequerimientosAlmacenAtencion\Controller;
 
+use App\Shared\Enums\_Generic\Premura;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\RequerimientosAlmacenAtencion\Service\AtencionService;
 use Illuminate\Http\JsonResponse;
@@ -47,6 +48,7 @@ class AtencionController extends Controller
             'id_contratista_solicitante' => 'required|integer',
             'id_mina' => 'required|integer',
             'id_almacen_destino' => 'required|integer',
+            'es_auditable' => 'required|boolean',
             'premura' => 'required|string',
             'fecha_entrega_requerida' => 'required|date',
             'observacion' => 'nullable|string',
@@ -72,13 +74,15 @@ class AtencionController extends Controller
         $id_empleado_registro = $authUser->id_empleado;
         $evidencias = $request->file('evidencias', []);
 
+        $premura = Premura::from($request->input('premura'));
         try {
             $resultado = AtencionService::registrar_requerimiento(
                 id_contratista_solicitante: (int) $request->id_contratista_solicitante,
                 id_empleado_registro: (int) $id_empleado_registro,
                 id_mina: (int) $request->id_mina,
                 id_almacen_destino: (int) $request->id_almacen_destino,
-                premura: $request->premura,
+                es_auditable: (bool) $request->es_auditable,
+                premura: $premura,
                 observacion: $request->observacion,
                 fecha_entrega_requerida: $request->fecha_entrega_requerida,
                 labores: $request->labores,

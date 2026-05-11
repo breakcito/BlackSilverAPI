@@ -2,6 +2,7 @@
 
 namespace App\Modules\RequerimientosAlmacenAtencion\Service;
 
+use App\Shared\Enums\_Generic\Premura;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalle;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalleLog;
 use App\Shared\Responses\ApiResponse;
@@ -54,25 +55,15 @@ class AtencionService
         int $id_empleado_registro,
         int $id_mina,
         int $id_almacen_destino,
-        string $premura,
-        ?string $observacion,
-        string $fecha_entrega_requerida,
-        array|null $labores,
+        bool $es_auditable,
+        Premura $premura,
         array $detalles,
+        ?array $labores = null,
+        ?string $fecha_entrega_requerida = null,
+        ?string $observacion = null,
         ?array $evidencias = null
     ) {
-        return DB::transaction(function () use (
-            $id_contratista_solicitante,
-            $id_empleado_registro,
-            $id_mina,
-            $id_almacen_destino,
-            $premura,
-            $observacion,
-            $fecha_entrega_requerida,
-            $labores,
-            $detalles,
-            $evidencias
-        ) {
+        return DB::transaction(function () use ($id_contratista_solicitante, $id_empleado_registro, $id_mina, $id_almacen_destino, $es_auditable, $premura, $observacion, $fecha_entrega_requerida, $labores, $detalles, $evidencias) {
             // 1. Generar correlativo
             $correlativo = RequerimientosData::get_nuevo_correlativo($id_almacen_destino);
 
@@ -84,16 +75,17 @@ class AtencionService
 
             // 3. Crear cabecera
             $id_requerimiento = RequerimientosData::crear_requerimiento(
-                $id_contratista_solicitante,
-                $id_empleado_registro,
-                $id_mina,
-                $id_almacen_destino,
-                $correlativo['correlativo'],
-                $correlativo['numero_correlativo'],
-                $premura,
-                $observacion,
-                $fecha_entrega_requerida,
-                $evidenciasFinal
+                id_contratista_solicitante: $id_contratista_solicitante,
+                id_empleado_registro: $id_empleado_registro,
+                id_mina: $id_mina,
+                id_almacen_destino: $id_almacen_destino,
+                correlativo: $correlativo['correlativo'],
+                numero_correlativo: $correlativo['numero_correlativo'],
+                es_auditable: $es_auditable,
+                premura: $premura,
+                observacion: $observacion,
+                fecha_entrega_requerida: $fecha_entrega_requerida,
+                evidencias: $evidenciasFinal
             );
 
             // 3. Asociar Labores

@@ -17,8 +17,7 @@ class Producto extends Model
         'nombre',
         //
         'es_perecible',
-        // bool que ayuda a saber si los productos de 
-        // esa categoria con auditables para ocultarlos
+        // bool que ayuda a saber si el producto es auditable para ocultarlo
         'es_auditable',
         //
         'stock_minimo_base',

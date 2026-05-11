@@ -5,6 +5,7 @@ namespace App\Modules\RequerimientosAlmacenAtencion\Data;
 use App\Models\SolicitudReabastecimiento;
 use App\Models\SolicitudReabastecimientoDetalle;
 use App\Models\SolicitudReabastecimientoDetalleLog;
+use App\Shared\Enums\_Generic\Premura;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleLog;
 
 class SolicitudesData
@@ -37,8 +38,9 @@ class SolicitudesData
         int $id_empleado_solicitante,
         string $correlativo,
         int $numero_correlativo,
-        string $premura,
+        Premura $premura,
         string $fecha_entrega_requerida,
+        bool $es_auditable,
         ?string $observacion = null,
     ) {
         return SolicitudReabastecimiento::crear_solicitud(
@@ -50,6 +52,7 @@ class SolicitudesData
             id_requerimiento_almacen: $id_requerimiento_almacen,
             observacion: $observacion,
             fecha_entrega_requerida: $fecha_entrega_requerida,
+            es_auditable: $es_auditable,
         );
     }
 

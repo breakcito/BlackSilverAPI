@@ -2,7 +2,7 @@
 
 namespace App\Modules\SolicitudesReabastecimiento\Service;
 
-use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
+use App\Shared\Enums\_Generic\Premura;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleLog;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimiento\Data\SolicitudesData;
@@ -31,7 +31,8 @@ class SolicitudesService
     public static function crear_solicitud(
         int $id_almacen_solicitante,
         int $id_empleado_solicitante,
-        string $premura,
+        Premura $premura,
+        bool $es_auditable,
         // id_producto, id_unidad_medida, cantidad_solicitada, 
         // contenido_por_presentacion 
         // comentario
@@ -51,6 +52,7 @@ class SolicitudesService
             $correlativo,
             $numero_correlativo,
             $premura,
+            $es_auditable,
             $observacion,
             $fecha_entrega_requerida
         );
@@ -76,7 +78,7 @@ class SolicitudesService
 
             $estadoEnum = EstadoSolicitudDetalleLog::EsperandoAprobacion;
             SolicitudesDetalleData::insert_detalle_log(
-                (int)$id_solicitud_detalle,
+                (int) $id_solicitud_detalle,
                 $id_empleado_solicitante,
                 $estadoEnum->getGlosa($comentario),
                 $estadoEnum

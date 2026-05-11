@@ -41,6 +41,7 @@ class PrestamosData
         int $id_empleado_registro,
         string $correlativo,
         int $numero_correlativo,
+        bool $es_auditable,
         string $fecha_hora_prestamo,
         ?string $fecha_limite_devolucion,
         ?string $observacion
@@ -52,6 +53,7 @@ class PrestamosData
             id_empleado_registro: $id_empleado_registro,
             correlativo: $correlativo,
             numero_correlativo: $numero_correlativo,
+            es_auditable: $es_auditable,
             fecha_hora_prestamo: $fecha_hora_prestamo,
             fecha_limite_devolucion: $fecha_limite_devolucion,
             observacion: $observacion

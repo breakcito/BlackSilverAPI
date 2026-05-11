@@ -20,16 +20,19 @@ class PrestamoAlmacen extends Model
         'id_almacen_solicitante', // el que necesita stock
         'id_almacen_prestamista', // el que va a prestar stock
         'id_empleado_registro', // quien lo registro
+        //
         'correlativo', // prefijo: PRT
         'numero_correlativo',
+        //
         'fecha_hora_prestamo', // cuando se realizo ese prestamo
         'fecha_limite_devolucion',
+        //
         'observacion',
+        'es_auditable', // bool que ayuda a saber si es auditable para ocultarlo
+        //
         'created_at',
-        // Sin reposicion / Reposicion parcial / Reposicion total
-        'estado_reposicion',
-        // Generado / En proceso (a penas se realiza una entrega) / Completado / Cerrado / Anulado
-        'estado',
+        'estado_reposicion', // Sin reposicion / Reposicion parcial / Reposicion total
+        'estado',  // Generado / En proceso (a penas se realiza una entrega) / Completado / Cerrado / Anulado
     ];
 
     /**
@@ -71,6 +74,7 @@ class PrestamoAlmacen extends Model
             pa.fecha_hora_prestamo,
             pa.fecha_limite_devolucion,
             pa.observacion,
+            pa.es_auditable,
             CONCAT(e.nombre, " ", e.apellido) AS registrado_por,    
             --
             pa.created_at,
@@ -130,23 +134,25 @@ class PrestamoAlmacen extends Model
         int $id_empleado_registro,
         string $correlativo,
         int $numero_correlativo,
+        bool $es_auditable,
         string $fecha_hora_prestamo,
         ?string $fecha_limite_devolucion,
         ?string $observacion,
     ): int {
         return self::insertGetId([
             'id_solicitud_reabastecimiento' => $id_solicitud_reabastecimiento,
-            'id_almacen_solicitante'        => $id_almacen_solicitante,
-            'id_almacen_prestamista'        => $id_almacen_prestamista,
-            'id_empleado_registro'          => $id_empleado_registro,
-            'correlativo'                   => $correlativo,
-            'numero_correlativo'            => $numero_correlativo,
-            'fecha_hora_prestamo'           => $fecha_hora_prestamo,
-            'fecha_limite_devolucion'       => $fecha_limite_devolucion,
-            'observacion'                   => $observacion,
-            'created_at'                    => now(),
-            'estado_reposicion'             => EstadoReposicionPrestamo::SinReposicion->value,
-            'estado'                        => EstadoPrestamo::Generado->value,
+            'id_almacen_solicitante' => $id_almacen_solicitante,
+            'id_almacen_prestamista' => $id_almacen_prestamista,
+            'id_empleado_registro' => $id_empleado_registro,
+            'correlativo' => $correlativo,
+            'numero_correlativo' => $numero_correlativo,
+            'es_auditable' => $es_auditable,
+            'fecha_hora_prestamo' => $fecha_hora_prestamo,
+            'fecha_limite_devolucion' => $fecha_limite_devolucion,
+            'observacion' => $observacion,
+            'created_at' => now(),
+            'estado_reposicion' => EstadoReposicionPrestamo::SinReposicion->value,
+            'estado' => EstadoPrestamo::Generado->value,
         ]);
     }
 }
