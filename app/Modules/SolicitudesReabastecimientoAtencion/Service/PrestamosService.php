@@ -89,6 +89,8 @@ class PrestamosService
                     id_empleado: $id_empleado_registro,
                 );
             }
+
+            return ApiResponse::success($id_prestamo, 'Préstamo registrado correctamente');
         });
     }
 

@@ -16,9 +16,7 @@ parameters:
     treatPhpDocTypesAsCertain: false
 
     # Ignorar errores específicos de Laravel que a veces son falsos positivos
-    ignoreErrors:
-        - '#Unsafe usage of new static#'
-        - '#PHPDoc tag @return contains unresolvable type#'
+    ignoreErrors: []
 
     # Excluir rutas innecesarias
     excludePaths:
