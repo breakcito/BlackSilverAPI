@@ -15,6 +15,7 @@ class Producto extends Model
         'id_unidad_medida_base',
         //
         'nombre',
+        'prefijo',
         //
         'es_perecible',
         // bool que ayuda a saber si el producto es auditable para ocultarlo
@@ -25,11 +26,18 @@ class Producto extends Model
         // va actualizando en base a los registros que se van 
         // teniendo en las ordenes de compra
         'costo_promedio_base',
+        'costo_promedio_base_log',
         //
         'tiempo_espera_vencimiento',
         'periodo_espera_vencimiento',
         'dias_espera_vencimiento',
         //
         'estado',
+    ];
+
+    protected $casts = [
+        'costo_promedio_base_log' => 'array',
+        'es_perecible' => 'boolean',
+        'es_auditable' => 'boolean',
     ];
 }

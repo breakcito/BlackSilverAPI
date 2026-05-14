@@ -15,7 +15,8 @@ class AuxData
             SELECT 
                 id AS id_categoria, 
                 nombre,
-                es_auditable
+                es_auditable,
+                clasificacion_bien
             FROM categoria
             WHERE estado = "Activo"
             ORDER BY nombre ASC

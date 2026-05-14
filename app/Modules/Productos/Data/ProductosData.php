@@ -25,11 +25,14 @@ class ProductosData
                 um.nombre as unidad_medida_base,
                 um.abreviatura as unidad_medida_base_abreviatura,
                 -- 
+                p.prefijo,
+                -- 
                 p.es_auditable,
                 p.es_perecible,
                 -- 
                 p.stock_minimo_base,
                 p.costo_promedio_base,
+                p.costo_promedio_base_log,
                 -- 
                 p.tiempo_espera_vencimiento,
                 p.periodo_espera_vencimiento,
@@ -73,6 +76,7 @@ class ProductosData
         int $id_categoria,
         int $id_unidad_medida_base,
         string $nombre,
+        ?string $prefijo,
         bool $es_auditable,
         bool $es_perecible,
         float $stock_minimo_base,
@@ -85,10 +89,12 @@ class ProductosData
             'id_categoria' => $id_categoria,
             'id_unidad_medida_base' => $id_unidad_medida_base,
             'nombre' => $nombre,
+            'prefijo' => $prefijo,
             'es_auditable' => $es_auditable,
             'es_perecible' => $es_perecible,
             'stock_minimo_base' => $stock_minimo_base,
             'costo_promedio_base' => $costo_promedio_base,
+            'costo_promedio_base_log' => null,
             'tiempo_espera_vencimiento' => $tiempo_espera_vencimiento,
             'periodo_espera_vencimiento' => $periodo_espera_vencimiento,
             'dias_espera_vencimiento' => $dias_espera_vencimiento,

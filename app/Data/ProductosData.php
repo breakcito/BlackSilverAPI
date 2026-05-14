@@ -102,17 +102,40 @@ class ProductosData
      */
     public static function actualizar_costo_promedio(int $id_producto, array $nuevos_costos_base): void
     {
-        if (empty($nuevos_costos_base))
+        if (empty($nuevos_costos_base)) {
             return;
+        }
 
-        // costo promedio actual
-        $costo_actual = self::get_costo_promedio_producto($id_producto);
+        // 1. Obtener el producto actual con su log
+        $producto = Producto::find($id_producto);
+        if (!$producto) {
+            return;
+        }
 
-        // Calcular nuevo promedio: (actual + nuevo1 + nuevo2 + ...) / (1 + N)
+        $costo_actual = (float) $producto->costo_promedio_base;
+
+        // 2. Calcular nuevo promedio: (actual + nuevo1 + nuevo2 + ...) / (1 + N)
         $suma_nuevos = array_sum($nuevos_costos_base);
         $divisor = 1 + count($nuevos_costos_base);
         $nuevo_promedio = round(($costo_actual + $suma_nuevos) / $divisor, 4);
 
-        Producto::where('id', $id_producto)->update(['costo_promedio_base' => $nuevo_promedio]);
+        // 3. Si hay variación, registrar en el log
+        $data_update = [
+            'costo_promedio_base' => $nuevo_promedio
+        ];
+
+        if ($costo_actual !== (float) $nuevo_promedio) {
+            $log_actual = $producto->costo_promedio_base_log ?? [];
+            $nuevo_registro = [
+                'costo_promedio_anterior' => $costo_actual,
+                'costo_promedio_resultante' => $nuevo_promedio,
+                'created_at' => now()->toDateTimeString(),
+            ];
+
+            $log_actual[] = $nuevo_registro;
+            $data_update['costo_promedio_base_log'] = $log_actual;
+        }
+
+        $producto->update($data_update);
     }
 }
