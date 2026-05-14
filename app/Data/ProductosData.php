@@ -49,6 +49,9 @@ class ProductosData
             p.es_perecible,
             p.es_auditable,
             
+            -- costos
+            p.costo_promedio_base,
+
             -- cuantos dias antes debemos alertar el vencimiento de productos
             p.dias_espera_vencimiento
         FROM producto p
