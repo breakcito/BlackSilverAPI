@@ -42,10 +42,10 @@ class CuentasData
     {
         $sql = "
             SELECT 
-                e.id,
-                e.nombre,
-                e.apellido,
+                e.id as id_empleado,
+                CONCAT(e.nombre, ' ', e.apellido) as nombre_completo,
                 e.dni,
+                e.path_foto,
                 e.id_empresa as id_empresa_pertenece
             FROM empleado e
             LEFT JOIN usuario u ON u.id_empleado = e.id
