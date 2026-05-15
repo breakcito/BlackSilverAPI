@@ -27,6 +27,7 @@ class ProductosData
             p.id_categoria,
             c.nombre AS categoria,
             c.es_consumible,
+            c.clasificacion_bien,
             -- las categorias que consumen esta categoria del producto
             CASE
             	WHEN :con_categorias_consumidoras = 1 THEN
