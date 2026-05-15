@@ -112,7 +112,7 @@ class AtencionService
                     $detalle['id_producto_destino'] ?? null
                 );
 
-                RequerimientosDetalleData::registrar_trazabilidad($id_detalle, $id_contratista_solicitante);
+                RequerimientosDetalleData::registrar_trazabilidad($id_detalle, $id_empleado_registro);
             }
 
             // 5. Obtener resumen para el front

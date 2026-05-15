@@ -138,11 +138,11 @@ class RequerimientosDetalleData
      */
     public static function registrar_trazabilidad(
         int $id_detalle,
-        int $id_empleado_solicitante
+        int $id_empleado_registro
     ) {
         return RequerimientoAlmacenDetalleLog::crear_log(
             id_requerimiento_detalle: $id_detalle,
-            id_empleado: $id_empleado_solicitante,
+            id_empleado: $id_empleado_registro,
             descripcion: EstadoRequerimientoDetalle::EsperandoAprobacion->getGlosa(),
             estado: EstadoRequerimientoDetalleLog::EsperandoAprobacion
         );
