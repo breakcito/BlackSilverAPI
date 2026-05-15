@@ -128,11 +128,11 @@ class AuxController extends Controller
     public function get_productos(Request $request): JsonResponse
     {
         $con_categorias = (bool) $request->input('con_categorias_consumidoras', false);
-        $tipo_bien = $request->input('tipo_bien') ? TipoBien::from($request->input('tipo_bien')) : null;
+        $tipo_bien_excluido = $request->input('tipo_bien') ? TipoBien::from($request->input('tipo_bien_excluido')) : null;
 
         return response()->json(ProductosService::get_productos(
             con_categorias_consumidoras: $con_categorias,
-            tipo_bien: $tipo_bien
+            tipo_bien_excluido: $tipo_bien_excluido
         ));
     }
 

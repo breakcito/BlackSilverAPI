@@ -18,6 +18,7 @@ class ActivoFijo extends Model
 
     protected $fillable = [
         'id_producto', // que producto es este activo
+        'id_lote_producto', // de que lote es este activo - util para reutilizar todo el proceso ya elaborado para logistica - el lote solo le podra pertenecer a una almacen virtual
         'id_marca', // de que marca - opcional
         // En que lugar se encuentra, solo una de ellas debe de tener valor
         'id_mina', // opcional - en que mina se encuentra siendo usado este activo
@@ -33,6 +34,7 @@ class ActivoFijo extends Model
         'descripcion', // opcional
         // 
         'especificaciones', // Columna JSON para almacenar especificaciones dinámicas
+        // [{"clave": "", "valor": ""} ... ]
         //
         'estado' // Estado Base
     ];

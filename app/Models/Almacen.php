@@ -14,6 +14,7 @@ class Almacen extends Model
         'nombre',
         'descripcion',
         'es_principal',
+        'es_virtual', // true si es un almacen virtual, false si es un almacen fisico
         'estado',
     ];
 }
