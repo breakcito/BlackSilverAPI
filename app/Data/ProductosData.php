@@ -4,6 +4,7 @@ namespace App\Data;
 
 use App\Models\Producto;
 use App\Shared\Enums\_Generic\EstadoBase;
+use App\Shared\Enums\_Generic\TipoBien;
 use Illuminate\Support\Facades\DB;
 
 class ProductosData
@@ -14,15 +15,14 @@ class ProductosData
      */
     public static function get_productos(
         ?EstadoBase $estado = EstadoBase::Activo,
-        ?bool $con_categorias_consumidoras = false
+        ?bool $con_categorias_consumidoras = false,
+        ?TipoBien $tipo_bien_excluido = null
     ) {
         $sql = '
         SELECT
             p.id as id_producto,
             p.nombre as nombre,
             p.prefijo,
-            p.costo_promedio_base_log,
-            
             -- categoria
             p.id_categoria,
             c.nombre AS categoria,
@@ -69,6 +69,11 @@ class ProductosData
 
         $params['estado'] = $estado->value;
         $params['con_categorias_consumidoras'] = $con_categorias_consumidoras ? 1 : 0;
+
+        if ($tipo_bien_excluido) {
+            $sql .= ' AND c.clasificacion_bien <> :tipo_bien_excluido';
+            $params['tipo_bien_excluido'] = $tipo_bien_excluido->value;
+        }
 
         $sql .= ' ORDER BY p.nombre ASC';
 

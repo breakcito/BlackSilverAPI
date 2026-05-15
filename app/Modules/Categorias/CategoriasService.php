@@ -14,6 +14,10 @@ class CategoriasService
     {
         $categorias = CategoriasData::get_categorias();
 
+        foreach ($categorias as $categoria) {
+            self::procesar_categoria($categoria);
+        }
+
         return ApiResponse::success($categorias);
     }
 
@@ -25,6 +29,9 @@ class CategoriasService
         string $tipo_producto,
         ?string $descripcion = null,
         ?string $clasificacion_bien = null,
+        bool $para_transporte = false,
+        bool $control_por_odometro = false,
+        bool $control_por_horometro = false,
         bool $es_consumible = false,
         bool $para_cocina = false,
         bool $para_mina = false,
@@ -45,6 +52,9 @@ class CategoriasService
             $tipo_producto,
             $descripcion,
             $clasificacion_bien,
+            $para_transporte,
+            $control_por_odometro,
+            $control_por_horometro,
             $es_consumible,
             $para_cocina,
             $para_mina,
@@ -57,6 +67,7 @@ class CategoriasService
         }
 
         $nuevaCategoria = CategoriasData::get_categoria_by_id($id_categoria);
+        self::procesar_categoria($nuevaCategoria);
 
         return ApiResponse::success($nuevaCategoria, 'Categoría creada correctamente');
     }
@@ -69,7 +80,20 @@ class CategoriasService
         // Solo permitimos si la categoría existe y es activa (puedes añadir más validaciones si gustas)
         CategoriasData::establecer_consumidoras($id_categoria, $ids_categorias_consumidoras);
         $categoria = CategoriasData::get_categoria_by_id($id_categoria);
+        self::procesar_categoria($categoria);
 
         return ApiResponse::success($categoria, 'Destinos de consumo actualizados correctamente');
+    }
+
+    /**
+     * Procesa los campos de una categoría (ej: decodifica JSON)
+     */
+    private static function procesar_categoria($categoria)
+    {
+        if (!$categoria) return null;
+        if (isset($categoria->categorias_consumidoras) && $categoria->categorias_consumidoras) {
+            $categoria->categorias_consumidoras = json_decode($categoria->categorias_consumidoras);
+        }
+        return $categoria;
     }
 }

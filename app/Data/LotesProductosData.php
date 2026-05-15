@@ -26,6 +26,7 @@ class LotesProductosData
             lp.correlativo,
             -- 
             lp.id_almacen,
+            alm.es_virtual as almacen_es_virtual,
             --
             lp.id_producto,
             pr.es_auditable,
@@ -56,10 +57,12 @@ class LotesProductosData
             lote_producto lp
         INNER JOIN unidad_medida uni ON uni.id = lp.id_unidad_medida
         INNER JOIN producto pr ON pr.id = lp.id_producto
+        INNER JOIN almacen alm ON alm.id = lp.id_almacen
         INNER JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
         WHERE
             lp.id_producto IN ($placeholders) AND 
-            lp.id_almacen = ? AND 
+            -- devolver lotes del almacen fisico y de los virtuales
+            (lp.id_almacen = ? OR alm.es_virtual = 1) AND 
             lp.stock_actual_base > 0 AND 
             lp.estado = 'Activo' AND
             -- no traer vencidos

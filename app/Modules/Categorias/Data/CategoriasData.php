@@ -3,6 +3,7 @@
 namespace App\Modules\Categorias\Data;
 
 use App\Models\Categoria;
+use App\Models\CategoriaConsumible;
 use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
@@ -11,38 +12,62 @@ class CategoriasData
     /**
      * Listar o obtener una categoría
      */
-    public static function get_categorias(?int $id_categoria = null)
+    public static function get_categorias(?int $id_categoria = null, ?EstadoBase $estado = null)
     {
-        $query = Categoria::select(
-            'id AS id_categoria',
-            'nombre',
-            'descripcion',
-            'tipo_producto',
-            'clasificacion_bien',
-            'es_consumible',
-            'para_cocina',
-            'para_mina',
-            'es_auditable',
-            'estado'
-        )->selectRaw('(
-            SELECT GROUP_CONCAT(c_con.nombre SEPARATOR ", ")
-            FROM categoria_consumible cc
-            JOIN categoria c_con ON c_con.id = cc.id_categoria_consumidora
-            WHERE cc.id_categoria_consumible = categoria.id
-        ) as nombres_consumidoras')
-            ->selectRaw('(
-            SELECT GROUP_CONCAT(cc.id_categoria_consumidora)
-            FROM categoria_consumible cc
-            WHERE cc.id_categoria_consumible = categoria.id
-        ) as ids_categorias_consumidoras');
+        $sql = '
+        SELECT 
+            cat.id AS id_categoria,
+            cat.nombre,
+            cat.descripcion,
+            
+            cat.tipo_producto, -- bien o servicio
+            cat.clasificacion_bien, -- suministro, material o activo fijo
+            
+            CAST(cat.para_transporte AS UNSIGNED) AS para_transporte,
+            CAST(cat.control_por_odometro AS UNSIGNED) AS control_por_odometro,
+            CAST(cat.control_por_horometro AS UNSIGNED) AS control_por_horometro,
+            
+            -- flags
+            CAST(cat.es_consumible AS UNSIGNED) AS es_consumible,
+            CAST(cat.es_auditable AS UNSIGNED) AS es_auditable,
+            
+            -- destinos de uso
+            CAST(cat.para_cocina AS UNSIGNED) AS para_cocina,
+            CAST(cat.para_mina AS UNSIGNED) AS para_mina,
+            
+            -- Categorias que consumen esta categoria
+            (
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        "id_categoria_consumidora", cc.id_categoria_consumidora,
+                        "nombre", c_con.nombre
+                    )
+                )
+                FROM categoria_consumible cc
+                JOIN categoria c_con ON c_con.id = cc.id_categoria_consumidora
+                WHERE cc.id_categoria_consumible = cat.id
+            ) AS categorias_consumidoras,
+            
+            cat.estado
+        FROM categoria cat
+        WHERE 1=1 
+        ';
 
-        if ($id_categoria !== null) {
-            return $query->where('id', $id_categoria)->first();
+        $params = [];
+
+        if ($id_categoria != null) {
+            $sql .= ' AND cat.id = :id_categoria';
+            $params['id_categoria'] = $id_categoria;
+            return DB::selectOne($sql, $params);
         }
 
-        return $query->where('estado', EstadoBase::Activo->value)
-            ->orderBy('nombre', 'ASC')
-            ->get();
+        if ($estado != null) {
+            $sql .= ' AND cat.estado = :estado';
+            $params['estado'] = $estado->value;
+        }
+
+        $sql .= ' ORDER BY cat.nombre ASC';
+        return DB::select($sql, $params);
     }
 
     /**
@@ -61,6 +86,9 @@ class CategoriasData
         string $tipo_producto,
         ?string $descripcion = null,
         ?string $clasificacion_bien = null,
+        bool $para_transporte = false,
+        bool $control_por_odometro = false,
+        bool $control_por_horometro = false,
         bool $es_consumible = false,
         bool $para_cocina = false,
         bool $para_mina = false,
@@ -71,6 +99,9 @@ class CategoriasData
             'descripcion' => $descripcion,
             'tipo_producto' => $tipo_producto,
             'clasificacion_bien' => $clasificacion_bien,
+            'para_transporte' => $para_transporte ? 1 : 0,
+            'control_por_odometro' => $control_por_odometro ? 1 : 0,
+            'control_por_horometro' => $control_por_horometro ? 1 : 0,
             'es_consumible' => $es_consumible ? 1 : 0,
             'para_cocina' => $para_cocina ? 1 : 0,
             'para_mina' => $para_mina ? 1 : 0,
@@ -85,8 +116,7 @@ class CategoriasData
     public static function establecer_consumidoras(int $id_categoria_consumible, array $ids_categorias_consumidoras): void
     {
         // Limpiamos relaciones previas
-        DB::table('categoria_consumible')
-            ->where('id_categoria_consumible', $id_categoria_consumible)
+        CategoriaConsumible::where('id_categoria_consumible', $id_categoria_consumible)
             ->delete();
 
         if (empty($ids_categorias_consumidoras))
@@ -98,7 +128,7 @@ class CategoriasData
             'id_categoria_consumidora' => (int) $id
         ], $ids_categorias_consumidoras);
 
-        DB::table('categoria_consumible')->insert($data);
+        CategoriaConsumible::insert($data);
     }
 
     /**

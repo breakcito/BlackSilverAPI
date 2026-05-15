@@ -11,6 +11,7 @@ use App\Services\ProductosService;
 use App\Services\ProveedoresService;
 use App\Services\UnidadesMedidaService;
 use App\Shared\Enums\_Generic\EstadoBase;
+use App\Shared\Enums\_Generic\TipoBien;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -127,9 +128,11 @@ class AuxController extends Controller
     public function get_productos(Request $request): JsonResponse
     {
         $con_categorias = (bool) $request->input('con_categorias_consumidoras', false);
+        $tipo_bien_excluido = $request->input('tipo_bien') ? TipoBien::from($request->input('tipo_bien_excluido')) : null;
 
         return response()->json(ProductosService::get_productos(
-            con_categorias_consumidoras: $con_categorias
+            con_categorias_consumidoras: $con_categorias,
+            tipo_bien_excluido: $tipo_bien_excluido
         ));
     }
 

@@ -24,9 +24,11 @@ class AlmacenesController extends Controller
             'nombre' => 'required|string|max:128',
             'descripcion' => 'nullable|string',
             'es_principal' => 'required|boolean',
+            'es_virtual' => 'required|boolean',
         ], [
             'nombre.required' => 'El nombre es obligatorio',
             'es_principal.required' => 'Debe indicar si es almacén principal',
+            'es_virtual.required' => 'Debe indicar si es almacén virtual',
         ]);
 
         if ($validator->fails()) {
@@ -38,7 +40,8 @@ class AlmacenesController extends Controller
         $result = AlmacenesService::crear_almacen(
             nombre: (string) $v['nombre'],
             descripcion: isset($v['descripcion']) ? (string) $v['descripcion'] : null,
-            es_principal: (bool) $v['es_principal']
+            es_principal: (bool) $v['es_principal'],
+            es_virtual: (bool) $v['es_virtual']
         );
 
         return response()->json($result);
