@@ -20,6 +20,8 @@ class ProductosData
         SELECT
             p.id as id_producto,
             p.nombre as nombre,
+            p.prefijo,
+            p.costo_promedio_base_log,
             
             -- categoria
             p.id_categoria,
