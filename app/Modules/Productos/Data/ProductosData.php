@@ -20,6 +20,7 @@ class ProductosData
                 -- 
                 p.id_categoria,
                 c.nombre as categoria,
+                c.clasificacion_bien,
                 --
                 p.id_unidad_medida_base,
                 um.nombre as unidad_medida_base,
