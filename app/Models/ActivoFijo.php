@@ -17,45 +17,23 @@ class ActivoFijo extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_producto',
-        'id_marca', // opcional
-
-        // util para rastrear de que lote es este activo, con el fin de poder ser reutilizado
-        // desde todos los demas modulos de requerimientos, solicitudes, prestamos, cotizaciones, 
-        // recepcion de oc's y transferencias
-        'id_lote_producto',
-
-        // opcional - en que mina se encuentra siendo usado este activo
-        'id_mina',
-
-        'tipo_operacion', // Movil (control por kilometraje) / Estacionario (control por hormetro/horas de uso)
-
+        'id_producto', // que producto es este activo
+        'id_marca', // de que marca - opcional
+        // En que lugar se encuentra, solo una de ellas debe de tener valor
+        'id_mina', // opcional - en que mina se encuentra siendo usado este activo
+        'id_almacen', // opcional - en que almacen se encuentra almacenado este activo
+        //
         'codigo', // opcional - lo pone el usuario
-
-        // generado por el sistema
         'correlativo', // como prefijo utiliza el que ha sido dado en el modulo de productos
         'numero_correlativo',
-
-        // bool que ayuda a saber si es auditable para ocultarlo en el modo de auditoria
-        'es_auditable',
-
-        // datos dados por el fabricante
+        //
         'numero_serie', // identificador del fabricante
         'modelo', // nombre del modelo
         'yearcito_modelo', // año del modelo
-        'descripcion', // descripcion interna o del fabricante
-
+        'descripcion', // opcional
+        // 
+        'especificaciones', // Columna JSON para almacenar especificaciones dinámicas
         //
-        'placa',
-        'codigo_mtc',
-        'capacidad_tanque', // en galones
-        'numero_ejes', // numero de ejes del vehiculo
-        'categoria_mtc', // categoria del vehiculo
-
-        // control de horas
-        'horas_iniciales', // lectura inicial del horometro/cuenta horas al momento de recepcionar
-
-
-        'descripcion',
+        'estado' // Estado Base
     ];
 }
