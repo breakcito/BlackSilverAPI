@@ -8,6 +8,6 @@ enum TipoBien: string
     case Repuesto = 'Repuesto';
     case Herramienta = 'Herramienta';
     case EPP = 'EPP';
-    case Material = 'Material';
+    // case Material = 'Material';
     case ActivoFijo = 'Activo Fijo';
 }
