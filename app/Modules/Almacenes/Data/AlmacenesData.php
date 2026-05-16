@@ -19,7 +19,6 @@ class AlmacenesData
             a.nombre,
             a.descripcion,
             a.es_principal,
-            a.es_virtual,
             a.estado,
             (
                 SELECT 
@@ -71,13 +70,11 @@ class AlmacenesData
         string $nombre,
         ?string $descripcion = null,
         bool $es_principal = false,
-        bool $es_virtual = false
     ) {
         return Almacen::insertGetId([
             'nombre' => $nombre,
             'descripcion' => $descripcion,
             'es_principal' => $es_principal,
-            'es_virtual' => $es_virtual,
             'estado' => EstadoBase::Activo->value,
         ]);
     }
