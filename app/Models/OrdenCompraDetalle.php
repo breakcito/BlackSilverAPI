@@ -20,6 +20,7 @@ class OrdenCompraDetalle extends Model
         'id_producto',
         'id_unidad_medida',
         'id_almacen_recepcionista', // Obligatorio - Es el almacen que deberia recibir esos productos
+        'id_mina_destino', // Para activos fijos
         //
         'tipo_despacho', // Recojo / Envio
         'lugar_recojo', // Para el recojo es obligatorio
@@ -46,7 +47,8 @@ class OrdenCompraDetalle extends Model
         int $id_cotizacion_detalle,
         int $id_producto,
         int $id_unidad_medida,
-        int $id_almacen_recepcionista,
+        ?int $id_almacen_recepcionista,
+        ?int $id_mina_destino,
         //
         TipoDespachoCompra $tipo_despacho,
         //
@@ -70,6 +72,7 @@ class OrdenCompraDetalle extends Model
             'id_producto' => $id_producto,
             'id_unidad_medida' => $id_unidad_medida,
             'id_almacen_recepcionista' => $id_almacen_recepcionista,
+            'id_mina_destino' => $id_mina_destino,
             //
             'tipo_despacho' => $tipo_despacho->value,
             'lugar_recojo' => $lugar_recojo,
@@ -105,6 +108,10 @@ class OrdenCompraDetalle extends Model
                 ocd.id_almacen_recepcionista,
                 alm.nombre AS almacen_recepcionista,
                 alm.es_principal AS para_un_almacen_principal,
+                -- 
+                -- info de la mina destino si es un activo fijo
+                ocd.id_mina_destino,
+                mn.nombre AS mina_destino,
                 -- 
                 -- info para la recepcion
                 ocd.tipo_despacho,  -- recojo o envio
@@ -146,7 +153,8 @@ class OrdenCompraDetalle extends Model
                 ocd.comentario,
                 ocd.estado
             FROM orden_compra_detalle ocd
-            INNER JOIN almacen alm ON alm.id = ocd.id_almacen_recepcionista
+            LEFT JOIN almacen alm ON alm.id = ocd.id_almacen_recepcionista
+            LEFT JOIN mina mn ON mn.id = ocd.id_mina_destino
             INNER JOIN cotizacion_detalle cd ON cd.id  = ocd.id_cotizacion_detalle
             INNER JOIN producto pr  ON pr.id  = ocd.id_producto
             INNER JOIN unidad_medida um  ON um.id  = ocd.id_unidad_medida

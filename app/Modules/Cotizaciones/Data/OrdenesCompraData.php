@@ -82,7 +82,8 @@ class OrdenesCompraData
         int $id_cotizacion_detalle,
         int $id_producto,
         int $id_unidad_medida,
-        int $id_almacen_recepcionista,
+        ?int $id_almacen_recepcionista,
+        ?int $id_mina_destino,
         //
         TipoDespachoCompra $tipo_despacho,
         int $tiempo_entrega,
@@ -105,6 +106,7 @@ class OrdenesCompraData
             id_producto: $id_producto,
             id_unidad_medida: $id_unidad_medida,
             id_almacen_recepcionista: $id_almacen_recepcionista,
+            id_mina_destino: $id_mina_destino,
             //
             tipo_despacho: $tipo_despacho,
             tiempo_entrega: $tiempo_entrega,

@@ -119,7 +119,8 @@ class CotizacionesData
         int $id_cotizacion,
         int $id_comparativo_detalle,
         int $id_unidad_medida,
-        int $id_almacen_recepcionista,
+        ?int $id_almacen_recepcionista,
+        ?int $id_mina_destino,
         //
         TipoDespachoCompra $tipo_despacho,
         //
@@ -144,6 +145,7 @@ class CotizacionesData
             id_comparativo_detalle: $id_comparativo_detalle,
             id_unidad_medida: $id_unidad_medida,
             id_almacen_recepcionista: $id_almacen_recepcionista,
+            id_mina_destino: $id_mina_destino,
             tipo_despacho: $tipo_despacho,
             lugar_recojo: $lugar_recojo,
             tiempo_entrega: $tiempo_entrega,

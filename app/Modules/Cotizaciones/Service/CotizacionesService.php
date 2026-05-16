@@ -123,7 +123,8 @@ class CotizacionesService
                             id_cotizacion: $id_cotizacion,
                             id_comparativo_detalle: $id_comp_det,
                             id_unidad_medida: (int) $det['id_unidad_medida'],
-                            id_almacen_recepcionista: (int) $det['id_almacen_recepcionista'],
+                            id_almacen_recepcionista: !empty($det['id_almacen_recepcionista']) ? (int) $det['id_almacen_recepcionista'] : null,
+                            id_mina_destino: isset($det['id_mina_destino']) ? (int) $det['id_mina_destino'] : null,
                             tipo_despacho: $tipo_despacho,
                             lugar_recojo: $tipo_despacho === TipoDespachoCompra::Recojo
                             ? ($det['lugar_recojo'] ?? null)
@@ -220,6 +221,7 @@ class CotizacionesService
                                     id_producto: (int) $det->id_producto,
                                     id_unidad_medida: (int) $det->id_unidad_medida_ctz,
                                     id_almacen_recepcionista: (int) $det->id_almacen_recepcionista,
+                                    id_mina_destino: $det->id_mina_destino,
                                     tipo_despacho: $tipo_despacho_oc,
                                     tiempo_entrega: (int) $det->tiempo_entrega,
                                     tiempo_entrega_periodo: $periodo_oc,
@@ -328,7 +330,8 @@ class CotizacionesService
                     \App\Models\CotizacionDetalle::actualizar_detalle(
                         id: $id_det,
                         id_unidad_medida: (int) $det['id_unidad_medida'],
-                        id_almacen_recepcionista: (int) $det['id_almacen_recepcionista'],
+                        id_almacen_recepcionista: !empty($det['id_almacen_recepcionista']) ? (int) $det['id_almacen_recepcionista'] : null,
+                        id_mina_destino: isset($det['id_mina_destino']) ? (int) $det['id_mina_destino'] : null,
                         tipo_despacho: $tipo_despacho,
                         lugar_recojo: $tipo_despacho === TipoDespachoCompra::Recojo
                         ? ($det['lugar_recojo'] ?? null)
@@ -449,6 +452,7 @@ class CotizacionesService
                         id_producto: (int) $det->id_producto,
                         id_unidad_medida: (int) $det->id_unidad_medida_ctz,
                         id_almacen_recepcionista: (int) $det->id_almacen_recepcionista,
+                        id_mina_destino: $det->id_mina_destino,
                         tipo_despacho: $tipo_despacho,
                         tiempo_entrega: (int) $det->tiempo_entrega,
                         tiempo_entrega_periodo: $periodo,
