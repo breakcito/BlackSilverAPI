@@ -30,6 +30,13 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
             // productos
             Route::get('/productos', 'get_productos');
+
+            // minas
+            Route::get('/minas', 'get_minas');
+
+            // marcas
+            Route::get('/marcas', 'get_marcas');
+            Route::post('/marcas', 'crear_marca');
         });
     });
 });

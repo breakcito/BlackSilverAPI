@@ -6,6 +6,8 @@ use App\Services\AlmacenesService;
 use App\Services\EmpleadosService;
 use App\Services\EmpresasService;
 use App\Services\LotesProductosService;
+use App\Services\MarcasService;
+use App\Services\MinasService;
 use App\Services\PersonalExternoService;
 use App\Services\ProductosService;
 use App\Services\ProveedoresService;
@@ -129,10 +131,11 @@ class AuxController extends Controller
     {
         $con_categorias = (bool) $request->input('con_categorias_consumidoras', false);
         $tipo_bien_excluido = $request->input('tipo_bien_excluido') ? TipoBien::from($request->input('tipo_bien_excluido')) : null;
-
+        $tipo_bien = $request->input('tipo_bien') ? TipoBien::from($request->input('tipo_bien')) : null;
         return response()->json(ProductosService::get_productos(
             con_categorias_consumidoras: $con_categorias,
-            tipo_bien_excluido: $tipo_bien_excluido
+            tipo_bien_excluido: $tipo_bien_excluido,
+            tipo_bien: $tipo_bien
         ));
     }
 
@@ -146,5 +149,39 @@ class AuxController extends Controller
             id_empresa: $id_empresa,
             estado: $estado
         ));
+    }
+
+    public function get_minas(Request $request): JsonResponse
+    {
+        $id_mina = $request->input('id_mina') ? (int) $request->input('id_mina') : null;
+        $id_concesion = $request->input('id_concesion') ? (int) $request->input('id_concesion') : null;
+        $id_contratista_responsable = $request->input('id_contratista_responsable') ? (int) $request->input('id_contratista_responsable') : null;
+
+        return response()->json(MinasService::get_minas(
+            id_mina: $id_mina,
+            id_concesion: $id_concesion,
+            id_contratista_responsable: $id_contratista_responsable
+        ));
+    }
+
+    public function get_marcas(Request $request): JsonResponse
+    {
+        $id_marca = $request->input('id_marca') ? (int) $request->input('id_marca') : null;
+        $estado_val = $request->input('estado');
+        $estado = $estado_val ? EstadoBase::from($estado_val) : null;
+        return response()->json(MarcasService::get_marcas(id_marca: $id_marca, estado: $estado));
+    }
+
+    public function crear_marca(Request $request): JsonResponse
+    {
+        $request->validate([
+            'nombre' => 'required|string',
+        ]);
+
+        $result = MarcasService::crear_marca(
+            nombre: $request->input('nombre')
+        );
+
+        return response()->json($result);
     }
 }

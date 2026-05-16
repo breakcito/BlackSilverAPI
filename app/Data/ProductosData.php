@@ -16,7 +16,8 @@ class ProductosData
     public static function get_productos(
         ?EstadoBase $estado = EstadoBase::Activo,
         ?bool $con_categorias_consumidoras = false,
-        ?TipoBien $tipo_bien_excluido = null
+        ?TipoBien $tipo_bien_excluido = null,
+        ?TipoBien $tipo_bien = null,
     ) {
         $sql = '
         SELECT
@@ -28,6 +29,7 @@ class ProductosData
             c.nombre AS categoria,
             c.es_consumible,
             c.clasificacion_bien as tipo_bien,
+            c.para_transporte,
             -- las categorias que consumen esta categoria del producto
             CASE
             	WHEN :con_categorias_consumidoras = 1 THEN
@@ -74,6 +76,11 @@ class ProductosData
         if ($tipo_bien_excluido != null) {
             $sql .= ' AND c.clasificacion_bien != :tipo_bien_excluido';
             $params['tipo_bien_excluido'] = $tipo_bien_excluido->value;
+        }
+
+        if ($tipo_bien != null) {
+            $sql .= ' AND c.clasificacion_bien = :tipo_bien';
+            $params['tipo_bien'] = $tipo_bien->value;
         }
 
         $sql .= ' ORDER BY p.nombre ASC';

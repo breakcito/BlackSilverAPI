@@ -1,16 +1,17 @@
 <?php
 
-namespace App\Modules\ActivosFijos\Service;
+namespace App\Services;
 
 use App\Data\ProductosData;
 use App\Models\ActivoFijoUbicacionLog;
-use App\Modules\ActivosFijos\Data\ActivosFijosData;
+use App\Data\ActivosFijosData;
 use App\Services\KardexProductosService;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
 use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Responses\ApiResponse;
+use Illuminate\Support\Facades\DB;
 
 class ActivosFijosService
 {
@@ -59,45 +60,49 @@ class ActivosFijosService
         ?string $descripcion = null,
         ?array $especificaciones = null,
         ?string $fecha_hora_ingreso = null,
+        ?EstadoActivoFijo $estado = EstadoActivoFijo::EnUso,
         //
         ?bool $return_objecto = false
     ) {
-        $correlativo_data = ActivosFijosData::get_nuevo_correlativo();
-        $correlativo = $correlativo_data['correlativo'];
-        $numero_correlativo = $correlativo_data['numero_correlativo'];
+        return DB::transaction(function () use ($id_producto, $id_almacen, $id_mina, $id_marca, $codigo, $numero_serie, $modelo, $yearcito_modelo, $descripcion, $especificaciones, $fecha_hora_ingreso, $return_objecto, $estado) {
+            $correlativo_data = ActivosFijosData::get_nuevo_correlativo();
+            $correlativo = $correlativo_data['correlativo'];
+            $numero_correlativo = $correlativo_data['numero_correlativo'];
 
-        $id_nuevo_activo = ActivosFijosData::crear_activo(
-            id_producto: $id_producto,
-            correlativo: $correlativo,
-            numero_correlativo: $numero_correlativo,
-            id_almacen: $id_almacen,
-            id_mina: $id_mina,
-            id_marca: $id_marca,
-            codigo: $codigo,
-            numero_serie: $numero_serie,
-            modelo: $modelo,
-            yearcito_modelo: $yearcito_modelo,
-            descripcion: $descripcion,
-            especificaciones: $especificaciones,
-            fecha_hora_ingreso: $fecha_hora_ingreso
-        );
+            $id_nuevo_activo = ActivosFijosData::crear_activo(
+                id_producto: $id_producto,
+                correlativo: $correlativo,
+                numero_correlativo: $numero_correlativo,
+                id_almacen: $id_almacen,
+                id_mina: $id_mina,
+                id_marca: $id_marca,
+                codigo: $codigo,
+                numero_serie: $numero_serie,
+                modelo: $modelo,
+                yearcito_modelo: $yearcito_modelo,
+                descripcion: $descripcion,
+                especificaciones: $especificaciones,
+                fecha_hora_ingreso: $fecha_hora_ingreso,
+                estado: $estado,
+            );
 
-        // registrar su ubicacion
-        self::new_ubicacion(
-            id_activo: $id_nuevo_activo,
-            tipo_movimiento: MovimientoActivoFijo::NuevoActivo,
-            id_almacen: $id_almacen,
-            id_mina: $id_mina,
-            descripcion: $descripcion,
-            fecha_hora_movimiento: $fecha_hora_ingreso
-        );
+            // registrar su ubicacion
+            self::new_ubicacion(
+                id_activo: $id_nuevo_activo,
+                tipo_movimiento: MovimientoActivoFijo::NuevoActivo,
+                id_almacen: $id_almacen,
+                id_mina: $id_mina,
+                descripcion: $descripcion,
+                fecha_hora_movimiento: $fecha_hora_ingreso
+            );
 
-        if ($return_objecto) {
-            $nuevo_activo = ActivosFijosData::get_activos_disponibles(id_activo: $id_nuevo_activo);
-            return ApiResponse::success($nuevo_activo, 'Activo fijo creado correctamente');
-        }
+            if ($return_objecto) {
+                $nuevo_activo = ActivosFijosData::get_activos_disponibles(id_activo: $id_nuevo_activo);
+                return ApiResponse::success($nuevo_activo, 'Activo fijo creado correctamente');
+            }
 
-        return ApiResponse::success($id_nuevo_activo, 'Activo fijo creado correctamente');
+            return ApiResponse::success($id_nuevo_activo, 'Activo fijo creado correctamente');
+        });
     }
 
 
@@ -114,70 +119,72 @@ class ActivosFijosService
         //
         ?string $fecha_hora_movimiento = null
     ) {
-        // obtener datos del activo
-        $activo_fijo = ActivosFijosData::get_activo_by_id(id_activo: $id_activo, columnas: ['id_producto']);
-        $id_producto = $activo_fijo['id_producto'];
-        $costo_promedio_base = ProductosData::get_costo_promedio_producto($id_producto);
+        return DB::transaction(function () use ($id_activo, $tipo_movimiento, $id_almacen, $id_mina, $descripcion, $fecha_hora_movimiento) {
+            // obtener datos del activo
+            $activo_fijo = ActivosFijosData::get_activo_by_id(id_activo: $id_activo, columnas: ['id_producto']);
+            $id_producto = $activo_fijo['id_producto'];
+            $costo_promedio_base = ProductosData::get_costo_promedio_producto($id_producto);
 
-        // si esta saliendo de un almacen, registramos la salida en su kardex
-        if ($tipo_movimiento == MovimientoActivoFijo::DeAlmacenAMina || $tipo_movimiento == MovimientoActivoFijo::DeAlmacenAAlmacen) {
-            KardexProductosService::registrar_kardex(
-                tipo_movimiento: KardexTipoMovimiento::Salida,
-                tipo_origen: KardexOrigenMovimiento::MovimientoInterno,
-                descripcion: $descripcion ?? 'Salida de activo fijo de almacen',
-                cantidad_movimiento: 1,
-                cantidad_movimiento_base: 1,
-                nuevo_stock: 0,
-                nuevo_stock_base: 0,
-                id_lote: null,
-                id_activo_fijo: $id_activo,
-                id_origen: null,
-                tabla_origen: null,
-                stock_anterior: 1,
-                stock_anterior_base: 1,
-                costo_promedio_base: $costo_promedio_base,
-                created_at: $fecha_hora_movimiento
-            );
-        }
-        // si esta ingresando a un almacen, registramos el ingreso en su kardex
-        // o si es un nuevo activo y esta entrando a un almacen,registramos el ingreso en su kardex
-        else if (
-            $tipo_movimiento == MovimientoActivoFijo::DeAlmacenAAlmacen ||
-            $tipo_movimiento == MovimientoActivoFijo::DeMinaAAlmacen ||
-            ($tipo_movimiento == MovimientoActivoFijo::NuevoActivo && $id_almacen != null) // si es un nuevo activo ingresando a un almacen
-        ) {
-            KardexProductosService::registrar_kardex(
-                tipo_movimiento: KardexTipoMovimiento::Ingreso,
-                tipo_origen: KardexOrigenMovimiento::MovimientoInterno,
-                descripcion: $descripcion ?? 'Ingreso de activo fijo a almacen',
-                cantidad_movimiento: 1,
-                cantidad_movimiento_base: 1,
-                nuevo_stock: 1,
-                nuevo_stock_base: 1,
-                id_lote: null,
-                id_activo_fijo: $id_activo,
-                id_origen: null,
-                tabla_origen: null,
-                stock_anterior: 0,
-                stock_anterior_base: 0,
-                costo_promedio_base: $costo_promedio_base,
-                created_at: $fecha_hora_movimiento
-            );
-        }
+            // si esta saliendo de un almacen, registramos la salida en su kardex
+            if ($tipo_movimiento == MovimientoActivoFijo::DeAlmacenAMina || $tipo_movimiento == MovimientoActivoFijo::DeAlmacenAAlmacen) {
+                KardexProductosService::registrar_kardex(
+                    tipo_movimiento: KardexTipoMovimiento::Salida,
+                    tipo_origen: KardexOrigenMovimiento::MovimientoInterno,
+                    descripcion: $descripcion ?? 'Salida de activo fijo de almacen',
+                    cantidad_movimiento: 1,
+                    cantidad_movimiento_base: 1,
+                    nuevo_stock: 0,
+                    nuevo_stock_base: 0,
+                    id_lote: null,
+                    id_activo_fijo: $id_activo,
+                    id_origen: null,
+                    tabla_origen: null,
+                    stock_anterior: 1,
+                    stock_anterior_base: 1,
+                    costo_promedio_base: $costo_promedio_base,
+                    created_at: $fecha_hora_movimiento
+                );
+            }
+            // si esta ingresando a un almacen, registramos el ingreso en su kardex
+            // o si es un nuevo activo y esta entrando a un almacen,registramos el ingreso en su kardex
+            else if (
+                $tipo_movimiento == MovimientoActivoFijo::DeAlmacenAAlmacen ||
+                $tipo_movimiento == MovimientoActivoFijo::DeMinaAAlmacen ||
+                ($tipo_movimiento == MovimientoActivoFijo::NuevoActivo && $id_almacen != null) // si es un nuevo activo ingresando a un almacen
+            ) {
+                KardexProductosService::registrar_kardex(
+                    tipo_movimiento: KardexTipoMovimiento::Ingreso,
+                    tipo_origen: KardexOrigenMovimiento::MovimientoInterno,
+                    descripcion: $descripcion ?? 'Ingreso de activo fijo a almacen',
+                    cantidad_movimiento: 1,
+                    cantidad_movimiento_base: 1,
+                    nuevo_stock: 1,
+                    nuevo_stock_base: 1,
+                    id_lote: null,
+                    id_activo_fijo: $id_activo,
+                    id_origen: null,
+                    tabla_origen: null,
+                    stock_anterior: 0,
+                    stock_anterior_base: 0,
+                    costo_promedio_base: $costo_promedio_base,
+                    created_at: $fecha_hora_movimiento
+                );
+            }
 
-        // registramos la nueva ubicacion
-        return ActivoFijoUbicacionLog::insertGetId([
-            'id_activo_fijo' => $id_activo,
-            'id_almacen' => $id_almacen,
-            'id_mina' => $id_mina,
-            //
-            'descripcion' => $descripcion,
-            //
-            'tipo_movimiento' => $tipo_movimiento->value,
-            //
-            'fecha_hora_movimiento' => $fecha_hora_movimiento ?? now(),
-            //
-            'created_at' => now()
-        ]);
+            // registramos la nueva ubicacion
+            return ActivoFijoUbicacionLog::insertGetId([
+                'id_activo_fijo' => $id_activo,
+                'id_almacen' => $id_almacen,
+                'id_mina' => $id_mina,
+                //
+                'descripcion' => $descripcion,
+                //
+                'tipo_movimiento' => $tipo_movimiento->value,
+                //
+                'fecha_hora_movimiento' => $fecha_hora_movimiento ?? now(),
+                //
+                'created_at' => now()
+            ]);
+        });
     }
 }

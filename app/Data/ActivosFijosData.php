@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Modules\ActivosFijos\Data;
+namespace App\Data;
 
 use App\Models\ActivoFijo;
 use App\Shared\Enums\_Generic\EstadoBase;
 use App\Shared\Enums\_Generic\Periodo;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
 use App\Shared\Helpers\CorrelativoHelper;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ActivosFijosData
@@ -149,6 +150,7 @@ class ActivosFijosData
         ?string $descripcion = null,
         ?array $especificaciones = null,
         ?string $fecha_hora_ingreso = null,
+        ?EstadoActivoFijo $estado = EstadoActivoFijo::EnUso
     ) {
         return ActivoFijo::insertGetId([
             'id_producto' => $id_producto,
@@ -163,11 +165,11 @@ class ActivosFijosData
             'modelo' => $modelo,
             'yearcito_modelo' => $yearcito_modelo,
             'descripcion' => $descripcion,
-            'especificaciones' => $especificaciones,
+            'especificaciones' => $especificaciones ? json_encode($especificaciones) : null,
             //
             'fecha_hora_ingreso' => $fecha_hora_ingreso ?? now(),
             'created_at' => now(),
-            'estado' => EstadoBase::Activo->value,
+            'estado' => $estado->value,
         ]);
     }
 }

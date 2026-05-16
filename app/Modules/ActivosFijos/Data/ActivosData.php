@@ -75,10 +75,22 @@ class ActivosData
         if ($id_activo != null) {
             $sql .= ' AND act.id = :id_activo';
             $params['id_activo'] = $id_activo;
-            return DB::selectOne($sql, $params);
+            $res = DB::selectOne($sql, $params);
+            if ($res) {
+                if (isset($res->especificaciones) && is_string($res->especificaciones)) {
+                    $res->especificaciones = json_decode($res->especificaciones, true);
+                }
+            }
+            return $res;
         }
 
         $sql .= ' ORDER BY pr.nombre, act.correlativo DESC';
-        return DB::select($sql, $params);
+        $results = DB::select($sql, $params);
+        foreach ($results as $res) {
+            if (isset($res->especificaciones) && is_string($res->especificaciones)) {
+                $res->especificaciones = json_decode($res->especificaciones, true);
+            }
+        }
+        return $results;
     }
 }

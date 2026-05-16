@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Modules/Productos/ProductosEndpoints.php');
                 require base_path('app/Modules/MinasLabores/MinasLaboresEndpoints.php');
                 require base_path('app/Modules/LotesProductos/LotesEndpoints.php');
+                require base_path('app/Modules/ActivosFijos/ActivosFijosEndpoints.php');
                 // require base_path('app/Modules/RequerimientosAlmacen/RequerimientosEndpoints.php');
                 require base_path('app/Modules/RequerimientosAlmacenAtencion/RequerimientosAtencionEndpoints.php');
                 require base_path('app/Modules/KardexProductos/KardexEndpoints.php');

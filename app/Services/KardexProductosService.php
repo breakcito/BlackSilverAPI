@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
-use App\Modules\ActivosFijos\Data\ActivosFijosData;
+use App\Data\ActivosFijosData;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Responses\ApiResponse;
@@ -55,7 +55,8 @@ class KardexProductosService
         }
         // si es por un activo fijo, obtenemos su almacen
         else if ($id_activo_fijo != null) {
-            $id_almacen = ActivosFijosData::get_activo_by_id(id_activo: $id_activo_fijo, columnas: ['id_almacen']);
+            $activo = ActivosFijosData::get_activo_by_id(id_activo: $id_activo_fijo, columnas: ['id_almacen']);
+            $id_almacen = $activo['id_almacen'] ?? 0;
         }
 
 

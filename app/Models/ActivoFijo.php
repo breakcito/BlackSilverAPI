@@ -14,6 +14,10 @@ class ActivoFijo extends Model
 
     public $timestamps = false;
 
+    protected $casts = [
+        'especificaciones' => 'array',
+    ];
+
     protected $fillable = [
         'id_producto', // que producto es este activo
         // En que lugar se encuentra, solo una de ellas debe de tener valor
