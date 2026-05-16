@@ -27,7 +27,7 @@ class ProductosData
             p.id_categoria,
             c.nombre AS categoria,
             c.es_consumible,
-            c.clasificacion_bien,
+            c.clasificacion_bien as tipo_bien,
             -- las categorias que consumen esta categoria del producto
             CASE
             	WHEN :con_categorias_consumidoras = 1 THEN
@@ -71,8 +71,8 @@ class ProductosData
         $params['estado'] = $estado->value;
         $params['con_categorias_consumidoras'] = $con_categorias_consumidoras ? 1 : 0;
 
-        if ($tipo_bien_excluido) {
-            $sql .= ' AND c.clasificacion_bien <> :tipo_bien_excluido';
+        if ($tipo_bien_excluido != null) {
+            $sql .= ' AND c.clasificacion_bien != :tipo_bien_excluido';
             $params['tipo_bien_excluido'] = $tipo_bien_excluido->value;
         }
 
