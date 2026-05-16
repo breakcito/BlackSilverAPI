@@ -58,7 +58,7 @@ class LotesService
     public static function ajustar_stock(int $id_lote, float $nuevo_stock_base, ?string $motivo = null)
     {
         return DB::transaction(function () use ($id_lote, $nuevo_stock_base, $motivo) {
-            $lote = LotesProductosData::get_lote_simple_by_id($id_lote);
+            $lote = LotesProductosData::get_lote_dinamico_by_id(id_lote: $id_lote, columnas: ['stock_actual_base']);
             if (!$lote) {
                 return ApiResponse::error('Lote no encontrado');
             }

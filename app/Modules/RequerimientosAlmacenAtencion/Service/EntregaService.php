@@ -67,14 +67,16 @@ class EntregaService
 
             // Pre-cargar todos los lotes en una sola consulta
             $ids_lotes = array_map(fn($i) => (int) $i['id_lote_producto'], $detalles);
-            $lotesMap = collect(LotesProductosData::get_lote_simple_by_id($ids_lotes))
-                ->keyBy('id_lote');
+            $lotesMap = collect(LotesProductosData::get_lote_dinamico_by_id(
+                id_lote: $ids_lotes,
+                columnas: ['stock_actual_base', 'correlativo', 'contenido_por_presentacion']
+            ))->keyBy('id_lote');
 
             // Validar Stock
             foreach ($detalles as $item) {
                 $lote = $lotesMap->get((int) $item['id_lote_producto']);
                 if (!$lote || $lote['stock_actual_base'] < $item['cantidad_base']) {
-                    return ApiResponse::error("Stock insuficiente en el lote: " . ($lote['correlativo'] ?? 'ID: ' . $item['id_lote_producto']));
+                    return ApiResponse::error("Stock insuficiente en el lote: " . ($lote['correlativo']));
                 }
             }
 

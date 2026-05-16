@@ -72,19 +72,7 @@ class RecepcionesReposicionService
 
             $id_almacen_destino = (int) $reposicion->id_almacen_prestamista;
 
-            // 4. Pre-cargar lotes existentes en una sola consulta
-            $ids_lotes_existentes = collect($items)
-                ->where('es_nuevo_lote', false)
-                ->map(fn($i) => (int) $i['id_lote_existente'])
-                ->filter()
-                ->values()
-                ->all();
-
-            $lotesMap = !empty($ids_lotes_existentes)
-                ? collect(LotesProductosData::get_lote_simple_by_id($ids_lotes_existentes))->keyBy('id_lote')
-                : collect();
-
-            // Procesar ítems de la recepción
+            // 4. Procesar ítems de la recepción
             $ids_lotes_nuevos = [];
             foreach ($items as $item) {
                 $id_repo_det = (int) $item['id_reposicion_detalle'];
@@ -138,7 +126,6 @@ class RecepcionesReposicionService
                     RecepcionesReposicionData::update_detalle_lote($id_recepcion_detalle, $id_lote_destino);
                 } else {
                     $id_lote_destino = $id_lote_para_detalle;
-                    $lote_existente = $lotesMap->get($id_lote_destino);
 
                     LotesProductosService::update_stock(
                         id_lote: $id_lote_destino,

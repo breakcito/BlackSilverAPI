@@ -74,7 +74,10 @@ class RecepcionesService
                 ->all();
 
             $lotesMap = !empty($ids_lotes_existentes)
-                ? collect(LotesProductosData::get_lote_simple_by_id($ids_lotes_existentes))->keyBy('id_lote')
+                ? collect(LotesProductosData::get_lote_dinamico_by_id(
+                    id_lote: $ids_lotes_existentes,
+                    columnas: ['contenido_por_presentacion']
+                ))->keyBy('id_lote')
                 : collect();
 
             // Procesar ítems de la recepción
@@ -223,7 +226,10 @@ class RecepcionesService
                 ->all();
 
             $lotesMap = !empty($ids_lotes_existentes)
-                ? collect(LotesProductosData::get_lote_simple_by_id($ids_lotes_existentes))->keyBy('id_lote')
+                ? collect(LotesProductosData::get_lote_dinamico_by_id(
+                    id_lote: $ids_lotes_existentes,
+                    columnas: ['contenido_por_presentacion']
+                ))->keyBy('id_lote')
                 : collect();
 
             // Procesar ítems de la recepción
