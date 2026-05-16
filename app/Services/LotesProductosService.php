@@ -117,7 +117,16 @@ class LotesProductosService
         ?string $created_at = null
     ) {
         return DB::transaction(function () use ($id_lote, $id_origen, $tabla_origen, $tipo_origen, $tipo_movimiento, $cantidad_movimiento_base, $descripcion, $created_at) {
-            $lote = LotesProductosData::get_lote_simple_by_id($id_lote);
+            $lote = LotesProductosData::get_lote_dinamico_by_id(
+                id_lote: $id_lote,
+                columnas: [
+                    'id_producto',
+                    'id_unidad_medida',
+                    'stock_actual',
+                    'stock_actual_base',
+                    'contenido_por_presentacion'
+                ]
+            );
 
             if (!$lote) {
                 return ApiResponse::error('Lote no encontrado');
@@ -128,13 +137,13 @@ class LotesProductosService
             $stock_anterior_base = $lote['stock_actual_base'];
 
             // Calcular diferencia en base al tipo de movimiento
-            $diferencia_base = $tipo_movimiento === KardexTipoMovimiento::Ingreso 
-                ? $cantidad_movimiento_base 
+            $diferencia_base = $tipo_movimiento === KardexTipoMovimiento::Ingreso
+                ? $cantidad_movimiento_base
                 : -$cantidad_movimiento_base;
 
             $cantidad_movimiento_lote = $cantidad_movimiento_base / $lote['contenido_por_presentacion'];
-            $diferencia_lote = $tipo_movimiento === KardexTipoMovimiento::Ingreso 
-                ? $cantidad_movimiento_lote 
+            $diferencia_lote = $tipo_movimiento === KardexTipoMovimiento::Ingreso
+                ? $cantidad_movimiento_lote
                 : -$cantidad_movimiento_lote;
 
             // el nuevo stock

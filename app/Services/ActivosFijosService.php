@@ -115,7 +115,7 @@ class ActivosFijosService
         ?string $fecha_hora_movimiento = null
     ) {
         // obtener datos del activo
-        $activo_fijo = ActivosFijosData::get_activo_simple_by_id(id_activo: $id_activo);
+        $activo_fijo = ActivosFijosData::get_activo_by_id(id_activo: $id_activo, columnas: ['id_producto']);
         $id_producto = $activo_fijo['id_producto'];
         $costo_promedio_base = ProductosData::get_costo_promedio_producto($id_producto);
 
@@ -144,7 +144,7 @@ class ActivosFijosService
         else if (
             $tipo_movimiento == MovimientoActivoFijo::DeAlmacenAAlmacen ||
             $tipo_movimiento == MovimientoActivoFijo::DeMinaAAlmacen ||
-            $tipo_movimiento == MovimientoActivoFijo::NuevoActivo
+            ($tipo_movimiento == MovimientoActivoFijo::NuevoActivo && $id_almacen != null) // si es un nuevo activo ingresando a un almacen
         ) {
             KardexProductosService::registrar_kardex(
                 tipo_movimiento: KardexTipoMovimiento::Ingreso,
@@ -171,7 +171,7 @@ class ActivosFijosService
             'id_almacen' => $id_almacen,
             'id_mina' => $id_mina,
             //
-            'descripcion' => $descripcion ,
+            'descripcion' => $descripcion,
             //
             'tipo_movimiento' => $tipo_movimiento->value,
             //

@@ -108,6 +108,27 @@ class LotesProductosData
     }
 
     /**
+     * Obtiene información dinámica de uno o varios lotes.
+     * Permite especificar las columnas exactas a consultar mediante un array.
+     * @param array $columnas Array de strings con los nombres de las columnas a recuperar.
+     * @return array|null Retorna un array con los resultados o null si no se encuentra el registro.
+     */
+    public static function get_lote_dinamico_by_id(int|array $id_lote, array $columnas): ?array
+    {
+        $esArray = is_array($id_lote);
+        $ids = $esArray ? $id_lote : [$id_lote];
+        // Forzamos la inclusión del ID con su alias
+        if (!in_array('id as id_lote', $columnas)) {
+            $columnas[] = 'id as id_lote';
+        }
+        $query = LoteProducto::whereIn('id', $ids)->get($columnas);
+        if ($esArray) {
+            return $query->toArray();
+        }
+        return $query->first()?->toArray();
+    }
+
+    /**
      * Actualiza el stock de un lote en caso de decidir ajustar stock luego de una 
      * reposicion por parte de logistica al almacen prestamista
      */

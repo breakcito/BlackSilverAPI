@@ -12,27 +12,23 @@ use Illuminate\Support\Facades\DB;
 class ActivosFijosData
 {
     /**
-     * 
+     * Obtiene información dinámica de uno o varios activos fijos.
+     * Permite especificar las columnas exactas a consultar mediante un array.
+     * @param array $columnas Array de strings con los nombres de las columnas a recuperar.
+     * @return array|null Retorna un array con los resultados o null si no se encuentra el registro.
      */
-    public static function get_activo_simple_by_id(int|array $id_activo): ?array
+    public static function get_activo_by_id(int|array $id_activo, array $columnas): ?array
     {
         $esArray = is_array($id_activo);
         $ids = $esArray ? $id_activo : [$id_activo];
-
-        $query = ActivoFijo::whereIn('id', $ids)
-            ->get([
-                'id as id_activo',
-                'id_almacen',
-                'id_mina',
-                'id_marca',
-                'correlativo',
-                'estado'
-            ]);
-
+        // Forzamos la inclusión del ID con su alias
+        if (!in_array('id as id_activo', $columnas)) {
+            $columnas[] = 'id as id_activo';
+        }
+        $query = ActivoFijo::whereIn('id', $ids)->get($columnas);
         if ($esArray) {
             return $query->toArray();
         }
-
         return $query->first()?->toArray();
     }
 
