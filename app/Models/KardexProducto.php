@@ -11,7 +11,11 @@ class KardexProducto extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_lote_producto',
+        'id_almacen', // en que almacen se registro el movimiento
+        //
+        'id_lote_producto', // puede venir nulo si no es un lote
+        'id_activo_fijo', // puede venir nulo si no es un activo fijo
+        //
         'id_origen', // el registro por el cual se hizo el movimiento
         //
         'tabla_origen', // tabla del registro por el cual se hizo el movimiento
@@ -31,6 +35,8 @@ class KardexProducto extends Model
         'stock_resultante_base', // cuanto hay ahora en base a la unidad de medida del producto
         //
         'costo_promedio_base', // cuanto costaba en promedio el producto del lote en el momento del movimiento
+        'costo_por_presentacion', // cuanto cuesta una unidad del lote
+        'subtotal',
         //
         'created_at', // cuando se registro el movimiento
     ];

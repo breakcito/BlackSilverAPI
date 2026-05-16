@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Data\KardexProductosData;
 use App\Data\LotesProductosData;
+use App\Modules\ActivosFijos\Data\ActivosFijosData;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Responses\ApiResponse;
@@ -14,8 +15,6 @@ class KardexProductosService
      * Metodo generico para realizar un registro en el kardex
      */
     public static function registrar_kardex(
-        int $id_lote,
-        //
         KardexTipoMovimiento $tipo_movimiento,
         KardexOrigenMovimiento $tipo_origen,
         string $descripcion,
@@ -26,6 +25,8 @@ class KardexProductosService
         float $nuevo_stock,
         float $nuevo_stock_base,
         //
+        ?int $id_lote = null,
+        ?int $id_activo_fijo = null,
         ?int $id_origen = null,
         ?string $tabla_origen = null,
         //
@@ -35,12 +36,31 @@ class KardexProductosService
         ?float $costo_promedio_base = null,
         //
         ?string $created_at = null
-    ) {
+    ) {     
+        $id_almacen = 0;
         // Consultar el costo promedio del producto del lote
         $costo_promedio_base = $costo_promedio_base ?? LotesProductosData::get_costo_promedio_producto($id_lote);
+        $costo_por_presentacion = $costo_promedio_base;
+        $subtotal = $costo_promedio_base;
+
+        // si el registro es por un lote, obtenemos su almacen
+        if ($id_lote != null) {
+            $lote = LotesProductosData::get_lote_simple_by_id($id_lote);
+            $id_almacen = $lote['id_almacen'];
+            $costo_por_presentacion = $lote['contenido_por_presentacion'] * $costo_promedio_base;
+            $subtotal = $costo_promedio_base * $cantidad_movimiento_base;
+        }
+        // si es por un activo fijo, obtenemos su almacen
+        else if ($id_activo_fijo != null) {
+            $id_almacen = ActivosFijosData::get_activo_simple_by_id($id_activo_fijo)['id_almacen'];
+        }
+
 
         return ApiResponse::success(KardexProductosData::registrar_kardex(
+            id_almacen: $id_almacen,
+            //
             id_lote: $id_lote,
+            id_activo_fijo: $id_activo_fijo,
             //
             tipo_movimiento: $tipo_movimiento,
             tipo_origen: $tipo_origen,
@@ -59,6 +79,9 @@ class KardexProductosService
             stock_anterior_base: $stock_anterior_base,
             //
             costo_promedio_base: $costo_promedio_base,
+            costo_por_presentacion: $costo_por_presentacion,
+            subtotal: $subtotal,
+            //
             created_at: $created_at
         ));
     }

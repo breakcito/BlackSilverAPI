@@ -52,4 +52,9 @@ enum KardexOrigenMovimiento: string
      * Cuando se realiza un ajuste de stock, ya sea manual o automatico
      */
     case AjusteStock = 'Ajuste de Stock';
+
+    /**
+     * Cuando se realiza un movimiento interno usado para salidas/ingresos de activos fijos
+     */
+    case MovimientoInterno = 'Movimiento Interno';
 }

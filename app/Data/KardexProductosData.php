@@ -12,7 +12,7 @@ class KardexProductosData
      * Metodo generico para realizar un registro en el kardex
      */
     public static function registrar_kardex(
-        int $id_lote,
+        int $id_almacen,
         //
         TipoMovimiento $tipo_movimiento,
         OrigenMovimiento $tipo_origen,
@@ -24,6 +24,8 @@ class KardexProductosData
         float $nuevo_stock,
         float $nuevo_stock_base,
         //
+        ?int $id_lote = null,
+        ?int $id_activo_fijo = null,
         ?int $id_origen = null,
         ?string $tabla_origen = null,
         //
@@ -31,13 +33,18 @@ class KardexProductosData
         ?float $stock_anterior_base = null,
         //
         ?float $costo_promedio_base = null,
+        ?float $costo_por_presentacion = null,
+        ?float $subtotal = null,
         //
         ?string $created_at = null
     ) {
         return KardexProducto::insertGetId([
-            'id_lote_producto' => $id_lote,
-            'id_origen' => $id_origen,
+            'id_almacen' => $id_almacen,
             //
+            'id_lote_producto' => $id_lote,
+            'id_activo_fijo' => $id_activo_fijo,
+            //
+            'id_origen' => $id_origen,
             'tabla_origen' => $tabla_origen,
             //
             'tipo_movimiento' => $tipo_movimiento->value,
@@ -54,6 +61,8 @@ class KardexProductosData
             'stock_resultante_base' => $nuevo_stock_base,
             //
             'costo_promedio_base' => $costo_promedio_base,
+            'costo_por_presentacion' => $costo_por_presentacion,
+            'subtotal' => $subtotal,
             //
             'created_at' => $created_at ?? now(),
         ]);
