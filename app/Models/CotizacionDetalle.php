@@ -19,6 +19,7 @@ class CotizacionDetalle extends Model
         'id_comparativo_detalle', // tiene la info del producto y si vino de una solicitud de reabastecimiento
         'id_unidad_medida', // Caja
         'id_almacen_recepcionista', // Obligatorio - Es el almacen que deberia recibir esos productos
+        'id_mina_destino', // Para activos fijos
         //
         'tipo_despacho', // Recojo / Envio
         'lugar_recojo', // Para el recojo es obligatorio
@@ -44,7 +45,8 @@ class CotizacionDetalle extends Model
         int $id_cotizacion,
         int $id_comparativo_detalle,
         int $id_unidad_medida,
-        int $id_almacen_recepcionista,
+        ?int $id_almacen_recepcionista,
+        ?int $id_mina_destino,
         //
         TipoDespachoCompra $tipo_despacho,
         //
@@ -69,6 +71,7 @@ class CotizacionDetalle extends Model
             'id_comparativo_detalle' => $id_comparativo_detalle,
             'id_unidad_medida' => $id_unidad_medida,
             'id_almacen_recepcionista' => $id_almacen_recepcionista,
+            'id_mina_destino' => $id_mina_destino,
             //
             'tipo_despacho' => $tipo_despacho->value,
             'lugar_recojo' => $lugar_recojo,
@@ -96,7 +99,8 @@ class CotizacionDetalle extends Model
     public static function actualizar_detalle(
         int $id,
         int $id_unidad_medida,
-        int $id_almacen_recepcionista,
+        ?int $id_almacen_recepcionista,
+        ?int $id_mina_destino,
         TipoDespachoCompra $tipo_despacho,
         ?string $lugar_recojo,
         int $tiempo_entrega,
@@ -112,6 +116,7 @@ class CotizacionDetalle extends Model
         return self::where('id', $id)->update([
             'id_unidad_medida' => $id_unidad_medida,
             'id_almacen_recepcionista' => $id_almacen_recepcionista,
+            'id_mina_destino' => $id_mina_destino,
             'tipo_despacho' => $tipo_despacho->value,
             'lugar_recojo' => $lugar_recojo,
             'tiempo_entrega' => $tiempo_entrega,
@@ -142,6 +147,10 @@ class CotizacionDetalle extends Model
             ctd.id_almacen_recepcionista,
             alm.nombre AS almacen_recepcionista,
             alm.es_principal para_un_almacen_principal,
+            -- 
+            -- info de la mina destino si es un activo fijo
+            ctd.id_mina_destino,
+            mn.nombre AS mina_destino,
             -- 
             -- info para la recepcion
             ctd.tipo_despacho, -- recojo o envio
@@ -179,7 +188,7 @@ class CotizacionDetalle extends Model
             ctd.estado
         FROM
             cotizacion_detalle ctd
-        INNER JOIN almacen alm ON
+        LEFT JOIN almacen alm ON
             alm.id = ctd.id_almacen_recepcionista
         INNER JOIN unidad_medida und_c ON
             und_c.id = ctd.id_unidad_medida
@@ -187,6 +196,8 @@ class CotizacionDetalle extends Model
             cpd.id = ctd.id_comparativo_detalle
         INNER JOIN producto prd ON
             prd.id = cpd.id_producto
+        LEFT JOIN mina mn ON
+            mn.id = ctd.id_mina_destino
         INNER JOIN unidad_medida und_b ON
             und_b.id = prd.id_unidad_medida_base
         WHERE 1 = 1 
