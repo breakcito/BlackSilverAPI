@@ -24,6 +24,7 @@ class ControlUsoData
             act.codigo,
             act.correlativo,
             pr.nombre as producto,
+            pr.es_auditable,
             cat.nombre as categoria,
             cat.control_por_horometro,
             cat.control_por_odometro,
