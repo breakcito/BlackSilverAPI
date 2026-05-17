@@ -1,54 +1,46 @@
 # Módulo API: Atención de Requerimientos (Deep Dive)
 
-Este módulo es el brazo operativo del almacén. Gestiona la aprobación técnica, la entrega física y el impacto en el inventario.
+Este módulo representa el núcleo operativo y de despacho físico de almacenes. Gestiona la aprobación técnica de solicitudes, la entrega física estructurada, y la trazabilidad de consumo de recursos.
 
 ## 🛠 Componentes del Módulo
 
 ### 1. Controladores (`AtencionController`, `EntregaController`)
 
-- **`save_decision_detalle`**:
-    - **Validación**: Array de IDs de detalles y el `nuevo_estado` (Aprobado/Rechazado).
-    - **Proceso**: Delega al `AtencionService` para actualizar la voluntad del almacenero sobre el pedido.
+- **`save_decision_detalle`**: Registra la decisión técnica del almacenero (Aprobación/Rechazo) sobre un ítem específico del requerimiento.
 - **`save_entrega`**:
-    - **Validación**: IDs de empleados (entrega/recibe), ID de requerimiento, y un array complejo de `detalles` que incluye `id_lote_producto`, `cantidad_base` y `cantidad_requerimiento`.
+    - **Validación de Vale**: Recibe los detalles de entrega física incluyendo `id_lote_producto`, `cantidad_base` y `cantidad_requerimiento`.
 
 ### 2. Servicios Operativos
 
 #### `AtencionService`
-
 - **`cambiar_estado_detalle`**:
-    - **Transaccional**: Si un item es aprobado, el requerimiento cabecera cambia automáticamente a estado "En Despacho".
-    - **Timeline**: Registra un hito en el historial del producto con la glosa correspondiente al estado y el comentario de la decisión.
+    - **Transaccional**: Gestiona hitos en el Timeline y actualiza de forma automática las cabeceras a "En Despacho" ante la aprobación del primer ítem.
 
-#### `EntregaService` (Complejo)
+#### `EntregaService`
+- **`registrar_entrega`**:
+    - **Consistencia Matemática**: Disminuye stock físico del lote, inyecta salida en el Kardex y actualiza la cantidad acumulada entregada en la base de datos de manera atómica.
 
-- **`registrar_entrega` (El Proceso más Crítico)**:
-    - **Pre-Validación**: Realiza un **Eager Loading** de todos los lotes involucrados en una sola consulta. Valida que haya stock suficiente en cada uno antes de iniciar cualquier escritura.
-    - **Consistencia de Inventario**:
-        1. Rebaja el stock físico del lote (`id_lote_producto`).
-        2. Genera un asiento de **Salida** en el Kardex vinculado al Vale de Entrega.
-        3. Incrementa la `cantidad_entregada` en el detalle del requerimiento.
-    - **Cierre Inteligente**: Si la cantidad entregada acumulada alcanza lo solicitado, marca el item automáticamente como "Completado".
-    - **Log de Eventos**: Genera múltiples entradas en el Timeline:
-        - "En Despacho" (si es la primera entrega).
-        - "Nueva Entrega" (especificando la cantidad enviada).
-        - "Completado" (si se cubrió el total).
+### 3. Capa de Datos (`EntregasData`, `RequerimientosData`, `RequerimientosDetalleData`)
 
-### 3. Capa de Datos (`EntregasData`, `RequerimientosData`)
+- **`RequerimientosDetalleData::get_detalles_by_requerimiento`**:
+    - **Trazabilidad por Bienes**: Incluye un join a la tabla `categoria` (`cat.clasificacion_bien`) para inyectar en tiempo real el `tipo_bien` del producto solicitado, permitiendo que la interfaz reaccione dinámicamente según la naturaleza de la mercadería.
+    - **Trazabilidad por Destinos**: Recupera `id_activo_fijo_destino` y su respectivo `correlativo_activo_fijo_destino` para auditar a qué activo específico (ej. camión, pala mecánica) se le imputa el gasto del material.
 
-- **SQL de Despacho**:
-    - `get_resumen_requerimientos`: Consulta optimizada que muestra solo los pedidos pendientes de atención para el almacén del usuario.
-- **Persistencia**:
-    - `crear_entrega`: Registra la cabecera del Vale de Salida con su propio correlativo (`VAL-XXXX`).
+---
 
-## ⚙️ Reglas de Negocio en Inventario
+## ⚙️ Reglas de Negocio y Restricciones UI
 
-- **Unidad Base vs Unidad Medida**: El servicio siempre valida y rebaja el stock en `cantidad_base` para asegurar que el Kardex sea consistente independientemente de la presentación (cajas, bolsas, etc.).
-- **Trazabilidad de Lote**: Obliga a que cada salida esté vinculada a un lote específico, permitiendo el seguimiento de fechas de vencimiento.
+- **Auditoría Granular (Ítem por Ítem)**: Un requerimiento compuesto por múltiples ítems se procesa individualmente. Cada ítem guarda de forma aislada su propio estado, fecha de despacho, y responsable técnico.
+- **Trazabilidad de Destino**: Si un producto suministra/abastece a otros activos, el sistema obliga al contratista a registrar el activo fijo de destino exacto (`id_activo_fijo_destino`) al momento de realizar el pedido.
+- **Bloqueo de Unidad para Activos Fijos**: Si el contratista requiere un producto cuyo `tipo_bien` es un **Activo Fijo** (`TipoBien.ActivoFijo`), la interfaz bloquea el selector de Unidad de Medida en su unidad base propia (`id_unidad_medida_base`). Esto garantiza la consistencia física del inventario al evitar que activos fijos únicos se soliciten en empaques genéricos o fraccionados.
+- **Trazabilidad en PDF e Impresión**: Los vales físicos de entrega y reportes en PDF inyectan el correlativo del activo destino en el formato `PARA: [Nombre de Producto] [CORRELATIVO_ACTIVO]` para total transparencia ante fiscalizaciones.
+
+---
 
 ## 📂 Esquema de Base de Datos Relacionada
 
-- `requerimiento_almacen_entrega`: Cabecera del vale de salida.
-- `requerimiento_almacen_entrega_detalle`: Items vinculados a lotes específicos.
-- `kardex_producto`: Historial de movimientos de stock.
-- `lote_producto`: Saldos actuales por serie/lote.
+- `requerimiento_almacen`: Cabecera del pedido operativo minero.
+- `requerimiento_almacen_detalle`: Ítems solicitados con enlaces a `id_activo_fijo_destino`.
+- `activo_fijo`: Maquinaria que consume el suministro.
+- `categoria`: Clasificación del bien para reglas operativas de bloqueo.
+- `kardex_producto`: Historial de egreso de inventarios.

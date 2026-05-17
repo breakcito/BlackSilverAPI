@@ -1,37 +1,45 @@
 # Módulo API: Kardex de Inventario (Deep Dive)
 
-Provee la auditoría completa de movimientos de inventario, permitiendo reconstruir la historia de saldos de cada producto por almacén.
+Provee la auditoría completa e inmutable de movimientos de inventario, permitiendo reconstruir la historia y trazabilidad de saldos de cada producto por almacén en tiempo real.
 
 ## 🛠 Componentes del Módulo
 
 ### 1. Controlador (`KardexController`)
 
 - **`get_almacenes`**:
-    - **Validación de Seguridad**: Implementa un filtro basado en permisos. Si el usuario tiene el privilegio `almacenes_all`, puede ver todos los movimientos; de lo contrario, el servicio restringe la vista solo a los almacenes donde el empleado es el responsable designado.
-- **`get_resumen_kardex`**: Recupera el historial de movimientos de un período específico.
+    - **Validación de Seguridad**: Filtra almacenes según privilegios. Si el usuario tiene el rol `almacenes_all`, puede auditar todas las sedes; de lo contrario, la API restringe la vista solo a los almacenes bajo su responsabilidad de cargo.
+- **`get_resumen_kardex`**: Recupera el historial completo de movimientos filtrado por almacén, mes, y año.
 
 ### 2. Servicio de Auditoría (`KardexService`)
 
-- Actúa como el orquestador de reportes de inventario.
-- **Lógica de Visibilidad**: Centraliza la lógica de quién puede ver qué stock, garantizando que los almaceneros solo auditen su propia operación a menos que tengan permisos administrativos.
+- Orquesta las consultas y reportes de inventario de manera aislada de los flujos de escritura.
+- Garantiza la visibilidad controlada en base al estado global del **Modo Auditoría** (filtrando u ocultando registros marcados como confidenciales/sensibles en el ERP).
 
 ### 3. Capa de Datos Compartida (`App\Data\KardexProductosData`)
 
-_Nota: Aunque este módulo es de consulta, la lógica de escritura reside en la capa compartida, utilizada por casi todos los servicios operativos._
+_Nota: Toda escritura del Kardex está centralizada a través del motor global de Lotes e Inventario, impidiendo modificaciones manuales directas del módulo para evitar corrupción de saldos._
 
-- **`registrar_kardex` (Método Maestro)**:
-    - **Trazabilidad de Origen**: Obliga a registrar el `id_origen` y `tipo_origen` (Entrega, Recepción, Ajuste, Reposición). Esto permite que, desde el Kardex, el usuario pueda navegar directamente al documento físico que generó el movimiento.
-    - **Consistencia de Doble Saldo**: Registra siempre el stock anterior y el nuevo, tanto en unidades de presentación como en unidades base, permitiendo auditorías de "fotos" de inventario en cualquier momento del tiempo.
-    - **Descripción Dinámica**: Almacena glosas explicativas (ej: "Salida por entrega N° ENT-001") para facilitar el entendimiento humano de los reportes.
+- **`get_resumen_kardex` (Estructura Dual Lotes / Activos Fijos)**:
+    - **Integración Híbrida**: Diseñado para soportar tanto bienes genéricos ordenados por **Lotes** como ítems únicos representados por **Activos Fijos**.
+    - **Resolución de Producto**: Realiza `LEFT JOIN` a ambas entidades y resuelve el producto origen de forma condicional mediante una evaluación matemática e indexada:
+      ```sql
+      INNER JOIN producto p ON p.id = COALESCE(lp.id_producto, act.id_producto)
+      ```
+    - **Consistencia de Saldo**: Almacena `stock_anterior_base` y `stock_resultante_base` por cada fila del Kardex junto con la glosa descriptiva que vincula al documento físico origen.
+
+---
 
 ## ⚙️ Reglas de Negocio
 
-- **Inmutabilidad de Registros**: Los asientos del Kardex son históricos y no deben ser editados manualmente. Cualquier corrección se realiza mediante un nuevo asiento de "Ajuste de Stock".
-- **Filtro de Período**: Las consultas están optimizadas por Mes/Año para evitar sobrecargar el sistema con datos de años anteriores innecesarios.
+- **Inmutabilidad Absoluta**: Ningún registro en el Kardex se puede borrar o actualizar. Un error operativo se subsana mediante un nuevo documento de "Ajuste de Stock" de signo contrario.
+- **Identificación en Grilla**: En el frontend, la columna "Lote / Activo" hereda de manera automática el código físico disponible: muestra `correlativo_lote` si es un insumo genérico consumible o `correlativo_activo_fijo` si se trata del ingreso/movimiento de un activo único.
+
+---
 
 ## 📂 Esquema de Base de Datos Relacionada
 
-- `kardex_producto`: Tabla histórica de movimientos.
-- `lote_producto`: Referencia al lote específico del movimiento.
-- `almacen`: Ubicación física del stock.
-- `producto`: Bien afectado.
+- `kardex_producto`: Bitácora histórica inmutable de transacciones.
+- `lote_producto`: Referencia del lote (para bienes consumibles).
+- `activo_fijo`: Referencia del activo físico (para maquinarias o vehículos únicos).
+- `producto`: Datos maestros y clasificación del bien afectado.
+- `almacen`: Ubicación física donde ocurrió la transacción.

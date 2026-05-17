@@ -109,34 +109,50 @@ El proyecto no sigue la estructura monolítica estándar de Laravel. Implementa 
 ### 1. `app/Modules/` - El Núcleo de Dominio
 
 Cada carpeta dentro de `Modules` representa un micro-servicio interno enfocado en un proceso de negocio específico (ej. `Cotizaciones`, `RequerimientosAlmacenAtencion`).
-
 - **Endpoints (`XEndpoints.php`)**: Definición manual de rutas tipo API.
 - **Controllers**: Validadores de entrada (Requests) y orquestadores del flujo.
 - **Services**: Contenedores de la **lógica de negocio exclusiva del módulo**.
 - **Data (Local)**: Consultas SQL específicas que solo atañen al módulo.
 
+---
+
 ### 2. Capa Global: Servicios y Datos Compartidos (`app/Services/` y `app/Data/`)
 
 Existen entidades transversales que son requeridas constantemente por múltiples módulos (ej. consultar un producto, actualizar el stock). Para no repetir código, esta lógica se centraliza globalmente:
 
-- **Maestros Corporativos**: `AlmacenesData/Service`, `EmpleadosData/Service`, `EmpresasData/Service`.
-- **Catálogos y Terceros**: `ProductosData/Service`, `UnidadesMedidaData/Service`, `ProveedoresData/Service`, `PersonalExternoData/Service`.
-- **Motor de Inventario (Crítico)**:
-    - `LotesProductosData/Service`: **Punto de entrada principal** para registrar movimientos de inventario. Este servicio encapsula la actualización del stock físico y la inyección automática en el Kardex. Todo módulo que altere el inventario debe invocarlo (`update_stock` o `crear_lote`) para evitar duplicar lógica de auditoría.
-    - `KardexProductosData/Service`: Servicio interno gestionado automáticamente por Lotes. Mantiene el registro de auditoría (doble saldo) de la empresa, pero **no debe ser invocado directamente** por los módulos para no corromper el flujo.
-- **Estructura UI**: `MenuNavData/Service` (para navegación basada en permisos).
+#### A. Controladores Globales (`app/Controllers/`)
+Capa centralizada para orquestar flujos y utilitarios genéricos de la aplicación.
+*   **`AuxController.php`**: El *Hub* centralizado que despacha catálogos generales, búsquedas concurrentes y poblamiento de dropdowns para evitar redundancia de endpoints en módulos locales.
+*   **`ArchivoController.php`**: Orquesta la carga, validación física y almacenamiento seguro de archivos adjuntos y evidencias multimedia.
+*   **`MenuNavController.php`**: Solicita la estructura jerárquica de la navegación del usuario en base a sus privilegios de cuenta.
 
-### 3. El Controlador Auxiliar (`AuxController.php` y `AuxEndpoints.php`)
+#### B. Endpoints Globales (`app/Endpoints/`)
+Define el ruteo genérico de consumo transversal del ERP.
+*   **`AuxEndpoints.php`**: Rutas prefijadas con `/api/aux/...` para catálogos y selectores.
+*   **`ArchivoEndpoints.php`**: Rutas dedicadas para subida y descarga de archivos de evidencias.
+*   **`MenuNavEndpoints.php`**: Expone el endpoint que resuelve la navegación dinámica basada en roles.
 
-Para evitar que cada módulo defina sus propios endpoints redundantes (ej. pedir la lista de almacenes desde Cotizaciones y nuevamente desde Requerimientos), se implementó el ecosistema `Aux`.
+#### C. Acceso a Datos Globales (`app/Data/`)
+Repositorio unificado de consultas SQL crudas y mapeos de datos para entidades compartidas.
+*   **`ActivosFijosData.php`**: Consultas relativas a maquinaria, vehículos operativos y generación de correlativos por prefijo.
+*   **`ProductosData.php`**: Catálogo e información dinámica de productos.
+*   **`LotesProductosData.php`**: Capa crítica de acceso y auditoría de stocks por lote.
+*   **`KardexProductosData.php`**: Centraliza el registro de movimientos de stock.
+*   **`AlmacenesData.php`, `EmpleadosData.php`, `EmpresasData.php`, `MarcasData.php`, `MinasData.php`, `PersonalExternoData.php`, `ProveedoresData.php`, `UnidadesMedidaData.php`, `MenuNavData.php`**: Abstracciones generales de lectura de tablas maestras.
 
-- **Propósito**: Actúa como un _Hub_ centralizado para peticiones de catálogos y selects recurrentes (`get_almacenes`, `get_productos`, `get_lotes_disponibles`).
-- **Regla de Consumo**: El Frontend (y específicamente el `AuxService` de React) debe apuntar siempre a los endpoints auxiliares `/api/aux/...` para popular modales de búsqueda o filtros genéricos.
+#### D. Servicios Globales (`app/Services/`)
+Contenedores de lógica de negocio transaccional transversal y motores de cálculo.
+*   **`ActivosFijosService.php`**: Orquesta el ciclo de vida del activo físico, marcas y su codificación automática.
+*   **`LotesProductosService.php`**: **Motor de Inventario Principal.** Coordina de forma transaccional toda afectación física de stock por lotes e inyección automática en el Kardex. **Obligatorio para cualquier afectación de stock.**
+*   **`KardexProductosService.php`**: Auditor centralizado encargado de inyectar asientos históricos inmutables de saldo.
+*   **`MenuNavService.php`**: Construye dinámicamente y de forma recursiva el árbol de menús según permisos del usuario.
+*   **`AlmacenesService.php`, `EmpleadosService.php`, `EmpresasService.php`, `MarcasService.php`, `MinasService.php`, `PersonalExternoService.php`, `ProductosService.php`, `ProveedoresService.php`, `UnidadesMedidaService.php`**: Lógica de validación corporativa de catálogos.
 
-### 4. Estandarización de Estados (`app/Shared/Enums/`)
+---
+
+### 3. Estandarización de Estados (`app/Shared/Enums/`)
 
 El sistema hace un uso intensivo de _Backed Enums_ de PHP para evitar "magic strings" y mantener integridad de datos.
-
 - **Regla de Ordenamiento Estricta**: Cada tabla o proceso operativo físico (Ej. `Entrega`, `Recepcion`, `Solicitud`, `OrdenCompra`) **debe tener su propio Enum dedicado** en su respectiva subcarpeta dentro de `Shared/Enums`.
 - **Ejemplo**: Las recepciones usan `EstadoOCTransRecepcion`, y las transferencias usan `EstadoOCTransferencia`. No se reciclan Enums genéricos entre procesos distintos para evitar choques lógicos.
 
