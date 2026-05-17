@@ -14,6 +14,7 @@ class OrdenCompraTransferencia extends Model
 
     protected $fillable = [
         'id_almacen_destino', // el almacen al que se transfiere el stock
+        'id_mina_destino', // la mina a la que se le transfiere el activo fijo
         'id_orden_compra_recepcion', // la recepcion de la orden de compra
         'id_empleado_transferencia', // quien registra la transferencia
         'id_personal_recibe', // la persona que recibe los productos para el envio

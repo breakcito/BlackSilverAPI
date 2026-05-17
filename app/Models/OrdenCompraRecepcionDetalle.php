@@ -16,6 +16,7 @@ class OrdenCompraRecepcionDetalle extends Model
         'id_orden_compra_recepcion', // la recepcion
         'id_orden_compra_detalle', // el detalle de la compra
         'id_lote_producto', // el lote del que se ajusto el stock o que se genero como nuevo
+        'id_activo_fijo', // el NUEVO activo fijo que se recepciona
         'es_ajuste_stock', // 1 si fue un ajuste de stock o 0 si fue un registro
         'cantidad_recepcionada', // segun la unidad de la orden de compra
         'cantidad_recepcionada_base', // segun la unidad base del producto

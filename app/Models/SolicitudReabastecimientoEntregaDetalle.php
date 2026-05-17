@@ -14,7 +14,8 @@ class SolicitudReabastecimientoEntregaDetalle extends Model
     protected $fillable = [
         'id_reabastecimiento_entrega',
         'id_solicitud_reabastecimiento_detalle',
-        'id_lote_producto',
+        'id_lote_producto', // si se entrega un lote: completo o parcial
+        'id_activo_fijo', // si se entrega un activo
         'cantidad_base',
         'cantidad_lote',
         'cantidad_solicitud',

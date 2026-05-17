@@ -36,10 +36,10 @@ class ActivosFijosData
      * que esten disponibles segun se requiere.
      */
     public static function get_activos_disponibles(
+        int|array|null $id_producto = null,
         ?int $id_activo = null,
         ?int $id_almacen = null,
         ?int $id_mina = null,
-        ?int $id_producto = null,
         //
         ?bool $para_transporte = null,
         ?bool $control_por_odometro = null,
@@ -49,18 +49,15 @@ class ActivosFijosData
         $sql = '
         SELECT
             act.id as id_activo,
-            act.correlativo, -- lo genera el sistema
+            act.correlativo,
             
-            -- en que posible almacen se encuentra 
             act.id_almacen,
             alm.nombre as almacen,
             alm.es_principal as en_almacen_principal,
             
-            -- en que posible almacen se encuentra 
             act.id_mina,
             mn.nombre as mina,
             
-            -- datos como producto
             act.id_producto,
             pr.nombre as producto,
             pr.es_auditable,
@@ -68,12 +65,10 @@ class ActivosFijosData
             cat.id as id_categoria,
             cat.nombre as categoria,
 
-            -- datos el control que implica
-            cat.para_transporte, -- si el activo es para transporte/vehiculo
-            cat.control_por_odometro, -- si el activo requiere tener un control por odometro
-            cat.control_por_horometro, -- si el activo requiere tener un control por horometro
+            cat.para_transporte,
+            cat.control_por_odometro,
+            cat.control_por_horometro,
             
-            -- unidad base para activos -> UNIDAD
             pr.id_unidad_medida_base,
             umb.nombre as unidad_medida_base,
             umb.abreviatura as unidad_medida_base_abv
@@ -81,7 +76,6 @@ class ActivosFijosData
         INNER JOIN producto pr on pr.id = act.id_producto
         INNER JOIN unidad_medida umb on umb.id = pr.id_unidad_medida_base
         INNER JOIN categoria cat on cat.id = pr.id_categoria
-        -- en que posible lugar se encuentra
         LEFT JOIN almacen alm on alm.id = act.id_almacen
         LEFT JOIN mina mn ON mn.id = act.id_mina
         WHERE 1=1
@@ -105,9 +99,22 @@ class ActivosFijosData
             $params['id_mina'] = $id_mina;
         }
 
-        if ($id_producto != null) {
-            $sql .= ' AND act.id_producto = :id_producto';
-            $params['id_producto'] = $id_producto;
+        // Lógica adaptada para int o array
+        if ($id_producto !== null) {
+            if (is_array($id_producto)) {
+                if (!empty($id_producto)) {
+                    $placeholders = [];
+                    foreach ($id_producto as $index => $id) {
+                        $paramName = "id_producto_{$index}";
+                        $placeholders[] = ":{$paramName}";
+                        $params[$paramName] = $id;
+                    }
+                    $sql .= ' AND act.id_producto IN (' . implode(', ', $placeholders) . ')';
+                }
+            } else {
+                $sql .= ' AND act.id_producto = :id_producto';
+                $params['id_producto'] = $id_producto;
+            }
         }
 
         if ($para_transporte != null) {

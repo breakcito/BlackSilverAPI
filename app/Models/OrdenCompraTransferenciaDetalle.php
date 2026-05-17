@@ -16,6 +16,7 @@ class OrdenCompraTransferenciaDetalle extends Model
         'id_orden_compra_transferencia', // la transferencia
         'id_orden_compra_recepcion_detalle', // el detalle de la recepcion de la orden de compra
         'id_lote_producto', // el lote del que se esta sacando stock
+        'id_activo_fijo', // si se transfiere un activo
         //
         'cantidad_transferida_base', // la cantidad transferida en la unidad de medida base del producto
         //

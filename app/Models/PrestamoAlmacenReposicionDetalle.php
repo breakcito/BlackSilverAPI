@@ -21,6 +21,7 @@ class PrestamoAlmacenReposicionDetalle extends Model
         'id_prestamo_almacen_reposicion', // la reposicion
         'id_prestamo_almacen_detalle', // el detalle del prestamo que se esta reponiendo
         'id_lote_producto', // el lote del almacen principal elegido para reponer
+        'id_activo_fijo', // si se entrego un activo
         'cantidad_base', // cuanto representa segun la unidad de medida base del producto
         'cantidad_lote', // cuanto representa para el lote usado para la entrega
         'cantidad_prestamo', // cuanto representa para la unidad de medida del prestamo

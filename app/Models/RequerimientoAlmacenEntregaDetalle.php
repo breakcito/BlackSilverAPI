@@ -13,7 +13,8 @@ class RequerimientoAlmacenEntregaDetalle extends Model
     protected $fillable = [
         'id_requerimiento_almacen_entrega',
         'id_requerimiento_almacen_detalle',
-        'id_lote_producto',
+        'id_lote_producto', // si se entrego un lote: completo o parcial
+        'id_activo_fijo', // si se entrego un activo
         'cantidad_base',
         'cantidad_lote',
         'cantidad_requerimiento',

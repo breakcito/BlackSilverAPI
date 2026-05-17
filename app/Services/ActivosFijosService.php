@@ -20,10 +20,10 @@ class ActivosFijosService
      * que esten disponibles segun se requiere.
      */
     public static function get_activos_disponibles(
+        int|array|null $id_producto = null,
         ?int $id_activo = null,
         ?int $id_almacen = null,
         ?int $id_mina = null,
-        ?int $id_producto = null,
         //
         ?bool $para_transporte = null,
         ?bool $control_por_odometro = null,
@@ -66,7 +66,7 @@ class ActivosFijosService
     ) {
         return DB::transaction(function () use ($id_producto, $id_almacen, $id_mina, $id_marca, $codigo, $numero_serie, $modelo, $yearcito_modelo, $descripcion, $especificaciones, $fecha_hora_ingreso, $return_objecto, $estado) {
             $producto = ProductosData::get_producto_by_id(id_producto: $id_producto, columnas: ['prefijo']);
-            $prefijo = $producto['prefijo']; 
+            $prefijo = $producto['prefijo'];
 
             $correlativo_data = ActivosFijosData::get_nuevo_correlativo($prefijo);
             $correlativo = $correlativo_data['correlativo'];

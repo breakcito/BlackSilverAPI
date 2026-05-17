@@ -14,8 +14,9 @@ class OrdenCompraRecepcion extends Model
 
     protected $fillable = [
         'id_orden_compra',
-        'id_almacen_recepcionista',
-        'id_empleado_recepcion',
+        'id_almacen_recepcionista', // si no es un activo fijo solo se recibira en un almacen
+        'id_mina_recepcionista', // si es un activo fijo es posible que se recepcione en una mina
+        'id_empleado_recepcion', // empleado responsable de la recepcion
         //
         'numero_correlativo', // indica si es la primera, segunda, etc recepcion de la orden de compra
         'observacion',

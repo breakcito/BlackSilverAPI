@@ -13,8 +13,9 @@ class PrestamoAlmacenEntregaDetalle extends Model
 
     protected $fillable = [
         'id_prestamo_almacen_entrega',
-        'id_prestamo_almacen_detalle',
-        'id_lote_producto',
+        'id_prestamo_almacen_detalle', // detalle del prestamo que se esta entregando
+        'id_lote_producto', // si se entrega un lote: completo o parcial
+        'id_activo_fijo', // si se entrega un activo
         'cantidad',
         'cantidad_base',
         'comentario',

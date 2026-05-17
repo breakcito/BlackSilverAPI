@@ -197,7 +197,18 @@ class AuxController extends Controller
         $id_activo = $request->input('id_activo') ? (int) $request->input('id_activo') : null;
         $id_almacen = $request->input('id_almacen') ? (int) $request->input('id_almacen') : null;
         $id_mina = $request->input('id_mina') ? (int) $request->input('id_mina') : null;
-        $id_producto = $request->input('id_producto') ? (int) $request->input('id_producto') : null;
+
+        // 1. Capturar y normalizar el input (puede venir de un query string o JSON)
+        $raw_producto = $request->input('ids_productos');
+
+        if (is_array($raw_producto)) {
+            // Si es un array, limpiamos y casteamos cada elemento a entero
+            $id_producto = array_map('intval', array_filter($raw_producto));
+        } else {
+            // Si es un entero/string único, lo casteamos directamente si no está vacío
+            $id_producto = ($raw_producto !== null && $raw_producto !== '') ? (int) $raw_producto : null;
+        }
+
         $para_transporte = $request->input('para_transporte') ? (bool) $request->input('para_transporte') : null;
         $control_por_odometro = $request->input('control_por_odometro') ? (bool) $request->input('control_por_odometro') : null;
         $control_por_horometro = $request->input('control_por_horometro') ? (bool) $request->input('control_por_horometro') : null;
@@ -208,7 +219,7 @@ class AuxController extends Controller
             id_activo: $id_activo,
             id_almacen: $id_almacen,
             id_mina: $id_mina,
-            id_producto: $id_producto,
+            id_producto: $id_producto, // 2. Corregido: Coincide con el parámetro del Service
             para_transporte: $para_transporte,
             control_por_odometro: $control_por_odometro,
             control_por_horometro: $control_por_horometro,

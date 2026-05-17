@@ -16,6 +16,7 @@ class PrestamoAlmacenReposicionRecepcionDetalle extends Model
         'id_prestamo_almacen_reposicion_recepcion',
         'id_prestamo_almacen_reposicion_detalle',
         'id_lote_producto', // el lote del que se ajusto el stock o que se genero como nuevo
+        'id_activo_fijo', // si se recepciono un activo fijo
         'es_ajuste_stock', // 1 si fue un ajuste de stock o 0 si fue un registro
         'cantidad_recepcionada_base',
         'estado', // Recepcionado parcialmente | Recepcionado
