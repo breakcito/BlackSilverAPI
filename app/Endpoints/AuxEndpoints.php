@@ -37,6 +37,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
             // marcas
             Route::get('/marcas', 'get_marcas');
             Route::post('/marcas', 'crear_marca');
+
+            // activos fijos disponibles
+            Route::get('/activos-disponibles', 'get_activos_disponibles');
         });
     });
 });

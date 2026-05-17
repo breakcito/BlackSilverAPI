@@ -3,11 +3,9 @@
 namespace App\Data;
 
 use App\Models\ActivoFijo;
-use App\Shared\Enums\_Generic\EstadoBase;
 use App\Shared\Enums\_Generic\Periodo;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
 use App\Shared\Helpers\CorrelativoHelper;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ActivosFijosData
@@ -55,9 +53,16 @@ class ActivosFijosData
             
             -- en que posible almacen se encuentra 
             act.id_almacen,
+            alm.nombre as almacen,
+            alm.es_principal as en_almacen_principal,
+            
+            -- en que posible almacen se encuentra 
+            act.id_mina,
+            mn.nombre as mina,
             
             -- datos como producto
             act.id_producto,
+            pr.nombre as producto,
             pr.es_auditable,
             
             cat.para_transporte, -- si el activo es para transporte/vehiculo
@@ -72,6 +77,9 @@ class ActivosFijosData
         INNER JOIN producto pr on pr.id = act.id_producto
         INNER JOIN unidad_medida umb on umb.id = pr.id_unidad_medida_base
         INNER JOIN categoria cat on cat.id = pr.id_categoria
+        -- en que posible lugar se encuentra
+        LEFT JOIN almacen alm on alm.id = act.id_almacen
+        LEFT JOIN mina mn ON mn.id = act.id_mina
         WHERE 1=1
         ';
 

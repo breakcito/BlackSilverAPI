@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Services\ActivosFijosService;
 use App\Services\AlmacenesService;
 use App\Services\EmpleadosService;
 use App\Services\EmpresasService;
@@ -14,6 +15,7 @@ use App\Services\ProveedoresService;
 use App\Services\UnidadesMedidaService;
 use App\Shared\Enums\_Generic\EstadoBase;
 use App\Shared\Enums\_Generic\TipoBien;
+use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -183,5 +185,34 @@ class AuxController extends Controller
         );
 
         return response()->json($result);
+    }
+
+
+    /**
+     * Obtener solo los activos fijos
+     * que esten disponibles segun se requiere.
+     */
+    public function get_activos_disponibles(Request $request): JsonResponse
+    {
+        $id_activo = $request->input('id_activo') ? (int) $request->input('id_activo') : null;
+        $id_almacen = $request->input('id_almacen') ? (int) $request->input('id_almacen') : null;
+        $id_mina = $request->input('id_mina') ? (int) $request->input('id_mina') : null;
+        $id_producto = $request->input('id_producto') ? (int) $request->input('id_producto') : null;
+        $para_transporte = $request->input('para_transporte') ? (bool) $request->input('para_transporte') : null;
+        $control_por_odometro = $request->input('control_por_odometro') ? (bool) $request->input('control_por_odometro') : null;
+        $control_por_horometro = $request->input('control_por_horometro') ? (bool) $request->input('control_por_horometro') : null;
+        $estado_val = $request->input('estado');
+        $estado = $estado_val ? EstadoActivoFijo::from($estado_val) : null;
+
+        return response()->json(ActivosFijosService::get_activos_disponibles(
+            id_activo: $id_activo,
+            id_almacen: $id_almacen,
+            id_mina: $id_mina,
+            id_producto: $id_producto,
+            para_transporte: $para_transporte,
+            control_por_odometro: $control_por_odometro,
+            control_por_horometro: $control_por_horometro,
+            estado: $estado,
+        ));
     }
 }
