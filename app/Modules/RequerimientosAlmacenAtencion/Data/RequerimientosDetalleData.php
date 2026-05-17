@@ -116,7 +116,7 @@ class RequerimientosDetalleData
         float $contenido,
         float $cantidad_base,
         ?string $comentario = null,
-        ?int $id_producto_destino = null
+        ?int $id_activo_fijo_destino = null
     ) {
         return RequerimientoAlmacenDetalle::insertGetId([
             'id_requerimiento_almacen' => $id_requerimiento,
@@ -128,7 +128,7 @@ class RequerimientosDetalleData
             'cantidad_entregada' => 0,
             'cantidad_entregada_base' => 0,
             'comentario' => $comentario,
-            'id_producto_destino' => $id_producto_destino,
+            'id_activo_fijo_destino' => $id_activo_fijo_destino,
             'estado' => EstadoRequerimientoDetalle::EsperandoAprobacion->value,
         ]);
     }

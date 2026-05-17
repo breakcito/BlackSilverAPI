@@ -15,7 +15,7 @@ class Producto extends Model
         'id_unidad_medida_base',
         //
         'nombre',
-        'prefijo',
+        'prefijo', // solo se requiere cuando es un activo fijo
         //
         'es_perecible',
         // bool que ayuda a saber si el producto es auditable para ocultarlo

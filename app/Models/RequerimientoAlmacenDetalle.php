@@ -14,6 +14,7 @@ class RequerimientoAlmacenDetalle extends Model
     protected $fillable = [
         'id_requerimiento_almacen',
         'id_producto', // manzana - kilos
+        'id_activo_fijo_destino', // en caso el producto se consuma por un activo fijo
         'id_unidad_medida', // caja
         'id_empleado_atencion', // quien decide aprobar/rechazar el producto del requerimiento
         //
@@ -37,61 +38,87 @@ class RequerimientoAlmacenDetalle extends Model
     ) {
         // 1. Definimos la base de la consulta (sin WHERE ni ORDER BY aún)
         $sql = '
-        SELECT DISTINCT
+        SELECT 
             rad.id AS id_requerimiento_almacen_detalle,
-            --
+            
             CONCAT(emp.nombre, " ", emp.apellido) AS empleado_atencion,
-            --
+            
             pr.id AS id_producto,
             pr.nombre AS producto,
             pr.stock_minimo_base,
             pr.es_auditable,
-            --
-            -- que producto va a consumir lo que se esta pidiendo: Tractor consume Gasolina
-            rad.id_producto_destino,
-            p_dest.nombre AS producto_destino,
-            --
+            cat.clasificacion_bien as tipo_bien,
+            
+            -- que activo va a consumir lo que se esta pidiendo: Tractor consume Gasolina
+            rad.id_activo_fijo_destino,
+            act_dest.correlativo AS correlativo_activo_fijo_destino,
+            pr_dest.id as id_producto_destino,
+            pr_dest.nombre AS producto_destino,
+            
+            -- unidad base y cantidades en base a esa unidad base del producto
             pr.id_unidad_medida_base,
             unib.abreviatura AS unidad_medida_base_abv,
             rad.contenido_por_presentacion, -- cuantas unidades base hay en una unidad del detalle del requerimiento
             rad.cantidad_solicitada_base,
             rad.cantidad_entregada_base,
-            --
+            
+            -- unidad del requerimiento y cantidades en base a esa unidad
             rad.id_unidad_medida as id_unidad_medida_req, 
             uni.abreviatura AS unidad_medida_req_abv,
             rad.cantidad_solicitada,
             rad.cantidad_entregada,
-            --
+            
+            
             CASE 
                 WHEN rad.cantidad_solicitada_base > 0 THEN 
                     ROUND(((rad.cantidad_entregada_base / rad.cantidad_solicitada_base) * 100 ), 0)
                 ELSE 0 
             END AS porcentaje_progreso,
-            --
-            (
-                SELECT
-                    SUM(lot.stock_actual_base)
-                FROM
-                    lote_producto lot
-                WHERE
-                	lot.id_almacen = alm.id AND
-                    lot.id_producto = pr.id AND 
-                    lot.estado = "Activo" AND 
-                	lot.stock_actual_base > 0 AND
-            		(lot.fecha_vencimiento > NOW() OR lot.fecha_vencimiento IS NULL)
-            ) as stock_disponible_base,
-            --
+            
+            -- stock disponible de ese producto del almacen que atendera el requerimiento
+            CASE
+            	-- si se pidio un activo fijo
+                WHEN cat.clasificacion_bien = "Activo Fijo" THEN (
+                    SELECT
+                    	COUNT(atf.id)
+                    FROM activo_fijo atf 
+                    WHERE 
+                    	atf.id_producto = pr.id AND
+                    	atf.id_almacen = alm.id
+                )
+                -- para todos los demas productos
+                ELSE (
+                    SELECT
+                    	SUM(lot.stock_actual_base)
+                    FROM lote_producto lot
+                    WHERE
+                        lot.id_almacen = alm.id AND
+                        lot.id_producto = pr.id AND 
+                        lot.estado = "Activo" AND 
+                        lot.stock_actual_base > 0 AND
+                        (lot.fecha_vencimiento > NOW() OR lot.fecha_vencimiento IS NULL)
+				) 
+            END as stock_disponible_base,
+            
+            -- comentario al registrar y comentario luego del rechazo/aprobacion
             rad.comentario,
             rad.comentario_decision,
+            
             rad.estado
         FROM
             requerimiento_almacen_detalle rad
         INNER JOIN producto pr ON pr.id = rad.id_producto
+        INNER JOIN categoria cat on cat.id = pr.id_categoria
         INNER JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
         INNER JOIN unidad_medida uni ON uni.id = rad.id_unidad_medida
+        
         INNER JOIN requerimiento_almacen req on req.id = rad.id_requerimiento_almacen
         INNER JOIN almacen alm on alm.id = req.id_almacen_destino
-        LEFT JOIN producto p_dest ON p_dest.id = rad.id_producto_destino
+        
+        -- inners por si lo requerido sera requerido para un activo fijo 
+        LEFT JOIN activo_fijo act_dest ON act_dest.id = rad.id_activo_fijo_destino
+        LEFT JOIN producto pr_dest ON pr_dest.id = act_dest.id_producto
+        
         LEFT JOIN empleado emp ON emp.id = rad.id_empleado_atencion
         WHERE 1=1
         ';

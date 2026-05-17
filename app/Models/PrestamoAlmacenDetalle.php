@@ -75,11 +75,16 @@ class PrestamoAlmacenDetalle extends Model
         SELECT DISTINCT
             pad.id AS id_prestamo_detalle,
             pad.id_solicitud_reabastecimiento_detalle,
-            --
+            
             pad.id_producto,
             prod.stock_minimo_base,
             prod.nombre AS producto,
+            
+            prdt.id as id_producto_destino,
             prdt.nombre as producto_destino,
+            rqd.id_activo_fijo_destino,
+            act_des.correlativo as correlativo_activo_fijo_destino,
+            
             (
                 SELECT
                     SUM(lot.stock_actual_base)
@@ -92,24 +97,24 @@ class PrestamoAlmacenDetalle extends Model
             		(lot.fecha_vencimiento > NOW() OR lot.fecha_vencimiento IS NULL) AND
                     lot.id_almacen = pa.id_almacen_prestamista
             ) as stock_disponible_base,
-            --
+            
             -- unidad de medida base del producto
             um_bs.id as id_unidad_medida_base, 
             um_bs.abreviatura AS unidad_medida_base_abv,
-            --
+            
             -- unidad de medida del prestamo
             um_pr.id as id_unidad_medida_pr, 
             um_pr.abreviatura AS unidad_medida_pr_abv,
-            --
+            
             -- cuantas unidades de medida base hay en una unidad de medida del prestamo
             pad.cantidad_solicitada,
             pad.contenido_por_presentacion, 
             pad.cantidad_solicitada_base,
-            --
+            
             -- lo que va prestando
             pad.cantidad_prestada, 
             pad.cantidad_prestada_base,
-            --
+            
             -- lo que va siendo repuesto por logistica
             pad.cantidad_repuesta, 
             pad.cantidad_repuesta_base,
@@ -122,11 +127,12 @@ class PrestamoAlmacenDetalle extends Model
         INNER JOIN producto prod ON prod.id = pad.id_producto
         INNER JOIN unidad_medida um_pr ON um_pr.id = pad.id_unidad_medida
         INNER JOIN unidad_medida um_bs ON um_bs.id = prod.id_unidad_medida_base
-        --
+        
         -- joins para saber la razon del por que hay 2 productos iguales en el prestamo, pero con destino diferente
         LEFT JOIN solicitud_reabastecimiento_detalle srd on srd.id = pad.id_solicitud_reabastecimiento_detalle
         LEFT JOIN requerimiento_almacen_detalle rqd on rqd.id = srd.id_requerimiento_almacen_detalle
-        LEFT JOIN producto prdt on prdt.id = rqd.id_producto_destino
+        LEFT JOIN activo_fijo act_des on act_des.id = rqd.id_activo_fijo_destino
+        LEFT JOIN producto prdt on prdt.id = act_des.id_producto
         WHERE 1 = 1
         ';
 

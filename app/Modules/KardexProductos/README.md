@@ -1,4 +1,4 @@
-# Módulo API: Kardex de Productos (Deep Dive)
+# Módulo API: Kardex de Inventario (Deep Dive)
 
 Provee la auditoría completa de movimientos de inventario, permitiendo reconstruir la historia de saldos de cada producto por almacén.
 

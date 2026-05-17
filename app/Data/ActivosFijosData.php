@@ -65,6 +65,10 @@ class ActivosFijosData
             pr.nombre as producto,
             pr.es_auditable,
             
+            cat.id as id_categoria,
+            cat.nombre as categoria,
+
+            -- datos el control que implica
             cat.para_transporte, -- si el activo es para transporte/vehiculo
             cat.control_por_odometro, -- si el activo requiere tener un control por odometro
             cat.control_por_horometro, -- si el activo requiere tener un control por horometro

@@ -12,7 +12,7 @@ class KardexData
     public static function get_resumen_kardex(int $id_almacen, int $mes, int $yearcito)
     {
         $sql = '
-        SELECT
+        SELECT DISTINCT
             k.id AS id_kardex,
             
             -- producto
@@ -29,7 +29,7 @@ class KardexData
             lp.correlativo as correlativo_lote,
             lp.contenido_por_presentacion,
             
-			-- datos del activo
+            -- datos del activo
             k.id_activo_fijo,
             act.correlativo as correlativo_activo_fijo,
             
@@ -58,22 +58,22 @@ class KardexData
             k.stock_resultante_base,
             
             -- costos
-            k.costo_promedio_base, -- costo promedio del producto al momento del movimiento
-            k.costo_por_presentacion, -- costo por unidad del lote
-            k.subtotal, -- valor estimado del movimiento
+            k.costo_promedio_base, 
+            k.costo_por_presentacion, 
+            k.subtotal, 
             
-            -- 
             k.created_at
         FROM
             kardex_producto k
-        -- el kardex puede ser por un lote o por un activo fijo
+        -- Se mantiene LEFT JOIN porque el movimiento es de uno u otro
         LEFT JOIN lote_producto lp ON lp.id = k.id_lote_producto
         LEFT JOIN activo_fijo act ON act.id = k.id_activo_fijo
-        -- datos del producto/categoria segun si es un activo o lote
-        INNER JOIN producto p ON p.id = lp.id_producto OR act.id_producto
+
+        -- CORRECCIÓN: Evalúa correctamente el ID del producto que corresponda
+        INNER JOIN producto p ON p.id = COALESCE(lp.id_producto, act.id_producto)
+
         INNER JOIN categoria cat on cat.id = p.id_categoria
         INNER JOIN unidad_medida um_base ON um_base.id = p.id_unidad_medida_base
-        -- unidad de medida del lote si corresponde
         LEFT JOIN unidad_medida um_lote ON um_lote.id = lp.id_unidad_medida
         WHERE
             k.id_almacen = :id_almacen AND

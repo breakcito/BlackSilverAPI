@@ -65,7 +65,10 @@ class ActivosFijosService
         ?bool $return_objecto = false
     ) {
         return DB::transaction(function () use ($id_producto, $id_almacen, $id_mina, $id_marca, $codigo, $numero_serie, $modelo, $yearcito_modelo, $descripcion, $especificaciones, $fecha_hora_ingreso, $return_objecto, $estado) {
-            $correlativo_data = ActivosFijosData::get_nuevo_correlativo();
+            $producto = ProductosData::get_producto_by_id(id_producto: $id_producto, columnas: ['prefijo']);
+            $prefijo = $producto['prefijo']; 
+
+            $correlativo_data = ActivosFijosData::get_nuevo_correlativo($prefijo);
             $correlativo = $correlativo_data['correlativo'];
             $numero_correlativo = $correlativo_data['numero_correlativo'];
 

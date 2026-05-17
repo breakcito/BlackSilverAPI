@@ -5,7 +5,6 @@ namespace App\Modules\SolicitudesReabastecimientoAtencion\Data;
 use App\Models\SolicitudReabastecimiento;
 use App\Models\SolicitudReabastecimientoDetalle;
 use App\Models\SolicitudReabastecimientoDetalleLog;
-use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleLog;
 use Illuminate\Support\Facades\DB;
 
@@ -19,99 +18,10 @@ class SolicitudesDetalleData
     public static function get_detalles_by_solicitud(
         int $id_solicitud
     ) {
-        $sql = '
-        SELECT DISTINCT
-            srd.id AS id_solicitud_detalle,
-            CONCAT(emp.nombre, " ", emp.apellido) AS empleado_atencion,
-            -- 
-            pr.id AS id_producto,
-            pr.nombre AS producto,
-            pr.stock_minimo_base,
-            --
-            -- segun la unidad base del producto
-            pr.id_unidad_medida_base,
-            unib.abreviatura AS unidad_medida_base_abv,
-           	srd.cantidad_solicitada_base,
-            srd.cantidad_entregada_base,
-            -- 
-            -- cuantas unidades base hay en una unidad del detalle de la solicitud
-            srd.contenido_por_presentacion,
-            -- 
-            -- segun la unidad del detalle de la solicitud
-            srd.id_unidad_medida as id_unidad_medida_sol, 
-            uni.abreviatura AS unidad_medida_sol_abv,
-            srd.cantidad_solicitada,
-            srd.cantidad_entregada,
-            -- 
-            -- el progreso que tiene este detalle segun lo entregado hasta el momento
-            CASE 
-                WHEN srd.cantidad_solicitada_base > 0 THEN 
-                    ROUND(((srd.cantidad_entregada_base / srd.cantidad_solicitada_base) * 100 ), 0)
-                ELSE 0 
-            END AS porcentaje_progreso,
-            -- 
-            -- devolver la cantidad de stock disponible base en los almacenes principales
-            (
-                SELECT
-                    SUM(lot.stock_actual_base)
-                FROM
-                    lote_producto lot
-                WHERE
-                    lot.id_producto = pr.id AND 
-                    lot.estado = "Activo" AND 
-                	lot.stock_actual_base > 0 AND
-            		(lot.fecha_vencimiento > NOW() OR lot.fecha_vencimiento IS NULL) AND
-                    lot.id_almacen IN (
-                        SELECT
-                        	almp.id
-                        FROM almacen almp
-                        WHERE 
-                        	almp.es_principal = 1 AND
-                        	almp.estado = "Activo"
-                    )
-            ) as stock_disponible_base,
-            -- 
-            -- la cantidad total que se ha sido pedida en un prestamo
-            (
-                SELECT 
-                	IFNULL(SUM(pad.cantidad_solicitada_base), 0)
-                FROM prestamo_almacen_detalle pad
-                INNER JOIN prestamo_almacen pa ON pa.id = pad.id_prestamo_almacen
-                WHERE 
-                	pad.id_solicitud_reabastecimiento_detalle = srd.id AND 
-                	pa.estado NOT IN ("Rechazado") -- no se toma en cuenta los rechazados
-            ) AS cantidad_prestada_total_base,
-            -- 
-            srd.comentario,
-            srd.comentario_decision,
-            --
-            -- que producto (tractor, carro, etc) va a consumir este item
-            prdt.nombre as producto_destino, 
-            --
-            srd.estado
-        FROM
-            solicitud_reabastecimiento_detalle srd
-        LEFT JOIN empleado emp ON emp.id = srd.id_empleado_atencion
-        INNER JOIN producto pr ON pr.id = srd.id_producto
-        INNER JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
-        INNER JOIN unidad_medida uni ON uni.id = srd.id_unidad_medida
-        INNER JOIN solicitud_reabastecimiento src on src.id = srd.id_solicitud_reabastecimiento
-        INNER JOIN almacen alm on alm.id = src.id_almacen_solicitante
-        LEFT JOIN requerimiento_almacen_detalle rqd on rqd.id = srd.id_requerimiento_almacen_detalle
-        LEFT JOIN producto prdt on prdt.id = rqd.id_producto_destino
-        WHERE 1 = 1
-        ';
-
-        $params = [];
-
-        if ($id_solicitud !== null) {
-            $sql .= ' AND srd.id_solicitud_reabastecimiento = :id_solicitud';
-            $params['id_solicitud'] = $id_solicitud;
-        }
-
-        $sql .= ' ORDER BY pr.nombre';
-
-        return DB::select($sql, $params);
+        return SolicitudReabastecimientoDetalle::get_detalles_solicitud(
+            id_solicitud_reabastecimiento: $id_solicitud,
+            con_stock_disponible: true
+        );
     }
 
     /**

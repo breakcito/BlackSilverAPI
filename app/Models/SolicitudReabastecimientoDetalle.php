@@ -59,47 +59,90 @@ class SolicitudReabastecimientoDetalle extends Model
      * la vista de Solicitud de Reabastecimiento, que es la vista para el almacenero 
      * que ha hecho esta solicitud de reabastecimiento.
      */
-    public static function get_detalles_solicitud(?int $id_solicitud_reabastecimiento = null)
-    {
+    public static function get_detalles_solicitud(
+        ?int $id_solicitud_reabastecimiento = null,
+        ?bool $con_stock_disponible = false,
+    ) {
+        $incluir_stock = $con_stock_disponible ? 1 : 0;
+
         $sql = '
-        SELECT DISTINCT
+            SELECT DISTINCT
             srd.id AS id_solicitud_detalle,
             CONCAT(emp.nombre, " ", emp.apellido) AS empleado_atencion,
-            -- 
+            
             pr.id AS id_producto,
             pr.nombre AS producto,
-            pr.stock_minimo_base,
             pr.es_auditable,
-            --
+            pr.stock_minimo_base,
+
             -- que producto (tractor, carro, etc) va a consumir este item
+            rqd.id_activo_fijo_destino,
+            act_des.correlativo as correlativo_activo_fijo_destino,
+            prdt.id as id_producto_destino,
             prdt.nombre as producto_destino, 
-            --
-            --
+            
             -- segun la unidad base del producto
             pr.id_unidad_medida_base,
             unib.abreviatura AS unidad_medida_base_abv,
-           	srd.cantidad_solicitada_base,
+            srd.cantidad_solicitada_base,
             srd.cantidad_entregada_base,
-            -- 
+            
             -- cuantas unidades base hay en una unidad del detalle de la solicitud
             srd.contenido_por_presentacion,
-            -- 
+            
             -- segun la unidad del detalle de la solicitud
             srd.id_unidad_medida as id_unidad_medida_sol, 
             uni.abreviatura AS unidad_medida_sol_abv,
             srd.cantidad_solicitada,
             srd.cantidad_entregada,
-            -- 
+            
             -- el progreso que tiene este detalle segun lo entregado hasta el momento
             CASE 
                 WHEN srd.cantidad_solicitada_base > 0 THEN 
                     ROUND(((srd.cantidad_entregada_base / srd.cantidad_solicitada_base) * 100 ), 0)
                 ELSE 0 
             END AS porcentaje_progreso,
-            -- 
+            
+            -- devolver la cantidad de stock disponible base en los almacenes principales
+            CASE
+            	WHEN :incluir_stock = 1 THEN
+                    (
+                        SELECT
+                            SUM(lot.stock_actual_base)
+                        FROM
+                            lote_producto lot
+                        WHERE
+                            lot.id_producto = pr.id AND 
+                            lot.estado = "Activo" AND 
+                            lot.stock_actual_base > 0 AND
+                            (lot.fecha_vencimiento > NOW() OR lot.fecha_vencimiento IS NULL) AND
+                            lot.id_almacen IN (
+                                SELECT
+                                    almp.id
+                                FROM almacen almp
+                                WHERE 
+                                    almp.es_principal = 1 AND
+                                    almp.estado = "Activo"
+                            )
+                    )
+                ELSE NULL
+            END as stock_disponible_base,
+             
+            -- la cantidad total que se ha sido pedida en un prestamo
+            (
+                SELECT 
+                	IFNULL(SUM(pad.cantidad_solicitada_base), 0)
+                FROM prestamo_almacen_detalle pad
+                INNER JOIN prestamo_almacen pa ON pa.id = pad.id_prestamo_almacen
+                WHERE 
+                	pad.id_solicitud_reabastecimiento_detalle = srd.id AND 
+                	pa.estado NOT IN ("Rechazado") -- no se toma en cuenta los rechazados
+            ) AS cantidad_prestada_total_base,
+            
             srd.comentario,
             srd.comentario_decision,
-            --
+            
+            
             srd.estado
         FROM
             solicitud_reabastecimiento_detalle srd
@@ -107,8 +150,12 @@ class SolicitudReabastecimientoDetalle extends Model
         INNER JOIN producto pr ON pr.id = srd.id_producto
         INNER JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
         INNER JOIN unidad_medida uni ON uni.id = srd.id_unidad_medida
+        INNER JOIN solicitud_reabastecimiento src on src.id = srd.id_solicitud_reabastecimiento
+        INNER JOIN almacen alm on alm.id = src.id_almacen_solicitante
+        
         LEFT JOIN requerimiento_almacen_detalle rqd on rqd.id = srd.id_requerimiento_almacen_detalle
-        LEFT JOIN producto prdt on prdt.id = rqd.id_producto_destino
+        LEFT JOIN activo_fijo act_des on act_des.id = rqd.id_activo_fijo_destino
+        LEFT JOIN producto prdt on prdt.id = act_des.id_producto
         WHERE 1 = 1
         ';
 
@@ -118,6 +165,8 @@ class SolicitudReabastecimientoDetalle extends Model
             $sql .= ' AND srd.id_solicitud_reabastecimiento = :id_solicitud_reabastecimiento';
             $params['id_solicitud_reabastecimiento'] = $id_solicitud_reabastecimiento;
         }
+
+        $params['incluir_stock'] = $incluir_stock;
 
         return DB::select($sql, $params);
     }
