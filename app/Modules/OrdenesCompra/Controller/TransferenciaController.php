@@ -17,7 +17,8 @@ class TransferenciaController
         $request->validate([
             'id_empleado_transferencia' => 'required|integer',
             'id_orden_compra_recepcion' => 'required|integer',
-            'id_almacen_destino' => 'required|integer',
+            'id_almacen_destino' => 'nullable|integer',
+            'id_mina_destino' => 'nullable|integer',
             'id_personal_recibe' => 'required|integer',
             'fecha_hora_transferencia' => 'required|date',
             'observacion' => 'nullable|string',
@@ -26,8 +27,8 @@ class TransferenciaController
             // Detalles a transferir
             'detalles' => 'required|array|min:1',
             'detalles.*.id_orden_compra_recepcion_detalle' => 'required|integer',
-            'detalles.*.id_lote_producto' => 'required|integer',
-            'detalles.*.cantidad_transferida_base' => 'required|numeric|min:0.01',
+            'detalles.*.id_lote_producto' => 'nullable|integer',
+            'detalles.*.cantidad_transferida_base' => 'required|numeric|min:0',
             'detalles.*.comentario' => 'nullable|string',
         ]);
 
@@ -40,7 +41,8 @@ class TransferenciaController
                 fecha_hora_transferencia: $request->input('fecha_hora_transferencia'),
                 observacion: $request->input('observacion'),
                 evidencias: $request->input('evidencias', []),
-                detalles: $request->input('detalles')
+                detalles: $request->input('detalles'),
+                id_mina_destino: $request->input('id_mina_destino')
             );
             return response()->json($result);
         } catch (\Exception $e) {

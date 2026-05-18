@@ -32,7 +32,7 @@ class OrdenCompraTransferencia extends Model
 
 
     public static function crear_transferencia(
-        int $id_almacen_destino,
+        ?int $id_almacen_destino,
         int $id_orden_compra_recepcion,
         int $id_empleado_transferencia,
         int $id_personal_recibe,
@@ -40,11 +40,13 @@ class OrdenCompraTransferencia extends Model
         int $numero_correlativo,
         $evidencias = null,
         ?string $fecha_hora_transferencia = null,
-        ?string $observacion = null
+        ?string $observacion = null,
+        ?int $id_mina_destino = null
     ) {
         return self::insertGetId([
             'id_orden_compra_recepcion' => $id_orden_compra_recepcion,
             'id_almacen_destino' => $id_almacen_destino,
+            'id_mina_destino' => $id_mina_destino,
             'id_empleado_transferencia' => $id_empleado_transferencia,
             'id_personal_recibe' => $id_personal_recibe,
             'correlativo' => $correlativo,
@@ -66,7 +68,8 @@ class OrdenCompraTransferencia extends Model
         ?int $id_orden_compra_recepcion = null,
         ?int $id_almacen_destino = null,
         ?int $mes = null,
-        ?int $yearcito = null
+        ?int $yearcito = null,
+        ?int $id_mina_destino = null
     ) {
         $sql = '
         SELECT
@@ -89,6 +92,9 @@ class OrdenCompraTransferencia extends Model
             alm_dest.nombre as almacen_destino,
             alm_dest.es_principal as es_para_un_almacen_principal,
             -- 
+            trn.id_mina_destino,
+            mna_dest.nombre as mina_destino,
+            -- 
             CONCAT(emp_ent.nombre, " ", emp_ent.apellido) AS empleado_transferencia,
             TRIM(CONCAT_WS(" ", NULLIF(TRIM(per_rec.nombre), ""), NULLIF(TRIM(per_rec.apellido), ""))) AS personal_recibe,
             -- 
@@ -103,7 +109,8 @@ class OrdenCompraTransferencia extends Model
 		INNER JOIN orden_compra_recepcion ocr on ocr.id = trn.id_orden_compra_recepcion
         INNER JOIN orden_compra oc on oc.id = ocr.id_orden_compra
         INNER JOIN almacen alm on alm.id = ocr.id_almacen_recepcionista
-        INNER JOIN almacen alm_dest on alm_dest.id = trn.id_almacen_destino
+        LEFT JOIN almacen alm_dest on alm_dest.id = trn.id_almacen_destino
+        LEFT JOIN mina mna_dest on mna_dest.id = trn.id_mina_destino
         INNER JOIN empleado emp_ent ON emp_ent.id = trn.id_empleado_transferencia
         INNER JOIN personal_externo per_rec ON per_rec.id = trn.id_personal_recibe
         WHERE 
@@ -125,6 +132,11 @@ class OrdenCompraTransferencia extends Model
         if ($id_almacen_destino !== null) {
             $sql .= ' AND trn.id_almacen_destino = :id_almacen_destino';
             $params['id_almacen_destino'] = $id_almacen_destino;
+        }
+
+        if ($id_mina_destino !== null) {
+            $sql .= ' AND trn.id_mina_destino = :id_mina_destino';
+            $params['id_mina_destino'] = $id_mina_destino;
         }
 
         if ($mes !== null) {

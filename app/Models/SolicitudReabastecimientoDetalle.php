@@ -74,6 +74,7 @@ class SolicitudReabastecimientoDetalle extends Model
             pr.nombre AS producto,
             pr.es_auditable,
             pr.stock_minimo_base,
+            cat.clasificacion_bien as tipo_bien,
 
             -- que producto (tractor, carro, etc) va a consumir este item
             rqd.id_activo_fijo_destino,
@@ -105,7 +106,10 @@ class SolicitudReabastecimientoDetalle extends Model
             
             -- devolver la cantidad de stock disponible base en los almacenes principales
             CASE
-            	WHEN :incluir_stock = 1 THEN
+            	-- cuando no se pide incluir stock
+            	WHEN :incluir_stock != 1 THEN (NULL)
+                -- cuando lo que se pidio no es un activo fijo, se busca en los lotes
+                WHEN cat.clasificacion_bien != "Activo Fijo" THEN
                     (
                         SELECT
                             SUM(lot.stock_actual_base)
@@ -125,6 +129,17 @@ class SolicitudReabastecimientoDetalle extends Model
                                     almp.estado = "Activo"
                             )
                     )
+                -- cuando lo que se pidio es un activo fijo
+                WHEN cat.clasificacion_bien = "Activo Fijo" THEN (
+                    SELECT
+                    	COUNT(atf.id)
+                    FROM activo_fijo atf 
+                    INNER JOIN almacen alm_main ON alm_main.id = atf.id_almacen 
+                    WHERE 
+                    	atf.id_producto = pr.id AND
+                    	alm_main.es_principal = 1
+                )
+                
                 ELSE NULL
             END as stock_disponible_base,
              
@@ -148,6 +163,7 @@ class SolicitudReabastecimientoDetalle extends Model
             solicitud_reabastecimiento_detalle srd
         LEFT JOIN empleado emp ON emp.id = srd.id_empleado_atencion
         INNER JOIN producto pr ON pr.id = srd.id_producto
+        INNER JOIN categoria cat on cat.id = pr.id_categoria
         INNER JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
         INNER JOIN unidad_medida uni ON uni.id = srd.id_unidad_medida
         INNER JOIN solicitud_reabastecimiento src on src.id = srd.id_solicitud_reabastecimiento

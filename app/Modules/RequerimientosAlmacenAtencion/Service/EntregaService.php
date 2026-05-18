@@ -44,6 +44,7 @@ class EntregaService
      *  {
      *   id_requerimiento_almacen_detalle,
      *   id_lote_producto,
+     *   id_activo_fijo,
      *   cantidad_base,
      *   cantidad_lote,
      *   cantidad_requerimiento

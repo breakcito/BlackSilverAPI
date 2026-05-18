@@ -42,12 +42,14 @@ class RecepcionesData
         int $id_entrega_detalle,
         int $id_lote_producto,
         bool $es_ajuste_stock,
-        float $cantidad_recepcionada_base
+        float $cantidad_recepcionada_base,
+        ?int $id_activo_fijo = null
     ) {
         return SolicitudReabastecimientoRecepcionDetalle::insertGetId([
             'id_solicitud_reabastecimiento_recepcion' => $id_recepcion,
             'id_solicitud_reabastecimiento_entrega_detalle' => $id_entrega_detalle,
             'id_lote_producto' => $id_lote_producto,
+            'id_activo_fijo' => $id_activo_fijo,
             'es_ajuste_stock' => $es_ajuste_stock ? 1 : 0,
             'cantidad_recepcionada_base' => $cantidad_recepcionada_base,
             'estado' => EstadoSolicitudEntregaRecepcionDetalle::RecepcionCompleta->value,

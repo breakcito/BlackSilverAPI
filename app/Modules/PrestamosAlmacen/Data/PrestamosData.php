@@ -88,4 +88,18 @@ class PrestamosData
             estado: EstadoPrestamoDetalleLog::Completado,
         );
     }
+
+    /**
+     * Obtiene el almacén prestamista dado un detalle de préstamo.
+     * Útil para saber a qué almacén debe retornar un activo fijo en la reposición.
+     */
+    public static function get_almacen_prestamista_by_prestamo_detalle(int $id_prestamo_detalle)
+    {
+        return DB::selectOne('
+            SELECT pa.id_almacen_prestamista AS id_almacen
+            FROM prestamo_almacen pa
+            INNER JOIN prestamo_almacen_detalle pad ON pad.id_prestamo_almacen = pa.id
+            WHERE pad.id = :id_prestamo_detalle
+        ', ['id_prestamo_detalle' => $id_prestamo_detalle]);
+    }
 }

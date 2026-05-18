@@ -2,6 +2,7 @@
 
 namespace App\Modules\SolicitudesReabastecimientoAtencion\Service;
 
+use App\Data\ProductosData;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\AuxData;
 
@@ -22,7 +23,7 @@ class AuxService
      */
     public static function get_stock_total_almacen_por_productos(int $id_almacen, array $ids_productos)
     {
-        $data = AuxData::get_stock_total_almacen_por_productos($id_almacen, $ids_productos);
+        $data = ProductosData::get_stock_total_almacen_por_productos($id_almacen, $ids_productos);
         return ApiResponse::success($data);
     }
 }

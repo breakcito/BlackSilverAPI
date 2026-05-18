@@ -78,22 +78,29 @@ class OrdenCompraRecepcionDetalle extends Model
             rcd.id AS id_recepcion_detalle,
             rcd.id_orden_compra_recepcion,
             rcd.id_orden_compra_detalle,
-            -- 
+            
             ocd.id_producto,
             prd.nombre AS producto,
-            -- 
+            cat.clasificacion_bien as tipo_bien,
+            
+            rcd.id_activo_fijo,
+            act.correlativo as correlativo_activo_fijo,
+            
             ocd.id_almacen_recepcionista AS id_almacen_destino,
             alm.nombre AS almacen_destino,
-            -- 
+            
+            ocd.id_mina_destino,
+            mna.nombre as mina_destino,
+            
             umb.id AS id_unidad_medida_base,
             umb.abreviatura AS unidad_medida_base_abv,
-            -- 
+            
             umc.id AS id_unidad_medida_oc,
             umc.abreviatura AS unidad_medida_oc_abv,
-            -- 
+            
             rcd.cantidad_recepcionada,
             rcd.cantidad_recepcionada_base,
-            -- 
+            
             CASE
             	-- si el almacen que ha recepcionado los productos es diferente al 
                 -- almacen que deberia haberlo hecho
@@ -107,7 +114,7 @@ class OrdenCompraRecepcionDetalle extends Model
                 WHERE 
                 	trnd.id_orden_compra_recepcion_detalle = rcd.id
             ) as cantidad_transferida_base,
-            -- 
+             
             rcd.comentario,
             rcd.estado
         FROM
@@ -115,9 +122,12 @@ class OrdenCompraRecepcionDetalle extends Model
         INNER JOIN orden_compra_recepcion ocr on ocr.id = rcd.id_orden_compra_recepcion
         INNER JOIN orden_compra_detalle ocd on ocd.id = rcd.id_orden_compra_detalle
         INNER JOIN producto prd on prd.id = ocd.id_producto
-        INNER JOIN almacen alm on alm.id = ocd.id_almacen_recepcionista
+        INNER JOIN categoria cat on cat.id = prd.id_categoria
+        LEFT JOIN almacen alm on alm.id = ocd.id_almacen_recepcionista
+        LEFT JOIN mina mna on mna.id = ocd.id_mina_destino
         INNER JOIN unidad_medida umb on umb.id = prd.id_unidad_medida_base
         INNER JOIN unidad_medida umc on umc.id = ocd.id_unidad_medida
+        LEFT JOIN activo_fijo act on act.id = rcd.id_activo_fijo
         WHERE 1=1
         ";
 

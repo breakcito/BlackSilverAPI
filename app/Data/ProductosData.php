@@ -177,4 +177,68 @@ class ProductosData
         }
         return $query->first()?->toArray();
     }
+
+
+    /**
+     * Obtiene el stock total de uno o varios productos en un almacén específico..
+     */
+    public static function get_stock_total_almacen_por_productos(int $id_almacen, array $ids_productos)
+    {
+        // Validación de seguridad para evitar errores SQL si el array viene vacío
+        if (empty($ids_productos)) {
+            return [];
+        }
+
+        // 1. Creamos los placeholders (?,?,?)
+        $placeholders = implode(',', array_fill(0, count($ids_productos), '?'));
+
+        $sql = "
+        SELECT
+            u.id_producto,
+            u.stock_minimo_base,
+            SUM(u.stock_total_base) AS stock_total_base
+        FROM (
+            SELECT
+                lp.id_producto,
+                pr.stock_minimo_base,
+                SUM(lp.stock_actual_base) AS stock_total_base
+            FROM
+                lote_producto lp
+            INNER JOIN producto pr on pr.id = lp.id_producto
+            WHERE
+                lp.id_almacen = ? AND 
+                lp.id_producto IN ($placeholders) AND 
+                lp.stock_actual_base > 0 AND 
+                lp.estado = 'Activo' AND
+                -- no sumar stock de lotes vencidos
+                (lp.fecha_vencimiento IS NULL OR DATEDIFF(lp.fecha_vencimiento, CURRENT_DATE) >= 0)
+            GROUP BY
+                lp.id_producto, pr.stock_minimo_base
+
+            UNION ALL
+
+            SELECT
+                act.id_producto,
+                pr.stock_minimo_base,
+                CAST(COUNT(act.id) AS DECIMAL(15,4)) AS stock_total_base
+            FROM
+                activo_fijo act
+            INNER JOIN producto pr on pr.id = act.id_producto
+            WHERE
+                act.id_almacen = ? AND
+                act.id_producto IN ($placeholders) AND
+                act.estado = 'En Almacén'
+            GROUP BY
+                act.id_producto, pr.stock_minimo_base
+        ) u
+        GROUP BY
+            u.id_producto,
+            u.stock_minimo_base
+        ";
+
+        $params = array_merge([$id_almacen], $ids_productos, [$id_almacen], $ids_productos);
+
+        return DB::select($sql, $params);
+    }
+
 }

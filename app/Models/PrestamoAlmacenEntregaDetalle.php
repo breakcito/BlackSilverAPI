@@ -35,14 +35,20 @@ class PrestamoAlmacenEntregaDetalle extends Model
             paed.id_prestamo_almacen_entrega,
             paed.id_prestamo_almacen_detalle,
             pad.id_solicitud_reabastecimiento_detalle,
-            --
+            
             prod.id AS id_producto,
             prod.nombre AS producto,
-            --
-            -- el lote tomado para la entrega
+            prod.es_perecible,
+            cat.clasificacion_bien as tipo_bien,
+            
+            -- el lote o activo tomado para la entrega
             paed.id_lote_producto,
             lt.correlativo as lote_correlativo,
-            --
+            lt.fecha_vencimiento,
+            
+            paed.id_activo_fijo,
+            act.correlativo as correlativo_activo_fijo,
+            
             -- unidad de medida base del producto
             um_bs.id as id_unidad_medida_base, 
             um_bs.abreviatura as unidad_medida_base_abv,
@@ -56,28 +62,30 @@ class PrestamoAlmacenEntregaDetalle extends Model
                 WHERE
                     rd.id_prestamo_almacen_entrega_detalle = paed.id
             ),0) AS cantidad_total_recepcionada_base,
-            --
+            
             -- unidad de medida del lote de donde salio
             lt.id_unidad_medida as id_unidad_medida_lot,
             um_lt.abreviatura AS unidad_medida_lot_abv,
             lt.contenido_por_presentacion as contenido_por_presentacion_lot, -- cuantas unidades de medida base tiene la unidad del lote
-            (paed.cantidad_base / lt.contenido_por_presentacion) AS cantidad_lot, -- cuanto representa lo entregado para el lote
-            --
+            (paed.cantidad_base / NULLIF(lt.contenido_por_presentacion, 0)) AS cantidad_lot, -- cuanto representa lo entregado para el lote
+            
             -- unidad de medida del prestamo
             um_pr.id as id_unidad_medida_pr,
             um_pr.abreviatura AS unidad_medida_pr_abv,
             pad.contenido_por_presentacion as contenido_por_presentacion_pr, -- cuantas unidades base hay por una unidad del detalle del prestamo
             paed.cantidad as cantidad_prestamo, -- cantidad entregada segun la unidad de medida del prestamo
-            --
+            
             paed.estado
         FROM
             prestamo_almacen_entrega_detalle paed
-        INNER JOIN lote_producto lt on lt.id = paed.id_lote_producto
+        LEFT JOIN lote_producto lt on lt.id = paed.id_lote_producto
+        LEFT JOIN activo_fijo act on act.id = paed.id_activo_fijo
         INNER JOIN prestamo_almacen_detalle pad ON pad.id = paed.id_prestamo_almacen_detalle
         INNER JOIN producto prod ON prod.id = pad.id_producto
+        INNER JOIN categoria cat ON cat.id = prod.id_categoria
         INNER JOIN unidad_medida um_pr ON um_pr.id = pad.id_unidad_medida
         INNER JOIN unidad_medida um_bs ON um_bs.id = prod.id_unidad_medida_base
-        INNER JOIN unidad_medida um_lt on um_lt.id = lt.id_unidad_medida
+        LEFT JOIN unidad_medida um_lt on um_lt.id = lt.id_unidad_medida
         WHERE 1 = 1
         ';
 

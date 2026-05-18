@@ -79,15 +79,17 @@ class ReposicionesData
     }
 
     /**
-     * Registrar un detalle de una reposicion
+     * Registrar un detalle de una reposicion.
+     * Exactamente uno de $id_lote_producto o $id_activo_fijo debe ser provisto.
      */
     public static function crear_detalle_reposicion(
         int $id_reposicion,
         int $id_prestamo_detalle,
-        int $id_lote_producto,
+        ?int $id_lote_producto,
         float $cantidad_base,
         float $cantidad_lote,
         float $cantidad_prestamo,
+        ?int $id_activo_fijo = null,
     ): bool {
         return PrestamoAlmacenReposicionDetalle::crear_detalle(
             $id_reposicion,
@@ -96,6 +98,7 @@ class ReposicionesData
             $cantidad_base,
             $cantidad_lote,
             $cantidad_prestamo,
+            $id_activo_fijo,
         );
     }
 }

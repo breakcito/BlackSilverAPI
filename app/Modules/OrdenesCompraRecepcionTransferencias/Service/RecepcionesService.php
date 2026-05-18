@@ -6,7 +6,9 @@ use App\Data\LotesProductosData;
 use App\Models\OrdenCompraTransferencia;
 use App\Modules\OrdenesCompraRecepcionTransferencias\Data\RecepcionesData;
 use App\Modules\OrdenesCompraRecepcionTransferencias\Data\TransferenciasData;
+use App\Services\ActivosFijosService;
 use App\Services\LotesProductosService;
+use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\OrdenCompra\EstadoOCTransferencia;
@@ -50,12 +52,16 @@ class RecepcionesService
      * 
      * @param array $items [{
      *   id_detalle_transferencia: int,
+     *   // Para productos comunes:
      *   cantidad_base: float,
      *   es_nuevo_lote: bool,
      *   id_lote_existente: int|null,
      *   descripcion: string|null,
      *   fecha_ingreso: string|null,
      *   fecha_vencimiento: string|null,
+     *   // Para activos fijos:
+     *   es_activo_fijo: bool,
+     *   id_activo_fijo: int,               // activo que se está transfiriendo
      * }]
      */
     public static function registrar_recepcion(
@@ -120,16 +126,65 @@ class RecepcionesService
                 }
             }
 
-            // Procesar cada item (lote)
+            // Procesar cada item (lote o activo)
             foreach ($items as $item) {
                 $id_detalle_transferencia = (int) $item['id_detalle_transferencia'];
-                $cantidad_recep_base = (float) $item['cantidad_base'];
-                $es_nuevo_lote = (bool) $item['es_nuevo_lote'];
+                $es_activo_fijo           = !empty($item['es_activo_fijo']);
 
-                // Obtener datos del detalle de transferencia para conocer id_producto y unidades
+                // Obtener datos del detalle de transferencia
                 $detalle_trans = TransferenciasData::get_detalle_by_id($id_detalle_transferencia);
                 if (!$detalle_trans)
                     continue;
+
+                // --- Camino: Activo Fijo ---
+                if ($es_activo_fijo) {
+                    $id_activo = (int) $item['id_activo_fijo'];
+
+                    $activo = DB::table('activo_fijo')->where('id', $id_activo)->first();
+                    $tipo_mov = ($activo && !empty($activo->id_mina))
+                        ? MovimientoActivoFijo::DeMinaAAlmacen
+                        : MovimientoActivoFijo::DeAlmacenAAlmacen;
+
+                    // El activo llega al almacén recepcionista (transferencia entre almacenes)
+                    ActivosFijosService::new_ubicacion(
+                        id_activo: $id_activo,
+                        tipo_movimiento: $tipo_mov,
+                        id_almacen: $id_almacen_recepcionista,
+                        id_mina: null,
+                        descripcion: "Recepción de transferencia OC en almacén",
+                        fecha_hora_movimiento: $fecha_mysql
+                    );
+
+                    // Registrar detalle de recepción sin lote
+                    $id_recepcion_detalle = RecepcionesData::crear_recepcion_detalle(
+                        id_recepcion: $id_recepcion,
+                        id_transferencia_detalle: $id_detalle_transferencia,
+                        id_lote_producto: 0,   // no aplica
+                        es_ajuste_stock: false,
+                        cantidad_recepcionada_base: 1,
+                        estado: EstadoOCTransRecepcionDetalle::RecepcionCompleta->value,
+                        id_activo_fijo: $id_activo
+                    );
+
+                    // Acumular para post-procesamiento
+                    if (!isset($detallesAgrupados[$id_detalle_transferencia])) {
+                        $detallesAgrupados[$id_detalle_transferencia] = [
+                            'cantidad_recepcionada' => 1,
+                            'cantidad_recepcionada_base' => 1,
+                            'total_ya_recepcionado' => $yaRecepcionadoMap[$id_detalle_transferencia] ?? 0,
+                            'estado_final' => EstadoOCTransRecepcionDetalle::RecepcionCompleta,
+                        ];
+                    } else {
+                        $detallesAgrupados[$id_detalle_transferencia]['cantidad_recepcionada'] += 1;
+                        $detallesAgrupados[$id_detalle_transferencia]['cantidad_recepcionada_base'] += 1;
+                    }
+
+                    continue; // Saltar flujo de lotes
+                }
+
+                // --- Camino: Producto Común con Lote ---
+                $cantidad_recep_base = (float) $item['cantidad_base'];
+                $es_nuevo_lote       = (bool) $item['es_nuevo_lote'];
 
                 // 1. Calcular estado previsto del detalle
                 $total_ya_recepcionado = $yaRecepcionadoMap[$id_detalle_transferencia];
@@ -140,7 +195,6 @@ class RecepcionesService
                     : EstadoOCTransRecepcionDetalle::RecepcionadoParcialmente;
 
                 // 2. Crear Detalle de Recepción PRIMERO
-                // Si es nuevo lote, el ID de lote es 0 temporalmente
                 $id_lote_para_detalle = $es_nuevo_lote ? 0 : (int) $item['id_lote_existente'];
 
                 $id_recepcion_detalle = RecepcionesData::crear_recepcion_detalle(

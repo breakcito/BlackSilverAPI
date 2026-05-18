@@ -2,7 +2,9 @@
 
 namespace App\Modules\PrestamosAlmacen\Service;
 
+use App\Services\ActivosFijosService;
 use App\Services\LotesProductosService;
+use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Responses\ApiResponse;
@@ -74,13 +76,16 @@ class ReposicionesService
                 $evidenciasData,
             );
 
-            // 5. Pre-cargar todos los lotes en una sola consulta
-            $ids_lotes = array_map(fn($i) => (int) $i['id_lote_producto'], $items);
-            $lotesMap = collect(LotesProductosData::get_lote_simple_by_id($ids_lotes))
-                ->keyBy('id_lote');
+            // 5. Pre-cargar lotes solo para ítems de productos comunes
+            $items_con_lote = array_filter($items, fn($i) => empty($i['id_activo_fijo']));
+            $ids_lotes = array_map(fn($i) => (int) $i['id_lote_producto'], $items_con_lote);
 
-            // Validar Stock de todos los ítems antes de procesar
-            foreach ($items as $item) {
+            $lotesMap = !empty($ids_lotes)
+                ? collect(LotesProductosData::get_lote_simple_by_id($ids_lotes))->keyBy('id_lote')
+                : collect();
+
+            // Validar Stock solo para productos comunes
+            foreach ($items_con_lote as $item) {
                 $lote = $lotesMap->get((int) $item['id_lote_producto']);
                 if (!$lote || $lote['stock_actual_base'] < (float) $item['cantidad_base']) {
                     return ApiResponse::error("Stock insuficiente en el lote " . ($lote['correlativo'] ?? 'ID: ' . $item['id_lote_producto']));
@@ -90,34 +95,49 @@ class ReposicionesService
             // Procesar cada ítem de la reposición
             foreach ($items as $item) {
                 $id_prestamo_detalle = (int) $item['id_prestamo_detalle'];
-                $id_lote_producto = (int) $item['id_lote_producto'];
-                $cantidad_base = (float) $item['cantidad_base'];
-                $cantidad_lote = (float) $item['cantidad_lote'];
-                $cantidad_prestamo = (float) $item['cantidad_prestamo'];
-                $lote = $lotesMap->get($id_lote_producto);
+                $id_activo           = !empty($item['id_activo_fijo']) ? (int) $item['id_activo_fijo'] : null;
+                $es_activo           = $id_activo !== null;
+
+                $cantidad_base      = $es_activo ? 1 : (float) $item['cantidad_base'];
+                $cantidad_lote      = $es_activo ? 1 : (float) $item['cantidad_lote'];
+                $cantidad_prestamo  = $es_activo ? 1 : (float) $item['cantidad_prestamo'];
 
                 // A. Insertar detalle de la reposición
                 $id_detalle_reposicion = ReposicionesData::crear_detalle_reposicion(
                     $id_reposicion,
                     $id_prestamo_detalle,
-                    $id_lote_producto,
+                    $es_activo ? null : (int) $item['id_lote_producto'],
                     $cantidad_base,
                     $cantidad_lote,
-                    $cantidad_prestamo
+                    $cantidad_prestamo,
+                    $id_activo
                 );
 
-                // B. Actualizar stock del lote y registrar Kardex (Salida por Reposición)
-                $descripcion_kardex = "Salida por reposición de préstamo N° " . $prestamo->correlativo . " (Ref: " . $correlativoData['correlativo'] . ")";
+                if ($es_activo) {
+                    // B. Activo Fijo: mover ubicación fuera de almacen mientras no se recepcione
 
-                LotesProductosService::update_stock(
-                    id_lote: $id_lote_producto,
-                    id_origen: $id_detalle_reposicion,
-                    tabla_origen: 'prestamo_almacen_reposicion_detalle',
-                    tipo_origen: KardexOrigenMovimiento::Reposicion,
-                    tipo_movimiento: KardexTipoMovimiento::Salida,
-                    cantidad_movimiento_base: $cantidad_base,
-                    descripcion: $descripcion_kardex,
-                );
+                    ActivosFijosService::new_ubicacion(
+                        id_activo: $id_activo,
+                        tipo_movimiento: MovimientoActivoFijo::DeAlmacenAAlmacen,
+                        id_almacen: null,
+                        id_mina: null,
+                        descripcion: "Reposición N° " . $correlativoData['correlativo'] . " al almacén prestamista",
+                        fecha_hora_movimiento: Carbon::parse($fecha_hora_reposicion)->toDateTimeString()
+                    );
+                } else {
+                    // B. Producto Común: actualizar stock del lote y registrar Kardex (Salida)
+                    $descripcion_kardex = "Salida por reposición de préstamo N° " . $prestamo->correlativo . " (Ref: " . $correlativoData['correlativo'] . ")";
+
+                    LotesProductosService::update_stock(
+                        id_lote: (int) $item['id_lote_producto'],
+                        id_origen: $id_detalle_reposicion,
+                        tabla_origen: 'prestamo_almacen_reposicion_detalle',
+                        tipo_origen: KardexOrigenMovimiento::Reposicion,
+                        tipo_movimiento: KardexTipoMovimiento::Salida,
+                        cantidad_movimiento_base: $cantidad_base,
+                        descripcion: $descripcion_kardex,
+                    );
+                }
 
                 // C. Incrementar cantidad repuesta en el detalle del préstamo
                 PrestamosData::incrementar_cantidad_repuesta($id_prestamo_detalle, $cantidad_prestamo, $cantidad_base);

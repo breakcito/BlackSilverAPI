@@ -4,7 +4,9 @@ namespace App\Modules\SolicitudesReabastecimientoAtencion\Service;
 
 
 use App\Data\LotesProductosData;
+use App\Services\ActivosFijosService;
 use App\Services\LotesProductosService;
+use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalle;
@@ -54,7 +56,7 @@ class EntregaService
         string $fecha_hora_entrega,
         ?string $observacion,
         ?array $evidencias, // archivos
-        array $detalles // {id_solicitud_detalle, id_lote_producto, cantidad_base, cantidad_lote, cantidad_solicitud
+        array $detalles // {id_solicitud_detalle, id_lote_producto, id_activo_fijo, cantidad_base, cantidad_lote, cantidad_solicitud
     ) {
         return DB::transaction(function () use ($id_almacen_entrega, $id_empleado_entrega, $id_solicitud, $id_personal_recibe, $fecha_hora_entrega, $observacion, $evidencias, $detalles) {
 
@@ -64,13 +66,17 @@ class EntregaService
                 $evidenciasData = ArchivoHelper::guardarArchivos('reabastecimiento_entregas', $evidencias);
             }
 
-            // Pre-cargar todos los lotes en una sola consulta
-            $ids_lotes = array_map(fn($i) => (int) $i['id_lote_producto'], $detalles);
-            $lotesMap = collect(LotesProductosData::get_lote_dinamico_by_id(id_lote: $ids_lotes, columnas: ['stock_actual_base', 'correlativo']))
-                ->keyBy('id_lote');
+            // Pre-cargar todos los lotes (solo ítems sin activo fijo)
+            $items_con_lote = array_filter($detalles, fn($i) => empty($i['id_activo_fijo']));
+            $ids_lotes = array_map(fn($i) => (int) $i['id_lote_producto'], $items_con_lote);
 
-            // Validar Stock
-            foreach ($detalles as $item) {
+            $lotesMap = !empty($ids_lotes)
+                ? collect(LotesProductosData::get_lote_dinamico_by_id(id_lote: $ids_lotes, columnas: ['stock_actual_base', 'correlativo']))
+                    ->keyBy('id_lote')
+                : collect();
+
+            // Validar Stock solo para productos comunes
+            foreach ($items_con_lote as $item) {
                 $lote = $lotesMap->get((int) $item['id_lote_producto']);
                 if (!$lote || $lote['stock_actual_base'] < $item['cantidad_base']) {
                     return ApiResponse::error("Stock insuficiente en el lote: " . ($lote['correlativo']));
@@ -95,34 +101,63 @@ class EntregaService
 
             foreach ($detalles as $item) {
                 $id_detalle_sol = $item['id_solicitud_detalle'];
-                $id_lote = $item['id_lote_producto'];
+                $id_activo      = !empty($item['id_activo_fijo']) ? (int) $item['id_activo_fijo'] : null;
+                $es_activo      = $id_activo !== null;
 
-                // Crear Detalle de Entrega
-                $id_detalle_entrega = EntregasDetalleData::crear_detalle_entrega(
-                    $id_entrega,
-                    $id_detalle_sol,
-                    $id_lote,
-                    $item['cantidad_base'],
-                    $item['cantidad_lote'],
-                    $item['cantidad_solicitud']
-                );
+                if ($es_activo) {
+                    // --- Camino: Activo Fijo ---
+                    // El activo deja de estar en el almacen/mina donde se encontraba
+                    ActivosFijosService::new_ubicacion(
+                        id_activo: $id_activo,
+                        tipo_movimiento: MovimientoActivoFijo::DeAlmacenAAlmacen,
+                        id_almacen: null,
+                        id_mina: null,
+                        descripcion: "Entrega por solicitud de reabastecimiento N° {$correlativoData['correlativo']}",
+                        fecha_hora_movimiento: $fecha_hora_entrega
+                    );
 
-                // Actualizar Stock y registrar Kardex (Salida)
-                LotesProductosService::update_stock(
-                    id_lote: $id_lote,
-                    id_origen: $id_detalle_entrega,
-                    tabla_origen: null,
-                    tipo_origen: KardexOrigenMovimiento::Entrega,
-                    tipo_movimiento: KardexTipoMovimiento::Salida,
-                    cantidad_movimiento_base: $item['cantidad_base'],
-                    descripcion: "Salida por entrega N° {$correlativoData['correlativo']} debido a una solicitud de reabastecimiento",
-                );
+                    // Detalle sin lote (activos no tienen lote)
+                    EntregasDetalleData::crear_detalle_entrega(
+                        $id_entrega,
+                        $id_detalle_sol,
+                        null,   // id_lote
+                        1,      // cantidad_base
+                        1,      // cantidad_lote
+                        1,      // cantidad_solicitud
+                        $id_activo
+                    );
+                } else {
+                    // --- Camino: Producto Común con Lote ---
+                    $id_lote = $item['id_lote_producto'];
 
-                // Actualizar el Detalle de la solicitud
+                    $id_detalle_entrega = EntregasDetalleData::crear_detalle_entrega(
+                        $id_entrega,
+                        $id_detalle_sol,
+                        $id_lote,
+                        $item['cantidad_base'],
+                        $item['cantidad_lote'],
+                        $item['cantidad_solicitud']
+                    );
+
+                    LotesProductosService::update_stock(
+                        id_lote: $id_lote,
+                        id_origen: $id_detalle_entrega,
+                        tabla_origen: null,
+                        tipo_origen: KardexOrigenMovimiento::Entrega,
+                        tipo_movimiento: KardexTipoMovimiento::Salida,
+                        cantidad_movimiento_base: $item['cantidad_base'],
+                        descripcion: "Salida por entrega N° {$correlativoData['correlativo']} debido a una solicitud de reabastecimiento",
+                    );
+                }
+
+                // Actualizar el Detalle de la solicitud (común)
                 $detalle_sol = SolicitudesDetalleData::get_detalle_by_id($id_detalle_sol);
                 $ya_entregado_antes = $detalle_sol->cantidad_entregada_base;
 
-                SolicitudesDetalleData::increment_detalle_entregado($id_detalle_sol, $item['cantidad_solicitud'], $item['cantidad_base']);
+                $cant_solicitud = $es_activo ? 1 : $item['cantidad_solicitud'];
+                $cant_base      = $es_activo ? 1 : $item['cantidad_base'];
+
+                SolicitudesDetalleData::increment_detalle_entregado($id_detalle_sol, $cant_solicitud, $cant_base);
 
                 // Reload para ver el nuevo estado
                 $detalle_sol = SolicitudesDetalleData::get_detalle_by_id($id_detalle_sol);
@@ -147,7 +182,7 @@ class EntregaService
                 SolicitudesDetalleData::insert_detalle_log(
                     $id_detalle_sol,
                     $id_empleado_entrega,
-                    EstadoSolicitudDetalleLog::NuevaEntrega->getGlosa((string) $item['cantidad_solicitud']),
+                    EstadoSolicitudDetalleLog::NuevaEntrega->getGlosa((string) $cant_solicitud),
                     EstadoSolicitudDetalleLog::NuevaEntrega
                 );
 

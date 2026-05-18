@@ -3,6 +3,7 @@
 namespace App\Modules\SolicitudesReabastecimientoAtencion\Data;
 
 use App\Data\LotesProductosData;
+use App\Data\ProductosData;
 use App\Models\RequerimientoAlmacenDetalle;
 use App\Models\RequerimientoAlmacenDetalleLog;
 use App\Models\SolicitudReabastecimiento;
@@ -63,16 +64,32 @@ class AuxData
             alm.nombre
         FROM
             almacen alm
-        INNER JOIN 
-            lote_producto lot ON lot.id_almacen = alm.id
+        INNER JOIN (
+            SELECT
+                id_almacen,
+                id_producto
+            FROM
+                lote_producto
+            WHERE
+                estado = 'Activo' AND
+                stock_actual_base > 0 AND
+                (fecha_vencimiento > NOW() OR fecha_vencimiento IS NULL)
+
+            UNION ALL
+
+            SELECT
+                id_almacen,
+                id_producto
+            FROM
+                activo_fijo
+            WHERE
+                estado = 'En Almacén'
+        ) lot ON lot.id_almacen = alm.id
         WHERE
             alm.es_principal = 0 AND 
             alm.estado = 'Activo' AND
             alm.id != ? AND
-            lot.estado = 'Activo' AND -- Asegurar que el lote esté activo
-            lot.id_producto IN ($placeholders) AND
-            lot.stock_actual_base > 0 AND -- El lote específico debe tener stock
-            (lot.fecha_vencimiento > NOW() OR lot.fecha_vencimiento IS NULL)
+            lot.id_producto IN ($placeholders)
         GROUP BY
             alm.id,
             alm.nombre
@@ -84,44 +101,6 @@ class AuxData
         $bindings = array_merge([$id_almacen_excluido], $ids_unicos, [$totalIds]);
 
         return DB::select($sql, $bindings);
-    }
-
-    /**
-     * Obtiene el stock total de uno o varios productos en un almacén específico.
-     * Solo suma el stock de lotes activos y que no estén vencidos.
-     */
-    public static function get_stock_total_almacen_por_productos(int $id_almacen, array $ids_productos)
-    {
-        // Validación de seguridad para evitar errores SQL si el array viene vacío
-        if (empty($ids_productos)) {
-            return [];
-        }
-
-        // 1. Creamos los placeholders (?,?,?)
-        $placeholders = implode(',', array_fill(0, count($ids_productos), '?'));
-
-        $sql = "
-        SELECT
-            lp.id_producto,
-            pr.stock_minimo_base,
-            SUM(lp.stock_actual_base) AS stock_total_base
-        FROM
-            lote_producto lp
-        INNER JOIN producto pr on pr.id = lp.id_producto
-        WHERE
-            lp.id_almacen = ? AND 
-            lp.id_producto IN ($placeholders) AND 
-            lp.stock_actual_base > 0 AND 
-            lp.estado = 'Activo' AND
-            -- no sumar stock de lotes vencidos
-            (lp.fecha_vencimiento IS NULL OR DATEDIFF(lp.fecha_vencimiento, CURRENT_DATE) >= 0)
-        GROUP BY
-            lp.id_producto
-        ";
-
-        $params = array_merge([$id_almacen], $ids_productos);
-
-        return DB::select($sql, $params);
     }
 
     /**
@@ -139,19 +118,5 @@ class AuxData
     public static function get_nombre_producto(int $id_producto): ?string
     {
         return DB::table('producto')->where('id', $id_producto)->value('nombre');
-    }
-
-    /**
-     * Obtiene el stock total base de un producto en un almacén
-     * Envuelve a LotesProductosData::get_lotes_disponibles para cumplir con la arquitectura
-     */
-    public static function get_stock_total_base_por_producto(int $id_almacen, int $id_producto): float
-    {
-        $lotes = LotesProductosData::get_lotes_disponibles($id_almacen, [$id_producto]);
-        $totalStock = 0;
-        foreach ($lotes as $lote) {
-            $totalStock += (float) $lote->stock_actual_base;
-        }
-        return $totalStock;
     }
 }

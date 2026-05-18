@@ -2,6 +2,8 @@
 
 namespace App\Modules\PrestamosAlmacenAtencion\Service;
 
+use App\Services\ActivosFijosService;
+use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
 use App\Data\LotesProductosData;
 use App\Services\LotesProductosService;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
@@ -77,6 +79,35 @@ class RecepcionesReposicionService
             foreach ($items as $item) {
                 $id_repo_det = (int) $item['id_reposicion_detalle'];
                 $cantidad_recep_base = (float) $item['cantidad_base'];
+                $id_activo = !empty($item['id_activo_fijo']) ? (int) $item['id_activo_fijo'] : null;
+                $es_activo = $id_activo !== null;
+
+                if ($es_activo) {
+                    // --- Camino: Activo Fijo ---
+                    // El activo llega de vuelta al almacén prestamista (destino)
+                    ActivosFijosService::new_ubicacion(
+                        id_activo: $id_activo,
+                        tipo_movimiento: MovimientoActivoFijo::DeAlmacenAAlmacen,
+                        id_almacen: $id_almacen_destino,
+                        id_mina: null,
+                        descripcion: "Recepción de activo en reposición de préstamo",
+                        fecha_hora_movimiento: $fecha_mysql
+                    );
+
+                    RecepcionesReposicionData::crear_detalle_recepcion(
+                        id_recepcion: $id_recepcion,
+                        id_reposicion_detalle: $id_repo_det,
+                        id_lote_producto: 0, // no aplica
+                        es_ajuste_stock: false,
+                        cantidad_recep_base: 1,
+                        estado: EstadoPrestamoReposicionDetalle::RecepcionCompleta,
+                        id_activo_fijo: $id_activo
+                    );
+
+                    self::actualizar_estados_post_recepcion($id_repo_det);
+                    continue;
+                }
+
                 $es_nuevo_lote = (bool) $item['es_nuevo_lote'];
 
                 // Obtener detalle de la reposicion para saber el producto
@@ -86,7 +117,6 @@ class RecepcionesReposicionService
                     continue;
 
                 // 1. Crear Detalle de Recepción PRIMERO
-                // Si es nuevo lote, el ID de lote es 0 temporalmente
                 $id_lote_para_detalle = $es_nuevo_lote ? 0 : (int) $item['id_lote_existente'];
 
                 $id_recepcion_detalle = RecepcionesReposicionData::crear_detalle_recepcion(

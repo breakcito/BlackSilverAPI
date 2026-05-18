@@ -43,7 +43,9 @@ class RecepcionesOCData
     }
 
     /**
-     * Crear un detalle de recepción de OC
+     * Crear un detalle de recepción de OC.
+     * Para activos fijos: id_lote_producto debe ser 0, id_activo_fijo debe ser provisto.
+     * Para productos comunes: id_lote_producto requerido, id_activo_fijo = null.
      */
     public static function crear_detalle_recepcion(
         int $id_recepcion,
@@ -53,19 +55,22 @@ class RecepcionesOCData
         float $cantidad_recepcionada,
         float $cantidad_recepcionada_base,
         ?string $comentario = null,
-        EstadoOrdenCompraRecepcionDetalle $estado = EstadoOrdenCompraRecepcionDetalle::RecepcionCompleta
+        EstadoOrdenCompraRecepcionDetalle $estado = EstadoOrdenCompraRecepcionDetalle::RecepcionCompleta,
+        ?int $id_activo_fijo = null
     ): int {
         return (int) OrdenCompraRecepcionDetalle::insertGetId([
-            'id_orden_compra_recepcion' => $id_recepcion,
-            'id_orden_compra_detalle' => $id_oc_detalle,
-            'id_lote_producto' => $id_lote_producto,
-            'es_ajuste_stock' => $es_ajuste_stock ? 1 : 0,
-            'cantidad_recepcionada' => $cantidad_recepcionada,
+            'id_orden_compra_recepcion'  => $id_recepcion,
+            'id_orden_compra_detalle'    => $id_oc_detalle,
+            'id_lote_producto'           => $id_activo_fijo ? null : $id_lote_producto,
+            'id_activo_fijo'             => $id_activo_fijo,
+            'es_ajuste_stock'            => $es_ajuste_stock ? 1 : 0,
+            'cantidad_recepcionada'      => $cantidad_recepcionada,
             'cantidad_recepcionada_base' => $cantidad_recepcionada_base,
-            'comentario' => $comentario,
-            'estado' => $estado->value,
+            'comentario'                 => $comentario,
+            'estado'                     => $estado->value,
         ]);
     }
+
 
     /**
      * Actualiza el lote asociado a un detalle de recepción.

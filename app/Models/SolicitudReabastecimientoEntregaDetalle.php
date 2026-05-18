@@ -32,31 +32,37 @@ class SolicitudReabastecimientoEntregaDetalle extends Model
             red.id AS id_entrega_detalle,
             red.id_reabastecimiento_entrega,
             red.id_solicitud_reabastecimiento_detalle,
-            --
+            
             srd.id_producto,
             prod.nombre AS producto,
-            --
-            -- el lote tomado para la entrega
+            prod.es_perecible,
+            cat.clasificacion_bien AS tipo_bien,
+            
+            -- el lote o activo tomado para la entrega
             red.id_lote_producto,
             lot.correlativo as lote_correlativo,
-            --
+            lot.fecha_vencimiento,
+            
+            red.id_activo_fijo,
+            act.correlativo as correlativo_activo_fijo,
+            
             -- unidad de medida base
             prod.id_unidad_medida_base,
             uni_base.abreviatura AS unidad_medida_base_abv,
             red.cantidad_base, -- cantidad entregada segun la unidad base del producto
-            --
+            
             -- unidad de medida del lote de donde salio
             lot.id_unidad_medida as id_unidad_medida_lot,
             uni_lot.abreviatura AS unidad_medida_lot_abv,
             lot.contenido_por_presentacion as contenido_por_presentacion_lot, -- cuantas unidades de medida base tiene la unidad del lote
             red.cantidad_lote, -- cuanto representa lo entregado para el lote
-            --
+            
             -- unidad de medida de la solicitud
             srd.id_unidad_medida AS id_unidad_medida_sol,
             uni_sol.abreviatura AS unidad_medida_sol_abv,
             srd.contenido_por_presentacion AS contenido_por_presentacion_sol, -- cuantas unidades de medida base tiene la unidad de la solicitud
             red.cantidad_solicitud, -- cuanto representa lo entregado para la solicitud,
-            --
+            
             COALESCE((
                 SELECT
                     SUM(rd.cantidad_recepcionada_base)
@@ -65,21 +71,24 @@ class SolicitudReabastecimientoEntregaDetalle extends Model
                 WHERE
                     rd.id_solicitud_reabastecimiento_entrega_detalle = red.id
             ),0) AS cantidad_recibida_total_base,
-            --
+            
             red.estado
         FROM
             solicitud_reabastecimiento_entrega_detalle red
         INNER JOIN solicitud_reabastecimiento_detalle srd ON
             srd.id = red.id_solicitud_reabastecimiento_detalle
-        INNER JOIN lote_producto lot ON
-            lot.id = red.id_lote_producto
         INNER JOIN producto prod ON
-            prod.id = lot.id_producto
+            prod.id = srd.id_producto
+        INNER JOIN categoria cat ON
+            cat.id = prod.id_categoria
+        LEFT JOIN lote_producto lot ON
+            lot.id = red.id_lote_producto
+        LEFT JOIN activo_fijo act on act.id = red.id_activo_fijo
         INNER JOIN unidad_medida uni_sol ON
             uni_sol.id = srd.id_unidad_medida
         INNER JOIN unidad_medida uni_base ON
             uni_base.id = prod.id_unidad_medida_base
-        INNER JOIN unidad_medida uni_lot ON
+        LEFT JOIN unidad_medida uni_lot ON
             uni_lot.id = lot.id_unidad_medida
         WHERE
             1 = 1

@@ -62,6 +62,8 @@ class RecepcionesData
 
     /**
      * Crear un detalle de recepción de transferencia.
+     * Para activos fijos: id_lote_producto debe ser 0, id_activo_fijo debe ser provisto.
+     * Para productos comunes: id_lote_producto requerido, id_activo_fijo = null.
      */
     public static function crear_recepcion_detalle(
         int $id_recepcion,
@@ -69,17 +71,20 @@ class RecepcionesData
         int $id_lote_producto,
         bool $es_ajuste_stock,
         float $cantidad_recepcionada_base,
-        string $estado
+        string $estado,
+        ?int $id_activo_fijo = null
     ): int {
         return (int) OrdenCompraTransferenciaRecepcionDetalle::insertGetId([
-            'id_orden_compra_transferencia_recepcion' => $id_recepcion,
-            'id_orden_compra_transferencia_detalle' => $id_transferencia_detalle,
-            'id_lote_producto' => $id_lote_producto,
-            'es_ajuste_stock' => $es_ajuste_stock ? 1 : 0,
-            'cantidad_recepcionada_base' => $cantidad_recepcionada_base,
-            'estado' => $estado,
+            'id_orden_compra_transferencia_recepcion'  => $id_recepcion,
+            'id_orden_compra_transferencia_detalle'    => $id_transferencia_detalle,
+            'id_lote_producto'                         => $id_activo_fijo ? null : $id_lote_producto,
+            'id_activo_fijo'                           => $id_activo_fijo,
+            'es_ajuste_stock'                          => $es_ajuste_stock ? 1 : 0,
+            'cantidad_recepcionada_base'               => $cantidad_recepcionada_base,
+            'estado'                                   => $estado,
         ]);
     }
+
 
     /**
      * Actualiza el lote asociado a un detalle de recepción.

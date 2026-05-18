@@ -3,7 +3,9 @@
 namespace App\Modules\PrestamosAlmacenAtencion\Service;
 
 use App\Data\LotesProductosData;
+use App\Services\ActivosFijosService;
 use App\Services\LotesProductosService;
+use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\PrestamoAlmacen\EstadoPrestamoDetalle;
@@ -38,13 +40,16 @@ class EntregaService
                 ? Carbon::parse($fecha_hora_entrega)->toDateTimeString()
                 : now()->toDateTimeString();
 
-            // 0. Pre-cargar todos los lotes en una sola consulta
-            $ids_lotes = array_map(fn($d) => (int) $d['id_lote_producto'], $detalles);
-            $lotesMap = collect(LotesProductosData::get_lote_simple_by_id($ids_lotes))
-                ->keyBy('id_lote');
+            // 0. Pre-cargar lotes solo para ítems sin activo fijo
+            $items_con_lote = array_filter($detalles, fn($d) => empty($d['id_activo_fijo']));
+            $ids_lotes = array_map(fn($d) => (int) $d['id_lote_producto'], $items_con_lote);
 
-            // Validar Stock General antes de empezar
-            foreach ($detalles as $det) {
+            $lotesMap = !empty($ids_lotes)
+                ? collect(LotesProductosData::get_lote_simple_by_id($ids_lotes))->keyBy('id_lote')
+                : collect();
+
+            // Validar Stock solo para productos comunes
+            foreach ($items_con_lote as $det) {
                 $id_lote = (int) $det['id_lote_producto'];
                 $lote = $lotesMap->get($id_lote);
                 if (!$lote || $lote['stock_actual_base'] < (float) $det['cantidad_base']) {
@@ -79,41 +84,67 @@ class EntregaService
                 $evidenciasData
             );
 
-            // Información del almacén destino (Solicitante) para el Kardex
             $almSol = PrestamosData::get_almacen_solicitante_by_id($id_prestamo);
             $nombreAlmDestino = $almSol ? $almSol->nombre : 'Desconocido';
+            $id_almacen_destino = $almSol ? (int) $almSol->id_almacen : null;
 
             // 4. Procesar Detalles y Afectar Stock/Kardex/Vínculos
             foreach ($detalles as $det) {
                 $id_prestamo_detalle = (int) $det['id_prestamo_detalle'];
-                $id_lote = (int) $det['id_lote_producto'];
-                $cant_lote = (float) $det['cantidad_lote'];
-                $cant_base = (float) $det['cantidad_base'];
-                $cant_solicitud = (float) $det['cantidad_solicitud']; // Cantidad en la unidad de la solicitud
+                $id_activo           = !empty($det['id_activo_fijo']) ? (int) $det['id_activo_fijo'] : null;
+                $es_activo           = $id_activo !== null;
 
-                // 4.1 Crear Detalle Entrega
-                $id_det_entrega = EntregasDetalleData::crear_detalle_entrega(
-                    $id_entrega,
-                    $id_prestamo_detalle,
-                    $id_lote,
-                    $cant_lote,
-                    $cant_base,
-                    $det['comentario'] ?? null
-                );
+                if ($es_activo) {
+                    // --- Camino: Activo Fijo ---
+                    // La ubicacion de ese activo esta fuera de cualquier almacen
+                    ActivosFijosService::new_ubicacion(
+                        id_activo: $id_activo,
+                        tipo_movimiento: MovimientoActivoFijo::DeAlmacenAAlmacen,
+                        id_almacen: null,
+                        id_mina: null,
+                        descripcion: "Entrega (préstamo) N° {$correlativoData['correlativo']} al almacén {$nombreAlmDestino}",
+                        fecha_hora_movimiento: $fecha_mysql
+                    );
 
-                // 4.2 Obtener lote desde el mapa pre-cargado
-                $lote = $lotesMap->get($id_lote);
+                    // Detalle sin lote
+                    $id_det_entrega = EntregasDetalleData::crear_detalle_entrega(
+                        $id_entrega,
+                        $id_prestamo_detalle,
+                        null,   // id_lote
+                        1,      // cantidad
+                        1,      // cantidad_base
+                        $det['comentario'] ?? null,
+                        $id_activo
+                    );
+                } else {
+                    // --- Camino: Producto Común con Lote ---
+                    $id_lote    = (int) $det['id_lote_producto'];
+                    $cant_lote  = (float) $det['cantidad_lote'];
+                    $cant_base  = (float) $det['cantidad_base'];
 
-                // 4.3 + 4.4 Actualizar Stock y registrar Kardex (Salida)
-                LotesProductosService::update_stock(
-                    id_lote: $id_lote,
-                    id_origen: $id_det_entrega,
-                    tabla_origen: 'prestamo_almacen_entrega_detalle',
-                    tipo_origen: KardexOrigenMovimiento::Entrega,
-                    tipo_movimiento: KardexTipoMovimiento::Salida,
-                    cantidad_movimiento_base: $cant_base,
-                    descripcion: "Entrega N° {$correlativoData['correlativo']} al almacén {$nombreAlmDestino}",
-                );
+                    $id_det_entrega = EntregasDetalleData::crear_detalle_entrega(
+                        $id_entrega,
+                        $id_prestamo_detalle,
+                        $id_lote,
+                        $cant_lote,
+                        $cant_base,
+                        $det['comentario'] ?? null
+                    );
+
+                    LotesProductosService::update_stock(
+                        id_lote: $id_lote,
+                        id_origen: $id_det_entrega,
+                        tabla_origen: 'prestamo_almacen_entrega_detalle',
+                        tipo_origen: KardexOrigenMovimiento::Entrega,
+                        tipo_movimiento: KardexTipoMovimiento::Salida,
+                        cantidad_movimiento_base: $cant_base,
+                        descripcion: "Entrega N° {$correlativoData['correlativo']} al almacén {$nombreAlmDestino}",
+                    );
+                }
+
+                $cant_lote      = $es_activo ? 1 : (float) $det['cantidad_lote'];
+                $cant_base      = $es_activo ? 1 : (float) $det['cantidad_base'];
+                $cant_solicitud = $es_activo ? 1 : (float) $det['cantidad_solicitud'];
 
                 // 4.5 Actualizar cantidad acumulada en el Préstamo
                 EntregasData::registrar_incremento_cantidades_prestadas($id_prestamo_detalle, $cant_solicitud, $cant_base);
@@ -137,11 +168,8 @@ class EntregaService
                 $vinc = EntregasData::get_ids_vinculados_by_prestamo_detalle($id_prestamo_detalle);
                 if ($vinc && $vinc->id_solicitud_reabastecimiento_detalle) {
                     $id_sol_det = (int) $vinc->id_solicitud_reabastecimiento_detalle;
-
-                    // Incrementamos la cantidad entregada en la solicitud de reabastecimiento
                     EntregasData::incrementar_entregado_reabastecimiento($id_sol_det, $cant_solicitud, $cant_base);
 
-                    // LOG DE REABASTECIMIENTO (Original)
                     $reabastecimientoLogGlosa = EstadoSolicitudDetalleLog::NuevaEntrega->getGlosa((string) $cant_solicitud);
                     EntregasData::insertar_log_reabastecimiento(
                         $id_sol_det,

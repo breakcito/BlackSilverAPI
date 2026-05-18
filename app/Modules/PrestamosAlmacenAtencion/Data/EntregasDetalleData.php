@@ -10,24 +10,27 @@ use Illuminate\Support\Facades\DB;
 class EntregasDetalleData
 {
     /**
-     * Crea un detalle de entrega (un lote de salida para un ítem del préstamo).
+     * Crea un detalle de entrega.
+     * Exactamente uno de $id_lote_producto o $id_activo_fijo debe ser provisto.
      */
     public static function crear_detalle_entrega(
         int $id_entrega,
         int $id_prestamo_detalle,
-        int $id_lote_producto,
+        ?int $id_lote_producto,
         float $cantidad,
         float $cantidad_base,
-        ?string $comentario = null
+        ?string $comentario = null,
+        ?int $id_activo_fijo = null
     ): int {
         return PrestamoAlmacenEntregaDetalle::insertGetId([
-            'id_prestamo_almacen_entrega' => $id_entrega,
-            'id_prestamo_almacen_detalle' => $id_prestamo_detalle,
+            'id_prestamo_almacen_entrega'   => $id_entrega,
+            'id_prestamo_almacen_detalle'   => $id_prestamo_detalle,
             'id_lote_producto'              => $id_lote_producto,
-            'cantidad'                    => $cantidad,
-            'cantidad_base'               => $cantidad_base,
-            'comentario'                  => $comentario,
-            'estado'                      => EstadoPrestamoEntrega::EnDespacho->value,
+            'id_activo_fijo'                => $id_activo_fijo,
+            'cantidad'                      => $cantidad,
+            'cantidad_base'                 => $cantidad_base,
+            'comentario'                    => $comentario,
+            'estado'                        => EstadoPrestamoEntrega::EnDespacho->value,
         ]);
     }
 

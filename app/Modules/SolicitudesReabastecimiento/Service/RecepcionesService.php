@@ -5,6 +5,8 @@ namespace App\Modules\SolicitudesReabastecimiento\Service;
 
 use App\Data\LotesProductosData;
 use App\Services\LotesProductosService;
+use App\Services\ActivosFijosService;
+use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Helpers\ArchivoHelper;
@@ -33,6 +35,8 @@ class RecepcionesService
          *   'cantidad_base'
          *   'es_nuevo_lote'
          *   'id_lote_existente'
+         *   'id_activo_fijo'
+         *   'es_activo_fijo'
          *   'id_unidad_medida'
          *   'contenido_por_presentacion'
          *   'descripcion'
@@ -68,7 +72,8 @@ class RecepcionesService
             // 3. Pre-cargar lotes existentes en una sola consulta
             $ids_lotes_existentes = collect($items)
                 ->where('es_nuevo_lote', false)
-                ->map(fn($i) => (int) $i['id_lote_existente'])
+                ->filter(fn($i) => empty($i['es_activo_fijo']))
+                ->map(fn($i) => (int) ($i['id_lote_existente'] ?? 0))
                 ->filter()
                 ->values()
                 ->all();
@@ -93,58 +98,85 @@ class RecepcionesService
                 $id_almacen_destino = SolicitudesDetalleData::get_almacen_solicitante_id_by_solic_id($detalle_sol->id_solicitud_reabastecimiento);
 
                 // 4. Crear Detalle de Recepción Logística PRIMERO
+                $es_activo_fijo = !empty($item['es_activo_fijo']);
                 $id_entrega_det = (int) $item['id_entrega_detalle'];
-                $id_lote_para_detalle = $es_nuevo_lote ? 0 : (int) $item['id_lote_existente'];
 
-                $id_recepcion_detalle = RecepcionesData::crear_detalle_recepcion(
-                    id_recepcion: $id_recepcion,
-                    id_entrega_detalle: $id_entrega_det,
-                    id_lote_producto: $id_lote_para_detalle,
-                    es_ajuste_stock: !$es_nuevo_lote,
-                    cantidad_recepcionada_base: $cantidad_recep_base
-                );
+                if ($es_activo_fijo) {
+                    $id_activo = (int) $item['id_activo_fijo'];
 
-                // 5. Gestión de Lotes (Ajuste vs Nuevo)
-                if ($es_nuevo_lote) {
-                    $contenido_por_presentacion = (float) ($item['contenido_por_presentacion'] ?? 1);
-                    $stock_inicial = $cantidad_recep_base / $contenido_por_presentacion;
-
-                    $response = LotesProductosService::crear_lote(
-                        id_producto: (int) $detalle_sol->id_producto,
-                        id_unidad_medida: (int) $item['id_unidad_medida'],
+                    // El activo llega al almacén solicitante (destino)
+                    ActivosFijosService::new_ubicacion(
+                        id_activo: $id_activo,
+                        tipo_movimiento: MovimientoActivoFijo::DeAlmacenAAlmacen,
                         id_almacen: $id_almacen_destino,
-                        id_origen: $id_recepcion_detalle,
-                        tabla_origen: 'solicitud_reabastecimiento_recepcion_detalle',
-                        contenido_por_presentacion: $contenido_por_presentacion,
-                        stock_inicial: $stock_inicial,
-                        fecha_hora_ingreso: isset($item['fecha_ingreso'])
-                        ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
-                        : $fecha_mysql,
-                        descripcion: $item['descripcion'] ?? "Ingreso por recepción en reabastecimiento",
-                        fecha_vencimiento: isset($item['fecha_vencimiento'])
-                        ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
-                        : null
+                        id_mina: null,
+                        descripcion: "Recepción de activo en reabastecimiento",
+                        fecha_hora_movimiento: $fecha_mysql
                     );
-                    $id_lote_destino = $response['data'];
-                    $ids_lotes_nuevos[] = $id_lote_destino;
 
-                    // Vincular el nuevo lote al detalle de recepción
-                    RecepcionesData::update_detalle_lote($id_recepcion_detalle, $id_lote_destino);
-                    $contenido_lot = $contenido_por_presentacion;
+                    $id_recepcion_detalle = RecepcionesData::crear_detalle_recepcion(
+                        id_recepcion: $id_recepcion,
+                        id_entrega_detalle: $id_entrega_det,
+                        id_lote_producto: 0, // no aplica
+                        es_ajuste_stock: false,
+                        cantidad_recepcionada_base: 1.0,
+                        id_activo_fijo: $id_activo
+                    );
+
+                    $contenido_lot = 1.0;
                 } else {
-                    $id_lote_destino = $id_lote_para_detalle;
-                    $lote_existente = $lotesMap->get($id_lote_destino);
-                    $contenido_lot = $lote_existente['contenido_por_presentacion'];
+                    $id_lote_para_detalle = $es_nuevo_lote ? 0 : (int) $item['id_lote_existente'];
 
-                    LotesProductosService::update_stock(
-                        id_lote: $id_lote_destino,
-                        id_origen: $id_recepcion_detalle,
-                        tabla_origen: null,
-                        tipo_origen: KardexOrigenMovimiento::Recepcion,
-                        tipo_movimiento: KardexTipoMovimiento::Ingreso,
-                        cantidad_movimiento_base: $cantidad_recep_base,
-                        descripcion: "Ingreso por recepción de entrega en reabastecimiento",
+                    $id_recepcion_detalle = RecepcionesData::crear_detalle_recepcion(
+                        id_recepcion: $id_recepcion,
+                        id_entrega_detalle: $id_entrega_det,
+                        id_lote_producto: $id_lote_para_detalle,
+                        es_ajuste_stock: !$es_nuevo_lote,
+                        cantidad_recepcionada_base: $cantidad_recep_base
                     );
+
+                    // 5. Gestión de Lotes (Ajuste vs Nuevo)
+                    if ($es_nuevo_lote) {
+                        $contenido_por_presentacion = (float) ($item['contenido_por_presentacion'] ?? 1);
+                        $stock_inicial = $cantidad_recep_base / $contenido_por_presentacion;
+
+                        $response = LotesProductosService::crear_lote(
+                            id_producto: (int) $detalle_sol->id_producto,
+                            id_unidad_medida: (int) $item['id_unidad_medida'],
+                            id_almacen: $id_almacen_destino,
+                            id_origen: $id_recepcion_detalle,
+                            tabla_origen: 'solicitud_reabastecimiento_recepcion_detalle',
+                            contenido_por_presentacion: $contenido_por_presentacion,
+                            stock_inicial: $stock_inicial,
+                            fecha_hora_ingreso: isset($item['fecha_ingreso'])
+                            ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
+                            : $fecha_mysql,
+                            descripcion: $item['descripcion'] ?? "Ingreso por recepción en reabastecimiento",
+                            fecha_vencimiento: isset($item['fecha_vencimiento'])
+                            ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
+                            : null
+                        );
+                        $id_lote_destino = $response['data'];
+                        $ids_lotes_nuevos[] = $id_lote_destino;
+
+                        // Vincular el nuevo lote al detalle de recepción
+                        RecepcionesData::update_detalle_lote($id_recepcion_detalle, $id_lote_destino);
+                        $contenido_lot = $contenido_por_presentacion;
+                    } else {
+                        $id_lote_destino = $id_lote_para_detalle;
+                        $lote_existente = $lotesMap->get($id_lote_destino);
+                        $contenido_lot = $lote_existente['contenido_por_presentacion'];
+
+                        LotesProductosService::update_stock(
+                            id_lote: $id_lote_destino,
+                            id_origen: $id_recepcion_detalle,
+                            tabla_origen: null,
+                            tipo_origen: KardexOrigenMovimiento::Recepcion,
+                            tipo_movimiento: KardexTipoMovimiento::Ingreso,
+                            cantidad_movimiento_base: $cantidad_recep_base,
+                            descripcion: "Ingreso por recepción de entrega en reabastecimiento",
+                        );
+                    }
                 }
 
                 // 7. Actualizar estados de la entrega (Logística)
@@ -184,6 +216,8 @@ class RecepcionesService
          *   'cantidad_base'
          *   'es_nuevo_lote'
          *   'id_lote_existente'
+         *   'es_activo_fijo'
+         *   'id_activo_fijo'
          *   'id_unidad_medida'
          *   'contenido_por_presentacion'
          *   'descripcion'
@@ -220,7 +254,8 @@ class RecepcionesService
             // 3. Pre-cargar lotes existentes en una sola consulta
             $ids_lotes_existentes = collect($items)
                 ->where('es_nuevo_lote', false)
-                ->map(fn($i) => (int) $i['id_lote_existente'])
+                ->filter(fn($i) => empty($i['es_activo_fijo']))
+                ->map(fn($i) => (int) ($i['id_lote_existente'] ?? 0))
                 ->filter()
                 ->values()
                 ->all();
@@ -245,58 +280,85 @@ class RecepcionesService
                 $id_almacen_destino = SolicitudesDetalleData::get_almacen_solicitante_id_by_solic_id($detalle_sol->id_solicitud_reabastecimiento);
 
                 // 4. Crear Detalle de Recepción de Préstamo PRIMERO
+                $es_activo_fijo = !empty($item['es_activo_fijo']);
                 $id_entrega_det = (int) $item['id_entrega_detalle'];
-                $id_lote_para_detalle = $es_nuevo_lote ? 0 : (int) $item['id_lote_existente'];
 
-                $id_recepcion_detalle = RecepcionesPrestamoData::crear_detalle_recepcion(
-                    id_recepcion: $id_recepcion,
-                    id_entrega_detalle: $id_entrega_det,
-                    id_lote_producto: $id_lote_para_detalle,
-                    es_ajuste_stock: !$es_nuevo_lote,
-                    cantidad_recepcionada_base: $cantidad_recep_base
-                );
+                if ($es_activo_fijo) {
+                    $id_activo = (int) $item['id_activo_fijo'];
 
-                // 5. Gestión de Lotes (Ajuste vs Nuevo)
-                if ($es_nuevo_lote) {
-                    $contenido_por_presentacion = (float) ($item['contenido_por_presentacion'] ?? 1);
-                    $stock_inicial = $cantidad_recep_base / $contenido_por_presentacion;
-
-                    $response = LotesProductosService::crear_lote(
-                        id_producto: (int) $detalle_sol->id_producto,
-                        id_unidad_medida: (int) $item['id_unidad_medida'],
+                    // El activo llega al almacén solicitante (destino)
+                    ActivosFijosService::new_ubicacion(
+                        id_activo: $id_activo,
+                        tipo_movimiento: MovimientoActivoFijo::DeAlmacenAAlmacen,
                         id_almacen: $id_almacen_destino,
-                        id_origen: $id_recepcion_detalle,
-                        tabla_origen: 'prestamo_almacen_entrega_recepcion_detalle',
-                        contenido_por_presentacion: $contenido_por_presentacion,
-                        stock_inicial: $stock_inicial,
-                        fecha_hora_ingreso: isset($item['fecha_ingreso'])
-                        ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
-                        : $fecha_mysql,
-                        descripcion: $item['descripcion'] ?? "Ingreso por recepción en reabastecimiento",
-                        fecha_vencimiento: isset($item['fecha_vencimiento'])
-                        ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
-                        : null
+                        id_mina: null,
+                        descripcion: "Recepción de activo en reabastecimiento",
+                        fecha_hora_movimiento: $fecha_mysql
                     );
-                    $id_lote_destino = $response['data'];
-                    $ids_lotes_nuevos[] = $id_lote_destino;
 
-                    // Vincular el nuevo lote al detalle de recepción
-                    RecepcionesPrestamoData::update_detalle_lote($id_recepcion_detalle, $id_lote_destino);
-                    $contenido_lot = $contenido_por_presentacion;
+                    $id_recepcion_detalle = RecepcionesPrestamoData::crear_detalle_recepcion(
+                        id_recepcion: $id_recepcion,
+                        id_entrega_detalle: $id_entrega_det,
+                        id_lote_producto: 0, // no aplica
+                        es_ajuste_stock: false,
+                        cantidad_recepcionada_base: 1.0,
+                        id_activo_fijo: $id_activo
+                    );
+
+                    $contenido_lot = 1.0;
                 } else {
-                    $id_lote_destino = $id_lote_para_detalle;
-                    $lote_existente = $lotesMap->get($id_lote_destino);
-                    $contenido_lot = $lote_existente['contenido_por_presentacion'];
+                    $id_lote_para_detalle = $es_nuevo_lote ? 0 : (int) $item['id_lote_existente'];
 
-                    LotesProductosService::update_stock(
-                        id_lote: $id_lote_destino,
-                        id_origen: $id_recepcion_detalle,
-                        tabla_origen: null,
-                        tipo_origen: KardexOrigenMovimiento::Recepcion,
-                        tipo_movimiento: KardexTipoMovimiento::Ingreso,
-                        cantidad_movimiento_base: $cantidad_recep_base,
-                        descripcion: "Ingreso por recepción de entrega en reabastecimiento",
+                    $id_recepcion_detalle = RecepcionesPrestamoData::crear_detalle_recepcion(
+                        id_recepcion: $id_recepcion,
+                        id_entrega_detalle: $id_entrega_det,
+                        id_lote_producto: $id_lote_para_detalle,
+                        es_ajuste_stock: !$es_nuevo_lote,
+                        cantidad_recepcionada_base: $cantidad_recep_base
                     );
+
+                    // 5. Gestión de Lotes (Ajuste vs Nuevo)
+                    if ($es_nuevo_lote) {
+                        $contenido_por_presentacion = (float) ($item['contenido_por_presentacion'] ?? 1);
+                        $stock_inicial = $cantidad_recep_base / $contenido_por_presentacion;
+
+                        $response = LotesProductosService::crear_lote(
+                            id_producto: (int) $detalle_sol->id_producto,
+                            id_unidad_medida: (int) $item['id_unidad_medida'],
+                            id_almacen: $id_almacen_destino,
+                            id_origen: $id_recepcion_detalle,
+                            tabla_origen: 'prestamo_almacen_entrega_recepcion_detalle',
+                            contenido_por_presentacion: $contenido_por_presentacion,
+                            stock_inicial: $stock_inicial,
+                            fecha_hora_ingreso: isset($item['fecha_ingreso'])
+                            ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
+                            : $fecha_mysql,
+                            descripcion: $item['descripcion'] ?? "Ingreso por recepción en reabastecimiento",
+                            fecha_vencimiento: isset($item['fecha_vencimiento'])
+                            ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
+                            : null
+                        );
+                        $id_lote_destino = $response['data'];
+                        $ids_lotes_nuevos[] = $id_lote_destino;
+
+                        // Vincular el nuevo lote al detalle de recepción
+                        RecepcionesPrestamoData::update_detalle_lote($id_recepcion_detalle, $id_lote_destino);
+                        $contenido_lot = $contenido_por_presentacion;
+                    } else {
+                        $id_lote_destino = $id_lote_para_detalle;
+                        $lote_existente = $lotesMap->get($id_lote_destino);
+                        $contenido_lot = $lote_existente['contenido_por_presentacion'];
+
+                        LotesProductosService::update_stock(
+                            id_lote: $id_lote_destino,
+                            id_origen: $id_recepcion_detalle,
+                            tabla_origen: null,
+                            tipo_origen: KardexOrigenMovimiento::Recepcion,
+                            tipo_movimiento: KardexTipoMovimiento::Ingreso,
+                            cantidad_movimiento_base: $cantidad_recep_base,
+                            descripcion: "Ingreso por recepción de entrega en reabastecimiento",
+                        );
+                    }
                 }
 
                 // 7. Actualizar estados de la entrega (Préstamo)

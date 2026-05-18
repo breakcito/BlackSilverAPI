@@ -34,6 +34,8 @@ class RecepcionesReposicionData
 
     /**
      * Crear detalle de recepción de reposición.
+     * Para activos fijos: id_lote_producto puede ser 0, id_activo_fijo debe ser provisto.
+     * Para productos comunes: id_lote_producto requerido, id_activo_fijo = null.
      */
     public static function crear_detalle_recepcion(
         int $id_recepcion,
@@ -41,15 +43,17 @@ class RecepcionesReposicionData
         int $id_lote_producto,
         bool $es_ajuste_stock,
         float $cantidad_recep_base,
-        EstadoPrestamoReposicionDetalle $estado = EstadoPrestamoReposicionDetalle::RecepcionCompleta
+        EstadoPrestamoReposicionDetalle $estado = EstadoPrestamoReposicionDetalle::RecepcionCompleta,
+        ?int $id_activo_fijo = null
     ): int {
         return (int) PrestamoAlmacenReposicionRecepcionDetalle::insertGetId([
-            'id_prestamo_almacen_reposicion_recepcion' => $id_recepcion,
-            'id_prestamo_almacen_reposicion_detalle' => $id_reposicion_detalle,
-            'id_lote_producto' => $id_lote_producto,
-            'es_ajuste_stock' => $es_ajuste_stock ? 1 : 0,
-            'cantidad_recepcionada_base' => $cantidad_recep_base,
-            'estado' => $estado->value,
+            'id_prestamo_almacen_reposicion_recepcion'  => $id_recepcion,
+            'id_prestamo_almacen_reposicion_detalle'     => $id_reposicion_detalle,
+            'id_lote_producto'                           => $id_activo_fijo ? null : $id_lote_producto,
+            'id_activo_fijo'                             => $id_activo_fijo,
+            'es_ajuste_stock'                            => $es_ajuste_stock ? 1 : 0,
+            'cantidad_recepcionada_base'                 => $cantidad_recep_base,
+            'estado'                                     => $estado->value,
         ]);
     }
 
@@ -173,6 +177,9 @@ class RecepcionesReposicionData
                 rd.id_prestamo_almacen_reposicion as id_reabastecimiento_entrega,
                 p.id as id_producto,
                 p.nombre as producto,
+                p.tipo_bien as tipo_bien,
+                rd.id_activo_fijo as id_activo_fijo,
+                act.correlativo as correlativo_activo_fijo,
                 rd.cantidad_solicitud as cantidad_solicitud,
                 um.abreviatura as unidad_base_abv,
                 p.id_unidad_medida_almacen as id_unidad_medida_base,
@@ -184,6 +191,7 @@ class RecepcionesReposicionData
             INNER JOIN prestamo_almacen_detalle pd ON pd.id = rd.id_prestamo_almacen_detalle
             INNER JOIN productos p ON p.id = pd.id_producto
             INNER JOIN unidades_medida um ON um.id = p.id_unidad_medida_almacen
+            LEFT JOIN activo_fijo act ON act.id = rd.id_activo_fijo
             WHERE rd.id_prestamo_almacen_reposicion = :id
         ";
 

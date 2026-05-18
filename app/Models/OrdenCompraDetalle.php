@@ -103,41 +103,42 @@ class OrdenCompraDetalle extends Model
                 ocd.id AS id_orden_compra_detalle,
                 ocd.id_orden_compra,
                 ocd.id_cotizacion_detalle,
-                -- 
+                
                 -- info del almacen para el que van destinados los productos
                 ocd.id_almacen_recepcionista,
                 alm.nombre AS almacen_recepcionista,
                 alm.es_principal AS para_un_almacen_principal,
-                -- 
+                
                 -- info de la mina destino si es un activo fijo
                 ocd.id_mina_destino,
                 mn.nombre AS mina_destino,
-                -- 
+                
                 -- info para la recepcion
                 ocd.tipo_despacho,  -- recojo o envio
                 ocd.lugar_recojo,
-                --
+                
                 -- info del plazo de entrega
                 ocd.tiempo_entrega, -- 2
                 ocd.tiempo_entrega_periodo, -- semanas
                 ocd.tiempo_entrega_dias, -- 14 dias
-                -- 
+                
             	-- informacion del producto
                 ocd.id_producto,
                 pr.nombre AS producto,
                 pr.es_auditable,
                 pr.es_perecible,
-                -- 
+                cat.clasificacion_bien as tipo_bien,
+                
                 -- unidad de medida de la orden de compra
                 ocd.id_unidad_medida as id_unidad_medida_oc,
                 um.nombre as unidad_medida_oc,
                 um.abreviatura as unidad_medida_oc_abv,
-                -- 
+                
                 -- unidad de medida del producto
                 pr.id_unidad_medida_base,
                 um_base.nombre as unidad_medida_base,
                 um_base.abreviatura as unidad_medida_base_abv,
-                -- 
+                 
                 ocd.cantidad_requerida, -- segun la unidad de la compra
                 ocd.contenido_por_presentacion, -- cuantas unidades base del producto hay en una unidad de la compra
                 ocd.cantidad_requerida_base, -- segun la unidad base del producto
@@ -147,7 +148,7 @@ class OrdenCompraDetalle extends Model
                     FROM orden_compra_recepcion_detalle rcd
                     WHERE rcd.id_orden_compra_detalle = ocd.id
                 ) as cantidad_recepcionada_base,
-                -- 
+                 
                 ocd.precio_unitario,
                 ocd.precio_unitario_base,
                 ocd.comentario,
@@ -157,6 +158,7 @@ class OrdenCompraDetalle extends Model
             LEFT JOIN mina mn ON mn.id = ocd.id_mina_destino
             INNER JOIN cotizacion_detalle cd ON cd.id  = ocd.id_cotizacion_detalle
             INNER JOIN producto pr  ON pr.id  = ocd.id_producto
+            INNER JOIN categoria cat on cat.id = pr.id_categoria
             INNER JOIN unidad_medida um  ON um.id  = ocd.id_unidad_medida
             INNER JOIN unidad_medida um_base ON um_base.id = pr.id_unidad_medida_base
             WHERE 1 = 1

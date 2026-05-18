@@ -59,7 +59,7 @@ class EntregasDetalleData
             
             -- datos del activo fijo (NULL si es un producto comun)
             raed.id_activo_fijo,
-            act.correlativo AS correlativo_activo,
+            act.correlativo AS correlativo_activo_fijo,
             
             COALESCE(prod_lote.nombre, prod_act.nombre) AS producto,
             

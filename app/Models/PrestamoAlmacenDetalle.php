@@ -72,13 +72,14 @@ class PrestamoAlmacenDetalle extends Model
         ?int $id_prestamo_detalle = null
     ): array {
         $sql = '
-        SELECT DISTINCT
+        SELECT 
             pad.id AS id_prestamo_detalle,
             pad.id_solicitud_reabastecimiento_detalle,
             
             pad.id_producto,
             prod.stock_minimo_base,
             prod.nombre AS producto,
+            cat.clasificacion_bien as tipo_bien,
             
             prdt.id as id_producto_destino,
             prdt.nombre as producto_destino,
@@ -125,6 +126,7 @@ class PrestamoAlmacenDetalle extends Model
             prestamo_almacen_detalle pad
         INNER JOIN prestamo_almacen pa on pa.id = pad.id_prestamo_almacen
         INNER JOIN producto prod ON prod.id = pad.id_producto
+        INNER JOIN categoria cat on cat.id = prod.id_categoria
         INNER JOIN unidad_medida um_pr ON um_pr.id = pad.id_unidad_medida
         INNER JOIN unidad_medida um_bs ON um_bs.id = prod.id_unidad_medida_base
         

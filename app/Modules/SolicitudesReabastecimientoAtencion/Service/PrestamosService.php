@@ -2,6 +2,7 @@
 
 namespace App\Modules\SolicitudesReabastecimientoAtencion\Service;
 
+use App\Data\ProductosData;
 use App\Shared\Enums\SolicitudReabastecimiento\EstadoSolicitudDetalleLog;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimientoAtencion\Data\AuxData;
@@ -27,6 +28,30 @@ class PrestamosService
         ?string $fecha_limite_devolucion,
         ?string $observacion,
     ) {
+        // 1. VALIDACIÓN DE STOCK EN TIEMPO REAL PARA TODOS LOS ÍTEMS (Pre-validación antes de cualquier inserción o transacción)
+        foreach ($detalles as $detalle) {
+            $srd = SolicitudesDetalleData::get_detalle_para_prestamo($detalle['id_solicitud_reabastecimiento_detalle']);
+            if (!$srd) {
+                continue;
+            }
+
+            $cantidad_solicitada = (float) $detalle['cantidad_solicitada'];
+            $cantidad_solicitada_base = $cantidad_solicitada * (float) $srd->contenido_por_presentacion;
+
+            $stocks = ProductosData::get_stock_total_almacen_por_productos($id_almacen_prestamista, [(int) $srd->id_producto]);
+            $stock_total_base = 0.0;
+            if (!empty($stocks)) {
+                $stock_total_base = (float) $stocks[0]->stock_total_base;
+            }
+
+            if ($stock_total_base < $cantidad_solicitada_base) {
+                $nombre_producto = AuxData::get_nombre_producto($srd->id_producto);
+                $stock_formateado = round($stock_total_base / $srd->contenido_por_presentacion, 2);
+                return ApiResponse::error("¡Ups! El stock de '{$nombre_producto}' ha cambiado. Disponible: {$stock_formateado}, Solicitado: {$cantidad_solicitada}. La operación fue abortada.");
+            }
+        }
+
+        // 2. SI TODO ESTÁ CORRECTO, INICIAR TRANSACCIÓN Y REGISTROS
         return DB::transaction(function () use ($id_solicitud_reabastecimiento, $id_almacen_prestamista, $id_empleado_registro, $es_auditable, $detalles, $fecha_limite_devolucion, $observacion) {
 
             $correlativoData = PrestamosData::get_nuevo_correlativo($id_almacen_prestamista);
@@ -62,15 +87,6 @@ class PrestamosService
 
                 $cantidad_solicitada = (float) $detalle['cantidad_solicitada'];
                 $cantidad_solicitada_base = $cantidad_solicitada * (float) $srd->contenido_por_presentacion;
-
-                // VALIDACIÓN DE STOCK EN TIEMPO REAL (Usando AuxData de la vista)
-                $stock_total_base = AuxData::get_stock_total_base_por_producto($id_almacen_prestamista, $srd->id_producto);
-
-                if ($stock_total_base < $cantidad_solicitada_base) {
-                    $nombre_producto = AuxData::get_nombre_producto($srd->id_producto);
-                    $stock_formateado = round($stock_total_base / $srd->contenido_por_presentacion, 2);
-                    return ApiResponse::error("¡Ups! El stock de '{$nombre_producto}' ha cambiado. Disponible: {$stock_formateado}, Solicitado: {$cantidad_solicitada}. La operación fue abortada.");
-                }
 
                 $id_detalle = PrestamosData::crear_detalle(
                     (int) $id_prestamo,

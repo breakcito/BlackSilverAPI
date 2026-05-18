@@ -51,7 +51,8 @@ class OrdenCompraTransferenciaDetalle extends Model
             $insertData[] = [
                 'id_orden_compra_transferencia' => $id_transferencia,
                 'id_orden_compra_recepcion_detalle' => $detalle['id_orden_compra_recepcion_detalle'],
-                'id_lote_producto' => $detalle['id_lote_producto'],
+                'id_lote_producto' => $detalle['id_lote_producto'] ?? 0,
+                'id_activo_fijo' => $detalle['id_activo_fijo'] ?? null,
                 'cantidad_transferida_base' => $detalle['cantidad_transferida_base'],
                 'comentario' => $detalle['comentario'],
                 'estado' => $detalle['estado']->value ?? EstadoOCTransferenciaDetalle::RecepcionCompleta->value,
@@ -78,12 +79,17 @@ class OrdenCompraTransferenciaDetalle extends Model
             --
             prod.id AS id_producto,
             prod.nombre AS producto,
-            --
+            
+            prod.id_categoria,
+           	cat.clasificacion_bien as tipo_bien,
             
             -- el lote tomado para la entrega
             trnd.id_lote_producto,
             lt.correlativo as lote_correlativo,
-            --
+            
+            -- el activo tomado para la entrega
+            trnd.id_activo_fijo,
+            act.correlativo as correlativo_activo_fijo,
         
             -- unidad de medida base del producto
             um_bs.id as id_unidad_medida_base, 
@@ -110,8 +116,9 @@ class OrdenCompraTransferenciaDetalle extends Model
         FROM
             orden_compra_transferencia_detalle trnd
         
-            -- lote del que se saco el stock
-        INNER JOIN lote_producto lt on lt.id = trnd.id_lote_producto
+        -- lote del que se saco el stock
+        LEFT JOIN lote_producto lt on lt.id = trnd.id_lote_producto
+        LEFT JOIN activo_fijo act on act.id = trnd.id_activo_fijo
 
         -- info del detalle de la orden de compra
         INNER JOIN orden_compra_recepcion_detalle rcd ON rcd.id = trnd.id_orden_compra_recepcion_detalle
@@ -119,15 +126,16 @@ class OrdenCompraTransferenciaDetalle extends Model
         
         -- producto
         INNER JOIN producto prod ON prod.id = ocd.id_producto
+        INNER JOIN categoria cat ON cat.id = prod.id_categoria
         
-        -- unidad base
+        -- unidad base / es la misma que del activo fijo
         INNER JOIN unidad_medida um_bs ON um_bs.id = prod.id_unidad_medida_base
         
         -- unidad de la orden de compra
 		INNER JOIN unidad_medida um_oc ON um_oc.id = ocd.id_unidad_medida
         
         -- unidad del lote
-        INNER JOIN unidad_medida um_lt on um_lt.id = lt.id_unidad_medida
+        LEFT JOIN unidad_medida um_lt on um_lt.id = lt.id_unidad_medida
         WHERE 1 = 1
         ';
 
