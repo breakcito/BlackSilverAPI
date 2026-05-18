@@ -3,7 +3,9 @@
 namespace App\Modules\RequerimientosAlmacenAtencion\Service;
 
 use App\Data\LotesProductosData;
+use App\Services\ActivosFijosService;
 use App\Services\LotesProductosService;
+use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalle;
@@ -65,15 +67,19 @@ class EntregaService
                 $evidenciasData = ArchivoHelper::guardarArchivos('requerimientos_almacen_entregas', $evidencias);
             }
 
-            // Pre-cargar todos los lotes en una sola consulta
-            $ids_lotes = array_map(fn($i) => (int) $i['id_lote_producto'], $detalles);
-            $lotesMap = collect(LotesProductosData::get_lote_dinamico_by_id(
-                id_lote: $ids_lotes,
-                columnas: ['stock_actual_base', 'correlativo', 'contenido_por_presentacion']
-            ))->keyBy('id_lote');
+            // Pre-cargar todos los lotes en una sola consulta (solo los ítems de productos comunes)
+            $items_con_lote = array_filter($detalles, fn($i) => empty($i['id_activo_fijo']));
+            $ids_lotes = array_map(fn($i) => (int) $i['id_lote_producto'], $items_con_lote);
 
-            // Validar Stock
-            foreach ($detalles as $item) {
+            $lotesMap = !empty($ids_lotes)
+                ? collect(LotesProductosData::get_lote_dinamico_by_id(
+                    id_lote: $ids_lotes,
+                    columnas: ['stock_actual_base', 'correlativo', 'contenido_por_presentacion']
+                ))->keyBy('id_lote')
+                : collect();
+
+            // Validar Stock solo para productos comunes
+            foreach ($items_con_lote as $item) {
                 $lote = $lotesMap->get((int) $item['id_lote_producto']);
                 if (!$lote || $lote['stock_actual_base'] < $item['cantidad_base']) {
                     return ApiResponse::error("Stock insuficiente en el lote: " . ($lote['correlativo']));
@@ -97,44 +103,81 @@ class EntregaService
             );
 
             foreach ($detalles as $item) {
-                $id_rad = $item['id_requerimiento_almacen_detalle'];
-                $id_lote = $item['id_lote_producto'];
-                $lote = $lotesMap->get((int) $id_lote);
+                $id_rad        = $item['id_requerimiento_almacen_detalle'];
+                $id_activo     = !empty($item['id_activo_fijo']) ? (int) $item['id_activo_fijo'] : null;
+                $es_activo     = $id_activo !== null;
 
-                // Calcular el costo de lo entregado
-                $costo_promedio_base = LotesProductosData::get_costo_promedio_producto($id_lote);
-                $costo_unidad_lote = (float) $costo_promedio_base * (float) $lote['contenido_por_presentacion'];
-                $subtotal = $costo_unidad_lote * $item['cantidad_base'];
+                if ($es_activo) {
+                    // --- Camino: Activo Fijo ---
+                    // Activos siempre van de almacén a mina (el requerimiento implica uso en mina)
+                    // El almacén que entrega pierde el activo; pasa a la mina del requerimiento
+                    $id_mina_destino = RequerimientosData::get_id_mina_by_requerimiento($id_requerimiento);
 
-                // Crear Detalle de Entrega
-                $id_detalle_entrega = EntregasDetalleData::crear_detalle_entrega(
-                    $id_entrega,
-                    $id_rad,
-                    $id_lote,
-                    $item['cantidad_base'],
-                    $item['cantidad_lote'],
-                    $item['cantidad_requerimiento'],
-                    $costo_promedio_base,
-                    $costo_unidad_lote,
-                    $subtotal
-                );
+                    ActivosFijosService::new_ubicacion(
+                        id_activo: $id_activo,
+                        tipo_movimiento: MovimientoActivoFijo::DeAlmacenAMina,
+                        id_almacen: null,
+                        id_mina: $id_mina_destino,
+                        descripcion: "Entrega por requerimiento N° {$correlativoData['correlativo']}",
+                        fecha_hora_movimiento: $fecha_entrega
+                    );
 
-                // Actualizar Stock y registrar Kardex (Salida)
-                LotesProductosService::update_stock(
-                    id_lote: $id_lote,
-                    id_origen: $id_detalle_entrega,
-                    tabla_origen: null,
-                    tipo_origen: KardexOrigenMovimiento::Entrega,
-                    tipo_movimiento: KardexTipoMovimiento::Salida,
-                    cantidad_movimiento_base: $item['cantidad_base'],
-                    descripcion: "Salida por entrega N° {$correlativoData['correlativo']}",
-                );
+                    // Detalle sin lote, sin costos (activos no tienen precio de lote en este flujo)
+                    EntregasDetalleData::crear_detalle_entrega(
+                        $id_entrega,
+                        $id_rad,
+                        null,   // id_lote
+                        1,      // cantidad_base = 1 unidad
+                        1,      // cantidad_lote
+                        1,      // cantidad_requerimiento
+                        0,      // costo_promedio
+                        0,      // costo_unidad_lote
+                        0,      // subtotal
+                        $id_activo
+                    );
+                } else {
+                    // --- Camino: Producto Común con Lote ---
+                    $id_lote = $item['id_lote_producto'];
+                    $lote = $lotesMap->get((int) $id_lote);
 
-                // Actualizar Requerimiento Detalle
+                    // Calcular el costo de lo entregado
+                    $costo_promedio_base = LotesProductosData::get_costo_promedio_producto($id_lote);
+                    $costo_unidad_lote = (float) $costo_promedio_base * (float) $lote['contenido_por_presentacion'];
+                    $subtotal = $costo_unidad_lote * $item['cantidad_base'];
+
+                    // Crear Detalle de Entrega
+                    $id_detalle_entrega = EntregasDetalleData::crear_detalle_entrega(
+                        $id_entrega,
+                        $id_rad,
+                        $id_lote,
+                        $item['cantidad_base'],
+                        $item['cantidad_lote'],
+                        $item['cantidad_requerimiento'],
+                        $costo_promedio_base,
+                        $costo_unidad_lote,
+                        $subtotal
+                    );
+
+                    // Actualizar Stock y registrar Kardex (Salida)
+                    LotesProductosService::update_stock(
+                        id_lote: $id_lote,
+                        id_origen: $id_detalle_entrega,
+                        tabla_origen: null,
+                        tipo_origen: KardexOrigenMovimiento::Entrega,
+                        tipo_movimiento: KardexTipoMovimiento::Salida,
+                        cantidad_movimiento_base: $item['cantidad_base'],
+                        descripcion: "Salida por entrega N° {$correlativoData['correlativo']}",
+                    );
+                }
+
+                // Actualizar Requerimiento Detalle (común para ambos caminos)
                 $detalle_req = RequerimientosDetalleData::get_cantidades_of_detalle_by_id($id_rad);
                 $ya_entregado_antes = $detalle_req->cantidad_entregada_base;
 
-                RequerimientosDetalleData::increment_detalle_entregado($id_rad, $item['cantidad_requerimiento'], $item['cantidad_base']);
+                $cant_entregada      = $es_activo ? 1 : $item['cantidad_requerimiento'];
+                $cant_entregada_base = $es_activo ? 1 : $item['cantidad_base'];
+
+                RequerimientosDetalleData::increment_detalle_entregado($id_rad, $cant_entregada, $cant_entregada_base);
 
                 // Reload para ver el nuevo estado
                 $detalle_req = RequerimientosDetalleData::get_cantidades_of_detalle_by_id($id_rad);
@@ -159,7 +202,7 @@ class EntregaService
                 RequerimientosDetalleData::insert_detalle_log(
                     $id_rad,
                     $id_empleado_entrega,
-                    EstadoRequerimientoDetalleLog::NuevaEntrega->getGlosa((string) $item['cantidad_requerimiento']),
+                    EstadoRequerimientoDetalleLog::NuevaEntrega->getGlosa((string) $cant_entregada),
                     EstadoRequerimientoDetalleLog::NuevaEntrega
                 );
 

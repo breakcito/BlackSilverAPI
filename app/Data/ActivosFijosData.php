@@ -191,4 +191,20 @@ class ActivosFijosData
             'estado' => $estado->value,
         ]);
     }
+
+    /**
+     * Actualiza la ubicación física y el estado del activo fijo.
+     */
+    public static function update_ubicacion(
+        int $id_activo,
+        ?int $id_almacen,
+        ?int $id_mina,
+        EstadoActivoFijo $estado
+    ) {
+        return ActivoFijo::where('id', $id_activo)->update([
+            'id_almacen' => $id_almacen,
+            'id_mina' => $id_mina,
+            'estado' => $estado->value,
+        ]);
+    }
 }

@@ -10,23 +10,26 @@ class EntregasDetalleData
 {
 
     /**
-     * Crear un detalle de  entrega
+     * Crear un detalle de entrega.
+     * Exactamente uno de $id_lote o $id_activo_fijo debe ser provisto.
      */
     public static function crear_detalle_entrega(
         int $id_entrega,
         int $id_requerimiento_detalle,
-        int $id_lote,
+        ?int $id_lote,
         float $cantidad_base,
         float $cantidad_lote,
         float $cantidad_requerimiento,
         float $costo_promedio,
         float $costo_unidad_lote,
         float $subtotal,
+        ?int $id_activo_fijo = null,
     ) {
         return RequerimientoAlmacenEntregaDetalle::insertGetId([
             'id_requerimiento_almacen_entrega' => $id_entrega,
             'id_requerimiento_almacen_detalle' => $id_requerimiento_detalle,
             'id_lote_producto' => $id_lote,
+            'id_activo_fijo' => $id_activo_fijo,
             'cantidad_base' => $cantidad_base,
             'cantidad_lote' => $cantidad_lote,
             'cantidad_requerimiento' => $cantidad_requerimiento,
@@ -48,44 +51,62 @@ class EntregasDetalleData
         SELECT
             raed.id AS id_entrega_detalle,
             raed.id_requerimiento_almacen_detalle,
+            
+            -- datos del lote (NULL si es un activo fijo)
+            raed.id_lote_producto,
             lot.correlativo,
             lot.fecha_vencimiento,
-            prod.nombre as producto,
-            /* Cálculo de días restantes */
+            
+            -- datos del activo fijo (NULL si es un producto comun)
+            raed.id_activo_fijo,
+            act.correlativo AS correlativo_activo,
+            
+            COALESCE(prod_lote.nombre, prod_act.nombre) AS producto,
+            
+            /* Cálculo de días restantes (solo para lotes) */
             CASE WHEN lot.fecha_vencimiento IS NOT NULL THEN DATEDIFF(
                 lot.fecha_vencimiento,
                 CURRENT_DATE
             ) ELSE NULL
             END AS dias_para_vencer,
+
             /* Determinación del estado de vencimiento */
             CASE 
-                WHEN prod.es_perecible != 1 THEN 'N/A' 
+                WHEN prod_lote.es_perecible != 1 THEN 'N/A' 
                 WHEN lot.fecha_vencimiento IS NULL THEN 'Sin fecha' 
                 WHEN DATEDIFF(lot.fecha_vencimiento,CURRENT_DATE) < 0 THEN 'Vencido' 
-                WHEN DATEDIFF(lot.fecha_vencimiento,CURRENT_DATE) <= prod.dias_espera_vencimiento THEN 'Por vencer' 
+                WHEN DATEDIFF(lot.fecha_vencimiento,CURRENT_DATE) <= prod_lote.dias_espera_vencimiento THEN 'Por vencer' 
                 ELSE 'Vigente'
             END AS estado_vencimiento,
+
             raed.cantidad_base,
-            -- en base a la unidad de medida base del producto
             raed.cantidad_lote,
-            -- en base a la unidad de medida base del lote
             raed.cantidad_requerimiento,
+            
             uni_lot.nombre as unidad_lote,
             uni_lot.abreviatura as unidad_lote_abv,
-            uni_base.nombre as unidad_base,
-            uni_base.abreviatura as unidad_base_abv
+            COALESCE(uni_base_lote.nombre, uni_base_act.nombre) AS unidad_base,
+            COALESCE(uni_base_lote.abreviatura, uni_base_act.abreviatura) AS unidad_base_abv
         FROM
             requerimiento_almacen_entrega_detalle raed
-        INNER JOIN lote_producto lot ON
+        -- lote (puede ser NULL para activos fijos)
+        LEFT JOIN lote_producto lot ON
             lot.id = raed.id_lote_producto
+        LEFT JOIN producto prod_lote ON
+            prod_lote.id = lot.id_producto
+        LEFT JOIN unidad_medida uni_base_lote ON
+            uni_base_lote.id = prod_lote.id_unidad_medida_base
+        LEFT JOIN unidad_medida uni_lot ON
+            uni_lot.id = lot.id_unidad_medida
+        -- activo fijo (puede ser NULL para productos comunes)
+        LEFT JOIN activo_fijo act ON
+            act.id = raed.id_activo_fijo
+        LEFT JOIN producto prod_act ON
+            prod_act.id = act.id_producto
+        LEFT JOIN unidad_medida uni_base_act ON
+            uni_base_act.id = prod_act.id_unidad_medida_base
         INNER JOIN requerimiento_almacen_detalle rqd ON
             rqd.id = raed.id_requerimiento_almacen_detalle
-        INNER JOIN producto prod ON
-            prod.id = lot.id_producto
-        INNER JOIN unidad_medida uni_base ON
-            uni_base.id = prod.id_unidad_medida_base
-        INNER JOIN unidad_medida uni_lot ON
-            uni_lot.id = lot.id_unidad_medida
         WHERE 1 = 1
         ";
 
@@ -103,7 +124,7 @@ class EntregasDetalleData
             $params['id_entrega'] = $id_entrega;
         }
 
-        $sql .= ' ORDER BY lot.correlativo DESC;';
+        $sql .= ' ORDER BY COALESCE(lot.correlativo, act.correlativo) DESC;';
 
         return DB::select($sql, $params);
     }

@@ -45,6 +45,18 @@ class RequerimientosData
     }
 
     /**
+     * Obtener la mina asociada a un requerimiento (destino del activo fijo entregado)
+     */
+    public static function get_id_mina_by_requerimiento(int $id_requerimiento): ?int
+    {
+        $row = RequerimientoAlmacen::select('id_mina')
+            ->where('id', $id_requerimiento)
+            ->first();
+
+        return $row ? (int) $row->id_mina : null;
+    }
+
+    /**
      * Obtener almacen de destino de un requerimiento de almacen
      */
     public static function get_almacen_destino_by_requerimiento(int $id_requerimiento)

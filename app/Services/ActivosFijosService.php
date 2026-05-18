@@ -175,7 +175,7 @@ class ActivosFijosService
             }
 
             // registramos la nueva ubicacion
-            return ActivoFijoUbicacionLog::insertGetId([
+            $id_log = ActivoFijoUbicacionLog::insertGetId([
                 'id_activo_fijo' => $id_activo,
                 'id_almacen' => $id_almacen,
                 'id_mina' => $id_mina,
@@ -188,6 +188,17 @@ class ActivosFijosService
                 //
                 'created_at' => now()
             ]);
+
+            // determinamos el estado
+            $estado = EstadoActivoFijo::EnAlmacen;
+            if ($id_mina != null) {
+                $estado = EstadoActivoFijo::EnUso;
+            }
+
+            // actualizamos la tabla principal
+            ActivosFijosData::update_ubicacion($id_activo, $id_almacen, $id_mina, $estado);
+
+            return $id_log;
         });
     }
 }
