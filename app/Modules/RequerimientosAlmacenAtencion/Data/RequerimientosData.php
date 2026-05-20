@@ -125,10 +125,11 @@ class RequerimientosData
             c.id AS id_contratista,
             CONCAT(c.nombre, " ", c.apellido) AS nombre_completo
         FROM
-            contratista c
+            empleado c
         INNER JOIN responsable_mina res ON
-            res.id_contratista = c.id
+            res.id_empleado_contratista = c.id
         WHERE
+            c.es_contratista = 1 AND
             res.id_mina = :id_mina AND
             res.estado = "Activo" AND
             res.fecha_fin IS NULL

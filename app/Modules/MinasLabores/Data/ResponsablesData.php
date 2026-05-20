@@ -24,11 +24,11 @@ class ResponsablesData
             res.fecha_fin,
             res.estado
         FROM
-            contratista c
+            empleado c
         INNER JOIN responsable_mina res ON
-            res.id_contratista = c.id
+            res.id_empleado_contratista = c.id
         WHERE
-            1 = 1
+            c.es_contratista = 1
         ';
 
         $params = [];
@@ -59,7 +59,7 @@ class ResponsablesData
     {
         return ResponsableMina::insertGetId([
             'id_mina' => $id_mina,
-            'id_contratista' => $id_contratista,
+            'id_empleado_contratista' => $id_contratista,
             'fecha_inicio' => $fecha_inicio,
             'fecha_fin' => null,
             'estado' => EstadoBase::Activo->value,
@@ -95,13 +95,14 @@ class ResponsablesData
             c.id AS id_contratista,
             CONCAT(c.nombre, " ", c.apellido) AS contratista
         FROM
-            contratista c
+            empleado c
         WHERE
+            c.es_contratista = 1 AND
             c.estado = "Activo" AND
             -- que no sean el responsable actual de esta mina
             c.id NOT IN (
                 SELECT
-                    res.id_contratista
+                    res.id_empleado_contratista
                 FROM
                     responsable_mina res
                 WHERE

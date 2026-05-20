@@ -14,7 +14,7 @@ class ResponsableMina extends Model
 
     protected $fillable = [
         'id_mina',
-        'id_contratista',
+        'id_empleado_contratista',
         'fecha_inicio',
         'fecha_fin',
         'estado',

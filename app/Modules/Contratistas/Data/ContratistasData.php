@@ -2,7 +2,7 @@
 
 namespace App\Modules\Contratistas\Data;
 
-use App\Models\Contratista;
+use App\Models\Empleado;
 use App\Models\Labor;
 use App\Models\LaborContratista;
 use App\Shared\Enums\_Generic\EstadoBase;
@@ -33,17 +33,17 @@ class ContratistasData
                 SELECT GROUP_CONCAT(lab.correlativo ORDER BY lab.correlativo SEPARATOR " | ")
                 FROM labor_contratista lc
                 INNER JOIN labor lab ON lab.id = lc.id_labor
-                WHERE lc.id_contratista = c.id
+                WHERE lc.id_empleado_contratista = c.id
             ), "No aplica") AS labores_asignadas,
             (
                 SELECT GROUP_CONCAT(lc.id_labor)
                 FROM labor_contratista lc
-                WHERE lc.id_contratista = c.id
+                WHERE lc.id_empleado_contratista = c.id
             ) AS ids_labor_asignadas
         FROM
-            contratista c
+            empleado c
         LEFT JOIN mina mn ON mn.id = c.id_mina
-        WHERE 1 = 1
+        WHERE c.es_contratista = 1
         ';
 
         $params = [];
@@ -87,8 +87,10 @@ class ContratistasData
         ?string $fecha_nacimiento,
         ?string $path_foto
     ) {
-        return Contratista::insertGetId([
+        return Empleado::insertGetId([
             'id_mina'            => $id_mina,
+            'id_cargo'           => null,
+            'es_contratista'     => 1,
             'nombre'             => $nombre,
             'apellido'           => $apellido,
             'dni'                => $dni,
@@ -106,7 +108,7 @@ class ContratistasData
      */
     public static function existe_dni(string $dni): bool
     {
-        return Contratista::where('dni', $dni)->exists();
+        return Empleado::where('dni', $dni)->exists();
     }
 
     /**
@@ -114,7 +116,7 @@ class ContratistasData
      */
     public static function actualizar_foto(int $id_contratista, ?string $path_foto): bool
     {
-        return (bool) Contratista::where('id', $id_contratista)->update(['path_foto' => $path_foto]);
+        return (bool) Empleado::where('id', $id_contratista)->update(['path_foto' => $path_foto]);
     }
 
     /**
@@ -140,7 +142,7 @@ class ContratistasData
         if ($id_contratista !== null) {
             $sql .= '
             AND lab.id NOT IN (
-                SELECT id_labor FROM labor_contratista WHERE id_contratista = :id_contratista
+                SELECT id_labor FROM labor_contratista WHERE id_empleado_contratista = :id_contratista
             )
             ';
             $params['id_contratista'] = $id_contratista;
@@ -164,7 +166,7 @@ class ContratistasData
             lab.nombre
         FROM labor_contratista lc
         INNER JOIN labor lab ON lab.id = lc.id_labor
-        WHERE lc.id_contratista = :id_contratista
+        WHERE lc.id_empleado_contratista = :id_contratista
         ORDER BY lab.correlativo ASC
         ', ['id_contratista' => $id_contratista]);
     }
@@ -175,7 +177,7 @@ class ContratistasData
     public static function asignar_labor(int $id_contratista, int $id_labor): void
     {
         LaborContratista::create([
-            'id_contratista' => $id_contratista,
+            'id_empleado_contratista' => $id_contratista,
             'id_labor'    => $id_labor,
         ]);
     }
@@ -185,7 +187,7 @@ class ContratistasData
      */
     public static function eliminar_labores_contratista(int $id_contratista): void
     {
-        LaborContratista::where('id_contratista', $id_contratista)->delete();
+        LaborContratista::where('id_empleado_contratista', $id_contratista)->delete();
     }
 
     /**

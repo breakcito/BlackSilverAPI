@@ -38,7 +38,7 @@ class EmpleadosData
         LEFT JOIN empresa emp_asoc ON emp_asoc.id = e.id_empresa
         INNER JOIN cargo car ON car.id = e.id_cargo
         INNER JOIN area a ON a.id = car.id_area
-        WHERE 1 = 1
+        WHERE e.es_contratista = 0
         ';
 
         $params = [];
@@ -94,6 +94,7 @@ class EmpleadosData
             'pasaporte'          => $pasaporte,
             'fecha_nacimiento'   => $fecha_nacimiento,
             'path_foto'          => $path_foto,
+            'es_contratista'     => 0,
             'estado'             => EstadoBase::Activo->value,
         ]);
     }

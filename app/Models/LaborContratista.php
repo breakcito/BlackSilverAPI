@@ -11,7 +11,7 @@ class LaborContratista extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_contratista',
+        'id_empleado_contratista',
         'id_labor',
     ];
 }

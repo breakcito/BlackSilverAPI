@@ -24,7 +24,7 @@ class MinasData
             (
                 SELECT GROUP_CONCAT(CONCAT(con.nombre, " ", con.apellido) ORDER BY res.id DESC SEPARATOR ", ")
                 FROM responsable_mina res
-                INNER JOIN contratista con ON con.id = res.id_contratista
+                INNER JOIN empleado con ON con.id = res.id_empleado_contratista
                 WHERE 
                     res.id_mina = mn.id AND 
                     res.estado = "Activo" AND 

@@ -140,7 +140,7 @@ class ContratistasService
             ContratistasData::eliminar_labores_contratista($id_contratista);
 
             // 2. Actualizar mina del contratista
-            DB::table('contratista')->where('id', $id_contratista)->update(['id_mina' => $id_mina]);
+            DB::table('empleado')->where('id', $id_contratista)->update(['id_mina' => $id_mina]);
 
             // 3. Asignar nuevas labores (si hay mina)
             if ($id_mina) {
