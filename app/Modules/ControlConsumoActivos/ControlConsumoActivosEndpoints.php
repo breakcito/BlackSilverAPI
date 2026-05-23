@@ -12,5 +12,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth.jwt.custom')->group(function () {
     Route::prefix('control-consumo')->controller(ControlConsumoController::class)->group(function () {
         Route::get('/', 'get_reporte');
+        Route::post('/consumir', 'registrar_consumo');
     });
 });
+

@@ -168,9 +168,10 @@ El sistema hace un uso intensivo de _Backed Enums_ de PHP para evitar "magic str
     *   **Excepciones**: Solo es válido en casos de Cabecera + Detalles (ej. Orden de Compra) o registros masivos donde sea manejable y necesario.
     *   **Documentación Obligatoria**: Si un método recibe un array, se **debe documentar exactamente qué contiene** dicho array para evitar adivinanzas.
 6.  **Documentación de Métodos**:
-    *   **Todos los métodos** de todas las capas deben estar documentados de forma breve, concisa y clara, indicando qué hace y para qué se usa.
-    *   No es necesario redocumentar cada parámetro simple, pero es **obligatorio** documentar el contenido de los parámetros de tipo array que no sean solo un array de archivos.
-    *   Si eres una IA, aunque el usuario no lo solicite, es **obligatorio** documentar todos los métodos.
+    *   **Todos los métodos** de todas las capas deben estar documentados con un DocBlock de forma breve, concisa y clara, indicando únicamente qué hace y para qué se usa el método.
+    *   **PROHIBIDO** documentar parámetros individuales simples (como `int`, `string`, `float`, `bool`, etc.). No utilices `@param` para tipos primitivos.
+    *   **SOLO es obligatorio** documentar con `@param` los parámetros que sean de tipo **array**, detallando exactamente qué claves y tipos contiene dicho array para evitar adivinanzas.
+    *   Si eres una IA, aunque el usuario no lo solicite, es **obligatorio** estructurar la documentación de esta manera.
 
 
 ## ⚙️ Ejecución
