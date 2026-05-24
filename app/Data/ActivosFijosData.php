@@ -36,7 +36,7 @@ class ActivosFijosData
      * que esten disponibles segun se requiere.
      */
     public static function get_activos_disponibles(
-        int|array|null $id_producto = null,
+        int|array|null $ids_productos = null,
         ?int $id_activo = null,
         ?int $id_almacen = null,
         ?int $id_mina = null,
@@ -100,11 +100,11 @@ class ActivosFijosData
         }
 
         // Lógica adaptada para int o array
-        if ($id_producto !== null) {
-            if (is_array($id_producto)) {
-                if (!empty($id_producto)) {
+        if ($ids_productos !== null) {
+            if (is_array($ids_productos)) {
+                if (!empty($ids_productos)) {
                     $placeholders = [];
-                    foreach ($id_producto as $index => $id) {
+                    foreach ($ids_productos as $index => $id) {
                         $paramName = "id_producto_{$index}";
                         $placeholders[] = ":{$paramName}";
                         $params[$paramName] = $id;
@@ -113,7 +113,7 @@ class ActivosFijosData
                 }
             } else {
                 $sql .= ' AND act.id_producto = :id_producto';
-                $params['id_producto'] = $id_producto;
+                $params['id_producto'] = $ids_productos;
             }
         }
 

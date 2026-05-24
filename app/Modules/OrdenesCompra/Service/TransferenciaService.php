@@ -20,6 +20,15 @@ class TransferenciaService
 {
     /**
      * Registra una transferencia física de materiales recepcionados hacia su almacén destino real.
+     * 
+     * @param array $detalles Arreglo de detalles a transferir:
+     *  {
+     *      id_orden_compra_recepcion_detalle: int,
+     *      id_lote_producto: int,
+     *      cantidad_transferida_base: float,
+     *      comentario: string|null
+     *  }
+     * @param array|null $evidencias Listado de archivos de evidencias guardados
      */
     public static function registrar_transferencia(
         int $id_empleado_transferencia,
@@ -57,6 +66,7 @@ class TransferenciaService
                 ->keyBy('id');
 
             $commonItems = [];
+            $assetItems = [];
             foreach ($detalles as $item) {
                 $rcdId = (int) $item['id_orden_compra_recepcion_detalle'];
                 $info = $recepDetalles->get($rcdId);
@@ -116,7 +126,7 @@ class TransferenciaService
                 $info = $recepDetalles->get($rcdId);
 
                 if ($info && $info->tipo_bien === TipoBien::ActivoFijo->value) {
-                    $id_activo_fijo = (int) $info->id_activo_fijo;
+                    $id_activo_fijo = !empty($item['id_activo_fijo']) ? (int) $item['id_activo_fijo'] : (int) $info->id_activo_fijo;
 
                     // Insertar detalle vinculando el activo fijo
                     $id_detalle = TransferenciaOCData::crear_detalles($id_transferencia, [
@@ -125,7 +135,7 @@ class TransferenciaService
                         'id_activo_fijo' => $id_activo_fijo,
                         'cantidad_transferida_base' => 1,
                         'comentario' => $item['comentario'] ?? null,
-                        'estado' => EstadoOCTransferenciaDetalle::EnDespacho,
+                        'estado' => $id_mina_destino !== null ? EstadoOCTransferenciaDetalle::RecepcionCompleta : EstadoOCTransferenciaDetalle::EnDespacho,
                     ]);
 
                     if ($id_mina_destino !== null) {
@@ -164,7 +174,7 @@ class TransferenciaService
                         'id_lote_producto' => $id_lote,
                         'cantidad_transferida_base' => $item['cantidad_transferida_base'],
                         'comentario' => $item['comentario'] ?? null,
-                        'estado' => EstadoOCTransferenciaDetalle::EnDespacho,
+                        'estado' => $id_mina_destino !== null ? EstadoOCTransferenciaDetalle::RecepcionCompleta : EstadoOCTransferenciaDetalle::EnDespacho,
                     ]);
 
                     LotesProductosService::update_stock(

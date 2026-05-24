@@ -20,7 +20,7 @@ class ActivosFijosService
      * que esten disponibles segun se requiere.
      */
     public static function get_activos_disponibles(
-        int|array|null $id_producto = null,
+        int|array|null $ids_productos = null,
         ?int $id_activo = null,
         ?int $id_almacen = null,
         ?int $id_mina = null,
@@ -34,7 +34,7 @@ class ActivosFijosService
             id_activo: $id_activo,
             id_almacen: $id_almacen,
             id_mina: $id_mina,
-            id_producto: $id_producto,
+            ids_productos: $ids_productos,
             para_transporte: $para_transporte,
             control_por_odometro: $control_por_odometro,
             control_por_horometro: $control_por_horometro,

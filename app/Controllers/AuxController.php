@@ -203,10 +203,10 @@ class AuxController extends Controller
 
         if (is_array($raw_producto)) {
             // Si es un array, limpiamos y casteamos cada elemento a entero
-            $id_producto = array_map('intval', array_filter($raw_producto));
+            $ids_productos = array_map('intval', array_filter($raw_producto));
         } else {
             // Si es un entero/string único, lo casteamos directamente si no está vacío
-            $id_producto = ($raw_producto !== null && $raw_producto !== '') ? (int) $raw_producto : null;
+            $ids_productos = ($raw_producto !== null && $raw_producto !== '') ? (int) $raw_producto : null;
         }
 
         $para_transporte = $request->input('para_transporte') ? (bool) $request->input('para_transporte') : null;
@@ -219,7 +219,7 @@ class AuxController extends Controller
             id_activo: $id_activo,
             id_almacen: $id_almacen,
             id_mina: $id_mina,
-            id_producto: $id_producto, // 2. Corregido: Coincide con el parámetro del Service
+            ids_productos: $ids_productos,
             para_transporte: $para_transporte,
             control_por_odometro: $control_por_odometro,
             control_por_horometro: $control_por_horometro,

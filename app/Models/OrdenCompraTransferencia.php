@@ -31,6 +31,11 @@ class OrdenCompraTransferencia extends Model
     ];
 
 
+    /**
+     * Crea un registro de transferencia de orden de compra.
+     * 
+     * @param array|null $evidencias Listado de archivos de evidencias guardados
+     */
     public static function crear_transferencia(
         ?int $id_almacen_destino,
         int $id_orden_compra_recepcion,
@@ -41,8 +46,11 @@ class OrdenCompraTransferencia extends Model
         $evidencias = null,
         ?string $fecha_hora_transferencia = null,
         ?string $observacion = null,
-        ?int $id_mina_destino = null
+        ?int $id_mina_destino = null,
+        ?EstadoOCTransferencia $estado = null
     ) {
+        $estadoVal = $estado ? $estado->value : ($id_mina_destino !== null ? EstadoOCTransferencia::RecepcionCompleta->value : EstadoOCTransferencia::EnDespacho->value);
+
         return self::insertGetId([
             'id_orden_compra_recepcion' => $id_orden_compra_recepcion,
             'id_almacen_destino' => $id_almacen_destino,
@@ -55,7 +63,7 @@ class OrdenCompraTransferencia extends Model
             'observacion' => $observacion,
             'evidencias' => $evidencias ? json_encode($evidencias) : null,
             'created_at' => now(),
-            'estado' => EstadoOCTransferencia::EnDespacho->value,
+            'estado' => $estadoVal,
         ]);
     }
 

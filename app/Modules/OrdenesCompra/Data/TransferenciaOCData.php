@@ -4,11 +4,14 @@ namespace App\Modules\OrdenesCompra\Data;
 
 use App\Models\OrdenCompraTransferencia;
 use App\Models\OrdenCompraTransferenciaDetalle;
+use App\Shared\Enums\OrdenCompra\EstadoOCTransferencia;
 
 class TransferenciaOCData
 {
     /**
-     * Crear cabecera de transferencia
+     * Crea la cabecera de una transferencia de orden de compra.
+     * 
+     * @param array|null $evidencias Listado de archivos de evidencias guardados
      */
     public static function crear_transferencia(
         ?int $id_almacen_destino,
@@ -20,7 +23,8 @@ class TransferenciaOCData
         ?array $evidencias = null,
         ?string $fecha_hora_transferencia = null,
         ?string $observacion = null,
-        ?int $id_mina_destino = null
+        ?int $id_mina_destino = null,
+        ?EstadoOCTransferencia $estado = null
     ): int {
         return (int) OrdenCompraTransferencia::crear_transferencia(
             id_almacen_destino: $id_almacen_destino,
@@ -32,7 +36,8 @@ class TransferenciaOCData
             fecha_hora_transferencia: $fecha_hora_transferencia,
             observacion: $observacion,
             evidencias: $evidencias,
-            id_mina_destino: $id_mina_destino
+            id_mina_destino: $id_mina_destino,
+            estado: $estado
         );
     }
 
