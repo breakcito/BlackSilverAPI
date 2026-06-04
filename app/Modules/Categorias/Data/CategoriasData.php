@@ -26,6 +26,7 @@ class CategoriasData
             CAST(cat.para_transporte AS UNSIGNED) AS para_transporte,
             CAST(cat.control_por_odometro AS UNSIGNED) AS control_por_odometro,
             CAST(cat.control_por_horometro AS UNSIGNED) AS control_por_horometro,
+            CAST(cat.control_por_vueltas AS UNSIGNED) AS control_por_vueltas,
             
             -- flags
             CAST(cat.es_consumible AS UNSIGNED) AS es_consumible,
@@ -89,6 +90,7 @@ class CategoriasData
         bool $para_transporte = false,
         bool $control_por_odometro = false,
         bool $control_por_horometro = false,
+        bool $control_por_vueltas = false,
         bool $es_consumible = false,
         bool $para_cocina = false,
         bool $para_mina = false,
@@ -102,6 +104,7 @@ class CategoriasData
             'para_transporte' => $para_transporte ? 1 : 0,
             'control_por_odometro' => $control_por_odometro ? 1 : 0,
             'control_por_horometro' => $control_por_horometro ? 1 : 0,
+            'control_por_vueltas' => $control_por_vueltas ? 1 : 0,
             'es_consumible' => $es_consumible ? 1 : 0,
             'para_cocina' => $para_cocina ? 1 : 0,
             'para_mina' => $para_mina ? 1 : 0,

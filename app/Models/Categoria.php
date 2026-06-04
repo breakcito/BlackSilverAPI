@@ -24,6 +24,7 @@ class Categoria extends Model
         'para_transporte', 
         'control_por_odometro', // util para saber si llevara un control por kilometraje recorrido - para el modulo de Uso
         'control_por_horometro', // util para saber si llevara un control por horas de trabajo - para el modulo de Uso
+        'control_por_vueltas', // util para saber si llevara un control por numero de vueltas - para el modulo de Uso
         //
         // Destinos de uso
         'para_cocina', // indica que los productos de esta categoria seran para cocina
