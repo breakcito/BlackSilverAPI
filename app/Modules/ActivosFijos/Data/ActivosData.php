@@ -29,6 +29,7 @@ class ActivosData
             cat.para_transporte,
             cat.control_por_odometro,
             cat.control_por_horometro,
+            cat.control_por_vueltas,
             
             -- de que marca es
             act.id_marca,
@@ -48,6 +49,8 @@ class ActivosData
             -- 
             act.codigo, -- puesto por el usuario
             act.correlativo, -- lo genera el sistema
+            act.serie_placa,
+            act.numero_placa,
             -- datos que los otorga el fabricante
             act.numero_serie, 
             act.modelo,
@@ -57,6 +60,15 @@ class ActivosData
 
             act.fecha_hora_ingreso,
             act.created_at,
+            act.total_horas,
+            act.total_kilometros,
+            act.total_vueltas,
+            act.proxima_advertencia_horas,
+            act.proxima_advertencia_kilometros,
+            act.proxima_advertencia_vueltas,
+            act.intervalo_mantenimiento_horas,
+            act.intervalo_mantenimiento_kilometros,
+            act.intervalo_mantenimiento_vueltas,
             act.estado
         FROM activo_fijo act
         INNER JOIN producto pr on pr.id = act.id_producto

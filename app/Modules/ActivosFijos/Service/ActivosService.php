@@ -33,6 +33,8 @@ class ActivosService
         ?string $modelo = null,
         ?int $yearcito_modelo = null,
         ?string $descripcion = null,
+        ?string $serie_placa = null,
+        ?string $numero_placa = null,
         ?array $especificaciones = null,
         ?string $fecha_hora_ingreso = null,
         ?EstadoActivoFijo $estado = EstadoActivoFijo::EnUso
@@ -47,6 +49,8 @@ class ActivosService
             modelo: $modelo,
             yearcito_modelo: $yearcito_modelo,
             descripcion: $descripcion,
+            serie_placa: $serie_placa,
+            numero_placa: $numero_placa,
             especificaciones: $especificaciones,
             fecha_hora_ingreso: $fecha_hora_ingreso,
             estado: $estado,

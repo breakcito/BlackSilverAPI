@@ -52,6 +52,8 @@ class ControlUsoData
             $sql .= ' AND cat.control_por_horometro = 1';
         } elseif ($tipo_control === 'odometro') {
             $sql .= ' AND cat.control_por_odometro = 1';
+        } elseif ($tipo_control === 'vueltas') {
+            $sql .= ' AND cat.control_por_vueltas = 1';
         }
 
         if ($mes !== null) {

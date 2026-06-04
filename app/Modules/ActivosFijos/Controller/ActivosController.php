@@ -2,11 +2,12 @@
 
 namespace App\Modules\ActivosFijos\Controller;
 
+use App\Modules\ActivosFijos\Service\ActivosService;
+use App\Services\ActivosFijosService as GlobalActivosService;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
 use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
 use Carbon\Carbon;
 use Illuminate\Routing\Controller;
-use App\Modules\ActivosFijos\Service\ActivosService;
 use Illuminate\Http\Request;
 
 class ActivosController extends Controller
@@ -33,6 +34,8 @@ class ActivosController extends Controller
         $modelo = $request->input('modelo');
         $yearcito_modelo = $request->input('yearcito_modelo');
         $descripcion = $request->input('descripcion');
+        $serie_placa = $request->input('serie_placa');
+        $numero_placa = $request->input('numero_placa');
         $especificaciones = $request->input('especificaciones');
         $fecha_hora_ingreso = $request->input('fecha_hora_ingreso');
         $fecha_hora_ingreso = Carbon::parse($fecha_hora_ingreso)->toDateTimeString();
@@ -48,6 +51,8 @@ class ActivosController extends Controller
             modelo: $modelo,
             yearcito_modelo: $yearcito_modelo,
             descripcion: $descripcion,
+            serie_placa: $serie_placa,
+            numero_placa: $numero_placa,
             especificaciones: $especificaciones,
             fecha_hora_ingreso: $fecha_hora_ingreso,
             estado: $estado
@@ -76,6 +81,36 @@ class ActivosController extends Controller
             id_mina: $id_mina,
             descripcion: $descripcion,
             fecha_hora_movimiento: $fecha_hora_movimiento
+        );
+    }
+
+    public function configurar_alertas(Request $request)
+    {
+        $id_activo = $request->integer('id_activo');
+        $intervalo_horas = $request->input('intervalo_horas');
+        $intervalo_kilometros = $request->input('intervalo_kilometros');
+        $intervalo_vueltas = $request->input('intervalo_vueltas');
+
+        return GlobalActivosService::configurar_alertas(
+            id_activo: $id_activo,
+            intervalo_horas: $intervalo_horas !== null ? (float) $intervalo_horas : null,
+            intervalo_kilometros: $intervalo_kilometros !== null ? (float) $intervalo_kilometros : null,
+            intervalo_vueltas: $intervalo_vueltas !== null ? (float) $intervalo_vueltas : null
+        );
+    }
+
+    public function registrar_mantenimiento(Request $request)
+    {
+        $id_activo = $request->integer('id_activo');
+        $id_empleado = $request->integer('id_empleado_registro');
+        $tipo_control = $request->input('tipo_control'); // horometro, odometro, vueltas
+        $observacion = $request->input('observacion');
+
+        return GlobalActivosService::registrar_mantenimiento(
+            id_activo: $id_activo,
+            id_empleado: $id_empleado,
+            tipo_control: $tipo_control,
+            observacion: $observacion
         );
     }
 }

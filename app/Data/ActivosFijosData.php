@@ -62,12 +62,25 @@ class ActivosFijosData
             pr.nombre as producto,
             pr.es_auditable,
             
+            act.serie_placa,
+            act.numero_placa,
+            act.total_horas,
+            act.total_kilometros,
+            act.total_vueltas,
+            act.proxima_advertencia_horas,
+            act.proxima_advertencia_kilometros,
+            act.proxima_advertencia_vueltas,
+            act.intervalo_mantenimiento_horas,
+            act.intervalo_mantenimiento_kilometros,
+            act.intervalo_mantenimiento_vueltas,
+            
             cat.id as id_categoria,
             cat.nombre as categoria,
 
             cat.para_transporte,
             cat.control_por_odometro,
             cat.control_por_horometro,
+            cat.control_por_vueltas,
             
             pr.id_unidad_medida_base,
             umb.nombre as unidad_medida_base,
@@ -167,6 +180,8 @@ class ActivosFijosData
         ?string $modelo = null,
         ?int $yearcito_modelo = null,
         ?string $descripcion = null,
+        ?string $serie_placa = null,
+        ?string $numero_placa = null,
         ?array $especificaciones = null,
         ?string $fecha_hora_ingreso = null,
         ?EstadoActivoFijo $estado = EstadoActivoFijo::EnUso
@@ -184,6 +199,8 @@ class ActivosFijosData
             'modelo' => $modelo,
             'yearcito_modelo' => $yearcito_modelo,
             'descripcion' => $descripcion,
+            'serie_placa' => $serie_placa,
+            'numero_placa' => $numero_placa,
             'especificaciones' => $especificaciones ? json_encode($especificaciones) : null,
             //
             'fecha_hora_ingreso' => $fecha_hora_ingreso ?? now(),
@@ -206,5 +223,19 @@ class ActivosFijosData
             'id_mina' => $id_mina,
             'estado' => $estado->value,
         ]);
+    }
+
+    public static function actualizar_config_alertas(int $id_activo, array $data)
+    {
+        return ActivoFijo::where('id', $id_activo)->update($data);
+    }
+
+    public static function registrar_mantenimiento(array $log_data, int $id_activo, array $update_activo_data)
+    {
+        return DB::transaction(function () use ($log_data, $id_activo, $update_activo_data) {
+            \App\Models\MantenimientoActivoLog::insert($log_data);
+            ActivoFijo::where('id', $id_activo)->update($update_activo_data);
+            return true;
+        });
     }
 }

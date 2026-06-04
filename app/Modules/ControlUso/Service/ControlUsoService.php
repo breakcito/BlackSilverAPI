@@ -79,6 +79,37 @@ class ControlUsoService
                 'created_at' => now()->toDateTimeString()
             ]);
 
+            // Update cumulative totals in the activo_fijo record
+            $activoInfo = DB::table('activo_fijo')
+                ->join('producto', 'producto.id', '=', 'activo_fijo.id_producto')
+                ->join('categoria', 'categoria.id', '=', 'producto.id_categoria')
+                ->select(
+                    'categoria.control_por_horometro',
+                    'categoria.control_por_odometro',
+                    'categoria.control_por_vueltas'
+                )
+                ->where('activo_fijo.id', $id_activo_fijo)
+                ->first();
+
+            if ($activoInfo) {
+                $updates = [];
+                if ($activoInfo->control_por_horometro && $horometro_fin !== null) {
+                    $updates['total_horas'] = $horometro_fin;
+                }
+                if ($activoInfo->control_por_odometro && $horometro_fin !== null) {
+                    $updates['total_kilometros'] = $horometro_fin;
+                }
+                if ($activoInfo->control_por_vueltas && $horometro_fin !== null) {
+                    $updates['total_vueltas'] = $horometro_fin;
+                }
+
+                if (!empty($updates)) {
+                    DB::table('activo_fijo')
+                        ->where('id', $id_activo_fijo)
+                        ->update($updates);
+                }
+            }
+
             return ApiResponse::success($log, 'Registro de uso guardado correctamente');
         });
     }

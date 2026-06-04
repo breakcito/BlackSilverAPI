@@ -14,5 +14,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::get('/', 'get_activos');
         Route::post('/', 'crear_activo');
         Route::post('/ubicacion', 'actualizar_ubicacion');
+        Route::post('/configurar-alertas', 'configurar_alertas');
+        Route::post('/mantenimiento', 'registrar_mantenimiento');
     });
 });
