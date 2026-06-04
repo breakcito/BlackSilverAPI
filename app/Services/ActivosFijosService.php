@@ -251,7 +251,8 @@ class ActivosFijosService
         int $id_activo,
         int $id_empleado,
         string $tipo_control,
-        ?string $observacion
+        ?string $observacion,
+        ?string $fecha_hora_mantenimiento = null
     ) {
         $activo = ActivosFijosData::get_activo_by_id($id_activo, ['id', 'total_horas', 'total_kilometros', 'total_vueltas', 'intervalo_mantenimiento_horas', 'intervalo_mantenimiento_kilometros', 'intervalo_mantenimiento_vueltas']);
         if (!$activo) {
@@ -261,7 +262,7 @@ class ActivosFijosService
         $log_data = [
             'id_activo_fijo' => $id_activo,
             'id_empleado_registro' => $id_empleado,
-            'fecha_hora_mantenimiento' => now(),
+            'fecha_hora_mantenimiento' => $fecha_hora_mantenimiento ?? now(),
             'tipo_control' => $tipo_control,
             'observacion' => $observacion,
             'created_at' => now()

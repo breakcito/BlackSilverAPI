@@ -105,12 +105,14 @@ class ActivosController extends Controller
         $id_empleado = $request->integer('id_empleado_registro');
         $tipo_control = $request->input('tipo_control'); // horometro, odometro, vueltas
         $observacion = $request->input('observacion');
+        $fecha_hora_mantenimiento = $request->input('fecha_hora_mantenimiento');
 
         return GlobalActivosService::registrar_mantenimiento(
             id_activo: $id_activo,
             id_empleado: $id_empleado,
             tipo_control: $tipo_control,
-            observacion: $observacion
+            observacion: $observacion,
+            fecha_hora_mantenimiento: $fecha_hora_mantenimiento
         );
     }
 }
