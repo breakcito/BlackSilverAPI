@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\ControlUso\Controller\ControlUsoController;
+use App\Modules\ControlUso\Controller\ControlUsoReporteController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -23,5 +24,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
         // Tipos de Material
         Route::get('/materiales', 'get_materiales');
         Route::post('/materiales', 'crear_material');
+    });
+
+    Route::prefix('control-uso/reportes')->controller(ControlUsoReporteController::class)->group(function () {
+        Route::get('/mensual', 'get_reporte_mensual');
     });
 });
