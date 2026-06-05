@@ -88,7 +88,6 @@ class RequerimientosDetalleData
             ]);
     }
 
-
     public static function get_id_requerimiento_by_detalle(int $id_detalle)
     {
         return DB::selectOne('
@@ -101,9 +100,6 @@ class RequerimientosDetalleData
         ', ["id_detalle" => $id_detalle]);
     }
 
-    /**
-     * Obtener detalle por id
-     */
 
     /**
      * Crear el detalle de un requerimiento de almacén.
@@ -116,7 +112,6 @@ class RequerimientosDetalleData
         float $contenido,
         float $cantidad_base,
         ?string $comentario = null,
-        ?int $id_activo_fijo_destino = null
     ) {
         return RequerimientoAlmacenDetalle::insertGetId([
             'id_requerimiento_almacen' => $id_requerimiento,
@@ -128,7 +123,6 @@ class RequerimientosDetalleData
             'cantidad_entregada' => 0,
             'cantidad_entregada_base' => 0,
             'comentario' => $comentario,
-            'id_activo_fijo_destino' => $id_activo_fijo_destino,
             'estado' => EstadoRequerimientoDetalle::EsperandoAprobacion->value,
         ]);
     }

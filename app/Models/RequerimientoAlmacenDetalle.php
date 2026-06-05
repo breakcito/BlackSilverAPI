@@ -14,7 +14,6 @@ class RequerimientoAlmacenDetalle extends Model
     protected $fillable = [
         'id_requerimiento_almacen',
         'id_producto', // manzana - kilos
-        'id_activo_fijo_destino', // en caso el producto se consuma por un activo fijo
         'id_unidad_medida', // caja
         'id_empleado_atencion', // quien decide aprobar/rechazar el producto del requerimiento
         //
@@ -48,12 +47,6 @@ class RequerimientoAlmacenDetalle extends Model
             pr.stock_minimo_base,
             pr.es_auditable,
             cat.clasificacion_bien as tipo_bien,
-            
-            -- que activo va a consumir lo que se esta pidiendo: Tractor consume Gasolina
-            rad.id_activo_fijo_destino,
-            act_dest.correlativo AS correlativo_activo_fijo_destino,
-            pr_dest.id as id_producto_destino,
-            pr_dest.nombre AS producto_destino,
             
             -- unidad base y cantidades en base a esa unidad base del producto
             pr.id_unidad_medida_base,
@@ -114,10 +107,6 @@ class RequerimientoAlmacenDetalle extends Model
         
         INNER JOIN requerimiento_almacen req on req.id = rad.id_requerimiento_almacen
         INNER JOIN almacen alm on alm.id = req.id_almacen_destino
-        
-        -- inners por si lo requerido sera requerido para un activo fijo 
-        LEFT JOIN activo_fijo act_dest ON act_dest.id = rad.id_activo_fijo_destino
-        LEFT JOIN producto pr_dest ON pr_dest.id = act_dest.id_producto
         
         LEFT JOIN empleado emp ON emp.id = rad.id_empleado_atencion
         WHERE 1=1

@@ -58,7 +58,6 @@ class AtencionController extends Controller
             'detalles.*.id_unidad_medida' => 'required|integer',
             'detalles.*.cantidad_solicitada' => 'required|numeric|min:0.01',
             'detalles.*.contenido_por_presentacion' => 'required|numeric|min:0.01',
-            'detalles.*.id_activo_fijo_destino' => 'nullable|integer',
             'detalles.*.comentario' => 'nullable|string',
             'evidencias' => 'nullable|array',
             'evidencias.*' => 'file',

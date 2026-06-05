@@ -81,11 +81,6 @@ class PrestamoAlmacenDetalle extends Model
             prod.nombre AS producto,
             cat.clasificacion_bien as tipo_bien,
             
-            prdt.id as id_producto_destino,
-            prdt.nombre as producto_destino,
-            rqd.id_activo_fijo_destino,
-            act_des.correlativo as correlativo_activo_fijo_destino,
-            
             (
                 SELECT
                     SUM(lot.stock_actual_base)
@@ -129,12 +124,6 @@ class PrestamoAlmacenDetalle extends Model
         INNER JOIN categoria cat on cat.id = prod.id_categoria
         INNER JOIN unidad_medida um_pr ON um_pr.id = pad.id_unidad_medida
         INNER JOIN unidad_medida um_bs ON um_bs.id = prod.id_unidad_medida_base
-        
-        -- joins para saber la razon del por que hay 2 productos iguales en el prestamo, pero con destino diferente
-        LEFT JOIN solicitud_reabastecimiento_detalle srd on srd.id = pad.id_solicitud_reabastecimiento_detalle
-        LEFT JOIN requerimiento_almacen_detalle rqd on rqd.id = srd.id_requerimiento_almacen_detalle
-        LEFT JOIN activo_fijo act_des on act_des.id = rqd.id_activo_fijo_destino
-        LEFT JOIN producto prdt on prdt.id = act_des.id_producto
         WHERE 1 = 1
         ';
 

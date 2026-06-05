@@ -68,18 +68,13 @@ class PrestamoAlmacenReposicionRecepcionDetalle extends Model
         array|int|null $ids_detalles = null
     ) {
         $sql = "
-        SELECT DISTINCT
+        SELECT 
             prd.id AS id_recepcion_detalle,
             prd.id_prestamo_almacen_reposicion_recepcion AS id_recepcion,
             prd.id_prestamo_almacen_reposicion_detalle AS id_reposicion_detalle,
             
             pd.id_producto,
             p.nombre AS producto,
-            
-			rad.id_activo_fijo_destino,
-            act_des.correlativo as correlativo_activo_fijo_destino,
-            act_des.id_producto as id_producto_destino,
-            prdt.nombre as producto_destino,
             
             um.id AS id_unidad_medida_base,
             um.abreviatura AS unidad_medida_base_abv,
@@ -97,14 +92,6 @@ class PrestamoAlmacenReposicionRecepcionDetalle extends Model
             p.id = pd.id_producto
         INNER JOIN unidad_medida um ON
             um.id = p.id_unidad_medida_base
-        -- 
-        -- joins para saber para que sera usado lo recepcionado
-        LEFT JOIN solicitud_reabastecimiento_detalle srd ON
-            srd.id = pd.id_solicitud_reabastecimiento_detalle
-        LEFT JOIN requerimiento_almacen_detalle rad ON
-            rad.id = srd.id_requerimiento_almacen_detalle
-        LEFT JOIN activo_fijo act_des on act_des.id = rad.id_activo_fijo_destino
-        LEFT JOIN producto prdt ON prdt.id = act_des.id_producto
         WHERE 1=1
         ";
 

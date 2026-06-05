@@ -66,7 +66,7 @@ class SolicitudReabastecimientoDetalle extends Model
         $incluir_stock = $con_stock_disponible ? 1 : 0;
 
         $sql = '
-            SELECT DISTINCT
+            SELECT 
             srd.id AS id_solicitud_detalle,
             CONCAT(emp.nombre, " ", emp.apellido) AS empleado_atencion,
             
@@ -75,12 +75,6 @@ class SolicitudReabastecimientoDetalle extends Model
             pr.es_auditable,
             pr.stock_minimo_base,
             cat.clasificacion_bien as tipo_bien,
-
-            -- que producto (tractor, carro, etc) va a consumir este item
-            rqd.id_activo_fijo_destino,
-            act_des.correlativo as correlativo_activo_fijo_destino,
-            prdt.id as id_producto_destino,
-            prdt.nombre as producto_destino, 
             
             -- segun la unidad base del producto
             pr.id_unidad_medida_base,
@@ -168,10 +162,6 @@ class SolicitudReabastecimientoDetalle extends Model
         INNER JOIN unidad_medida uni ON uni.id = srd.id_unidad_medida
         INNER JOIN solicitud_reabastecimiento src on src.id = srd.id_solicitud_reabastecimiento
         INNER JOIN almacen alm on alm.id = src.id_almacen_solicitante
-        
-        LEFT JOIN requerimiento_almacen_detalle rqd on rqd.id = srd.id_requerimiento_almacen_detalle
-        LEFT JOIN activo_fijo act_des on act_des.id = rqd.id_activo_fijo_destino
-        LEFT JOIN producto prdt on prdt.id = act_des.id_producto
         WHERE 1 = 1
         ';
 

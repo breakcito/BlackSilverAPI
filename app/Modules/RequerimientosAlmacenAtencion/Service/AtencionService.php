@@ -46,7 +46,6 @@ class AtencionService
      *   contenido_por_presentacion,
      *   cantidad_solicitada, // segun la unidad de medida del detalle (igual o diferente a la unidad base)
      *   comentario,
-     *   id_activo_fijo_destino // que activo va a consumir lo que esta pidiendo
      *  }
      * ]
      */
@@ -109,7 +108,6 @@ class AtencionService
                     $contenido,
                     $cantidad_base,
                     $detalle['comentario'] ?? null,
-                    $detalle['id_activo_fijo_destino'] ?? null
                 );
 
                 RequerimientosDetalleData::registrar_trazabilidad($id_detalle, $id_empleado_registro);
