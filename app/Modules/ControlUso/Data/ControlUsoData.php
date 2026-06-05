@@ -38,22 +38,42 @@ class ControlUsoData
             log.precio_unitario,
             log.costo_total,
             log.observacion,
-            log.created_at
+            log.created_at,
+            
+            -- nuevos datos operativos
+            log.es_para_mina,
+            log.id_mina,
+            mi.nombre as mina,
+            log.id_labor,
+            la.nombre as labor,
+            log.id_cliente,
+            cli.razon_social as cliente,
+            log.tipo_carga,
+            log.id_tarifa,
+            tar.descripcion as tarifa_desc,
+            log.cantidad_vueltas,
+            log.odometro_inicio,
+            log.odometro_fin,
+            GREATEST(0, COALESCE(log.odometro_fin, 0) - COALESCE(log.odometro_inicio, 0)) as total_km
         FROM activo_fijo_uso_log log
         INNER JOIN activo_fijo act ON act.id = log.id_activo_fijo
         INNER JOIN producto pr ON pr.id = act.id_producto
         INNER JOIN categoria cat ON cat.id = pr.id_categoria
+        LEFT JOIN mina mi ON mi.id = log.id_mina
+        LEFT JOIN labor la ON la.id = log.id_labor
+        LEFT JOIN cliente cli ON cli.id = log.id_cliente
+        LEFT JOIN activo_fijo_tarifa tar ON tar.id = log.id_tarifa
         WHERE 1=1
         ';
 
         $params = [];
 
         if ($tipo_control === 'horometro') {
-            $sql .= ' AND cat.control_por_horometro = 1';
+            $sql .= ' AND (log.horometro_inicio IS NOT NULL OR log.horometro_fin IS NOT NULL)';
         } elseif ($tipo_control === 'odometro') {
-            $sql .= ' AND cat.control_por_odometro = 1';
+            $sql .= ' AND (log.odometro_inicio IS NOT NULL OR log.odometro_fin IS NOT NULL)';
         } elseif ($tipo_control === 'vueltas') {
-            $sql .= ' AND cat.control_por_vueltas = 1';
+            $sql .= ' AND log.cantidad_vueltas IS NOT NULL';
         }
 
         if ($mes !== null) {
@@ -72,7 +92,7 @@ class ControlUsoData
     }
 
     /**
-     * Obtener el último registro de uso para un activo específico, ordenado por fecha de fin.
+     * Obtener el último registro de uso para un activo específico (horómetro), ordenado por fecha de fin.
      */
     public static function get_ultimo_registro(int $id_activo_fijo)
     {
@@ -81,11 +101,70 @@ class ControlUsoData
             horometro_fin,
             fecha_hora_fin_control
         FROM activo_fijo_uso_log
-        WHERE id_activo_fijo = :id_activo_fijo
+        WHERE id_activo_fijo = :id_activo_fijo AND horometro_fin IS NOT NULL
         ORDER BY fecha_hora_fin_control DESC, id DESC
         LIMIT 1
         ';
 
         return DB::selectOne($sql, ['id_activo_fijo' => $id_activo_fijo]);
+    }
+
+    /**
+     * Obtener el último registro de uso para un activo específico (odómetro), ordenado por fecha de fin.
+     */
+    public static function get_ultimo_registro_odometro(int $id_activo_fijo)
+    {
+        $sql = '
+        SELECT 
+            odometro_fin,
+            fecha_hora_fin_control
+        FROM activo_fijo_uso_log
+        WHERE id_activo_fijo = :id_activo_fijo AND odometro_fin IS NOT NULL
+        ORDER BY fecha_hora_fin_control DESC, id DESC
+        LIMIT 1
+        ';
+
+        return DB::selectOne($sql, ['id_activo_fijo' => $id_activo_fijo]);
+    }
+
+    /**
+     * Obtener el listado de tarifas para un activo.
+     */
+    public static function get_tarifas(int $id_activo_fijo)
+    {
+        $sql = '
+        SELECT 
+            t.id,
+            t.id_activo_fijo,
+            t.tipo_control,
+            t.precio_unitario,
+            t.descripcion,
+            t.id_tipo_material,
+            m.nombre as tipo_material,
+            t.created_at
+        FROM activo_fijo_tarifa t
+        LEFT JOIN tipo_material m ON m.id = t.id_tipo_material
+        WHERE t.id_activo_fijo = :id_activo_fijo
+        ORDER BY t.id DESC
+        ';
+
+        return DB::select($sql, ['id_activo_fijo' => $id_activo_fijo]);
+    }
+
+    /**
+     * Obtener el listado de materiales.
+     */
+    public static function get_materiales()
+    {
+        $sql = '
+        SELECT 
+            id,
+            nombre,
+            created_at
+        FROM tipo_material
+        ORDER BY nombre ASC
+        ';
+
+        return DB::select($sql);
     }
 }

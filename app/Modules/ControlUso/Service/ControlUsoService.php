@@ -32,6 +32,13 @@ class ControlUsoService
         return ApiResponse::success(['ultimo_horometro' => $valor]);
     }
 
+    public static function get_ultimo_odometro(int $id_activo_fijo)
+    {
+        $ultimo = ControlUsoData::get_ultimo_registro_odometro($id_activo_fijo);
+        $valor = $ultimo ? (float) $ultimo->odometro_fin : 0.0;
+        return ApiResponse::success(['ultimo_odometro' => $valor]);
+    }
+
     /**
      * Registrar un nuevo log de uso, realizando los cálculos necesarios en backend.
      */
@@ -39,9 +46,18 @@ class ControlUsoService
         int $id_activo_fijo,
         string $fecha_hora_inicio_control,
         ?string $fecha_hora_fin_control = null,
-        ?float $horometro_inicio = 0.0,
-        ?float $horometro_fin = 0.0,
+        ?float $horometro_inicio = null,
+        ?float $horometro_fin = null,
+        ?float $odometro_inicio = null,
+        ?float $odometro_fin = null,
+        ?int $cantidad_vueltas = null,
+        ?int $id_tarifa = null,
         ?float $precio_unitario = 0.0,
+        ?bool $es_para_mina = null,
+        ?int $id_mina = null,
+        ?int $id_labor = null,
+        ?int $id_cliente = null,
+        ?string $tipo_carga = null,
         ?string $observacion = null
     ) {
         return DB::transaction(function () use (
@@ -50,7 +66,16 @@ class ControlUsoService
             $fecha_hora_fin_control,
             $horometro_inicio,
             $horometro_fin,
+            $odometro_inicio,
+            $odometro_fin,
+            $cantidad_vueltas,
+            $id_tarifa,
             $precio_unitario,
+            $es_para_mina,
+            $id_mina,
+            $id_labor,
+            $id_cliente,
+            $tipo_carga,
             $observacion
         ) {
             // Parses dates with Carbon
@@ -59,11 +84,17 @@ class ControlUsoService
 
             // Calculates difference and totals
             $total_horas = 0.0;
+            $costo_total = 0.0;
+
             if ($horometro_fin !== null && $horometro_inicio !== null) {
                 $total_horas = max(0.0, $horometro_fin - $horometro_inicio);
+                $costo_total = $total_horas * ($precio_unitario ?? 0.0);
+            } elseif ($odometro_fin !== null && $odometro_inicio !== null) {
+                $total_km = max(0.0, $odometro_fin - $odometro_inicio);
+                $costo_total = $total_km * ($precio_unitario ?? 0.0);
+            } elseif ($cantidad_vueltas !== null) {
+                $costo_total = $cantidad_vueltas * ($precio_unitario ?? 0.0);
             }
-
-            $costo_total = $total_horas * ($precio_unitario ?? 0.0);
 
             // Inserts standard usage log
             $log = ActivoFijoUsoLog::create([
@@ -72,12 +103,23 @@ class ControlUsoService
                 'fecha_hora_fin_control' => $fecha_fin,
                 'horometro_inicio' => $horometro_inicio,
                 'horometro_fin' => $horometro_fin,
+                'odometro_inicio' => $odometro_inicio,
+                'odometro_fin' => $odometro_fin,
+                'cantidad_vueltas' => $cantidad_vueltas,
                 'total_horas' => $total_horas,
                 'precio_unitario' => $precio_unitario ?? 0.0,
                 'costo_total' => $costo_total,
+                'es_para_mina' => $es_para_mina,
+                'id_mina' => $id_mina,
+                'id_labor' => $id_labor,
+                'id_cliente' => $id_cliente,
+                'tipo_carga' => $tipo_carga,
+                'id_tarifa' => $id_tarifa,
                 'observacion' => $observacion,
                 'created_at' => now()->toDateTimeString()
             ]);
+
+
 
             // Update cumulative totals in the activo_fijo record
             $activoInfo = DB::table('activo_fijo')
@@ -96,11 +138,13 @@ class ControlUsoService
                 if ($activoInfo->control_por_horometro && $horometro_fin !== null) {
                     $updates['total_horas'] = $horometro_fin;
                 }
-                if ($activoInfo->control_por_odometro && $horometro_fin !== null) {
-                    $updates['total_kilometros'] = $horometro_fin;
+                if ($activoInfo->control_por_odometro && $odometro_fin !== null) {
+                    $updates['total_kilometros'] = $odometro_fin;
                 }
-                if ($activoInfo->control_por_vueltas && $horometro_fin !== null) {
-                    $updates['total_vueltas'] = $horometro_fin;
+                if ($activoInfo->control_por_vueltas && $cantidad_vueltas !== null) {
+                    // Get current and add
+                    $curr = DB::table('activo_fijo')->where('id', $id_activo_fijo)->value('total_vueltas') ?? 0;
+                    $updates['total_vueltas'] = $curr + $cantidad_vueltas;
                 }
 
                 if (!empty($updates)) {
@@ -112,5 +156,44 @@ class ControlUsoService
 
             return ApiResponse::success($log, 'Registro de uso guardado correctamente');
         });
+    }
+
+    public static function get_tarifas(int $id_activo_fijo)
+    {
+        $res = ControlUsoData::get_tarifas($id_activo_fijo);
+        return ApiResponse::success($res);
+    }
+
+    public static function crear_tarifa(
+        int $id_activo_fijo,
+        string $tipo_control,
+        float $precio_unitario,
+        string $descripcion,
+        ?int $id_tipo_material
+    ) {
+        $tarifa = \App\Models\ActivoFijoTarifa::create([
+            'id_activo_fijo' => $id_activo_fijo,
+            'tipo_control' => $tipo_control,
+            'precio_unitario' => $precio_unitario,
+            'descripcion' => $descripcion,
+            'id_tipo_material' => $id_tipo_material,
+            'created_at' => now()->toDateTimeString()
+        ]);
+        return ApiResponse::success($tarifa, 'Tarifa registrada exitosamente');
+    }
+
+    public static function get_materiales()
+    {
+        $res = ControlUsoData::get_materiales();
+        return ApiResponse::success($res);
+    }
+
+    public static function crear_material(string $nombre)
+    {
+        $material = \App\Models\TipoMaterial::create([
+            'nombre' => $nombre,
+            'created_at' => now()->toDateTimeString()
+        ]);
+        return ApiResponse::success($material, 'Material registrado exitosamente');
     }
 }

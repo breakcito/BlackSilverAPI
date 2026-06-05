@@ -28,16 +28,18 @@ class ActivosFijosService
         ?bool $para_transporte = null,
         ?bool $control_por_odometro = null,
         ?bool $control_por_horometro = null,
+        ?bool $control_por_vueltas = null,
         ?EstadoActivoFijo $estado = null
     ) {
         $activos = ActivosFijosData::get_activos_disponibles(
+            ids_productos: $ids_productos,
             id_activo: $id_activo,
             id_almacen: $id_almacen,
             id_mina: $id_mina,
-            ids_productos: $ids_productos,
             para_transporte: $para_transporte,
             control_por_odometro: $control_por_odometro,
             control_por_horometro: $control_por_horometro,
+            control_por_vueltas: $control_por_vueltas,
             estado: $estado
         );
         return ApiResponse::success($activos);

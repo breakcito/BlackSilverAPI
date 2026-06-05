@@ -209,20 +209,23 @@ class AuxController extends Controller
             $ids_productos = ($raw_producto !== null && $raw_producto !== '') ? (int) $raw_producto : null;
         }
 
-        $para_transporte = $request->input('para_transporte') ? (bool) $request->input('para_transporte') : null;
-        $control_por_odometro = $request->input('control_por_odometro') ? (bool) $request->input('control_por_odometro') : null;
-        $control_por_horometro = $request->input('control_por_horometro') ? (bool) $request->input('control_por_horometro') : null;
+        $para_transporte = $request->has('para_transporte') ? $request->boolean('para_transporte') : null;
+        $control_por_odometro = $request->has('control_por_odometro') ? $request->boolean('control_por_odometro') : null;
+        $control_por_horometro = $request->has('control_por_horometro') ? $request->boolean('control_por_horometro') : null;
+        $control_por_vueltas = $request->has('control_por_vueltas') ? $request->boolean('control_por_vueltas') : null;
+        
         $estado_val = $request->input('estado');
         $estado = $estado_val ? EstadoActivoFijo::from($estado_val) : null;
 
         return response()->json(ActivosFijosService::get_activos_disponibles(
+            ids_productos: $ids_productos,
             id_activo: $id_activo,
             id_almacen: $id_almacen,
             id_mina: $id_mina,
-            ids_productos: $ids_productos,
             para_transporte: $para_transporte,
             control_por_odometro: $control_por_odometro,
             control_por_horometro: $control_por_horometro,
+            control_por_vueltas: $control_por_vueltas,
             estado: $estado,
         ));
     }

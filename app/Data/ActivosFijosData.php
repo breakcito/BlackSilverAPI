@@ -44,6 +44,7 @@ class ActivosFijosData
         ?bool $para_transporte = null,
         ?bool $control_por_odometro = null,
         ?bool $control_por_horometro = null,
+        ?bool $control_por_vueltas = null,
         ?EstadoActivoFijo $estado = null
     ) {
         $sql = '
@@ -143,6 +144,11 @@ class ActivosFijosData
         if ($control_por_horometro != null) {
             $sql .= ' AND cat.control_por_horometro = :control_por_horometro';
             $params['control_por_horometro'] = $control_por_horometro ? 1 : 0;
+        }
+
+        if ($control_por_vueltas != null) {
+            $sql .= ' AND cat.control_por_vueltas = :control_por_vueltas';
+            $params['control_por_vueltas'] = $control_por_vueltas ? 1 : 0;
         }
 
         if ($estado != null) {
