@@ -3,6 +3,7 @@
 namespace App\Modules\ControlConsumoActivos\Service;
 
 use App\Modules\ControlConsumoActivos\Data\ControlConsumoData;
+use App\Modules\ControlConsumoActivos\Data\EntregasData;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoConsumoDetalleEntregaReq;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Support\Facades\DB;
@@ -10,12 +11,12 @@ use Illuminate\Support\Facades\DB;
 class ControlConsumoService
 {
     /**
-     * Obtener el reporte de consumo de un activo fijo con su respectivo historial agrupado.
+     * Obtener el reporte de consumo de activos fijos e insumos con su respectivo historial agrupado.
      */
-    public static function get_reporte(int $id_activo_fijo, int $mes, int $yearcito)
+    public static function get_reporte(int $mes, int $yearcito)
     {
-        $detalles = ControlConsumoData::get_reporte(id_activo_fijo: $id_activo_fijo, mes: $mes, yearcito: $yearcito);
-        $ids_detalles = array_map(fn($d) => $d->id_entrega_requerimiento_detalle, $detalles);
+        $detalles = EntregasData::get_reporte(mes: $mes, yearcito: $yearcito);
+        $ids_detalles = array_map(fn($d) => (int) $d->id_entrega_requerimiento_detalle, $detalles);
 
         $consumos_agrupados = [];
         if (!empty($ids_detalles)) {
@@ -41,17 +42,27 @@ class ControlConsumoService
         int $id_detalle,
         float $cantidad_base_consumida,
         string $fecha_hora_consumo,
-        ?string $comentario_consumo
+        ?string $comentario_consumo,
+        ?int $id_activo_fijo_consumidor = null,
+        ?int $id_labor_destino = null
     ) {
-        return DB::transaction(function () use ($id_empleado_registro, $id_detalle, $cantidad_base_consumida, $fecha_hora_consumo, $comentario_consumo) {
-            $detalle = ControlConsumoData::get_entrega_detalle(id_detalle: $id_detalle);
+        return DB::transaction(function () use (
+            $id_empleado_registro,
+            $id_detalle,
+            $cantidad_base_consumida,
+            $fecha_hora_consumo,
+            $comentario_consumo,
+            $id_activo_fijo_consumidor,
+            $id_labor_destino
+        ) {
+            $detalle = EntregasData::get_entrega_detalle(id_detalle: $id_detalle);
 
             if (!$detalle) {
                 return ApiResponse::error('El detalle de la entrega no existe.');
             }
 
             $cantidad_entregada = (float) $detalle->cantidad_base;
-            $already_consumed = ControlConsumoData::get_consumido_total_detalle(id_detalle: $id_detalle);
+            $already_consumed = EntregasData::get_consumido_total_detalle(id_detalle: $id_detalle);
             $restante = $cantidad_entregada - $already_consumed;
 
             if (round($cantidad_base_consumida, 4) > round($restante, 4)) {
@@ -72,7 +83,9 @@ class ControlConsumoService
                 cantidad_base_consumida: $cantidad_base_consumida,
                 fecha_hora_consumo: $fecha_hora_consumo,
                 comentario_consumo: $comentario_consumo,
-                estado: $estado
+                estado: $estado,
+                id_activo_fijo_consumidor: $id_activo_fijo_consumidor,
+                id_labor_destino: $id_labor_destino
             );
 
             $c = ControlConsumoData::get_consumos(id_consumo: $id_consumo);
@@ -80,4 +93,6 @@ class ControlConsumoService
             return ApiResponse::success($c);
         });
     }
+
+
 }

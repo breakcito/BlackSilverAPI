@@ -15,15 +15,14 @@ use Illuminate\Routing\Controller;
 class ControlConsumoController extends Controller
 {
     /**
-     * Obtener el reporte de consumo de un activo fijo.
+     * Obtener el reporte de consumo de activos fijos e insumos.
      */
     public function get_reporte(Request $request): JsonResponse
     {
-        $id_activo_fijo = $request->input('id_activo_fijo') ? (int) $request->input('id_activo_fijo') : null;
         $mes = $request->input('mes') ? (int) $request->input('mes') : null;
         $yearcito = $request->input('yearcito') ? (int) $request->input('yearcito') : null;
 
-        $res = ControlConsumoService::get_reporte($id_activo_fijo, $mes, $yearcito);
+        $res = ControlConsumoService::get_reporte($mes, $yearcito);
         return response()->json($res);
     }
 
@@ -42,6 +41,8 @@ class ControlConsumoController extends Controller
             'cantidad_base_consumida' => 'required|numeric|gt:0',
             'fecha_hora_consumo' => 'required|date',
             'comentario_consumo' => 'nullable|string',
+            'id_activo_fijo_consumidor' => 'nullable|integer',
+            'id_labor_destino' => 'nullable|integer',
         ]);
 
         $res = ControlConsumoService::registrar_consumo(
@@ -49,11 +50,11 @@ class ControlConsumoController extends Controller
             (int) $request->input('id_requerimiento_almacen_entrega_detalle'),
             (float) $request->input('cantidad_base_consumida'),
             (string) $request->input('fecha_hora_consumo'),
-            $request->input('comentario_consumo') ? (string) $request->input('comentario_consumo') : null
+            $request->input('comentario_consumo') ? (string) $request->input('comentario_consumo') : null,
+            $request->input('id_activo_fijo_consumidor') ? (int) $request->input('id_activo_fijo_consumidor') : null,
+            $request->input('id_labor_destino') ? (int) $request->input('id_labor_destino') : null
         );
 
         return response()->json($res);
     }
-
 }
-

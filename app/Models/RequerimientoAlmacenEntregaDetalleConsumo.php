@@ -12,6 +12,8 @@ class RequerimientoAlmacenEntregaDetalleConsumo extends Model
 
     protected $fillable = [
         'id_requerimiento_almacen_entrega_detalle', // el detalle de la entrega
+        'id_activo_fijo_consumidor', // que activo fijo esta consumiendo lo entregado 
+        'id_labor_destino', // a que labor de esa u otra mina del requerimiento esta dirigiedo lo solicitado
         'id_empleado_registro', // quien registro el consumo
         //
         'cantidad_base_consumida', // cantidad consumida en base a la unidad base

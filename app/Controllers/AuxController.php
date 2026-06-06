@@ -13,6 +13,7 @@ use App\Services\PersonalExternoService;
 use App\Services\ProductosService;
 use App\Services\ProveedoresService;
 use App\Services\UnidadesMedidaService;
+use App\Services\LaboresService;
 use App\Shared\Enums\_Generic\EstadoBase;
 use App\Shared\Enums\_Generic\TipoBien;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
@@ -213,7 +214,7 @@ class AuxController extends Controller
         $control_por_odometro = $request->has('control_por_odometro') ? $request->boolean('control_por_odometro') : null;
         $control_por_horometro = $request->has('control_por_horometro') ? $request->boolean('control_por_horometro') : null;
         $control_por_vueltas = $request->has('control_por_vueltas') ? $request->boolean('control_por_vueltas') : null;
-        
+
         $estado_val = $request->input('estado');
         $estado = $estado_val ? EstadoActivoFijo::from($estado_val) : null;
 
@@ -227,6 +228,22 @@ class AuxController extends Controller
             control_por_horometro: $control_por_horometro,
             control_por_vueltas: $control_por_vueltas,
             estado: $estado,
+        ));
+    }
+
+    /**
+     * Catálogo de labores. Acepta filtros opcionales.
+     */
+    public function get_labores(Request $request): JsonResponse
+    {
+        $id_mina = $request->input('id_mina') ? (int) $request->input('id_mina') : null;
+        $id_labor = $request->input('id_labor') ? (int) $request->input('id_labor') : null;
+        $id_requerimiento = $request->input('id_requerimiento') ? (int) $request->input('id_requerimiento') : null;
+
+        return response()->json(LaboresService::get_labores(
+            id_mina: $id_mina,
+            id_labor: $id_labor,
+            id_requerimiento: $id_requerimiento
         ));
     }
 }

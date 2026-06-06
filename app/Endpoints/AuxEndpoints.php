@@ -40,6 +40,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
             // activos fijos disponibles
             Route::get('/activos-disponibles', 'get_activos_disponibles');
+
+            // labores
+            Route::get('/labores', 'get_labores');
         });
     });
 });

@@ -24,7 +24,6 @@ Este módulo representa el núcleo operativo y de despacho físico de almacenes.
 
 - **`RequerimientosDetalleData::get_detalles_by_requerimiento`**:
     - **Trazabilidad por Bienes**: Incluye un join a la tabla `categoria` (`cat.clasificacion_bien`) para inyectar en tiempo real el `tipo_bien` del producto solicitado, permitiendo que la interfaz reaccione dinámicamente según la naturaleza de la mercadería.
-    - **Trazabilidad por Destinos**: Recupera `id_activo_fijo_destino` y su respectivo `correlativo_activo_fijo_destino` para auditar a qué activo específico (ej. camión, pala mecánica) se le imputa el gasto del material.
 
 ---
 
