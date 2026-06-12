@@ -2,9 +2,11 @@
 
 namespace App\Modules\Proveedores\Services;
 
+use App\Shared\Enums\_Generic\TipoEntidad;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\Proveedores\Data\CuentasBancariasData;
 use App\Modules\Proveedores\Data\ProveedoresData;
+use App\Services\ProveedoresService as ProveedoresServiceGlobal;
 use Illuminate\Support\Facades\DB;
 
 class ProveedoresService
@@ -25,25 +27,35 @@ class ProveedoresService
      * - es_para_detraccion (int)
      */
     public static function crear_proveedor(
-        string $tipoEntidad,
+        TipoEntidad $tipoEntidad,
+        string $razonSocial,
+        bool $paraMantenimiento = false,
         ?string $dni,
         ?string $ruc,
-        string $razonSocial,
         ?string $direccion,
         ?string $telefono,
         ?string $correo,
         array $cuentas = []
     ): array {
-        return DB::transaction(function () use ($tipoEntidad, $dni, $ruc, $razonSocial, $direccion, $telefono, $correo, $cuentas) {
-            $id = ProveedoresData::crear_proveedor(
-                $tipoEntidad,
-                $dni,
-                $ruc,
-                $razonSocial,
-                $direccion,
-                $telefono,
-                $correo
+        return DB::transaction(function () use ($tipoEntidad, $dni, $ruc, $razonSocial, $paraMantenimiento, $direccion, $telefono, $correo, $cuentas) {
+            $response = ProveedoresServiceGlobal::crear_proveedor(
+                tipoEntidad: $tipoEntidad,
+                dni: $dni,
+                ruc: $ruc,
+                razonSocial: $razonSocial,
+                paraMantenimiento: $paraMantenimiento,
+                direccion: $direccion,
+                telefono: $telefono,
+                correo: $correo
             );
+
+            // Si hubo un error, lo devolvemos
+            if ($response['success'] == false) {
+                return $response;
+            }
+
+            // obtenemos el id generado
+            $id = $response['data'];
 
             foreach ($cuentas as $cta) {
                 CuentasBancariasData::crear_cuenta_bancaria(

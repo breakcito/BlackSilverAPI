@@ -2,7 +2,6 @@
 
 namespace App\Modules\Proveedores\Data;
 
-use App\Models\Proveedor;
 use Illuminate\Support\Facades\DB;
 
 class ProveedoresData
@@ -13,6 +12,7 @@ class ProveedoresData
         SELECT
             pr.id AS id_proveedor,
             pr.tipo_entidad,
+            pr.para_mantenimiento,
             pr.dni,
             pr.ruc,
             pr.razon_social,
@@ -50,24 +50,4 @@ class ProveedoresData
         return self::get_proveedores(id_proveedor: $id_proveedor);
     }
 
-    public static function crear_proveedor(
-        string $tipoEntidad,
-        ?string $dni,
-        ?string $ruc,
-        string $razonSocial,
-        ?string $direccion,
-        ?string $telefono,
-        ?string $correo
-    ): int {
-        return Proveedor::insertGetId([
-            'tipo_entidad' => $tipoEntidad,
-            'dni' => $dni,
-            'ruc' => $ruc,
-            'razon_social' => $razonSocial,
-            'direccion' => $direccion,
-            'telefono' => $telefono,
-            'correo' => $correo,
-            'estado' => 'Activo'
-        ]);
-    }
 }

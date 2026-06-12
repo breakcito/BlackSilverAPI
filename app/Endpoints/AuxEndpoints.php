@@ -24,6 +24,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
             // proveedores
             Route::get('/proveedores', 'get_proveedores');
+            Route::post('/proveedores', 'crear_proveedor');
 
             // empresas
             Route::get('/empresas', 'get_empresas');

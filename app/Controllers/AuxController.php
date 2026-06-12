@@ -17,6 +17,7 @@ use App\Services\LaboresService;
 use App\Modules\Contratistas\Service\ContratistasService;
 use App\Shared\Enums\_Generic\EstadoBase;
 use App\Shared\Enums\_Generic\TipoBien;
+use App\Shared\Enums\_Generic\TipoEntidad;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\Request;
@@ -129,11 +130,43 @@ class AuxController extends Controller
         $estado_val = $request->input('estado');
         $estado = $estado_val ? EstadoBase::from($estado_val) : null;
         $tipo_entidad = $request->input('tipo_entidad');
+        $para_mantenimiento = $request->input('para_mantenimiento') ? (bool) $request->input('para_mantenimiento') : null;
 
         $result = ProveedoresService::get_proveedores(
             id_proveedor: $id_proveedor,
             estado: $estado,
-            tipoEntidad: $tipo_entidad
+            tipoEntidad: $tipo_entidad,
+            paraMantenimiento: $para_mantenimiento
+        );
+
+        return response()->json($result);
+    }
+
+    public function crear_proveedor(Request $request): JsonResponse
+    {
+        $request->validate([
+            'tipo_entidad' => 'required|string',
+            'razonSocial' => 'required|string',
+            'paraMantenimiento' => 'nullable|boolean',
+            'dni' => 'nullable|string',
+            'ruc' => 'nullable|string',
+            'direccion' => 'nullable|string',
+            'telefono' => 'nullable|string',
+            'correo' => 'nullable|string'
+        ]);
+
+        $tipo_entidad = TipoEntidad::from($request->input('tipo_entidad'));
+
+        $result = ProveedoresService::crear_proveedor(
+            tipoEntidad: $tipo_entidad,
+            razonSocial: $request->input('razonSocial'),
+            paraMantenimiento: $request->input('paraMantenimiento') ?? false,
+            dni: $request->input('dni'),
+            ruc: $request->input('ruc'),
+            direccion: $request->input('direccion'),
+            telefono: $request->input('telefono'),
+            correo: $request->input('correo'),
+            return_object: true
         );
 
         return response()->json($result);

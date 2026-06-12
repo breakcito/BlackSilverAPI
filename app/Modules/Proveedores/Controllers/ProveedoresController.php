@@ -3,6 +3,7 @@
 namespace App\Modules\Proveedores\Controllers;
 
 use App\Modules\Proveedores\Services\ProveedoresService;
+use App\Shared\Enums\_Generic\TipoEntidad;
 use Illuminate\Http\Request;
 
 class ProveedoresController
@@ -16,6 +17,7 @@ class ProveedoresController
     {
         $request->validate([
             'tipo_entidad' => 'required|string',
+            'paraMantenimiento' => 'nullable|boolean',
             'dni' => 'nullable|string|size:8',
             'ruc' => 'nullable|string|size:11',
             'razon_social' => 'required|string|max:255',
@@ -24,15 +26,18 @@ class ProveedoresController
             'correo' => 'nullable|email|max:100',
         ]);
 
+        $tipo_entidad = TipoEntidad::from($request->input('tipo_entidad'));
+
         return response()->json(ProveedoresService::crear_proveedor(
-            $request->tipo_entidad,
-            $request->dni,
-            $request->ruc,
-            $request->razon_social,
-            $request->direccion,
-            $request->telefono,
-            $request->correo,
-            $request->cuentas ?? []
+            tipoEntidad: $tipo_entidad,
+            razonSocial: $request->razon_social,
+            paraMantenimiento: $request->paraMantenimiento,
+            dni: $request->dni,
+            ruc: $request->ruc,
+            direccion: $request->direccion,
+            telefono: $request->telefono,
+            correo: $request->correo,
+            cuentas: $request->cuentas ?? []
         ));
     }
 }

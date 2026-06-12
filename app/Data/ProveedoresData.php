@@ -2,6 +2,7 @@
 
 namespace App\Data;
 
+use App\Models\Proveedor;
 use App\Shared\Enums\_Generic\EstadoBase;
 use App\Shared\Enums\_Generic\TipoEntidad;
 use Illuminate\Support\Facades\DB;
@@ -15,14 +16,18 @@ class ProveedoresData
     public static function get_proveedores(
         ?int $id_proveedor = null,
         ?EstadoBase $estado = null,
-        ?TipoEntidad $tipoEntidad = null
+        ?TipoEntidad $tipoEntidad = null,
+        ?bool $paraMantenimiento = null
     ) {
         $sql = '
         SELECT 
             p.id AS id_proveedor,
             p.razon_social,
             p.direccion,
-            IFNULL(p.ruc, p.dni) AS documento
+            p.ruc,
+            p.dni,
+            p.tipo_entidad,
+            p.para_mantenimiento
         FROM proveedor p
         WHERE 1 = 1
         ';
@@ -33,6 +38,11 @@ class ProveedoresData
             $sql .= 'AND p.id = :id_proveedor';
             $params['id_proveedor'] = $id_proveedor;
             return DB::selectOne($sql, $params);
+        }
+
+        if($paraMantenimiento !== null) {
+            $sql .= 'AND p.para_mantenimiento = :paraMantenimiento';
+            $params['paraMantenimiento'] = $paraMantenimiento ? 1 : 0;
         }
 
         if ($estado !== null) {
@@ -48,5 +58,43 @@ class ProveedoresData
         $sql .= ' ORDER BY p.razon_social ASC';
 
         return DB::select($sql, $params);
+    }
+
+
+    public static function crear_proveedor(
+        TipoEntidad $tipoEntidad,
+        string $razonSocial,
+        bool $paraMantenimiento = false,
+        ?string $dni,
+        ?string $ruc,
+        ?string $direccion,
+        ?string $telefono,
+        ?string $correo
+    ): int {
+        return Proveedor::insertGetId([
+            'tipo_entidad' => $tipoEntidad->value,
+            'dni' => $dni,
+            'ruc' => $ruc,
+            'razon_social' => $razonSocial,
+            'direccion' => $direccion,
+            'telefono' => $telefono,
+            'correo' => $correo,
+            'para_mantenimiento' => $paraMantenimiento,
+            'estado' => 'Activo'
+        ]);
+    }
+
+    /**
+     * Verificar si ya existe por razon social o dni o ruc
+     */
+    public static function ya_existe(
+        ?string $dni,
+        ?string $ruc,
+        ?string $razonSocial
+    ): bool {
+        return Proveedor::where('dni', $dni)
+            ->orWhere('ruc', $ruc)
+            ->orWhere('razon_social', $razonSocial)
+            ->exists();
     }
 }

@@ -18,6 +18,7 @@ class Proveedor extends Model
         'direccion',
         'telefono',
         'correo',
+        'para_mantenimiento', // true/false | util para listar en el modulo de mantenimiento
         'estado', // Estado Basico
     ];
 }
