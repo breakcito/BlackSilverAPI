@@ -52,6 +52,9 @@ class ControlUsoData
             log.id_tarifa,
             tar.descripcion as tarifa_desc,
             log.cantidad_vueltas,
+            log.cantidad_sacos,
+            tar.distancia_metros as tarifa_distancia_metros,
+            mat.nombre as tarifa_material,
             log.odometro_inicio,
             log.odometro_fin,
             GREATEST(0, COALESCE(log.odometro_fin, 0) - COALESCE(log.odometro_inicio, 0)) as total_km
@@ -63,6 +66,7 @@ class ControlUsoData
         LEFT JOIN labor la ON la.id = log.id_labor
         LEFT JOIN cliente cli ON cli.id = log.id_cliente
         LEFT JOIN activo_fijo_tarifa tar ON tar.id = log.id_tarifa
+        LEFT JOIN tipo_material mat ON mat.id = tar.id_tipo_material
         WHERE 1=1
         ';
 
@@ -140,6 +144,7 @@ class ControlUsoData
             t.precio_unitario,
             t.descripcion,
             t.id_tipo_material,
+            t.distancia_metros,
             m.nombre as tipo_material,
             t.created_at
         FROM activo_fijo_tarifa t

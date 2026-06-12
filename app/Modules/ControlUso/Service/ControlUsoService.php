@@ -51,6 +51,7 @@ class ControlUsoService
         ?float $odometro_inicio = null,
         ?float $odometro_fin = null,
         ?int $cantidad_vueltas = null,
+        ?int $cantidad_sacos = null,
         ?int $id_tarifa = null,
         ?float $precio_unitario = 0.0,
         ?bool $es_para_mina = null,
@@ -69,6 +70,7 @@ class ControlUsoService
             $odometro_inicio,
             $odometro_fin,
             $cantidad_vueltas,
+            $cantidad_sacos,
             $id_tarifa,
             $precio_unitario,
             $es_para_mina,
@@ -106,7 +108,8 @@ class ControlUsoService
                 'odometro_inicio' => $odometro_inicio,
                 'odometro_fin' => $odometro_fin,
                 'cantidad_vueltas' => $cantidad_vueltas,
-                'total_horas' => $total_horas,
+                'cantidad_sacos'   => $cantidad_sacos,
+                'total_horas'      => $total_horas,
                 'precio_unitario' => $precio_unitario ?? 0.0,
                 'costo_total' => $costo_total,
                 'es_para_mina' => $es_para_mina,
@@ -169,15 +172,17 @@ class ControlUsoService
         string $tipo_control,
         float $precio_unitario,
         string $descripcion,
-        ?int $id_tipo_material
+        ?int $id_tipo_material,
+        ?int $distancia_metros = null
     ) {
         $tarifa = \App\Models\ActivoFijoTarifa::create([
-            'id_activo_fijo' => $id_activo_fijo,
-            'tipo_control' => $tipo_control,
-            'precio_unitario' => $precio_unitario,
-            'descripcion' => $descripcion,
+            'id_activo_fijo'   => $id_activo_fijo,
+            'tipo_control'     => $tipo_control,
+            'precio_unitario'  => $precio_unitario,
+            'descripcion'      => $descripcion,
             'id_tipo_material' => $id_tipo_material,
-            'created_at' => now()->toDateTimeString()
+            'distancia_metros' => $distancia_metros,
+            'created_at'       => now()->toDateTimeString()
         ]);
         return ApiResponse::success($tarifa, 'Tarifa registrada exitosamente');
     }

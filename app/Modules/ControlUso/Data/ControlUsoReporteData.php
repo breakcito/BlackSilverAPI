@@ -40,6 +40,7 @@ class ControlUsoReporteData
             log.tipo_carga,
             tar.descripcion as tarifa_desc,
             log.cantidad_vueltas,
+            log.cantidad_sacos,
             log.odometro_inicio,
             log.odometro_fin,
             GREATEST(0, COALESCE(log.odometro_fin, 0) - COALESCE(log.odometro_inicio, 0)) as total_km,

@@ -30,6 +30,7 @@ class ActivoFijoUsoLog extends Model
         'tipo_carga',
         'id_tarifa',
         'cantidad_vueltas',
+        'cantidad_sacos',
         'odometro_inicio',
         'odometro_fin',
         'observacion',

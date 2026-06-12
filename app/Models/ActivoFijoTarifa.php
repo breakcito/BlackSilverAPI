@@ -19,6 +19,7 @@ class ActivoFijoTarifa extends Model
         'precio_unitario',
         'descripcion',
         'id_tipo_material',
+        'distancia_metros',
         'created_at'
     ];
 

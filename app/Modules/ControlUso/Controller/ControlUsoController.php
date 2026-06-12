@@ -62,6 +62,7 @@ class ControlUsoController extends Controller
             
             // Vueltas
             'cantidad_vueltas' => 'nullable|integer|min:0',
+            'cantidad_sacos'   => 'nullable|integer|min:0',
 
             // Tarifa
             'id_tarifa' => 'nullable|integer',
@@ -92,6 +93,7 @@ class ControlUsoController extends Controller
             odometro_inicio: isset($v['odometro_inicio']) ? (float) $v['odometro_inicio'] : null,
             odometro_fin: isset($v['odometro_fin']) ? (float) $v['odometro_fin'] : null,
             cantidad_vueltas: isset($v['cantidad_vueltas']) ? (int) $v['cantidad_vueltas'] : null,
+            cantidad_sacos: isset($v['cantidad_sacos']) ? (int) $v['cantidad_sacos'] : null,
             id_tarifa: isset($v['id_tarifa']) ? (int) $v['id_tarifa'] : null,
             precio_unitario: isset($v['precio_unitario']) ? (float) $v['precio_unitario'] : 0.0,
             es_para_mina: isset($v['es_para_mina']) ? (bool) $v['es_para_mina'] : null,
@@ -122,9 +124,10 @@ class ControlUsoController extends Controller
         $validator = Validator::make($request->all(), [
             'id_activo_fijo' => 'required|integer',
             'tipo_control' => 'required|string',
-            'precio_unitario' => 'required|numeric|min:0',
-            'descripcion' => 'nullable|string',
-            'id_tipo_material' => 'nullable|integer'
+            'precio_unitario'  => 'nullable|numeric|min:0',
+            'descripcion'      => 'nullable|string',
+            'id_tipo_material' => 'nullable|integer',
+            'distancia_metros' => 'nullable|integer|min:1',
         ]);
 
         if ($validator->fails()) {
@@ -134,11 +137,12 @@ class ControlUsoController extends Controller
         $v = $validator->validated();
 
         $res = \App\Modules\ControlUso\Service\ControlUsoService::crear_tarifa(
-            id_activo_fijo: (int) $v['id_activo_fijo'],
-            tipo_control: (string) $v['tipo_control'],
-            precio_unitario: (float) $v['precio_unitario'],
-            descripcion: isset($v['descripcion']) ? (string) $v['descripcion'] : '',
-            id_tipo_material: isset($v['id_tipo_material']) ? (int) $v['id_tipo_material'] : null
+            id_activo_fijo:   (int) $v['id_activo_fijo'],
+            tipo_control:     (string) $v['tipo_control'],
+            precio_unitario:  isset($v['precio_unitario']) ? (float) $v['precio_unitario'] : 0.0,
+            descripcion:      isset($v['descripcion']) ? (string) $v['descripcion'] : '',
+            id_tipo_material: isset($v['id_tipo_material']) ? (int) $v['id_tipo_material'] : null,
+            distancia_metros: isset($v['distancia_metros']) ? (int) $v['distancia_metros'] : null
         );
 
         return response()->json($res);
