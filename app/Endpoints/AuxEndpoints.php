@@ -43,6 +43,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
             // labores
             Route::get('/labores', 'get_labores');
+
+            // contratistas
+            Route::get('/contratistas', 'get_contratistas');
         });
     });
 });

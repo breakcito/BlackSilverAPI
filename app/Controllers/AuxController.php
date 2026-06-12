@@ -14,6 +14,7 @@ use App\Services\ProductosService;
 use App\Services\ProveedoresService;
 use App\Services\UnidadesMedidaService;
 use App\Services\LaboresService;
+use App\Modules\Contratistas\Service\ContratistasService;
 use App\Shared\Enums\_Generic\EstadoBase;
 use App\Shared\Enums\_Generic\TipoBien;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
@@ -152,6 +153,16 @@ class AuxController extends Controller
             id_empresa: $id_empresa,
             estado: $estado
         ));
+    }
+
+    /**
+     * Catálogo de contratistas. Acepta filtro opcional por mina.
+     */
+    public function get_contratistas(Request $request): JsonResponse
+    {
+        $id_mina = $request->input('id_mina') ? (int) $request->input('id_mina') : null;
+
+        return response()->json(ContratistasService::get_contratistas(id_mina: $id_mina));
     }
 
     public function get_minas(Request $request): JsonResponse
