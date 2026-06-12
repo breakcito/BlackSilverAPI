@@ -3,7 +3,6 @@
 namespace App\Data;
 
 use App\Models\Marca;
-use App\Models\PersonalExterno;
 use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 

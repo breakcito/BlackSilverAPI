@@ -13,11 +13,13 @@ class PersonalExternoData
      * Permitir el registro para el personal externo
      */
     public static function crear_personal(
+        ?int $id_proveedor = null,
         ?string $nombre = null,
         ?string $apellido = null,
         ?string $dni = null,
     ) {
         return PersonalExterno::insertGetId([
+            'id_proveedor' => $id_proveedor,
             'nombre' => $nombre,
             'apellido' => $apellido,
             'dni' => $dni,
@@ -30,11 +32,13 @@ class PersonalExternoData
      */
     public static function get_personal(
         ?int $id_personal = null,
+        ?int $id_proveedor = null,
         ?EstadoBase $estado = null
     ) {
         $sql = '
         SELECT
             pr.id AS id_personal,
+            pr.id_proveedor,
             TRIM(CONCAT_WS(" ", NULLIF(TRIM(pr.nombre), ""), NULLIF(TRIM(pr.apellido), ""))) AS nombre_completo,
             pr.dni
         FROM
@@ -48,6 +52,11 @@ class PersonalExternoData
             $sql .= ' AND pr.id = :id_personal';
             $params['id_personal'] = $id_personal;
             return DB::selectOne($sql, $params);
+        }
+
+        if ($id_proveedor) {
+            $sql .= ' AND pr.id_proveedor = :id_proveedor';
+            $params['id_proveedor'] = $id_proveedor;
         }
 
         if ($estado) {

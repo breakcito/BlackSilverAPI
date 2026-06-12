@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -20,6 +19,8 @@ class PersonalExterno extends Model
     protected $table = 'personal_externo';
     public $timestamps = false;
     protected $fillable = [
+        'id_proveedor', // opcional - en caso sea el personal/trabajador de un proveedor externo
+        //
         'nombre',
         'apellido',
         'dni',

@@ -58,19 +58,30 @@ class AuxController extends Controller
 
     public function get_personal_externo(Request $request): JsonResponse
     {
-        $result = PersonalExternoService::get_personal();
+        $id_personal = $request->input('id_personal') ? (int) $request->input('id_personal') : null;
+        $id_proveedor = $request->input('id_proveedor') ? (int) $request->input('id_proveedor') : null;
+        $estado_val = $request->input('estado');
+        $estado = $estado_val ? EstadoBase::from($estado_val) : null;
+
+        $result = PersonalExternoService::get_personal(
+            id_personal: $id_personal,
+            id_proveedor: $id_proveedor,
+            estado: $estado
+        );
         return response()->json($result);
     }
 
     public function crear_personal_externo(Request $request): JsonResponse
     {
         $request->validate([
+            'id_proveedor' => 'nullable|int',
             'nombre' => 'required|string',
             'apellido' => 'nullable|string',
             'dni' => 'nullable|string',
         ]);
 
         $result = PersonalExternoService::crear_personal(
+            id_proveedor: $request->input('id_proveedor') ? (int) $request->input('id_proveedor') : null,
             nombre: $request->input('nombre'),
             apellido: $request->input('apellido'),
             dni: $request->input('dni')
