@@ -65,22 +65,22 @@ class EntregasData
      * Obtener el nuevo correlativo para un entrega en
      * base al almacen de destino
      */
-    public static function get_nuevo_correlativo(int $id_almacen_destino)
+    public static function get_nuevo_correlativo()
     {
         return CorrelativoHelper::generar(
             prefijo: 'ENT',
             tabla: 'requerimiento_almacen_entrega',
-            alias: 'ent',
-            queryModifier: function ($query) {
-                // conectamos las entregas con los requerimientos para filtrar por almacen
-                $query->join(
-                    'requerimiento_almacen as req',
-                    'req.id',
-                    '=',
-                    'ent.id_requerimiento_almacen'
-                );
-            },
-            filtros: ['req.id_almacen_destino' => $id_almacen_destino],
+            // alias: 'ent',
+            // queryModifier: function ($query) {
+            //     // conectamos las entregas con los requerimientos para filtrar por almacen
+            //     $query->join(
+            //         'requerimiento_almacen as req',
+            //         'req.id',
+            //         '=',
+            //         'ent.id_requerimiento_almacen'
+            //     );
+            // },
+            // filtros: ['req.id_almacen_destino' => $id_almacen_destino],
         );
     }
 

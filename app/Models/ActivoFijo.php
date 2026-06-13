@@ -33,11 +33,21 @@ class ActivoFijo extends Model
         'id_almacen', // opcional - en que almacen se encuentra almacenado este activo
         'id_mina', // opcional - en que mina se encuentra siendo usado este activo
         'id_marca', // de que marca - opcional
+        'id_empleado_responsable', // opcional - es el empleado/operador encargado/responsable del activo
+        // referencias para saber de que compra proviene
+        'id_orden_compra_recepcion_detalle', // de que recepcion de la compra proviene
+        'id_orden_compra_detalle', // de que detalle de la compra proviene ya que podrian haberse pedido mas de 1 vez el mismo producto pero con precios diferentes
         //
         'codigo', // opcional - lo pone el usuario
         'correlativo', // como prefijo utiliza el que ha sido dado en el modulo de productos
         'numero_correlativo',
         //
+        // Para saber de que compra provino en caso no haya venido desde el modulo de ordenes de compra
+        'serie_factura_compra',// opcional
+        'numero_factura_compra',// opcional
+        //
+        'costo_promedio_base', // el costo promedio del producto al momento del registro
+        'costo_compra', // Cuanto costó este activo cuando se compró
         'numero_serie', // identificador del fabricante
         'modelo', // nombre del modelo
         'yearcito_modelo', // año del modelo

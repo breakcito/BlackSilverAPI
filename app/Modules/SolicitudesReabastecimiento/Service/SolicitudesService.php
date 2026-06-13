@@ -41,7 +41,7 @@ class SolicitudesService
         ?string $fecha_entrega_requerida,
     ) {
         // 1. Generar Correlativo
-        $correlativoData = SolicitudesData::get_nuevo_correlativo($id_almacen_solicitante);
+        $correlativoData = SolicitudesData::get_nuevo_correlativo();
         $correlativo = $correlativoData['correlativo'];
         $numero_correlativo = $correlativoData['numero_correlativo'];
 

@@ -43,13 +43,13 @@ class PrestamoAlmacenReposicionDetalle extends Model
     ): int {
         return self::insertGetId([
             'id_prestamo_almacen_reposicion' => $id_reposicion,
-            'id_prestamo_almacen_detalle'    => $id_prestamo_detalle,
-            'id_lote_producto'               => $id_lote_producto,
-            'id_activo_fijo'                 => $id_activo_fijo,
-            'cantidad_base'                  => $cantidad_base,
-            'cantidad_lote'                  => $cantidad_lote,
-            'cantidad_prestamo'              => $cantidad_prestamo,
-            'estado'                         => EstadoPrestamoReposicionDetalle::EnDespacho->value,
+            'id_prestamo_almacen_detalle' => $id_prestamo_detalle,
+            'id_lote_producto' => $id_lote_producto,
+            'id_activo_fijo' => $id_activo_fijo,
+            'cantidad_base' => $cantidad_base,
+            'cantidad_lote' => $cantidad_lote,
+            'cantidad_prestamo' => $cantidad_prestamo,
+            'estado' => EstadoPrestamoReposicionDetalle::EnDespacho->value,
         ]);
     }
 
@@ -57,7 +57,7 @@ class PrestamoAlmacenReposicionDetalle extends Model
     /**
      * Obtiene uno o todos los detalles de una reposición.
      */
-    public static function get_detalles(?int $id_reposicion = null, ?int $id_detalle = null): array
+    public static function get_detalles(?int $id_reposicion = null, ?int $id_detalle = null)
     {
         $sql = '
         SELECT 
@@ -78,6 +78,12 @@ class PrestamoAlmacenReposicionDetalle extends Model
             -- lote o activo de salida
             rd.id_lote_producto,
             lt.correlativo AS lote_correlativo,
+            COALESCE(occ_lt.serie, lt.serie_factura_compra) as lote_serie_factura,
+            COALESCE(occ_lt.numero, lt.numero_factura_compra) as lote_numero_factura,
+            lt.costo_por_unidad as lote_costo_por_unidad,
+            lt.id_orden_compra_detalle as lote_id_orden_compra_detalle,
+            ocd_lt.id_orden_compra as lote_id_orden_compra,
+            occr_lt.id_orden_compra_comprobante as lote_id_orden_compra_comprobante,
             
             rd.id_activo_fijo,
             act.correlativo as correlativo_activo_fijo,
@@ -96,6 +102,11 @@ class PrestamoAlmacenReposicionDetalle extends Model
         FROM 
             prestamo_almacen_reposicion_detalle rd
         INNER JOIN prestamo_almacen_detalle pd ON pd.id = rd.id_prestamo_almacen_detalle
+        LEFT JOIN lote_producto lt ON lt.id = rd.id_lote_producto
+        LEFT JOIN orden_compra_detalle ocd_lt ON ocd_lt.id = lt.id_orden_compra_detalle
+        LEFT JOIN orden_compra_recepcion_detalle ocrd_lt ON ocrd_lt.id = lt.id_orden_compra_recepcion_detalle
+        LEFT JOIN orden_compra_comprobante_recepcion occr_lt ON occr_lt.id_orden_compra_recepcion = ocrd_lt.id_orden_compra_recepcion
+        LEFT JOIN orden_compra_comprobante occ_lt ON occ_lt.id = occr_lt.id_orden_compra_comprobante
         INNER JOIN producto p ON p.id = pd.id_producto
         INNER JOIN categoria cat on cat.id = p.id_categoria
         INNER JOIN unidad_medida um_bs ON um_bs.id = p.id_unidad_medida_base

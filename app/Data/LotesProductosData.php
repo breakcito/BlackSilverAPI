@@ -44,6 +44,12 @@ class LotesProductosData
             --
             lp.fecha_hora_ingreso,
             lp.fecha_vencimiento,
+            COALESCE(occ.serie, lp.serie_factura_compra) AS serie_factura_compra,
+            COALESCE(occ.numero, lp.numero_factura_compra) AS numero_factura_compra,
+            lp.costo_por_unidad,
+            lp.id_orden_compra_detalle,
+            ocd.id_orden_compra,
+            occr.id_orden_compra_comprobante,
             DATEDIFF(lp.fecha_vencimiento, NOW()) AS dias_para_vencer,
             CASE 
                 WHEN pr.es_perecible != 1 THEN 'N/A' 
@@ -57,6 +63,10 @@ class LotesProductosData
         INNER JOIN unidad_medida uni ON uni.id = lp.id_unidad_medida
         INNER JOIN producto pr ON pr.id = lp.id_producto
         INNER JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
+        LEFT JOIN orden_compra_detalle ocd ON ocd.id = lp.id_orden_compra_detalle
+        LEFT JOIN orden_compra_recepcion_detalle ocrd ON ocrd.id = lp.id_orden_compra_recepcion_detalle
+        LEFT JOIN orden_compra_comprobante_recepcion occr ON occr.id_orden_compra_recepcion = ocrd.id_orden_compra_recepcion
+        LEFT JOIN orden_compra_comprobante occ ON occ.id = occr.id_orden_compra_comprobante
         WHERE
             lp.id_producto IN ($placeholders) AND 
             lp.id_almacen = ? AND 
@@ -140,12 +150,12 @@ class LotesProductosData
         ]);
     }
 
-    public static function get_nuevo_correlativo(int $id_almacen)
+    public static function get_nuevo_correlativo()
     {
         return CorrelativoHelper::generar(
             tabla: 'lote_producto',
             prefijo: 'LOT',
-            filtros: ['id_almacen' => $id_almacen],
+            filtros: [],
             columnaFecha: 'fecha_hora_ingreso'
         );
     }
@@ -168,10 +178,16 @@ class LotesProductosData
         //
         string $fecha_hora_ingreso,
         ?string $descripcion = null,
-        ?string $fecha_vencimiento = null
+        ?string $fecha_vencimiento = null,
+        // Nuevos
+        ?string $serie_factura_compra = null,
+        ?string $numero_factura_compra = null,
+        ?float $costo_por_unidad = null,
+        ?int $id_orden_compra_recepcion_detalle = null,
+        ?int $id_orden_compra_detalle = null
     ) {
         $stock_actual_base = $stock_inicial * $contenido_por_presentacion;
-        $costo_por_unidad = $costo_promedio_base * $contenido_por_presentacion;
+        $costo_promedio_por_unidad = $costo_promedio_base * $contenido_por_presentacion;
         return LoteProducto::insertGetId([
             'id_producto' => $id_producto,
             'id_unidad_medida' => $id_unidad_medida,
@@ -185,11 +201,17 @@ class LotesProductosData
             'contenido_por_presentacion' => $contenido_por_presentacion,
             'stock_actual_base' => $stock_actual_base,
             'costo_promedio_base' => $costo_promedio_base,
-            'costo_por_unidad' => $costo_por_unidad,
+            'costo_promedio_por_unidad' => $costo_promedio_por_unidad,
             'fecha_hora_ingreso' => $fecha_hora_ingreso,
             'fecha_vencimiento' => $fecha_vencimiento,
             'created_at' => now(),
             'estado' => 'Activo',
+            // Nuevos
+            'serie_factura_compra' => $serie_factura_compra,
+            'numero_factura_compra' => $numero_factura_compra,
+            'costo_por_unidad' => $costo_por_unidad,
+            'id_orden_compra_recepcion_detalle' => $id_orden_compra_recepcion_detalle,
+            'id_orden_compra_detalle' => $id_orden_compra_detalle,
         ]);
     }
 

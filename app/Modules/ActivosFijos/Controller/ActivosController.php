@@ -41,6 +41,11 @@ class ActivosController extends Controller
         $fecha_hora_ingreso = Carbon::parse($fecha_hora_ingreso)->toDateTimeString();
         $estado = $request->input('estado') ? EstadoActivoFijo::from($request->input('estado')) : null;
 
+        $id_empleado_responsable = $request->has('id_empleado_responsable') ? $request->integer('id_empleado_responsable') : null;
+        $serie_factura_compra = $request->input('serie_factura_compra');
+        $numero_factura_compra = $request->input('numero_factura_compra');
+        $costo_compra = $request->has('costo_compra') ? $request->float('costo_compra') : null;
+
         return ActivosService::crear_activo(
             id_producto: $id_producto,
             id_almacen: $id_almacen,
@@ -55,7 +60,11 @@ class ActivosController extends Controller
             numero_placa: $numero_placa,
             especificaciones: $especificaciones,
             fecha_hora_ingreso: $fecha_hora_ingreso,
-            estado: $estado
+            estado: $estado,
+            id_empleado_responsable: $id_empleado_responsable,
+            serie_factura_compra: $serie_factura_compra,
+            numero_factura_compra: $numero_factura_compra,
+            costo_compra: $costo_compra
         );
     }
 

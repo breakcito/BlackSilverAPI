@@ -59,9 +59,9 @@ class SolicitudesData
     /**
      * Helper que ayuda a calcular el siguiente correlativo - reseteo anual
      */
-    public static function get_nuevo_correlativo(int $id_almacen_solicitante)
+    public static function get_nuevo_correlativo()
     {
-        return SolicitudReabastecimiento::get_nuevo_correlativo($id_almacen_solicitante);
+        return SolicitudReabastecimiento::get_nuevo_correlativo();
     }
 
 

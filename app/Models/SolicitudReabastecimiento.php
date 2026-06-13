@@ -33,12 +33,11 @@ class SolicitudReabastecimiento extends Model
     ];
 
     // Helper que ayuda a calcular el siguiente correlativo - reseteo anual
-    public static function get_nuevo_correlativo(int $id_almacen_solicitante)
+    public static function get_nuevo_correlativo()
     {
         return CorrelativoHelper::generar(
             'solicitud_reabastecimiento',
             'SCR',
-            ["id_almacen_solicitante" => $id_almacen_solicitante]
         );
     }
 

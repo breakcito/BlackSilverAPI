@@ -37,7 +37,12 @@ class ActivosService
         ?string $numero_placa = null,
         ?array $especificaciones = null,
         ?string $fecha_hora_ingreso = null,
-        ?EstadoActivoFijo $estado = EstadoActivoFijo::EnUso
+        ?EstadoActivoFijo $estado = EstadoActivoFijo::EnUso,
+        // Nuevos
+        ?int $id_empleado_responsable = null,
+        ?string $serie_factura_compra = null,
+        ?string $numero_factura_compra = null,
+        ?float $costo_compra = null
     ) {
         $res = GlobalActivosService::crear_activo(
             id_producto: $id_producto,
@@ -54,7 +59,12 @@ class ActivosService
             especificaciones: $especificaciones,
             fecha_hora_ingreso: $fecha_hora_ingreso,
             estado: $estado,
-            return_objecto: false
+            return_objecto: false,
+            // Nuevos
+            id_empleado_responsable: $id_empleado_responsable,
+            serie_factura_compra: $serie_factura_compra,
+            numero_factura_compra: $numero_factura_compra,
+            costo_compra: $costo_compra
         );
 
         $id_activo = $res['data'];

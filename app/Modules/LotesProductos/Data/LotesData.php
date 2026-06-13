@@ -47,7 +47,14 @@ class LotesData
                 WHEN DATEDIFF(lp.fecha_vencimiento, CURRENT_DATE) < 0 THEN "Vencido"
                 WHEN DATEDIFF(lp.fecha_vencimiento, CURRENT_DATE) <= p.dias_espera_vencimiento THEN "Por vencer"
                 ELSE "Vigente"
-            END AS estado_vencimiento
+            END AS estado_vencimiento,
+            /* Costo y origen de compra */
+            lp.costo_por_unidad,
+            COALESCE(occ.serie, lp.serie_factura_compra) AS serie_factura_compra,
+            COALESCE(occ.numero, lp.numero_factura_compra) AS numero_factura_compra,
+            ocd.id_orden_compra,
+            occr.id_orden_compra_comprobante,
+            lp.id_orden_compra_detalle
         FROM
             lote_producto lp
         INNER JOIN producto p ON
@@ -58,6 +65,14 @@ class LotesData
             um_base.id = p.id_unidad_medida_base
         LEFT JOIN unidad_medida um_lote ON
             um_lote.id = lp.id_unidad_medida
+        LEFT JOIN orden_compra_detalle ocd ON
+            ocd.id = lp.id_orden_compra_detalle
+        LEFT JOIN orden_compra_recepcion_detalle ocrd ON
+            ocrd.id = lp.id_orden_compra_recepcion_detalle
+        LEFT JOIN orden_compra_comprobante_recepcion occr ON
+            occr.id_orden_compra_recepcion = ocrd.id_orden_compra_recepcion
+        LEFT JOIN orden_compra_comprobante occ ON
+            occ.id = occr.id_orden_compra_comprobante
         WHERE
             1 = 1
         ';

@@ -33,7 +33,11 @@ class LotesService
         float $stock_inicial,
         float $contenido_por_presentacion,
         string $fecha_hora_ingreso,
-        ?string $fecha_vencimiento
+        ?string $fecha_vencimiento,
+        // Nuevos
+        ?string $serie_factura_compra = null,
+        ?string $numero_factura_compra = null,
+        ?float $costo_por_unidad = null
     ) {
         $new_lote_response = LotesProductosService::crear_lote(
             id_producto: $id_producto,
@@ -48,9 +52,13 @@ class LotesService
             //
             fecha_hora_ingreso: $fecha_hora_ingreso,
             descripcion: $descripcion,
-            fecha_vencimiento: $fecha_vencimiento
+            fecha_vencimiento: $fecha_vencimiento,
+            // Nuevos
+            serie_factura_compra: $serie_factura_compra,
+            numero_factura_compra: $numero_factura_compra,
+            costo_por_unidad: $costo_por_unidad
         );
-
+ 
         $id_lote = $new_lote_response['data'];
         return ApiResponse::success(LotesData::get_lote_by_id(id_lote: $id_lote), 'Lote registrado correctamente');
     }

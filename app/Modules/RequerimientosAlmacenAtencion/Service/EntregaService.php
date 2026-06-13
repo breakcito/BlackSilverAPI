@@ -88,8 +88,8 @@ class EntregaService
             }
 
             // Generar Correlativo
-            $requerimiento = RequerimientosData::get_almacen_destino_by_requerimiento($id_requerimiento);
-            $correlativoData = EntregasData::get_nuevo_correlativo($requerimiento->id_almacen_destino);
+            // $requerimiento = RequerimientosData::get_almacen_destino_by_requerimiento($id_requerimiento);
+            $correlativoData = EntregasData::get_nuevo_correlativo();
 
             // Crear Cabecera de Entrega
             $id_entrega = EntregasData::crear_entrega(

@@ -61,7 +61,7 @@ class ReposicionesService
             }
 
             // 3. Generar Correlativo RPS
-            $correlativoData = ReposicionesData::get_nuevo_correlativo($id_almacen_entrega);
+            $correlativoData = ReposicionesData::get_nuevo_correlativo();
 
             // 4. Insertar la cabecera de la reposición
             $id_reposicion = ReposicionesData::crear_reposicion(

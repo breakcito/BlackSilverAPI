@@ -33,12 +33,11 @@ class EntregasData
      * Obtener el nuevo correlativo para un entrega en
      * base al almacen que entrega
      */
-    public static function get_nuevo_correlativo(int $id_almacen_entrega)
+    public static function get_nuevo_correlativo()
     {
         return CorrelativoHelper::generar(
             prefijo: 'ENT',
             tabla: 'solicitud_reabastecimiento_entrega',
-            filtros: ['id_almacen_entrega' => $id_almacen_entrega],
         );
     }
 

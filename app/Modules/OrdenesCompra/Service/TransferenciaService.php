@@ -91,18 +91,9 @@ class TransferenciaService
                 }
             }
 
-            // Obtener correlativo
-            $filtros = [];
-            if ($id_almacen_destino !== null) {
-                $filtros['id_almacen_destino'] = $id_almacen_destino;
-            } elseif ($id_mina_destino !== null) {
-                $filtros['id_mina_destino'] = $id_mina_destino;
-            }
-
             $correlativo_data = CorrelativoHelper::generar(
                 tabla: 'orden_compra_transferencia',
                 prefijo: 'TRN',
-                filtros: $filtros,
                 columnaFecha: 'fecha_hora_transferencia'
             );
 

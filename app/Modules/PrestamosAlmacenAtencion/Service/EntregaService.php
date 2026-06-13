@@ -70,7 +70,7 @@ class EntregaService
             }
 
             // Generar Correlativo para Entrega (ENT) filtrado por el almacén que presta
-            $correlativoData = EntregasData::get_nuevo_correlativo((int) $prestamo->id_almacen_prestamista);
+            $correlativoData = EntregasData::get_nuevo_correlativo();
 
             // 3. Crear Cabecera de Entrega de Préstamo
             $id_entrega = EntregasData::crear_entrega(

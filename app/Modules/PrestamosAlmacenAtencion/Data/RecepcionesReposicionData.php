@@ -90,6 +90,14 @@ class RecepcionesReposicionData
     }
 
     /**
+     * Obtener el detalle específico de la reposición para la recepción.
+     */
+    public static function get_detalle_by_id_para_recepcion(int $id_detalle)
+    {
+        return \App\Models\PrestamoAlmacenReposicionDetalle::get_detalles(id_detalle: $id_detalle);
+    }
+
+    /**
      * Obtener la cantidad total recibida hasta ahora para un detalle de reposición.
      */
     public static function get_cantidad_recepcionada_total_base_detalle(int $id_reposicion_detalle): float

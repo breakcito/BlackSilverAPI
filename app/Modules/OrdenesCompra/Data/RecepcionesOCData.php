@@ -81,6 +81,14 @@ class RecepcionesOCData
     }
 
     /**
+     * Actualiza el activo fijo asociado a un detalle de recepción.
+     */
+    public static function update_detalle_activo(int $id_detalle, int $id_activo): void
+    {
+        OrdenCompraRecepcionDetalle::where('id', $id_detalle)->update(['id_activo_fijo' => $id_activo]);
+    }
+
+    /**
      * Obtener el historial de recepciones de una OC
      */
     public static function get_historial_recepciones(int $id_orden_compra)

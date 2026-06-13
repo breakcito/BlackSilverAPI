@@ -171,7 +171,7 @@ class ActivosFijosData
     }
 
     /**
-     * Crear un nuevo activo fijo 
+     * Crear un nuevo activo fijo
      */
     public static function crear_activo(
         int $id_producto,
@@ -190,7 +190,15 @@ class ActivosFijosData
         ?string $numero_placa = null,
         ?array $especificaciones = null,
         ?string $fecha_hora_ingreso = null,
-        ?EstadoActivoFijo $estado = EstadoActivoFijo::EnUso
+        ?EstadoActivoFijo $estado = EstadoActivoFijo::EnUso,
+        // Nuevos
+        ?int $id_empleado_responsable = null,
+        ?string $serie_factura_compra = null,
+        ?string $numero_factura_compra = null,
+        ?float $costo_compra = null,
+        ?int $id_orden_compra_recepcion_detalle = null,
+        ?int $id_orden_compra_detalle = null,
+        ?float $costo_promedio_base = null
     ) {
         return ActivoFijo::insertGetId([
             'id_producto' => $id_producto,
@@ -212,6 +220,14 @@ class ActivosFijosData
             'fecha_hora_ingreso' => $fecha_hora_ingreso ?? now(),
             'created_at' => now(),
             'estado' => $estado->value,
+            // Nuevos
+            'id_empleado_responsable' => $id_empleado_responsable,
+            'serie_factura_compra' => $serie_factura_compra,
+            'numero_factura_compra' => $numero_factura_compra,
+            'costo_compra' => $costo_compra,
+            'id_orden_compra_recepcion_detalle' => $id_orden_compra_recepcion_detalle,
+            'id_orden_compra_detalle' => $id_orden_compra_detalle,
+            'costo_promedio_base' => $costo_promedio_base,
         ]);
     }
 

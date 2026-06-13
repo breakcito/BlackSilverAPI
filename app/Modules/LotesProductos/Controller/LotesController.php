@@ -35,12 +35,17 @@ class LotesController extends Controller
             'contenido_por_presentacion' => 'required|numeric|min:0',
             'fecha_hora_ingreso' => 'required|date',
             'fecha_vencimiento' => 'nullable|date|after_or_equal:fecha_hora_ingreso',
+            // Nuevos
+            'serie_factura_compra' => 'nullable|string',
+            'numero_factura_compra' => 'nullable|string',
+            'costo_por_unidad' => 'nullable|numeric|min:0',
         ], [
             'id_producto.required' => 'El producto es requerido',
             'id_unidad_medida.required' => 'La unidad de medida es requerida',
             'id_almacen.required' => 'El almacén es requerido',
             'stock_inicial.min' => 'El stock inicial no puede ser negativo',
             'contenido_por_presentacion.required' => 'El contenido por presentación es requerido',
+            'costo_por_unidad.min' => 'El costo unitario no puede ser negativo',
         ]);
 
         if ($validator->fails()) {
@@ -48,14 +53,18 @@ class LotesController extends Controller
         }
 
         $result = LotesService::crear_lote(
-            $request->id_producto,
-            $request->id_unidad_medida,
-            $request->id_almacen,
-            $request->descripcion ?? null,
-            (float) $request->stock_inicial,
-            (float) $request->contenido_por_presentacion,
-            $request->fecha_hora_ingreso,
-            $request->fecha_vencimiento
+            id_producto: (int) $request->id_producto,
+            id_unidad_medida: (int) $request->id_unidad_medida,
+            id_almacen: (int) $request->id_almacen,
+            descripcion: $request->descripcion ?? null,
+            stock_inicial: (float) $request->stock_inicial,
+            contenido_por_presentacion: (float) $request->contenido_por_presentacion,
+            fecha_hora_ingreso: $request->fecha_hora_ingreso,
+            fecha_vencimiento: $request->fecha_vencimiento,
+            // Nuevos
+            serie_factura_compra: $request->serie_factura_compra ?? null,
+            numero_factura_compra: $request->numero_factura_compra ?? null,
+            costo_por_unidad: $request->has('costo_por_unidad') && $request->costo_por_unidad !== null ? (float) $request->costo_por_unidad : null
         );
 
         return response()->json($result);

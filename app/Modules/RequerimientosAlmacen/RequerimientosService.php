@@ -41,7 +41,7 @@ class RequerimientosService
     ): array {
         return DB::transaction(function () use ($id_contratista, $id_mina, $id_almacen_destino, $premura, $fecha_entrega_requerida, $observacion, $id_labores, $detalles) {
             // 1. Generar Correlativo
-            $correlativoData = RequerimientosData::get_nuevo_correlativo($id_almacen_destino);
+            $correlativoData = RequerimientosData::get_nuevo_correlativo();
 
             // 2. Crear Cabecera
             $id_requerimiento = RequerimientosData::crear_requerimiento(

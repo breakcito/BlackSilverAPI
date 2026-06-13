@@ -54,7 +54,7 @@ class PrestamosService
         // 2. SI TODO ESTÁ CORRECTO, INICIAR TRANSACCIÓN Y REGISTROS
         return DB::transaction(function () use ($id_solicitud_reabastecimiento, $id_almacen_prestamista, $id_empleado_registro, $es_auditable, $detalles, $fecha_limite_devolucion, $observacion) {
 
-            $correlativoData = PrestamosData::get_nuevo_correlativo($id_almacen_prestamista);
+            $correlativoData = PrestamosData::get_nuevo_correlativo();
 
             // Obtener el almacén solicitante directamente desde la capa de datos de la vista
             $id_almacen_solicitante = AuxData::get_almacen_solicitante_by_id_solicitud($id_solicitud_reabastecimiento);

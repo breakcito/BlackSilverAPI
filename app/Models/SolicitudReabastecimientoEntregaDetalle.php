@@ -42,6 +42,12 @@ class SolicitudReabastecimientoEntregaDetalle extends Model
             red.id_lote_producto,
             lot.correlativo as lote_correlativo,
             lot.fecha_vencimiento,
+            COALESCE(occ_lt.serie, lot.serie_factura_compra) as lote_serie_factura,
+            COALESCE(occ_lt.numero, lot.numero_factura_compra) as lote_numero_factura,
+            lot.costo_por_unidad as lote_costo_por_unidad,
+            lot.id_orden_compra_detalle as lote_id_orden_compra_detalle,
+            ocd_lt.id_orden_compra as lote_id_orden_compra,
+            occr_lt.id_orden_compra_comprobante as lote_id_orden_compra_comprobante,
             
             red.id_activo_fijo,
             act.correlativo as correlativo_activo_fijo,
@@ -83,6 +89,11 @@ class SolicitudReabastecimientoEntregaDetalle extends Model
             cat.id = prod.id_categoria
         LEFT JOIN lote_producto lot ON
             lot.id = red.id_lote_producto
+        LEFT JOIN orden_compra_detalle ocd_lt ON ocd_lt.id = lot.id_orden_compra_detalle
+        LEFT JOIN orden_compra_recepcion_detalle ocrd_lt ON ocrd_lt.id = lot.id_orden_compra_recepcion_detalle
+        LEFT JOIN orden_compra_comprobante_recepcion occr_lt ON occr_lt.id_orden_compra_recepcion = ocrd_lt.id_orden_compra_recepcion
+        LEFT JOIN orden_compra_comprobante occ_lt ON occ_lt.id = occr_lt.id_orden_compra_comprobante
+        
         LEFT JOIN activo_fijo act on act.id = red.id_activo_fijo
         INNER JOIN unidad_medida uni_sol ON
             uni_sol.id = srd.id_unidad_medida

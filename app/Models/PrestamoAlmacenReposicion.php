@@ -35,12 +35,11 @@ class PrestamoAlmacenReposicion extends Model
     /**
      * Genera un nuevo correlativo para una reposición.
      */
-    public static function get_nuevo_correlativo(int $id_almacen)
+    public static function get_nuevo_correlativo()
     {
         return CorrelativoHelper::generar(
             tabla: 'prestamo_almacen_reposicion',
             prefijo: 'RPS',
-            filtros: ['id_almacen_entrega' => $id_almacen],
             columnaFecha: 'fecha_hora_reposicion'
         );
     }

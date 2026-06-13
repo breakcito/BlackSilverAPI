@@ -85,12 +85,11 @@ class RequerimientosData
      * Consultas utiles para el registro de un requerimiento
      */
 
-    public static function get_nuevo_correlativo(int $id_almacen_destino)
+    public static function get_nuevo_correlativo()
     {
         return CorrelativoHelper::generar(
             tabla: 'requerimiento_almacen',
-            prefijo: 'REQ',
-            filtros: ['id_almacen_destino' => $id_almacen_destino]
+            prefijo: 'REQ'
         );
     }
 

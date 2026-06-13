@@ -60,7 +60,7 @@ class SolicitudService
             $id_almacen_solicitante = $requerimiento->id_almacen_destino;
 
             // 2. Generar Correlativo para la Solicitud
-            $correlativoData = SolicitudesData::get_nuevo_correlativo($id_almacen_solicitante);
+            $correlativoData = SolicitudesData::get_nuevo_correlativo();
 
             // 3. Crear cabecera de la solicitud
             $id_solicitud = SolicitudesData::crear_solicitud(

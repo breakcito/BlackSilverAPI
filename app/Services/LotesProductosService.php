@@ -45,8 +45,14 @@ class LotesProductosService
         string $fecha_hora_ingreso,
         ?string $descripcion = null,
         ?string $fecha_vencimiento = null,
+        // Nuevos
+        ?string $serie_factura_compra = null,
+        ?string $numero_factura_compra = null,
+        ?float $costo_por_unidad = null,
+        ?int $id_orden_compra_recepcion_detalle = null,
+        ?int $id_orden_compra_detalle = null
     ) {
-        $correlativoData = LotesProductosData::get_nuevo_correlativo($id_almacen);
+        $correlativoData = LotesProductosData::get_nuevo_correlativo();
         $costo_promedio_base = ProductosData::get_costo_promedio_producto($id_producto);
 
         $id_lote = LotesProductosData::crear_lote(
@@ -67,7 +73,13 @@ class LotesProductosService
             //
             fecha_hora_ingreso: $fecha_hora_ingreso,
             descripcion: $descripcion,
-            fecha_vencimiento: $fecha_vencimiento
+            fecha_vencimiento: $fecha_vencimiento,
+            // Nuevos
+            serie_factura_compra: $serie_factura_compra,
+            numero_factura_compra: $numero_factura_compra,
+            costo_por_unidad: $costo_por_unidad,
+            id_orden_compra_recepcion_detalle: $id_orden_compra_recepcion_detalle,
+            id_orden_compra_detalle: $id_orden_compra_detalle
         );
 
         if ($stock_inicial > 0) {

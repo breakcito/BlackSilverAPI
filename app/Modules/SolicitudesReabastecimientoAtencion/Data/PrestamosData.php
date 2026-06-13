@@ -15,9 +15,9 @@ class PrestamosData
      * ----------------------------------------
      */
 
-    public static function get_nuevo_correlativo(int $id_almacen_prestamista)
+    public static function get_nuevo_correlativo()
     {
-        return PrestamoAlmacen::get_nuevo_correlativo($id_almacen_prestamista);
+        return PrestamoAlmacen::get_nuevo_correlativo();
     }
 
     public static function get_prestamos_por_solicitud(int $id_solicitud_reabastecimiento)

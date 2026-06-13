@@ -66,15 +66,25 @@ class ActivosFijosService
         ?string $fecha_hora_ingreso = null,
         ?EstadoActivoFijo $estado = EstadoActivoFijo::EnUso,
         //
-        ?bool $return_objecto = false
+        ?bool $return_objecto = false,
+        // Nuevos
+        ?int $id_empleado_responsable = null,
+        ?string $serie_factura_compra = null,
+        ?string $numero_factura_compra = null,
+        ?float $costo_compra = null,
+        ?int $id_orden_compra_recepcion_detalle = null,
+        ?int $id_orden_compra_detalle = null
     ) {
-        return DB::transaction(function () use ($id_producto, $id_almacen, $id_mina, $id_marca, $codigo, $numero_serie, $modelo, $yearcito_modelo, $descripcion, $serie_placa, $numero_placa, $especificaciones, $fecha_hora_ingreso, $return_objecto, $estado) {
+        return DB::transaction(function () use ($id_producto, $id_almacen, $id_mina, $id_marca, $codigo, $numero_serie, $modelo, $yearcito_modelo, $descripcion, $serie_placa, $numero_placa, $especificaciones, $fecha_hora_ingreso, $return_objecto, $estado, $id_empleado_responsable, $serie_factura_compra, $numero_factura_compra, $costo_compra, $id_orden_compra_recepcion_detalle, $id_orden_compra_detalle) {
             $producto = ProductosData::get_producto_by_id(id_producto: $id_producto, columnas: ['prefijo']);
             $prefijo = $producto['prefijo'];
 
             $correlativo_data = ActivosFijosData::get_nuevo_correlativo($prefijo);
             $correlativo = $correlativo_data['correlativo'];
             $numero_correlativo = $correlativo_data['numero_correlativo'];
+
+            // Obtener el costo promedio del producto
+            $costo_promedio_base = ProductosData::get_costo_promedio_producto($id_producto);
 
             $id_nuevo_activo = ActivosFijosData::crear_activo(
                 id_producto: $id_producto,
@@ -93,6 +103,14 @@ class ActivosFijosService
                 especificaciones: $especificaciones,
                 fecha_hora_ingreso: $fecha_hora_ingreso,
                 estado: $estado,
+                // Nuevos
+                id_empleado_responsable: $id_empleado_responsable,
+                serie_factura_compra: $serie_factura_compra,
+                numero_factura_compra: $numero_factura_compra,
+                costo_compra: $costo_compra,
+                id_orden_compra_recepcion_detalle: $id_orden_compra_recepcion_detalle,
+                id_orden_compra_detalle: $id_orden_compra_detalle,
+                costo_promedio_base: $costo_promedio_base
             );
 
             // registrar su ubicacion

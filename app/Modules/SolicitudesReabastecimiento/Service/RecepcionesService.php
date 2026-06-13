@@ -22,6 +22,22 @@ class RecepcionesService
 {
     /**
      * Registrar una recepción de stock para una entrega de LOGÍSTICA.
+     * 
+     * @param array $items Lista de ítems a recepcionar. Cada ítem contiene:
+     *   - 'id_solicitud_reabastecimiento_detalle': int
+     *   - 'id_entrega_detalle': int
+     *   - 'cantidad_base': float
+     *   - 'es_nuevo_lote': bool
+     *   - 'id_lote_existente': int|null
+     *   - 'id_activo_fijo': int|null
+     *   - 'es_activo_fijo': bool
+     *   - 'id_unidad_medida': int
+     *   - 'contenido_por_presentacion': float
+     *   - 'descripcion': string|null
+     *   - 'fecha_vencimiento': string|null
+     *   - 'fecha_ingreso': string|null
+     *   - 'unidad_abv': string
+     * @param array $evidencias Listado de archivos de evidencias de recepción.
      */
     public static function registrar_recepcion_logistica(
         int $id_reabastecimiento_entrega,
@@ -30,20 +46,6 @@ class RecepcionesService
         ?string $observacion,
         ?string $fecha_hora_recepcion,
         array $items,
-        /**
-         * 'id_solicitud_reabastecimiento_detalle''id_entrega_detalle'
-         *   'cantidad_base'
-         *   'es_nuevo_lote'
-         *   'id_lote_existente'
-         *   'id_activo_fijo'
-         *   'es_activo_fijo'
-         *   'id_unidad_medida'
-         *   'contenido_por_presentacion'
-         *   'descripcion'
-         *   'fecha_vencimiento'
-         *   'fecha_ingreso'
-         *   'unidad_abv'
-         */
         array $evidencias = []
     ) {
         return DB::transaction(function () use ($id_reabastecimiento_entrega, $id_empleado_registro, $con_incidencia, $observacion, $fecha_hora_recepcion, $items, $evidencias) {
@@ -140,6 +142,23 @@ class RecepcionesService
                         $contenido_por_presentacion = (float) ($item['contenido_por_presentacion'] ?? 1);
                         $stock_inicial = $cantidad_recep_base / $contenido_por_presentacion;
 
+                        $entrega_det = \App\Models\SolicitudReabastecimientoEntregaDetalle::get_detalles(id_detalle_entrega: $id_entrega_det);
+                        $lote_origen = null;
+                        if ($entrega_det && !empty($entrega_det->id_lote_producto)) {
+                            $lote_origen = LotesProductosData::get_lote_dinamico_by_id(
+                                id_lote: $entrega_det->id_lote_producto,
+                                columnas: [
+                                    'fecha_vencimiento',
+                                    'serie_factura_compra',
+                                    'numero_factura_compra',
+                                    'costo_por_unidad',
+                                    'id_orden_compra_detalle',
+                                    'id_orden_compra_recepcion_detalle',
+                                    'descripcion'
+                                ]
+                            );
+                        }
+
                         $response = LotesProductosService::crear_lote(
                             id_producto: (int) $detalle_sol->id_producto,
                             id_unidad_medida: (int) $item['id_unidad_medida'],
@@ -151,10 +170,15 @@ class RecepcionesService
                             fecha_hora_ingreso: isset($item['fecha_ingreso'])
                             ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
                             : $fecha_mysql,
-                            descripcion: $item['descripcion'] ?? "Ingreso por recepción en reabastecimiento",
-                            fecha_vencimiento: isset($item['fecha_vencimiento'])
+                            descripcion: $item['descripcion'] ?? ($lote_origen ? $lote_origen['descripcion'] : "Ingreso por recepción en reabastecimiento"),
+                            fecha_vencimiento: isset($item['fecha_vencimiento']) && $item['fecha_vencimiento']
                             ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
-                            : null
+                            : ($lote_origen ? $lote_origen['fecha_vencimiento'] : null),
+                            serie_factura_compra: $lote_origen ? $lote_origen['serie_factura_compra'] : null,
+                            numero_factura_compra: $lote_origen ? $lote_origen['numero_factura_compra'] : null,
+                            costo_por_unidad: $lote_origen ? $lote_origen['costo_por_unidad'] : null,
+                            id_orden_compra_recepcion_detalle: $lote_origen ? $lote_origen['id_orden_compra_recepcion_detalle'] : null,
+                            id_orden_compra_detalle: $lote_origen ? $lote_origen['id_orden_compra_detalle'] : null
                         );
                         $id_lote_destino = $response['data'];
                         $ids_lotes_nuevos[] = $id_lote_destino;
@@ -203,6 +227,22 @@ class RecepcionesService
 
     /**
      * Registrar una recepción de stock para una entrega de PRÉSTAMO.
+     * 
+     * @param array $items Lista de ítems a recepcionar. Cada ítem contiene:
+     *   - 'id_solicitud_reabastecimiento_detalle': int
+     *   - 'id_entrega_detalle': int
+     *   - 'cantidad_base': float
+     *   - 'es_nuevo_lote': bool
+     *   - 'id_lote_existente': int|null
+     *   - 'id_activo_fijo': int|null
+     *   - 'es_activo_fijo': bool
+     *   - 'id_unidad_medida': int
+     *   - 'contenido_por_presentacion': float
+     *   - 'descripcion': string|null
+     *   - 'fecha_vencimiento': string|null
+     *   - 'fecha_ingreso': string|null
+     *   - 'unidad_abv': string
+     * @param array $evidencias Listado de archivos de evidencias de recepción.
      */
     public static function registrar_recepcion_prestamo(
         int $id_reabastecimiento_entrega,
@@ -210,21 +250,6 @@ class RecepcionesService
         bool $con_incidencia,
         ?string $observacion,
         ?string $fecha_hora_recepcion,
-        /**
-         *   'id_solicitud_reabastecimiento_detalle'
-         *   'id_entrega_detalle'
-         *   'cantidad_base'
-         *   'es_nuevo_lote'
-         *   'id_lote_existente'
-         *   'es_activo_fijo'
-         *   'id_activo_fijo'
-         *   'id_unidad_medida'
-         *   'contenido_por_presentacion'
-         *   'descripcion'
-         *   'fecha_vencimiento'
-         *   'fecha_ingreso'
-         *   'unidad_abv'
-         */
         array $items,
         array $evidencias = []
     ) {
@@ -322,6 +347,23 @@ class RecepcionesService
                         $contenido_por_presentacion = (float) ($item['contenido_por_presentacion'] ?? 1);
                         $stock_inicial = $cantidad_recep_base / $contenido_por_presentacion;
 
+                        $entrega_det = \App\Models\PrestamoAlmacenEntregaDetalle::get_detalles(id_entrega_detalle: $id_entrega_det);
+                        $lote_origen = null;
+                        if ($entrega_det && !empty($entrega_det->id_lote_producto)) {
+                            $lote_origen = LotesProductosData::get_lote_dinamico_by_id(
+                                id_lote: $entrega_det->id_lote_producto,
+                                columnas: [
+                                    'fecha_vencimiento',
+                                    'serie_factura_compra',
+                                    'numero_factura_compra',
+                                    'costo_por_unidad',
+                                    'id_orden_compra_detalle',
+                                    'id_orden_compra_recepcion_detalle',
+                                    'descripcion'
+                                ]
+                            );
+                        }
+
                         $response = LotesProductosService::crear_lote(
                             id_producto: (int) $detalle_sol->id_producto,
                             id_unidad_medida: (int) $item['id_unidad_medida'],
@@ -333,10 +375,15 @@ class RecepcionesService
                             fecha_hora_ingreso: isset($item['fecha_ingreso'])
                             ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
                             : $fecha_mysql,
-                            descripcion: $item['descripcion'] ?? "Ingreso por recepción en reabastecimiento",
-                            fecha_vencimiento: isset($item['fecha_vencimiento'])
+                            descripcion: $item['descripcion'] ?? ($lote_origen ? $lote_origen['descripcion'] : "Ingreso por recepción en reabastecimiento"),
+                            fecha_vencimiento: isset($item['fecha_vencimiento']) && $item['fecha_vencimiento']
                             ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
-                            : null
+                            : ($lote_origen ? $lote_origen['fecha_vencimiento'] : null),
+                            serie_factura_compra: $lote_origen ? $lote_origen['serie_factura_compra'] : null,
+                            numero_factura_compra: $lote_origen ? $lote_origen['numero_factura_compra'] : null,
+                            costo_por_unidad: $lote_origen ? $lote_origen['costo_por_unidad'] : null,
+                            id_orden_compra_recepcion_detalle: $lote_origen ? $lote_origen['id_orden_compra_recepcion_detalle'] : null,
+                            id_orden_compra_detalle: $lote_origen ? $lote_origen['id_orden_compra_detalle'] : null
                         );
                         $id_lote_destino = $response['data'];
                         $ids_lotes_nuevos[] = $id_lote_destino;

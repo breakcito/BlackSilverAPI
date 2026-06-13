@@ -38,12 +38,12 @@ class PrestamoAlmacen extends Model
     /**
      * Obtener un nuevo correlativo para un prestamo
      */
-    public static function get_nuevo_correlativo(int $id_almacen_prestamista)
+    public static function get_nuevo_correlativo()
     {
         return CorrelativoHelper::generar(
             'prestamo_almacen',
             'PRT',
-            ['id_almacen_prestamista' => $id_almacen_prestamista]
+            []
         );
     }
 

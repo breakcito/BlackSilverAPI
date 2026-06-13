@@ -12,9 +12,9 @@ class ReposicionesData
     /**
      * Genera un nuevo correlativo para una reposición.
      */
-    public static function get_nuevo_correlativo(int $id_almacen)
+    public static function get_nuevo_correlativo()
     {
-        return PrestamoAlmacenReposicion::get_nuevo_correlativo($id_almacen);
+        return PrestamoAlmacenReposicion::get_nuevo_correlativo();
     }
 
     /**

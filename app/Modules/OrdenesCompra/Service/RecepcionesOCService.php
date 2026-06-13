@@ -8,7 +8,6 @@ use App\Modules\OrdenesCompra\Data\RecepcionesOCData;
 use App\Services\ActivosFijosService;
 use App\Services\LotesProductosService;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
-use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\OrdenCompra\EstadoOrdenCompra;
@@ -86,21 +85,50 @@ class RecepcionesOCService
         float $total_despues_igv_comprobante = 0,
         float $total_despues_igv_soles_comprobante = 0
     ) {
-        return DB::transaction(function () use ($id_orden_compra, $id_almacen_recepcionista, $id_empleado_registro, $con_incidencia, $observacion, $fecha_hora_recepcion, $serie_guia, $numero_guia, $items, $evidencias, $tipo_comprobante, $serie_comprobante, $numero_comprobante, $fecha_emision_comprobante, $observacion_comprobante, $evidencias_comprobante, $moneda_comprobante, $tipo_cambio_comprobante, $es_auditable_comprobante, $total_antes_igv_comprobante, $total_antes_igv_soles_comprobante, $incluye_igv_comprobante, $porcentaje_igv_comprobante, $monto_igv_comprobante, $monto_igv_soles_comprobante, $total_despues_igv_comprobante, $total_despues_igv_soles_comprobante) {
-            // Validar que no se mezclen activos fijos y productos comunes
-            $tiene_activos = false;
-            $tiene_comunes = false;
-            foreach ($items as $item) {
-                if (!empty($item['es_activo_fijo'])) {
-                    $tiene_activos = true;
-                } else {
-                    $tiene_comunes = true;
+        try {
+            return DB::transaction(function () use (
+                $id_orden_compra,
+                $id_almacen_recepcionista,
+                $id_empleado_registro,
+                $con_incidencia,
+                $observacion,
+                $fecha_hora_recepcion,
+                $serie_guia,
+                $numero_guia,
+                $items,
+                $evidencias,
+                $tipo_comprobante,
+                $serie_comprobante,
+                $numero_comprobante,
+                $fecha_emision_comprobante,
+                $observacion_comprobante,
+                $evidencias_comprobante,
+                $moneda_comprobante,
+                $tipo_cambio_comprobante,
+                $es_auditable_comprobante,
+                $total_antes_igv_comprobante,
+                $total_antes_igv_soles_comprobante,
+                $incluye_igv_comprobante,
+                $porcentaje_igv_comprobante,
+                $monto_igv_comprobante,
+                $monto_igv_soles_comprobante,
+                $total_despues_igv_comprobante,
+                $total_despues_igv_soles_comprobante
+            ) {
+                // Validar que no se mezclen activos fijos y productos comunes
+                $tiene_activos = false;
+                $tiene_comunes = false;
+                foreach ($items as $item) {
+                    if (!empty($item['es_activo_fijo'])) {
+                        $tiene_activos = true;
+                    } else {
+                        $tiene_comunes = true;
+                    }
                 }
-            }
 
-            if ($tiene_activos && $tiene_comunes) {
-                throw new \Exception("No se pueden recepcionar activos fijos y productos de consumo común en la misma recepción.");
-            }
+                if ($tiene_activos && $tiene_comunes) {
+                    throw new \Exception("No se pueden recepcionar activos fijos y productos de consumo común en la misma recepción.");
+                }
 
             $fecha_mysql = $fecha_hora_recepcion
                 ? Carbon::parse($fecha_hora_recepcion)->toDateTimeString()
@@ -139,28 +167,31 @@ class RecepcionesOCService
                 ->values()
                 ->all();
 
-            $lotesMap = !empty($ids_lotes_existentes)
-                ? collect(LotesProductosData::get_lote_simple_by_id($ids_lotes_existentes))->keyBy('id_lote')
-                : collect();
-
-            // 5. Agrupar y pre-calcular totales de la solicitud por detalle de OC
-            $detallesAgrupados = [];
-            $totalesBaseRequest = [];
             $yaRecibidoAntesMap = [];
-            foreach ($items as $item) {
-                $id_det = (int) $item['id_orden_compra_detalle'];
-                $totalesBaseRequest[$id_det] = ($totalesBaseRequest[$id_det] ?? 0) + (float) $item['cantidad_base'];
-
-                if (!isset($yaRecibidoAntesMap[$id_det])) {
-                    $yaRecibidoAntesMap[$id_det] = RecepcionesOCData::get_cantidad_recepcionada_total_base_detalle($id_det);
+            foreach ($items as $i) {
+                $id_oc_det = (int) $i['id_orden_compra_detalle'];
+                if (!isset($yaRecibidoAntesMap[$id_oc_det])) {
+                    $yaRecibidoAntesMap[$id_oc_det] = (float) RecepcionesOCData::get_cantidad_recepcionada_total_base_detalle($id_oc_det);
                 }
             }
 
+            $totalesBaseRequest = [];
+            foreach ($items as $i) {
+                $id_oc_det = (int) $i['id_orden_compra_detalle'];
+                $es_activo = !empty($i['es_activo_fijo']);
+                $cant_base = $es_activo ? 1 : (float) $i['cantidad_base'];
+                if (!isset($totalesBaseRequest[$id_oc_det])) {
+                    $totalesBaseRequest[$id_oc_det] = 0;
+                }
+                $totalesBaseRequest[$id_oc_det] += $cant_base;
+            }
+
             // Procesar cada item (lote o activo)
+            $detallesAgrupados = [];
             $ids_lotes_nuevos = [];
             foreach ($items as $item) {
-                $id_oc_detalle       = (int) $item['id_orden_compra_detalle'];
-                $es_activo_fijo      = !empty($item['es_activo_fijo']);
+                $id_oc_detalle = (int) $item['id_orden_compra_detalle'];
+                $es_activo_fijo = !empty($item['es_activo_fijo']);
 
                 $oc_detalle = RecepcionesOCData::get_oc_detalle_by_id($id_oc_detalle);
                 if (!$oc_detalle)
@@ -169,11 +200,24 @@ class RecepcionesOCService
                 // --- Camino: Activo Fijo ---
                 if ($es_activo_fijo) {
                     $id_almacen_activo = !empty($item['id_almacen_destino']) ? (int) $item['id_almacen_destino'] : null;
-                    $id_mina_activo    = !empty($item['id_mina_destino']) ? (int) $item['id_mina_destino'] : null;
+                    $id_mina_activo = !empty($item['id_mina_destino']) ? (int) $item['id_mina_destino'] : null;
 
                     $estado_activo = !empty($id_almacen_activo) ? EstadoActivoFijo::EnAlmacen : EstadoActivoFijo::EnUso;
 
-                    // Crear el activo fijo recién comprado.
+                    // 1. Crear detalle de recepcion primero, vinculando el activo temporalmente como nulo
+                    $id_recepcion_detalle = RecepcionesOCData::crear_detalle_recepcion(
+                        id_recepcion: $id_recepcion,
+                        id_oc_detalle: $id_oc_detalle,
+                        id_lote_producto: 0, // no aplica
+                        es_ajuste_stock: false,
+                        cantidad_recepcionada: 1,
+                        cantidad_recepcionada_base: 1,
+                        comentario: $item['descripcion_activo'] ?? null,
+                        estado: EstadoOrdenCompraRecepcionDetalle::RecepcionCompleta,
+                        id_activo_fijo: null // se asocia después
+                    );
+
+                    // 2. Crear el activo fijo recién comprado pasándole el id_orden_compra_recepcion_detalle
                     // crear_activo() internamente registra NuevoActivo en el log de ubicación.
                     $resultado = ActivosFijosService::crear_activo(
                         id_producto: (int) $oc_detalle->id_producto,
@@ -187,22 +231,23 @@ class RecepcionesOCService
                         descripcion: $item['descripcion_activo'] ?? "Ingreso por recepcion de OC",
                         especificaciones: !empty($item['especificaciones']) ? $item['especificaciones'] : null,
                         fecha_hora_ingreso: $fecha_mysql,
-                        estado: $estado_activo
+                        estado: $estado_activo,
+                        return_objecto: false,
+                        id_empleado_responsable: !empty($item['id_empleado_responsable']) ? (int) $item['id_empleado_responsable'] : null,
+                        costo_compra: (float) $oc_detalle->precio_unitario,
+                        id_orden_compra_detalle: $id_oc_detalle,
+                        serie_factura_compra: $serie_comprobante,
+                        numero_factura_compra: $numero_comprobante,
+                        id_orden_compra_recepcion_detalle: $id_recepcion_detalle
                     );
+
+                    if (!$resultado['success']) {
+                        throw new \Exception($resultado['message'] ?? "Error al registrar el activo fijo.");
+                    }
                     $id_activo_creado = $resultado['data'];
 
-                    // Crear detalle de recepcion vinculando el activo creado
-                    $id_recepcion_detalle = RecepcionesOCData::crear_detalle_recepcion(
-                        id_recepcion: $id_recepcion,
-                        id_oc_detalle: $id_oc_detalle,
-                        id_lote_producto: 0, // no aplica
-                        es_ajuste_stock: false,
-                        cantidad_recepcionada: 1,
-                        cantidad_recepcionada_base: 1,
-                        comentario: $item['descripcion_activo'] ?? null,
-                        estado: EstadoOrdenCompraRecepcionDetalle::RecepcionCompleta,
-                        id_activo_fijo: $id_activo_creado
-                    );
+                    // 3. Vincular el activo creado al detalle de recepción
+                    RecepcionesOCData::update_detalle_activo($id_recepcion_detalle, $id_activo_creado);
 
                     // Acumular para post-procesamiento
                     if (!isset($detallesAgrupados[$id_oc_detalle])) {
@@ -222,7 +267,7 @@ class RecepcionesOCService
 
                 // --- Camino: Producto Común con Lote ---
                 $cantidad_recep_base = (float) $item['cantidad_base'];
-                $es_nuevo_lote       = (bool) $item['es_nuevo_lote'];
+                $es_nuevo_lote = (bool) $item['es_nuevo_lote'];
 
                 // 1. Calcular estado previsto del detalle
                 $total_ya_recibido_antes = $yaRecibidoAntesMap[$id_oc_detalle];
@@ -262,11 +307,19 @@ class RecepcionesOCService
                         fecha_hora_ingreso: isset($item['fecha_ingreso'])
                         ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
                         : $fecha_mysql,
-                        descripcion: $item['descripcion'] ?? "Ingreso por recepción de Orden de Compra",
+                        descripcion: $item['descripcion'] ?? null,
                         fecha_vencimiento: isset($item['fecha_vencimiento'])
                         ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
-                        : null
+                        : null,
+                        serie_factura_compra: $serie_comprobante,
+                        numero_factura_compra: $numero_comprobante,
+                        costo_por_unidad: (float) $oc_detalle->precio_unitario,
+                        id_orden_compra_recepcion_detalle: $id_recepcion_detalle,
+                        id_orden_compra_detalle: $id_oc_detalle
                     );
+                    if (!$response['success']) {
+                        throw new \Exception($response['message'] ?? "Error al crear el lote de producto.");
+                    }
                     $id_lote_destino = $response['data'];
                     $ids_lotes_nuevos[] = $id_lote_destino;
 
@@ -366,8 +419,11 @@ class RecepcionesOCService
                 );
             }
 
-            return ApiResponse::success($lotes_data, "Recepción de Orden de Compra registrada exitosamente");
-        });
+                return ApiResponse::success($lotes_data, "Recepción de Orden de Compra registrada exitosamente");
+            });
+        } catch (\Throwable $e) {
+            return ApiResponse::error($e->getMessage());
+        }
     }
 
     /**

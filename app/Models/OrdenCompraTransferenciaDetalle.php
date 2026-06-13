@@ -86,6 +86,12 @@ class OrdenCompraTransferenciaDetalle extends Model
             -- el lote tomado para la entrega
             trnd.id_lote_producto,
             lt.correlativo as lote_correlativo,
+            COALESCE(occ_lt.serie, lt.serie_factura_compra) as lote_serie_factura,
+            COALESCE(occ_lt.numero, lt.numero_factura_compra) as lote_numero_factura,
+            lt.costo_por_unidad as lote_costo_por_unidad,
+            lt.id_orden_compra_detalle as lote_id_orden_compra_detalle,
+            ocd_lt.id_orden_compra as lote_id_orden_compra,
+            occr_lt.id_orden_compra_comprobante as lote_id_orden_compra_comprobante,
             
             -- el activo tomado para la entrega
             trnd.id_activo_fijo,
@@ -118,8 +124,13 @@ class OrdenCompraTransferenciaDetalle extends Model
         
         -- lote del que se saco el stock
         LEFT JOIN lote_producto lt on lt.id = trnd.id_lote_producto
+        LEFT JOIN orden_compra_detalle ocd_lt ON ocd_lt.id = lt.id_orden_compra_detalle
+        LEFT JOIN orden_compra_recepcion_detalle ocrd_lt ON ocrd_lt.id = lt.id_orden_compra_recepcion_detalle
+        LEFT JOIN orden_compra_comprobante_recepcion occr_lt ON occr_lt.id_orden_compra_recepcion = ocrd_lt.id_orden_compra_recepcion
+        LEFT JOIN orden_compra_comprobante occ_lt ON occ_lt.id = occr_lt.id_orden_compra_comprobante
+        
         LEFT JOIN activo_fijo act on act.id = trnd.id_activo_fijo
-
+ 
         -- info del detalle de la orden de compra
         INNER JOIN orden_compra_recepcion_detalle rcd ON rcd.id = trnd.id_orden_compra_recepcion_detalle
         INNER JOIN orden_compra_detalle ocd on ocd.id = rcd.id_orden_compra_detalle

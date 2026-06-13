@@ -57,6 +57,16 @@ class ActivosData
             act.yearcito_modelo,
             act.descripcion, -- descripcion interna o del fabricante
             act.especificaciones, -- JSON con una lista de objetos clave-valor para campos personalizados
+            
+            -- Nuevos campos
+            act.id_empleado_responsable,
+            CONCAT(emp.nombre, \' \', emp.apellido) as empleado_responsable,
+            act.serie_factura_compra,
+            act.numero_factura_compra,
+            act.costo_compra,
+            act.costo_promedio_base,
+            act.id_orden_compra_recepcion_detalle,
+            act.id_orden_compra_detalle,
 
             act.fecha_hora_ingreso,
             act.created_at,
@@ -79,6 +89,7 @@ class ActivosData
         -- o en ninguno de ellos en caso se de de baja
         LEFT JOIN mina mn on mn.id = act.id_mina
         LEFT JOIN almacen alm on alm.id = act.id_almacen
+        LEFT JOIN empleado emp on emp.id = act.id_empleado_responsable
         WHERE 1=1
         ';
 

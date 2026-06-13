@@ -34,16 +34,16 @@ class EntregasData
      * Obtener el nuevo correlativo para una entrega de préstamo
      * Filtrado por el almacén que presta (id_almacen_prestamista)
      */
-    public static function get_nuevo_correlativo(int $id_almacen_prestamista)
+    public static function get_nuevo_correlativo()
     {
         return CorrelativoHelper::generar(
             tabla: 'prestamo_almacen_entrega',
             prefijo: 'ENT',
-            filtros: ['pa.id_almacen_prestamista' => $id_almacen_prestamista],
-            queryModifier: function ($q) {
-                $q->join('prestamo_almacen as pa', 'pa.id', '=', 'pae.id_prestamo_almacen');
-            },
-            alias: 'pae'
+            // filtros: ['pa.id_almacen_prestamista' => $id_almacen_prestamista],
+            // queryModifier: function ($q) {
+            //     $q->join('prestamo_almacen as pa', 'pa.id', '=', 'pae.id_prestamo_almacen');
+            // },
+            // alias: 'pae'
         );
     }
 

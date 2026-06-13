@@ -2,6 +2,7 @@
 
 namespace App\Modules\PrestamosAlmacenAtencion\Service;
 
+
 use App\Services\ActivosFijosService;
 use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
 use App\Data\LotesProductosData;
@@ -110,8 +111,8 @@ class RecepcionesReposicionService
 
                 $es_nuevo_lote = (bool) $item['es_nuevo_lote'];
 
-                // Obtener detalle de la reposicion para saber el producto
-                $repo_det = RecepcionesReposicionData::get_producto_id_by_repo_det($id_repo_det);
+                // Obtener detalle de la reposicion para saber el producto y el lote de origen
+                $repo_det = RecepcionesReposicionData::get_detalle_by_id_para_recepcion(id_detalle: $id_repo_det);
 
                 if (!$repo_det)
                     continue;
@@ -133,6 +134,22 @@ class RecepcionesReposicionService
                     $contenido_por_presentacion = (float) ($item['contenido_por_presentacion'] ?? 1);
                     $stock_inicial = $cantidad_recep_base / $contenido_por_presentacion;
 
+                    $lote_origen = null;
+                    if ($repo_det && !empty($repo_det->id_lote_producto)) {
+                        $lote_origen = LotesProductosData::get_lote_dinamico_by_id(
+                            id_lote: $repo_det->id_lote_producto,
+                            columnas: [
+                                'fecha_vencimiento',
+                                'serie_factura_compra',
+                                'numero_factura_compra',
+                                'costo_por_unidad',
+                                'id_orden_compra_detalle',
+                                'id_orden_compra_recepcion_detalle',
+                                'descripcion'
+                            ]
+                        );
+                    }
+
                     $response = LotesProductosService::crear_lote(
                         id_producto: (int) $repo_det->id_producto,
                         id_unidad_medida: (int) $item['id_unidad_medida'],
@@ -144,10 +161,15 @@ class RecepcionesReposicionService
                         fecha_hora_ingreso: isset($item['fecha_ingreso'])
                         ? Carbon::parse($item['fecha_ingreso'])->toDateTimeString()
                         : $fecha_mysql,
-                        descripcion: $item['descripcion'] ?? "Ingreso por recepción de reposición",
-                        fecha_vencimiento: isset($item['fecha_vencimiento'])
+                        descripcion: $item['descripcion'] ?? ($lote_origen ? $lote_origen['descripcion'] : "Ingreso por recepción de reposición"),
+                        fecha_vencimiento: isset($item['fecha_vencimiento']) && $item['fecha_vencimiento']
                         ? Carbon::parse($item['fecha_vencimiento'])->toDateTimeString()
-                        : null
+                        : ($lote_origen ? $lote_origen['fecha_vencimiento'] : null),
+                        serie_factura_compra: $lote_origen ? $lote_origen['serie_factura_compra'] : null,
+                        numero_factura_compra: $lote_origen ? $lote_origen['numero_factura_compra'] : null,
+                        costo_por_unidad: $lote_origen ? $lote_origen['costo_por_unidad'] : null,
+                        id_orden_compra_recepcion_detalle: $lote_origen ? $lote_origen['id_orden_compra_recepcion_detalle'] : null,
+                        id_orden_compra_detalle: $lote_origen ? $lote_origen['id_orden_compra_detalle'] : null
                     );
                     $id_lote_destino = $response['data'];
                     $ids_lotes_nuevos[] = $id_lote_destino;

@@ -64,7 +64,7 @@ class AtencionService
     ) {
         return DB::transaction(function () use ($id_contratista_solicitante, $id_empleado_registro, $id_mina, $id_almacen_destino, $es_auditable, $premura, $observacion, $fecha_entrega_requerida, $labores, $detalles, $evidencias) {
             // 1. Generar correlativo
-            $correlativo = RequerimientosData::get_nuevo_correlativo($id_almacen_destino);
+            $correlativo = RequerimientosData::get_nuevo_correlativo();
 
             // 2. Procesar evidencias
             $evidenciasFinal = null;

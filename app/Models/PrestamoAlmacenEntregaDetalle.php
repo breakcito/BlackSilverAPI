@@ -45,6 +45,12 @@ class PrestamoAlmacenEntregaDetalle extends Model
             paed.id_lote_producto,
             lt.correlativo as lote_correlativo,
             lt.fecha_vencimiento,
+            COALESCE(occ_lt.serie, lt.serie_factura_compra) as lote_serie_factura,
+            COALESCE(occ_lt.numero, lt.numero_factura_compra) as lote_numero_factura,
+            lt.costo_por_unidad as lote_costo_por_unidad,
+            lt.id_orden_compra_detalle as lote_id_orden_compra_detalle,
+            ocd_lt.id_orden_compra as lote_id_orden_compra,
+            occr_lt.id_orden_compra_comprobante as lote_id_orden_compra_comprobante,
             
             paed.id_activo_fijo,
             act.correlativo as correlativo_activo_fijo,
@@ -79,6 +85,11 @@ class PrestamoAlmacenEntregaDetalle extends Model
         FROM
             prestamo_almacen_entrega_detalle paed
         LEFT JOIN lote_producto lt on lt.id = paed.id_lote_producto
+        LEFT JOIN orden_compra_detalle ocd_lt ON ocd_lt.id = lt.id_orden_compra_detalle
+        LEFT JOIN orden_compra_recepcion_detalle ocrd_lt ON ocrd_lt.id = lt.id_orden_compra_recepcion_detalle
+        LEFT JOIN orden_compra_comprobante_recepcion occr_lt ON occr_lt.id_orden_compra_recepcion = ocrd_lt.id_orden_compra_recepcion
+        LEFT JOIN orden_compra_comprobante occ_lt ON occ_lt.id = occr_lt.id_orden_compra_comprobante
+        
         LEFT JOIN activo_fijo act on act.id = paed.id_activo_fijo
         INNER JOIN prestamo_almacen_detalle pad ON pad.id = paed.id_prestamo_almacen_detalle
         INNER JOIN producto prod ON prod.id = pad.id_producto
