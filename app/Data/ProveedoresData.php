@@ -64,12 +64,12 @@ class ProveedoresData
     public static function crear_proveedor(
         TipoEntidad $tipoEntidad,
         string $razonSocial,
-        bool $paraMantenimiento = false,
-        ?string $dni,
-        ?string $ruc,
-        ?string $direccion,
-        ?string $telefono,
-        ?string $correo
+        bool $paraMantenimiento,
+        ?string $dni = null,
+        ?string $ruc = null,
+        ?string $direccion = null,
+        ?string $telefono = null,
+        ?string $correo = null
     ): int {
         return Proveedor::insertGetId([
             'tipo_entidad' => $tipoEntidad->value,

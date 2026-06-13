@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Services\ActivosFijosService;
 use App\Services\AlmacenesService;
+use App\Services\CategoriasService;
 use App\Services\EmpleadosService;
 use App\Services\EmpresasService;
 use App\Services\LotesProductosService;
@@ -16,13 +17,18 @@ use App\Services\UnidadesMedidaService;
 use App\Services\LaboresService;
 use App\Modules\Contratistas\Service\ContratistasService;
 use App\Shared\Enums\_Generic\EstadoBase;
+use App\Shared\Enums\_Generic\Periodo;
 use App\Shared\Enums\_Generic\TipoBien;
 use App\Shared\Enums\_Generic\TipoEntidad;
+use App\Shared\Enums\_Generic\TipoProducto;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Enum;
+
 
 class AuxController extends Controller
 {
@@ -187,6 +193,52 @@ class AuxController extends Controller
         ));
     }
 
+    /**
+     * Crear un nuevo producto
+     */
+    public function crear_producto(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_categoria' => 'required|integer',
+            'id_unidad_medida_base' => 'required|integer',
+            'nombre' => 'required|string|max:128',
+            'prefijo' => 'nullable|string|max:4',
+            'es_auditable' => 'required|boolean',
+            'para_mantenimiento' => 'required|boolean',
+            'es_perecible' => 'required|boolean',
+            'stock_minimo_base' => 'nullable|numeric|min:0',
+            'costo_promedio_base' => 'nullable|numeric|min:0',
+            'tiempo_espera_vencimiento' => 'nullable|integer|min:0',
+            'periodo_espera_vencimiento' => ['nullable', new Enum(Periodo::class)],
+        ], [
+            'id_categoria.required' => 'La categoría es requerida',
+            'id_unidad_medida_base.required' => 'La unidad de medida es requerida',
+            'nombre.required' => 'El nombre es requerido',
+            'es_auditable.required' => 'Debe indicar si es auditable',
+            'es_perecible.required' => 'Debe indicar si es perecible',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $result = ProductosService::crear_producto(
+            id_categoria: $request->integer('id_categoria'),
+            id_unidad_medida_base: $request->integer('id_unidad_medida_base'),
+            nombre: $request->string('nombre'),
+            prefijo: $request->input('prefijo'),
+            es_auditable: $request->boolean('es_auditable'),
+            es_perecible: $request->boolean('es_perecible'),
+            para_mantenimiento: $request->boolean('para_mantenimiento'),
+            stock_minimo_base: (float) ($request->input('stock_minimo_base') ?? 0),
+            costo_promedio_base: (float) ($request->input('costo_promedio_base') ?? 0),
+            tiempo_espera_vencimiento: $request->input('tiempo_espera_vencimiento') ? (int) $request->input('tiempo_espera_vencimiento') : null,
+            periodo_espera_vencimiento: $request->input('periodo_espera_vencimiento')
+        );
+
+        return response()->json($result);
+    }
+
     public function get_empresas(Request $request): JsonResponse
     {
         $id_empresa = $request->input('id_empresa') ? (int) $request->input('id_empresa') : null;
@@ -300,5 +352,64 @@ class AuxController extends Controller
             id_labor: $id_labor,
             id_requerimiento: $id_requerimiento
         ));
+    }
+
+    /**Listar categorias */
+    public function get_categorias(Request $request): JsonResponse
+    {
+        $id_categoria = $request->input('id_categoria') ? (int) $request->input('id_categoria') : null;
+        $estado_val = $request->input('estado');
+        $estado = $estado_val ? EstadoBase::from($estado_val) : null;
+        $result = CategoriasService::get_categorias(id_categoria: $id_categoria, estado: $estado);
+        return response()->json($result);
+    }
+
+    /**
+     * Crear una nueva categoría desde la capa global
+     */
+    public function crear_categoria(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'nombre' => 'required|string|max:128',
+            'descripcion' => 'nullable|string',
+            'tipo_producto' => ['required', new Enum(TipoProducto::class)],
+            'clasificacion_bien' => ['required', new Enum(TipoBien::class)],
+            'para_transporte' => 'boolean',
+            'control_por_odometro' => 'boolean',
+            'control_por_horometro' => 'boolean',
+            'control_por_vueltas' => 'boolean',
+            'es_consumible' => 'boolean',
+            'para_cocina' => 'boolean',
+            'para_mina' => 'boolean',
+            'es_auditable' => 'boolean',
+            'ids_categorias_consumidoras' => 'array',
+            'ids_categorias_consumidoras.*' => 'integer',
+        ], [
+            'nombre.required' => 'El nombre es obligatorio',
+            'tipo_producto.required' => 'El tipo de requerimiento es obligatorio',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $result = CategoriasService::crear_categoria(
+            nombre: (string) $request->input('nombre'),
+            tipo_producto: TipoProducto::from($request->input('tipo_producto')),
+            descripcion: $request->input('descripcion'),
+            clasificacion_bien: TipoBien::from($request->input('clasificacion_bien')),
+            para_transporte: (bool) $request->boolean('para_transporte'),
+            control_por_odometro: (bool) $request->boolean('control_por_odometro'),
+            control_por_horometro: (bool) $request->boolean('control_por_horometro'),
+            control_por_vueltas: (bool) $request->boolean('control_por_vueltas'),
+            es_consumible: (bool) $request->boolean('es_consumible'),
+            para_cocina: (bool) $request->boolean('para_cocina'),
+            para_mina: (bool) $request->boolean('para_mina'),
+            es_auditable: (bool) $request->boolean('es_auditable'),
+            ids_categorias_consumidoras: (array) $request->input('ids_categorias_consumidoras', []),
+            return_object: true
+        );
+
+        return response()->json($result);
     }
 }

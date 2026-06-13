@@ -2,7 +2,6 @@
 
 namespace App\Modules\Productos;
 
-use App\Modules\Productos\Controller\AuxController;
 use App\Modules\Productos\Controller\ProductosController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,10 +17,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::controller(ProductosController::class)->group(function () {
             Route::get('/', 'get_productos');
             Route::post('/', 'crear_producto');
-        });
-
-        Route::prefix('aux')->controller(AuxController::class)->group(function () {
-            Route::get('/categorias', 'get_categorias');
         });
     });
 });

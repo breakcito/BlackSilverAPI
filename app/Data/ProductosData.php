@@ -14,10 +14,12 @@ class ProductosData
      * Listado de productos
      */
     public static function get_productos(
+        ?int $id_producto = null,
         ?EstadoBase $estado = EstadoBase::Activo,
         ?bool $con_categorias_consumidoras = false,
         ?TipoBien $tipo_bien_excluido = null,
         ?TipoBien $tipo_bien = null,
+        ?bool $para_mantenimiento = null,
     ) {
         $sql = '
         SELECT
@@ -53,6 +55,7 @@ class ProductosData
             -- indicadores del producto
             p.es_perecible,
             p.es_auditable,
+            p.para_mantenimiento,
             
             -- costos
             p.costo_promedio_base,
@@ -73,6 +76,12 @@ class ProductosData
         $params['estado'] = $estado->value;
         $params['con_categorias_consumidoras'] = $con_categorias_consumidoras ? 1 : 0;
 
+        if ($id_producto != null) {
+            $sql .= ' AND p.id = :id_producto';
+            $params['id_producto'] = $id_producto;
+            return DB::selectOne($sql, $params);
+        }
+
         if ($tipo_bien_excluido != null) {
             $sql .= ' AND c.clasificacion_bien != :tipo_bien_excluido';
             $params['tipo_bien_excluido'] = $tipo_bien_excluido->value;
@@ -81,6 +90,11 @@ class ProductosData
         if ($tipo_bien != null) {
             $sql .= ' AND c.clasificacion_bien = :tipo_bien';
             $params['tipo_bien'] = $tipo_bien->value;
+        }
+
+        if ($para_mantenimiento != null) {
+            $sql .= ' AND p.para_mantenimiento = :para_mantenimiento';
+            $params['para_mantenimiento'] = $para_mantenimiento ? 1 : 0;
         }
 
         $sql .= ' ORDER BY p.nombre ASC';
@@ -241,4 +255,50 @@ class ProductosData
         return DB::select($sql, $params);
     }
 
+
+
+    /**
+     * Crear un nuevo producto con parámetros explícitos
+     */
+    public static function crear_producto(
+        int $id_categoria,
+        int $id_unidad_medida_base,
+        string $nombre,
+        bool $es_auditable,
+        bool $es_perecible,
+        float $stock_minimo_base,
+        float $costo_promedio_base,
+        bool $para_mantenimiento = false,
+        ?string $prefijo = null,
+        ?int $tiempo_espera_vencimiento = null,
+        ?string $periodo_espera_vencimiento = null,
+        ?int $dias_espera_vencimiento = null
+    ) {
+        return Producto::insertGetId([
+            'id_categoria' => $id_categoria,
+            'id_unidad_medida_base' => $id_unidad_medida_base,
+            'nombre' => $nombre,
+            'prefijo' => $prefijo,
+            'es_auditable' => $es_auditable,
+            'es_perecible' => $es_perecible,
+            'para_mantenimiento' => $para_mantenimiento,
+            'stock_minimo_base' => $stock_minimo_base,
+            'costo_promedio_base' => $costo_promedio_base,
+            'costo_promedio_base_log' => null,
+            'tiempo_espera_vencimiento' => $tiempo_espera_vencimiento,
+            'periodo_espera_vencimiento' => $periodo_espera_vencimiento,
+            'dias_espera_vencimiento' => $dias_espera_vencimiento,
+            'estado' => EstadoBase::Activo->value,
+        ]);
+    }
+
+    /**
+     * Verificar si ya existe un producto con el mismo nombre
+     */
+    public static function existe_nombre(string $nombre): bool
+    {
+        return Producto::where('nombre', $nombre)
+            ->where('estado', '!=', EstadoBase::Inactivo->value)
+            ->exists();
+    }
 }

@@ -3,10 +3,13 @@
 namespace App\Modules\Categorias;
 
 use App\Shared\Responses\ApiResponse;
+use App\Shared\Enums\_Generic\TipoBien;
+use App\Shared\Enums\_Generic\TipoProducto;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Enum;
 
 class CategoriasController extends Controller
 {
@@ -28,8 +31,8 @@ class CategoriasController extends Controller
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:128',
             'descripcion' => 'nullable|string',
-            'tipo_producto' => 'required|string|max:64',
-            'clasificacion_bien' => 'nullable|string|max:64',
+            'tipo_producto' => ['required', new Enum(TipoProducto::class)],
+            'clasificacion_bien' => ['required', new Enum(TipoBien::class)],
             'para_transporte' => 'boolean',
             'control_por_odometro' => 'boolean',
             'control_por_horometro' => 'boolean',
@@ -51,9 +54,9 @@ class CategoriasController extends Controller
 
         $result = CategoriasService::crear_categoria(
             nombre: (string) $request->input('nombre'),
-            tipo_producto: (string) $request->input('tipo_producto'),
+            tipo_producto: TipoProducto::from($request->input('tipo_producto')),
             descripcion: $request->input('descripcion'),
-            clasificacion_bien: $request->input('clasificacion_bien'),
+            clasificacion_bien: TipoBien::from($request->input('clasificacion_bien')),
             para_transporte: (bool) $request->boolean('para_transporte'),
             control_por_odometro: (bool) $request->boolean('control_por_odometro'),
             control_por_horometro: (bool) $request->boolean('control_por_horometro'),

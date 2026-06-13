@@ -2,7 +2,6 @@
 
 namespace App\Modules\Productos\Data;
 
-use App\Models\Producto;
 use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
@@ -30,6 +29,7 @@ class ProductosData
                 -- 
                 p.es_auditable,
                 p.es_perecible,
+                p.para_mantenimiento,
                 -- 
                 p.stock_minimo_base,
                 p.costo_promedio_base,
@@ -60,56 +60,5 @@ class ProductosData
         $params['estado_inactivo'] = EstadoBase::Inactivo->value;
 
         return DB::select($sql, $params);
-    }
-
-    /**
-     * Obtener un producto por su ID
-     */
-    public static function get_producto_by_id(int $id_producto)
-    {
-        return self::get_productos(id_producto: $id_producto);
-    }
-
-    /**
-     * Crear un nuevo producto con parámetros explícitos
-     */
-    public static function crear_producto(
-        int $id_categoria,
-        int $id_unidad_medida_base,
-        string $nombre,
-        ?string $prefijo,
-        bool $es_auditable,
-        bool $es_perecible,
-        float $stock_minimo_base,
-        float $costo_promedio_base,
-        ?int $tiempo_espera_vencimiento,
-        ?string $periodo_espera_vencimiento,
-        ?int $dias_espera_vencimiento
-    ) {
-        return Producto::insertGetId([
-            'id_categoria' => $id_categoria,
-            'id_unidad_medida_base' => $id_unidad_medida_base,
-            'nombre' => $nombre,
-            'prefijo' => $prefijo,
-            'es_auditable' => $es_auditable,
-            'es_perecible' => $es_perecible,
-            'stock_minimo_base' => $stock_minimo_base,
-            'costo_promedio_base' => $costo_promedio_base,
-            'costo_promedio_base_log' => null,
-            'tiempo_espera_vencimiento' => $tiempo_espera_vencimiento,
-            'periodo_espera_vencimiento' => $periodo_espera_vencimiento,
-            'dias_espera_vencimiento' => $dias_espera_vencimiento,
-            'estado' => EstadoBase::Activo->value,
-        ]);
-    }
-
-    /**
-     * Verificar si ya existe un producto con el mismo nombre
-     */
-    public static function existe_nombre(string $nombre): bool
-    {
-        return Producto::where('nombre', $nombre)
-            ->where('estado', '!=', EstadoBase::Inactivo->value)
-            ->exists();
     }
 }

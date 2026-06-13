@@ -22,6 +22,10 @@ Route::middleware('auth.jwt.custom')->group(function () {
             // unidades de medida
             Route::get('/unidades-medida', 'get_unidades_medida');
 
+            // categorias
+            Route::get('/categorias', 'get_categorias');
+            Route::post('/categorias', 'crear_categoria');
+
             // proveedores
             Route::get('/proveedores', 'get_proveedores');
             Route::post('/proveedores', 'crear_proveedor');
@@ -31,6 +35,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
             // productos
             Route::get('/productos', 'get_productos');
+            Route::post('/productos', 'crear_producto');
 
             // minas
             Route::get('/minas', 'get_minas');

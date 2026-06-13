@@ -29,12 +29,12 @@ class ProveedoresService
     public static function crear_proveedor(
         TipoEntidad $tipoEntidad,
         string $razonSocial,
-        bool $paraMantenimiento = false,
-        ?string $dni,
-        ?string $ruc,
-        ?string $direccion,
-        ?string $telefono,
-        ?string $correo,
+        bool $paraMantenimiento,
+        ?string $dni = null,
+        ?string $ruc = null,
+        ?string $direccion = null,
+        ?string $telefono = null,
+        ?string $correo = null,
         array $cuentas = []
     ): array {
         return DB::transaction(function () use ($tipoEntidad, $dni, $ruc, $razonSocial, $paraMantenimiento, $direccion, $telefono, $correo, $cuentas) {

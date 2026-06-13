@@ -20,6 +20,8 @@ class Producto extends Model
         'es_perecible',
         // bool que ayuda a saber si el producto es auditable para ocultarlo
         'es_auditable',
+        // bool que ayuda a saber si el producto es usado para dar mantenimiento
+        'para_mantenimiento',
         //
         'stock_minimo_base',
         // es el costo promedio en soles que tiene el producto, este se 

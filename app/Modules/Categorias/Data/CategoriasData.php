@@ -23,18 +23,18 @@ class CategoriasData
             cat.tipo_producto, -- bien o servicio
             cat.clasificacion_bien, -- suministro, material o activo fijo
             
-            CAST(cat.para_transporte AS UNSIGNED) AS para_transporte,
-            CAST(cat.control_por_odometro AS UNSIGNED) AS control_por_odometro,
-            CAST(cat.control_por_horometro AS UNSIGNED) AS control_por_horometro,
-            CAST(cat.control_por_vueltas AS UNSIGNED) AS control_por_vueltas,
+            cat.para_transporte,
+            cat.control_por_odometro,
+            cat.control_por_horometro,
+            cat.control_por_vueltas,
             
             -- flags
-            CAST(cat.es_consumible AS UNSIGNED) AS es_consumible,
-            CAST(cat.es_auditable AS UNSIGNED) AS es_auditable,
+            cat.es_consumible,
+            cat.es_auditable,
             
             -- destinos de uso
-            CAST(cat.para_cocina AS UNSIGNED) AS para_cocina,
-            CAST(cat.para_mina AS UNSIGNED) AS para_mina,
+            cat.para_cocina,
+            cat.para_mina,
             
             -- Categorias que consumen esta categoria
             (
@@ -79,68 +79,6 @@ class CategoriasData
         return self::get_categorias(id_categoria: $id_categoria);
     }
 
-    /**
-     * Crear una nueva categoría con parámetros explícitos
-     */
-    public static function crear_categoria(
-        string $nombre,
-        string $tipo_producto,
-        ?string $descripcion = null,
-        ?string $clasificacion_bien = null,
-        bool $para_transporte = false,
-        bool $control_por_odometro = false,
-        bool $control_por_horometro = false,
-        bool $control_por_vueltas = false,
-        bool $es_consumible = false,
-        bool $para_cocina = false,
-        bool $para_mina = false,
-        bool $es_auditable = false
-    ) {
-        return Categoria::insertGetId([
-            'nombre' => $nombre,
-            'descripcion' => $descripcion,
-            'tipo_producto' => $tipo_producto,
-            'clasificacion_bien' => $clasificacion_bien,
-            'para_transporte' => $para_transporte ? 1 : 0,
-            'control_por_odometro' => $control_por_odometro ? 1 : 0,
-            'control_por_horometro' => $control_por_horometro ? 1 : 0,
-            'control_por_vueltas' => $control_por_vueltas ? 1 : 0,
-            'es_consumible' => $es_consumible ? 1 : 0,
-            'para_cocina' => $para_cocina ? 1 : 0,
-            'para_mina' => $para_mina ? 1 : 0,
-            'es_auditable' => $es_auditable ? 1 : 0,
-            'estado' => EstadoBase::Activo->value,
-        ]);
-    }
 
-    /**
-     * Establecer las categorías consumidoras para un insumo
-     */
-    public static function establecer_consumidoras(int $id_categoria_consumible, array $ids_categorias_consumidoras): void
-    {
-        // Limpiamos relaciones previas
-        CategoriaConsumible::where('id_categoria_consumible', $id_categoria_consumible)
-            ->delete();
 
-        if (empty($ids_categorias_consumidoras))
-            return;
-
-        // Insertamos nuevas relaciones
-        $data = array_map(fn($id) => [
-            'id_categoria_consumible' => $id_categoria_consumible,
-            'id_categoria_consumidora' => (int) $id
-        ], $ids_categorias_consumidoras);
-
-        CategoriaConsumible::insert($data);
-    }
-
-    /**
-     * Verificar si ya existe una categoría con el mismo nombre
-     */
-    public static function verificar_nombre_duplicado(string $nombre)
-    {
-        return Categoria::where('nombre', $nombre)
-            ->whereIn('estado', [EstadoBase::Activo->value, EstadoBase::Inactivo->value])
-            ->exists();
-    }
 }
