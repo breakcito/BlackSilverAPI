@@ -47,6 +47,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Modules/OrdenesCompraRecepcionTransferencias/OCRecepcionTransferenciasEndpoints.php');
                 require base_path('app/Modules/ModoAuditoria/ModoAuditoriaEndpoints.php');
                 require base_path('app/Modules/LoteMineral/LoteMineralEndpoints.php');
+                require base_path('app/Modules/MantenimientoActivos/MantenimientoActivosEndpoints.php');
+                require base_path('app/Modules/ProduccionMineral/ProduccionEndpoints.php');
             });
         },
     )

@@ -7,6 +7,7 @@ use App\Services\AlmacenesService;
 use App\Services\CategoriasService;
 use App\Services\EmpleadosService;
 use App\Services\EmpresasService;
+use App\Services\LotesMineralService;
 use App\Services\LotesProductosService;
 use App\Services\MarcasService;
 use App\Services\MinasService;
@@ -22,6 +23,7 @@ use App\Shared\Enums\_Generic\TipoBien;
 use App\Shared\Enums\_Generic\TipoEntidad;
 use App\Shared\Enums\_Generic\TipoProducto;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
+use App\Shared\Enums\LoteMineral\EstadoLoteMineral;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -408,6 +410,25 @@ class AuxController extends Controller
             es_auditable: (bool) $request->boolean('es_auditable'),
             ids_categorias_consumidoras: (array) $request->input('ids_categorias_consumidoras', []),
             return_object: true
+        );
+
+        return response()->json($result);
+    }
+
+    public function get_lotes_mineral(Request $request): JsonResponse
+    {
+        $id_lote_mineral = $request->input('id_lote_mineral') ? (int) $request->input('id_lote_mineral') : null;
+        $id_contratista = $request->input('id_contratista') ? (int) $request->input('id_contratista') : null;
+        $id_mina = $request->input('id_mina') ? (int) $request->input('id_mina') : null;
+        $id_labor = $request->input('id_labor') ? (int) $request->input('id_labor') : null;
+        $estado = $request->input('estado') ? EstadoLoteMineral::from($request->input('estado')) : EstadoLoteMineral::EnProduccion;
+
+        $result = LotesMineralService::get_lotes_mineral(
+            id_lote_mineral: $id_lote_mineral,
+            id_contratista: $id_contratista,
+            id_mina: $id_mina,
+            id_labor: $id_labor,
+            estado: $estado
         );
 
         return response()->json($result);

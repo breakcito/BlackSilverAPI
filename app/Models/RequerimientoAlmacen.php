@@ -12,9 +12,9 @@ class RequerimientoAlmacen extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_contratista_solicitante', // el responsable de la mina que solicita
-        'id_empleado_registro',  // el almacenero que registra el requerimiento
-        'id_mina', // la mina que solicita
+        'id_contratista_solicitante', // el responsable de la mina que solicita - opc
+        'id_empleado_registro',  // el almacenero que registra el requerimiento 
+        'id_mina', // la mina que solicita - opc
         'id_almacen_destino', // el almacen que recibe el requerimiento
         //
         'correlativo',

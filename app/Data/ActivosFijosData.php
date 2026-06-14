@@ -3,6 +3,7 @@
 namespace App\Data;
 
 use App\Models\ActivoFijo;
+use App\Models\MantenimientoActivo;
 use App\Shared\Enums\_Generic\Periodo;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
 use App\Shared\Helpers\CorrelativoHelper;
@@ -255,7 +256,7 @@ class ActivosFijosData
     public static function registrar_mantenimiento(array $log_data, int $id_activo, array $update_activo_data)
     {
         return DB::transaction(function () use ($log_data, $id_activo, $update_activo_data) {
-            \App\Models\MantenimientoActivoLog::insert($log_data);
+            MantenimientoActivo::insert($log_data);
             ActivoFijo::where('id', $id_activo)->update($update_activo_data);
             return true;
         });

@@ -3,6 +3,7 @@
 namespace App\Modules\ControlConsumoActivos\Data;
 
 
+use App\Models\RequerimientoAlmacenEntregaDetalleConsumo;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoConsumoDetalleEntregaReq;
 use Illuminate\Support\Facades\DB;
 
@@ -75,16 +76,15 @@ class ControlConsumoData
         ?int $id_activo_fijo_consumidor = null,
         ?int $id_labor_destino = null
     ): int {
-        return DB::table('requerimiento_almacen_entrega_detalle_consumo')->insertGetId([
-            'id_requerimiento_almacen_entrega_detalle' => $id_requerimiento_almacen_entrega_detalle,
-            'id_activo_fijo_consumidor' => $id_activo_fijo_consumidor,
-            'id_labor_destino' => $id_labor_destino,
-            'id_empleado_registro' => $id_empleado_registro,
-            'cantidad_base_consumida' => $cantidad_base_consumida,
-            'fecha_hora_consumo' => $fecha_hora_consumo,
-            'comentario_consumo' => $comentario_consumo,
-            'created_at' => now()->toDateTimeString(),
-            'estado' => $estado->value,
-        ]);
+        return RequerimientoAlmacenEntregaDetalleConsumo::crear_consumo(
+            id_requerimiento_almacen_entrega_detalle: $id_requerimiento_almacen_entrega_detalle,
+            id_empleado_registro: $id_empleado_registro,
+            cantidad_base_consumida: $cantidad_base_consumida,
+            fecha_hora_consumo: $fecha_hora_consumo,
+            comentario_consumo: $comentario_consumo,
+            estado: $estado,
+            id_activo_fijo_consumidor: $id_activo_fijo_consumidor,
+            id_labor_destino: $id_labor_destino,
+        );
     }
 }
