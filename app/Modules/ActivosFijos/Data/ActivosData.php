@@ -61,12 +61,14 @@ class ActivosData
             -- Nuevos campos
             act.id_empleado_responsable,
             CONCAT(emp.nombre, \' \', emp.apellido) as empleado_responsable,
-            act.serie_factura_compra,
-            act.numero_factura_compra,
+            COALESCE(occ.serie, act.serie_factura_compra) as serie_factura_compra,
+            COALESCE(occ.numero, act.numero_factura_compra) as numero_factura_compra,
             act.costo_compra,
             act.costo_promedio_base,
             act.id_orden_compra_recepcion_detalle,
             act.id_orden_compra_detalle,
+            ocd.id_orden_compra,
+            occr.id_orden_compra_comprobante,
 
             act.fecha_hora_ingreso,
             act.created_at,
@@ -90,6 +92,10 @@ class ActivosData
         LEFT JOIN mina mn on mn.id = act.id_mina
         LEFT JOIN almacen alm on alm.id = act.id_almacen
         LEFT JOIN empleado emp on emp.id = act.id_empleado_responsable
+        LEFT JOIN orden_compra_detalle ocd on ocd.id = act.id_orden_compra_detalle
+        LEFT JOIN orden_compra_recepcion_detalle ocrd on ocrd.id = act.id_orden_compra_recepcion_detalle
+        LEFT JOIN orden_compra_comprobante_recepcion occr on occr.id_orden_compra_recepcion = ocrd.id_orden_compra_recepcion
+        LEFT JOIN orden_compra_comprobante occ on occ.id = occr.id_orden_compra_comprobante
         WHERE 1=1
         ';
 

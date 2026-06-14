@@ -38,7 +38,9 @@ class ActivosController extends Controller
         $numero_placa = $request->input('numero_placa');
         $especificaciones = $request->input('especificaciones');
         $fecha_hora_ingreso = $request->input('fecha_hora_ingreso');
-        $fecha_hora_ingreso = Carbon::parse($fecha_hora_ingreso)->toDateTimeString();
+        if ($fecha_hora_ingreso) {
+            $fecha_hora_ingreso = Carbon::parse($fecha_hora_ingreso)->setTimezone(config('app.timezone'))->toDateTimeString();
+        }
         $estado = $request->input('estado') ? EstadoActivoFijo::from($request->input('estado')) : null;
 
         $id_empleado_responsable = $request->has('id_empleado_responsable') ? $request->integer('id_empleado_responsable') : null;
@@ -82,6 +84,9 @@ class ActivosController extends Controller
         $id_mina = $request->input('id_mina');
         $descripcion = $request->input('descripcion');
         $fecha_hora_movimiento = $request->input('fecha_hora_movimiento');
+        if ($fecha_hora_movimiento) {
+            $fecha_hora_movimiento = Carbon::parse($fecha_hora_movimiento)->setTimezone(config('app.timezone'))->toDateTimeString();
+        }
 
         return ActivosService::actualizar_ubicacion(
             id_activo: $id_activo,
