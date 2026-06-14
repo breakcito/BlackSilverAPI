@@ -44,7 +44,11 @@ class ControlConsumoService
         string $fecha_hora_consumo,
         ?string $comentario_consumo,
         ?int $id_activo_fijo_consumidor = null,
-        ?int $id_labor_destino = null
+        ?int $id_labor_destino = null,
+        ?array $id_labores = null,
+        ?int $id_lote_mineral = null,
+        bool $para_mantenimiento = false,
+        bool $para_produccion = false
     ) {
         return DB::transaction(function () use (
             $id_empleado_registro,
@@ -53,7 +57,11 @@ class ControlConsumoService
             $fecha_hora_consumo,
             $comentario_consumo,
             $id_activo_fijo_consumidor,
-            $id_labor_destino
+            $id_labor_destino,
+            $id_labores,
+            $id_lote_mineral,
+            $para_mantenimiento,
+            $para_produccion
         ) {
             $detalle = EntregasData::get_entrega_detalle(id_detalle: $id_detalle);
 
@@ -77,6 +85,12 @@ class ControlConsumoService
                 $estado = EstadoConsumoDetalleEntregaReq::ConsumoParcial;
             }
 
+            // Si se pasaron labores en arreglo, utilizar el primero como id_labor_destino para compatibilidad
+            $effective_labor_destino = $id_labor_destino;
+            if (!empty($id_labores)) {
+                $effective_labor_destino = (int) $id_labores[0];
+            }
+
             $id_consumo = ControlConsumoData::crear_consumo(
                 id_requerimiento_almacen_entrega_detalle: $id_detalle,
                 id_empleado_registro: $id_empleado_registro,
@@ -85,8 +99,22 @@ class ControlConsumoService
                 comentario_consumo: $comentario_consumo,
                 estado: $estado,
                 id_activo_fijo_consumidor: $id_activo_fijo_consumidor,
-                id_labor_destino: $id_labor_destino
+                id_labor_destino: $effective_labor_destino,
+                id_mantenimiento: null,
+                id_lote_mineral: $id_lote_mineral,
+                para_mantenimiento: $para_mantenimiento,
+                para_produccion: $para_produccion,
             );
+
+            // Guardar múltiples labores
+            if (!empty($id_labores)) {
+                foreach ($id_labores as $labor_id) {
+                    \App\Models\RequerimientoAlmacenEntregaDetalleConsumoLabor::insert([
+                        'id_requerimiento_almacen_entrega_detalle_consumo' => $id_consumo,
+                        'id_labor' => (int) $labor_id,
+                    ]);
+                }
+            }
 
             $c = ControlConsumoData::get_consumos(id_consumo: $id_consumo);
 

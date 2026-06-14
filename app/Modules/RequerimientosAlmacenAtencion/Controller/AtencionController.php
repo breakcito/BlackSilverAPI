@@ -45,8 +45,8 @@ class AtencionController extends Controller
         }
 
         $reglas = [
-            'id_contratista_solicitante' => 'required|integer',
-            'id_mina' => 'required|integer',
+            'id_contratista_solicitante' => 'nullable|integer',
+            'id_mina' => 'nullable|integer',
             'id_almacen_destino' => 'required|integer',
             'es_auditable' => 'required|boolean',
             'premura' => 'required|string',
@@ -59,6 +59,8 @@ class AtencionController extends Controller
             'detalles.*.cantidad_solicitada' => 'required|numeric|min:0.01',
             'detalles.*.contenido_por_presentacion' => 'required|numeric|min:0.01',
             'detalles.*.comentario' => 'nullable|string',
+            'detalles.*.para_mantenimiento' => 'nullable|boolean',
+            'detalles.*.id_activo_fijo_destino' => 'nullable|integer',
             'evidencias' => 'nullable|array',
             'evidencias.*' => 'file',
         ];
@@ -76,9 +78,9 @@ class AtencionController extends Controller
         $premura = Premura::from($request->input('premura'));
         try {
             $resultado = AtencionService::registrar_requerimiento(
-                id_contratista_solicitante: (int) $request->id_contratista_solicitante,
+                id_contratista_solicitante: $request->id_contratista_solicitante ? (int) $request->id_contratista_solicitante : null,
                 id_empleado_registro: (int) $id_empleado_registro,
-                id_mina: (int) $request->id_mina,
+                id_mina: $request->id_mina ? (int) $request->id_mina : null,
                 id_almacen_destino: (int) $request->id_almacen_destino,
                 es_auditable: (bool) $request->es_auditable,
                 premura: $premura,

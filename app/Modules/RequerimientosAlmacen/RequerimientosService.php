@@ -30,8 +30,9 @@ class RequerimientosService
     }
 
     public function crear_requerimiento(
-        int $id_contratista,
-        int $id_mina,
+        ?int $id_contratista,
+        int $id_empleado_registro,
+        ?int $id_mina,
         int $id_almacen_destino,
         string $premura,
         ?string $fecha_entrega_requerida,
@@ -39,13 +40,14 @@ class RequerimientosService
         ?array $id_labores,
         array $detalles
     ): array {
-        return DB::transaction(function () use ($id_contratista, $id_mina, $id_almacen_destino, $premura, $fecha_entrega_requerida, $observacion, $id_labores, $detalles) {
+        return DB::transaction(function () use ($id_contratista, $id_empleado_registro, $id_mina, $id_almacen_destino, $premura, $fecha_entrega_requerida, $observacion, $id_labores, $detalles) {
             // 1. Generar Correlativo
             $correlativoData = RequerimientosData::get_nuevo_correlativo();
 
             // 2. Crear Cabecera
             $id_requerimiento = RequerimientosData::crear_requerimiento(
                 $id_contratista,
+                $id_empleado_registro,
                 $id_mina,
                 $id_almacen_destino,
                 $correlativoData['correlativo'],
@@ -76,10 +78,12 @@ class RequerimientosService
                     $contenido,
                     $cantidad_base,
                     $detalle['comentario'] ?? null,
-                    $detalle['id_producto_destino'] ?? null
+                    $detalle['id_producto_destino'] ?? null,
+                    $detalle['para_mantenimiento'] ?? false,
+                    $detalle['id_activo_fijo_destino'] ?? null
                 );
 
-                RequerimientosDetalleData::registrar_trazabilidad($id_detalle, $id_contratista);
+                RequerimientosDetalleData::registrar_trazabilidad($id_detalle, $id_contratista ?? $id_empleado_registro);
             }
 
             $resumen = RequerimientosData::get_requerimiento_by_id($id_requerimiento);

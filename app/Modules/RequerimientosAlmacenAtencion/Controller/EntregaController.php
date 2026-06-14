@@ -31,6 +31,10 @@ class EntregaController extends Controller
             'detalles.*.cantidad_base' => 'required|numeric|min:0.01',
             'detalles.*.cantidad_lote' => 'nullable|numeric|min:0.01',
             'detalles.*.cantidad_requerimiento' => 'required|numeric|min:0.01',
+            'detalles.*.para_mantenimiento' => 'nullable|boolean',
+            'detalles.*.para_produccion' => 'nullable|boolean',
+            'detalles.*.id_activo_fijo_destino' => 'nullable|integer',
+            'detalles.*.id_lote_mineral' => 'nullable|integer',
         ]);
 
         if ($validator->fails()) {

@@ -33,24 +33,24 @@ class LotesMineralData
 
         $params = [];
         if ($id_lote_mineral !== null) {
-            $sql .= ' AND id = :id_lote_mineral';
+            $sql .= ' AND lt.id = :id_lote_mineral';
             $params['id_lote_mineral'] = $id_lote_mineral;
             return DB::selectOne($sql, $params);
         }
         if ($id_contratista !== null) {
-            $sql .= ' AND id_contratista = :id_contratista';
+            $sql .= ' AND lt.id_contratista = :id_contratista';
             $params['id_contratista'] = $id_contratista;
         }
         if ($id_mina !== null) {
-            $sql .= ' AND id_mina = :id_mina';
+            $sql .= ' AND lt.id_mina = :id_mina';
             $params['id_mina'] = $id_mina;
         }
         if ($id_labor !== null) {
-            $sql .= ' AND id_labor = :id_labor';
+            $sql .= ' AND lt.id_labor = :id_labor';
             $params['id_labor'] = $id_labor;
         }
         if ($estado !== null) {
-            $sql .= ' AND estado = :estado';
+            $sql .= ' AND lt.estado = :estado';
             $params['estado'] = $estado->value;
         }
 

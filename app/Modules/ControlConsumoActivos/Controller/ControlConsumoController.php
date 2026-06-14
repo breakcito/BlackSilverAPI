@@ -43,6 +43,11 @@ class ControlConsumoController extends Controller
             'comentario_consumo' => 'nullable|string',
             'id_activo_fijo_consumidor' => 'nullable|integer',
             'id_labor_destino' => 'nullable|integer',
+            'id_labores' => 'nullable|array',
+            'id_labores.*' => 'integer',
+            'id_lote_mineral' => 'nullable|integer',
+            'para_mantenimiento' => 'nullable|boolean',
+            'para_produccion' => 'nullable|boolean',
         ]);
 
         $res = ControlConsumoService::registrar_consumo(
@@ -52,7 +57,11 @@ class ControlConsumoController extends Controller
             (string) $request->input('fecha_hora_consumo'),
             $request->input('comentario_consumo') ? (string) $request->input('comentario_consumo') : null,
             $request->input('id_activo_fijo_consumidor') ? (int) $request->input('id_activo_fijo_consumidor') : null,
-            $request->input('id_labor_destino') ? (int) $request->input('id_labor_destino') : null
+            $request->input('id_labor_destino') ? (int) $request->input('id_labor_destino') : null,
+            $request->input('id_labores'),
+            $request->input('id_lote_mineral') ? (int) $request->input('id_lote_mineral') : null,
+            (bool) $request->input('para_mantenimiento', false),
+            (bool) $request->input('para_produccion', false)
         );
 
         return response()->json($res);

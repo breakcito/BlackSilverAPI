@@ -23,6 +23,7 @@ class ControlConsumoData
             c.id as id_consumo,
             c.id_requerimiento_almacen_entrega_detalle,
             c.id_activo_fijo_consumidor,
+            act.correlativo as correlativo_activo_fijo_consumidor,
             c.id_labor_destino,
             c.id_empleado_registro,
             CONCAT(emp.nombre, " ", emp.apellido) as empleado_registro,
@@ -30,9 +31,27 @@ class ControlConsumoData
             c.fecha_hora_consumo,
             c.comentario_consumo,
             c.created_at,
-            c.estado
+            c.estado,
+            c.id_mantenimiento,
+            c.id_lote_mineral,
+            c.para_mantenimiento,
+            c.para_produccion,
+            lm.correlativo as correlativo_lote_mineral,
+            (
+                SELECT GROUP_CONCAT(lab.nombre SEPARATOR ", ")
+                FROM requerimiento_almacen_entrega_detalle_consumo_labor cl
+                INNER JOIN labor lab ON lab.id = cl.id_labor
+                WHERE cl.id_requerimiento_almacen_entrega_detalle_consumo = c.id
+            ) as labores_destinos,
+            (
+                SELECT GROUP_CONCAT(cl.id_labor)
+                FROM requerimiento_almacen_entrega_detalle_consumo_labor cl
+                WHERE cl.id_requerimiento_almacen_entrega_detalle_consumo = c.id
+            ) as id_labores
         FROM requerimiento_almacen_entrega_detalle_consumo c
         LEFT JOIN empleado emp ON emp.id = c.id_empleado_registro
+        LEFT JOIN lote_mineral lm ON lm.id = c.id_lote_mineral
+        LEFT JOIN activo_fijo act ON act.id = c.id_activo_fijo_consumidor
         WHERE 1=1
         ';
 
@@ -74,7 +93,11 @@ class ControlConsumoData
         ?string $comentario_consumo,
         EstadoConsumoDetalleEntregaReq $estado,
         ?int $id_activo_fijo_consumidor = null,
-        ?int $id_labor_destino = null
+        ?int $id_labor_destino = null,
+        ?int $id_mantenimiento = null,
+        ?int $id_lote_mineral = null,
+        bool $para_mantenimiento = false,
+        bool $para_produccion = false
     ): int {
         return RequerimientoAlmacenEntregaDetalleConsumo::crear_consumo(
             id_requerimiento_almacen_entrega_detalle: $id_requerimiento_almacen_entrega_detalle,
@@ -85,6 +108,10 @@ class ControlConsumoData
             estado: $estado,
             id_activo_fijo_consumidor: $id_activo_fijo_consumidor,
             id_labor_destino: $id_labor_destino,
+            id_mantenimiento: $id_mantenimiento,
+            id_lote_mineral: $id_lote_mineral,
+            para_mantenimiento: $para_mantenimiento,
+            para_produccion: $para_produccion,
         );
     }
 }

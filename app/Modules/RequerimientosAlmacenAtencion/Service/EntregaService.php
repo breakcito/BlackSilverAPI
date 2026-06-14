@@ -108,6 +108,11 @@ class EntregaService
                 $id_activo     = !empty($item['id_activo_fijo']) ? (int) $item['id_activo_fijo'] : null;
                 $es_activo     = $id_activo !== null;
 
+                $para_mantenimiento = (bool) ($item['para_mantenimiento'] ?? false);
+                $para_produccion = (bool) ($item['para_produccion'] ?? false);
+                $id_activo_fijo_destino = !empty($item['id_activo_fijo_destino']) ? (int) $item['id_activo_fijo_destino'] : null;
+                $id_lote_mineral = !empty($item['id_lote_mineral']) ? (int) $item['id_lote_mineral'] : null;
+
                 if ($es_activo) {
                     // --- Camino: Activo Fijo ---
                     // Activos siempre van de almacén a mina (el requerimiento implica uso en mina)
@@ -134,7 +139,11 @@ class EntregaService
                         0,      // costo_promedio
                         0,      // costo_unidad_lote
                         0,      // subtotal
-                        $id_activo
+                        $id_activo,
+                        $para_mantenimiento,
+                        $para_produccion,
+                        $id_activo_fijo_destino,
+                        $id_lote_mineral
                     );
                 } else {
                     // --- Camino: Producto Común con Lote ---
@@ -156,7 +165,12 @@ class EntregaService
                         $item['cantidad_requerimiento'],
                         $costo_promedio_base,
                         $costo_unidad_lote,
-                        $subtotal
+                        $subtotal,
+                        null,
+                        $para_mantenimiento,
+                        $para_produccion,
+                        $id_activo_fijo_destino,
+                        $id_lote_mineral
                     );
 
                     // Actualizar Stock y registrar Kardex (Salida)

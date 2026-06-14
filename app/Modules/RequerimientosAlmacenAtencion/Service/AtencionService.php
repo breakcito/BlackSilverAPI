@@ -50,9 +50,9 @@ class AtencionService
      * ]
      */
     public static function registrar_requerimiento(
-        int $id_contratista_solicitante,
+        ?int $id_contratista_solicitante,
         int $id_empleado_registro,
-        int $id_mina,
+        ?int $id_mina,
         int $id_almacen_destino,
         bool $es_auditable,
         Premura $premura,
@@ -108,6 +108,8 @@ class AtencionService
                     $contenido,
                     $cantidad_base,
                     $detalle['comentario'] ?? null,
+                    (bool) ($detalle['para_mantenimiento'] ?? false),
+                    $detalle['id_activo_fijo_destino'] ?? null
                 );
 
                 RequerimientosDetalleData::registrar_trazabilidad($id_detalle, $id_empleado_registro);

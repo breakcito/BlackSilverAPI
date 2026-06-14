@@ -64,7 +64,7 @@ class RequerimientoAlmacen extends Model
             ra.created_at
         FROM
             requerimiento_almacen ra
-        INNER JOIN mina m ON m.id = ra.id_mina
+        LEFT JOIN mina m ON m.id = ra.id_mina
         INNER JOIN almacen alm ON alm.id = ra.id_almacen_destino
         LEFT JOIN empleado emp ON emp.id = ra.id_contratista_solicitante
         INNER JOIN empleado empr ON empr.id = ra.id_empleado_registro

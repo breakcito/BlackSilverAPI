@@ -41,13 +41,21 @@ class RequerimientoAlmacenEntregaDetalleConsumo extends Model
         ?string $comentario_consumo,
         EstadoConsumoDetalleEntregaReq $estado,
         ?int $id_activo_fijo_consumidor = null,
-        ?int $id_labor_destino = null
+        ?int $id_labor_destino = null,
+        ?int $id_mantenimiento = null,
+        ?int $id_lote_mineral = null,
+        bool $para_mantenimiento = false,
+        bool $para_produccion = false
     ): int {
         return self::insertGetId([
             'id_requerimiento_almacen_entrega_detalle' => $id_requerimiento_almacen_entrega_detalle,
             'id_activo_fijo_consumidor' => $id_activo_fijo_consumidor,
             'id_labor_destino' => $id_labor_destino,
             'id_empleado_registro' => $id_empleado_registro,
+            'id_mantenimiento' => $id_mantenimiento,
+            'id_lote_mineral' => $id_lote_mineral,
+            'para_mantenimiento' => $para_mantenimiento,
+            'para_produccion' => $para_produccion,
             'cantidad_base_consumida' => $cantidad_base_consumida,
             'fecha_hora_consumo' => $fecha_hora_consumo,
             'comentario_consumo' => $comentario_consumo,

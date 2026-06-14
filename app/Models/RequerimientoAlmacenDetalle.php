@@ -98,6 +98,11 @@ class RequerimientoAlmacenDetalle extends Model
             -- comentario al registrar y comentario luego del rechazo/aprobacion
             rad.comentario,
             rad.comentario_decision,
+            rad.para_mantenimiento,
+            rad.id_activo_fijo_destino,
+            pr.para_mantenimiento AS producto_para_mantenimiento,
+            act.correlativo AS activo_fijo_destino_correlativo,
+            act.codigo AS activo_fijo_destino_codigo,
             
             rad.estado
         FROM
@@ -111,6 +116,7 @@ class RequerimientoAlmacenDetalle extends Model
         INNER JOIN almacen alm on alm.id = req.id_almacen_destino
         
         LEFT JOIN empleado emp ON emp.id = rad.id_empleado_atencion
+        LEFT JOIN activo_fijo act ON act.id = rad.id_activo_fijo_destino
         WHERE 1=1
         ';
 

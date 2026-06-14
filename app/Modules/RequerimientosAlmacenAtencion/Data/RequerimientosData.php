@@ -160,9 +160,9 @@ class RequerimientosData
     }
 
     public static function crear_requerimiento(
-        int $id_contratista_solicitante,
+        ?int $id_contratista_solicitante,
         int $id_empleado_registro,
-        int $id_mina,
+        ?int $id_mina,
         int $id_almacen_destino,
         string $correlativo,
         int $numero_correlativo,

@@ -24,6 +24,10 @@ class EntregasDetalleData
         float $costo_unidad_lote,
         float $subtotal,
         ?int $id_activo_fijo = null,
+        bool $para_mantenimiento = false,
+        bool $para_produccion = false,
+        ?int $id_activo_fijo_destino = null,
+        ?int $id_lote_mineral = null,
     ) {
         return RequerimientoAlmacenEntregaDetalle::insertGetId([
             'id_requerimiento_almacen_entrega' => $id_entrega,
@@ -36,6 +40,10 @@ class EntregasDetalleData
             'costo_promedio_base' => $costo_promedio,
             'costo_unidad_lote' => $costo_unidad_lote,
             'subtotal' => $subtotal,
+            'para_mantenimiento' => $para_mantenimiento,
+            'para_produccion' => $para_produccion,
+            'id_activo_fijo_destino' => $id_activo_fijo_destino,
+            'id_lote_mineral' => $id_lote_mineral,
             'created_at' => now(),
             'estado' => EstadoRequerimientoDetalleEntrega::RecepcionCompleta->value,
         ]);
@@ -83,6 +91,15 @@ class EntregasDetalleData
             raed.cantidad_lote,
             raed.cantidad_requerimiento,
             
+            raed.para_mantenimiento,
+            raed.para_produccion,
+            raed.id_activo_fijo_destino,
+            raed.id_lote_mineral,
+            act_dest.correlativo AS correlativo_activo_fijo_destino,
+            act_dest.codigo AS codigo_activo_fijo_destino,
+            lm.correlativo AS correlativo_lote_mineral,
+            lm.codigo_interno AS codigo_interno_lote_mineral,
+            
             uni_lot.nombre as unidad_lote,
             uni_lot.abreviatura as unidad_lote_abv,
             COALESCE(uni_base_lote.nombre, uni_base_act.nombre) AS unidad_base,
@@ -105,6 +122,10 @@ class EntregasDetalleData
             prod_act.id = act.id_producto
         LEFT JOIN unidad_medida uni_base_act ON
             uni_base_act.id = prod_act.id_unidad_medida_base
+        LEFT JOIN activo_fijo act_dest ON
+            act_dest.id = raed.id_activo_fijo_destino
+        LEFT JOIN lote_mineral lm ON
+            lm.id = raed.id_lote_mineral
         INNER JOIN requerimiento_almacen_detalle rqd ON
             rqd.id = raed.id_requerimiento_almacen_detalle
         WHERE 1 = 1

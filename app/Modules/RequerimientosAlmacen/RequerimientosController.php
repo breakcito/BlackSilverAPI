@@ -35,10 +35,15 @@ class RequerimientosController extends Controller
 
     public function crear_requerimiento(Request $request): JsonResponse
     {
+        $authUser = $request->attributes->get('auth_user');
+        if (!$authUser) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
+        }
+
         $validator = Validator::make($request->all(), [
-            'id_mina' => 'required|integer',
+            'id_mina' => 'nullable|integer',
             'id_almacen_destino' => 'required|integer',
-            'id_contratista' => 'required|integer',
+            'id_contratista' => 'nullable|integer',
             'premura' => ['required', new Enum(Premura::class)],
             'fecha_entrega_requerida' => 'nullable|date',
             'observacion' => 'nullable|string',
@@ -51,6 +56,8 @@ class RequerimientosController extends Controller
             'detalles.*.cantidad_solicitada' => 'required|numeric|min:0.01',
             'detalles.*.comentario' => 'nullable|string',
             'detalles.*.id_producto_destino' => 'nullable|integer',
+            'detalles.*.para_mantenimiento' => 'nullable|boolean',
+            'detalles.*.id_activo_fijo_destino' => 'nullable|integer',
         ]);
 
         if ($validator->fails()) {
@@ -58,8 +65,9 @@ class RequerimientosController extends Controller
         }
 
         $result = $this->requerimientoService->crear_requerimiento(
-            (int) $request->id_contratista,
-            (int) $request->id_mina,
+            $request->id_contratista ? (int) $request->id_contratista : null,
+            (int) $authUser->id_empleado,
+            $request->id_mina ? (int) $request->id_mina : null,
             (int) $request->id_almacen_destino,
             $request->premura,
             $request->fecha_entrega_requerida,

@@ -134,8 +134,9 @@ class RequerimientosData
      * Crear un nuevo requerimiento de almacén.
      */
     public static function crear_requerimiento(
-        int $id_contratista_solicitante,
-        int $id_mina,
+        ?int $id_contratista_solicitante,
+        int $id_empleado_registro,
+        ?int $id_mina,
         int $id_almacen_destino,
         string $correlativo,
         int $numero_correlativo,
@@ -145,6 +146,7 @@ class RequerimientosData
     ) {
         return RequerimientoAlmacen::insertGetId([
             'id_contratista_solicitante' => $id_contratista_solicitante,
+            'id_empleado_registro' => $id_empleado_registro,
             'id_mina' => $id_mina,
             'id_almacen_destino' => $id_almacen_destino,
             'correlativo' => $correlativo,

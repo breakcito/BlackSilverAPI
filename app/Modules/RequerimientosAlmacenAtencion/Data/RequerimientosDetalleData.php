@@ -112,6 +112,8 @@ class RequerimientosDetalleData
         float $contenido,
         float $cantidad_base,
         ?string $comentario = null,
+        bool $para_mantenimiento = false,
+        ?int $id_activo_fijo_destino = null
     ) {
         return RequerimientoAlmacenDetalle::insertGetId([
             'id_requerimiento_almacen' => $id_requerimiento,
@@ -123,6 +125,8 @@ class RequerimientosDetalleData
             'cantidad_entregada' => 0,
             'cantidad_entregada_base' => 0,
             'comentario' => $comentario,
+            'para_mantenimiento' => $para_mantenimiento,
+            'id_activo_fijo_destino' => $id_activo_fijo_destino,
             'estado' => EstadoRequerimientoDetalle::EsperandoAprobacion->value,
         ]);
     }

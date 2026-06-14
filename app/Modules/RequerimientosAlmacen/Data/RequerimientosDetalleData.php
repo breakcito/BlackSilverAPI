@@ -51,6 +51,10 @@ class RequerimientosDetalleData
             --
             rad.comentario,
             rad.comentario_decision,
+            rad.para_mantenimiento,
+            rad.id_activo_fijo_destino,
+            act.correlativo AS activo_fijo_destino_correlativo,
+            act.codigo AS activo_fijo_destino_codigo,
             rad.estado
         FROM
             requerimiento_almacen_detalle rad
@@ -59,6 +63,7 @@ class RequerimientosDetalleData
         INNER JOIN unidad_medida uni ON uni.id = rad.id_unidad_medida
         LEFT JOIN producto p_dest ON p_dest.id = rad.id_producto_destino
         LEFT JOIN empleado emp ON emp.id = rad.id_empleado_atencion
+        LEFT JOIN activo_fijo act ON act.id = rad.id_activo_fijo_destino
         WHERE 1=1
         ';
 
@@ -155,7 +160,9 @@ class RequerimientosDetalleData
         float $contenido,
         float $cantidad_base,
         ?string $comentario = null,
-        ?int $id_producto_destino = null
+        ?int $id_producto_destino = null,
+        bool $para_mantenimiento = false,
+        ?int $id_activo_fijo_destino = null
     ) {
         return RequerimientoAlmacenDetalle::insertGetId([
             'id_requerimiento_almacen' => $id_requerimiento,
@@ -168,6 +175,8 @@ class RequerimientosDetalleData
             'cantidad_entregada_base' => 0,
             'comentario' => $comentario,
             'id_producto_destino' => $id_producto_destino,
+            'para_mantenimiento' => $para_mantenimiento,
+            'id_activo_fijo_destino' => $id_activo_fijo_destino,
             'estado' => EstadoRequerimientoDetalle::EsperandoAprobacion->value,
         ]);
     }
