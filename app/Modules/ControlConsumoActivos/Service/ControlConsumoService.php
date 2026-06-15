@@ -63,6 +63,14 @@ class ControlConsumoService
             $para_mantenimiento,
             $para_produccion
         ) {
+            if ($para_mantenimiento && !$id_activo_fijo_consumidor) {
+                return ApiResponse::error('El activo fijo es obligatorio para mantenimiento.');
+            }
+
+            if ($para_produccion && !$id_lote_mineral) {
+                return ApiResponse::error('El lote de mineral es obligatorio para producción.');
+            }
+
             $detalle = EntregasData::get_entrega_detalle(id_detalle: $id_detalle);
 
             if (!$detalle) {

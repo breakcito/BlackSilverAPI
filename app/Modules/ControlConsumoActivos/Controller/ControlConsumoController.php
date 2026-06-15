@@ -41,11 +41,11 @@ class ControlConsumoController extends Controller
             'cantidad_base_consumida' => 'required|numeric|gt:0',
             'fecha_hora_consumo' => 'required|date',
             'comentario_consumo' => 'nullable|string',
-            'id_activo_fijo_consumidor' => 'nullable|integer',
+            'id_activo_fijo_consumidor' => 'required_if:para_mantenimiento,true,1|nullable|integer',
             'id_labor_destino' => 'nullable|integer',
             'id_labores' => 'nullable|array',
             'id_labores.*' => 'integer',
-            'id_lote_mineral' => 'nullable|integer',
+            'id_lote_mineral' => 'required_if:para_produccion,true,1|nullable|integer',
             'para_mantenimiento' => 'nullable|boolean',
             'para_produccion' => 'nullable|boolean',
         ]);

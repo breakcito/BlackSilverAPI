@@ -63,6 +63,15 @@ class EntregasData
             entd.cantidad_base as cantidad_entregada_base,
             entd.cantidad_requerimiento as cantidad_entregada_req,
             
+            -- destino original confirmado en la entrega
+            entd.para_mantenimiento,
+            entd.para_produccion,
+            entd.id_activo_fijo_destino,
+            entd.id_lote_mineral,
+            act_dest.correlativo as correlativo_activo_fijo_destino,
+            lm_dest.correlativo as correlativo_lote_mineral_destino,
+            pr.para_mantenimiento as producto_para_mantenimiento,
+
             -- cantidad consumida
             (
                 SELECT
@@ -86,6 +95,10 @@ class EntregasData
         INNER JOIN empleado ctr on ctr.id = rq.id_contratista_solicitante
         INNER JOIN mina mn on mn.id = rq.id_mina
         INNER JOIN almacen alm on alm.id = rq.id_almacen_destino
+
+        -- destinos confirmados
+        LEFT JOIN activo_fijo act_dest ON act_dest.id = entd.id_activo_fijo_destino
+        LEFT JOIN lote_mineral lm_dest ON lm_dest.id = entd.id_lote_mineral
  
         WHERE 
             -- filtro por periodo
