@@ -20,9 +20,18 @@ class MantenimientoService
     {
         $data = MantenimientoData::get_mantenimientos($mes, $yearcito, $id_activo_fijo);
 
+        $ids = array_column($data, 'id_mantenimiento');
+        $consumos = MantenimientoData::get_consumos_por_mantenimientos($ids);
+
+        $consumosByMantenimiento = [];
+        foreach ($consumos as $c) {
+            $consumosByMantenimiento[$c->id_mantenimiento][] = $c;
+        }
+
         foreach ($data as $row) {
             $row->otros_gastos = $row->otros_gastos ? json_decode($row->otros_gastos) : null;
             $row->evidencias = $row->evidencias ? json_decode($row->evidencias) : null;
+            $row->consumos = $consumosByMantenimiento[$row->id_mantenimiento] ?? [];
         }
 
         return ApiResponse::success($data);
@@ -33,16 +42,36 @@ class MantenimientoService
      */
     public static function get_productos_despachados(int $id_activo_fijo): array
     {
-        $data = MantenimientoData::get_productos_despachados($id_activo_fijo);
-        return ApiResponse::success($data);
+        $entregas = MantenimientoData::get_productos_despachados($id_activo_fijo);
+        $consumos = MantenimientoData::get_consumos_pendientes($id_activo_fijo);
+
+        return ApiResponse::success([
+            'entregas_pendientes' => $entregas,
+            'consumos_pendientes' => $consumos,
+        ]);
     }
 
     /**
-     * Registrar un nuevo mantenimiento y asociar sus consumos y recalcular alertas del activo.
+     * Registrar un nuevo mantenimiento, asociar sus consumos y recalcular alertas del activo.
      *
-     * @param int $id_empleado_registro
-     * @param array $data
-     * @param array $evidencias
+     * @param array $data Contiene la información del mantenimiento:
+     *   - 'id_activo_fijo': int
+     *   - 'id_mina': int|null
+     *   - 'id_almacen': int|null
+     *   - 'id_empleado_supervisor': int|null
+     *   - 'id_proveedor': int|null
+     *   - 'id_personal_externo': int|null
+     *   - 'id_empleado_ejecutor': int|null
+     *   - 'fecha_hora_mantenimiento': string
+     *   - 'observacion': string|null
+     *   - 'lugar_trabajo': string|null
+     *   - 'serie_factura': string|null
+     *   - 'numero_factura': string|null
+     *   - 'costo_mano_obra': float|null
+     *   - 'otros_gastos': array|null (items con 'concepto': string, 'costo': float)
+     *   - 'productos_consumidos': array|null (items con 'id_entrega_detalle': int, 'cantidad': float, 'comentario': string|null)
+     *   - 'consumos_confirmados': array|null (IDs de consumos confirmados)
+     * @param array $evidencias Listado de archivos de evidencias subidos.
      */
     public static function crear_mantenimiento(int $id_empleado_registro, array $data, array $evidencias): array
     {
@@ -151,6 +180,14 @@ class MantenimientoService
                         para_mantenimiento: true,
                         para_produccion: false
                     );
+                }
+            }
+            // Confirmar consumos existentes (asociar el id_mantenimiento)
+            if (isset($data['consumos_confirmados']) && is_array($data['consumos_confirmados'])) {
+                foreach ($data['consumos_confirmados'] as $id_consumo) {
+                    RequerimientoAlmacenEntregaDetalleConsumo::where('id', (int) $id_consumo)
+                        ->whereNull('id_mantenimiento')
+                        ->update(['id_mantenimiento' => $id_mantenimiento]);
                 }
             }
 

@@ -62,6 +62,8 @@ class MantenimientoController extends Controller
             'productos_consumidos.*.id_entrega_detalle' => 'required|integer',
             'productos_consumidos.*.cantidad' => 'required|numeric|gt:0',
             'productos_consumidos.*.comentario' => 'nullable|string',
+            'consumos_confirmados' => 'nullable|array',
+            'consumos_confirmados.*' => 'integer',
             'evidencias' => 'nullable|array',
             'evidencias.*' => 'file',
         ]);

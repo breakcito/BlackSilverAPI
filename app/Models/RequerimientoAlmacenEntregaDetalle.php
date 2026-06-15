@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property float $cantidad_base
+ */
 class RequerimientoAlmacenEntregaDetalle extends Model
 {
     protected $table = 'requerimiento_almacen_entrega_detalle';

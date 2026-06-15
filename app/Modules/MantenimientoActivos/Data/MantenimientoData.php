@@ -106,6 +106,66 @@ class MantenimientoData
     }
 
     /**
+     * Obtener consumos pendientes de asociar a un mantenimiento (que fueron registrados en el módulo de consumos)
+     */
+    public static function get_consumos_pendientes(int $id_activo_fijo): array
+    {
+        $sql = '
+        SELECT
+            c.id AS id_consumo,
+            c.id_requerimiento_almacen_entrega_detalle AS id_entrega_detalle,
+            c.cantidad_base_consumida,
+            c.fecha_hora_consumo,
+            c.comentario_consumo,
+            p.id AS id_producto,
+            p.nombre AS producto,
+            uni.abreviatura AS unidad_base_abv
+        FROM requerimiento_almacen_entrega_detalle_consumo c
+        INNER JOIN requerimiento_almacen_entrega_detalle raed ON raed.id = c.id_requerimiento_almacen_entrega_detalle
+        LEFT JOIN lote_producto lot ON lot.id = raed.id_lote_producto
+        LEFT JOIN activo_fijo act ON act.id = raed.id_activo_fijo
+        INNER JOIN producto p ON p.id = COALESCE(lot.id_producto, act.id_producto)
+        INNER JOIN unidad_medida uni ON uni.id = p.id_unidad_medida_base
+        WHERE c.para_mantenimiento = 1
+          AND c.id_activo_fijo_consumidor = :id_activo_fijo
+          AND c.id_mantenimiento IS NULL
+        ';
+
+        return DB::select($sql, ['id_activo_fijo' => $id_activo_fijo]);
+    }
+
+    /**
+     * Obtener consumos asociados a una lista de mantenimientos.
+     */
+    public static function get_consumos_por_mantenimientos(array $ids_mantenimiento): array
+    {
+        if (empty($ids_mantenimiento)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids_mantenimiento), '?'));
+        $sql = "
+        SELECT 
+            c.id AS id_consumo,
+            c.id_mantenimiento,
+            c.cantidad_base_consumida AS cantidad,
+            c.fecha_hora_consumo,
+            c.comentario_consumo AS comentario,
+            p.nombre AS producto,
+            uni.abreviatura AS unidad
+        FROM requerimiento_almacen_entrega_detalle_consumo c
+        INNER JOIN requerimiento_almacen_entrega_detalle raed ON raed.id = c.id_requerimiento_almacen_entrega_detalle
+        LEFT JOIN lote_producto lp ON lp.id = raed.id_lote_producto
+        LEFT JOIN activo_fijo af ON af.id = raed.id_activo_fijo
+        INNER JOIN producto p ON p.id = COALESCE(lp.id_producto, af.id_producto)
+        INNER JOIN unidad_medida uni ON uni.id = p.id_unidad_medida_base
+        WHERE c.id_mantenimiento IN ($placeholders)
+        ";
+
+        return DB::select($sql, $ids_mantenimiento);
+    }
+
+    /**
      * Registrar cabecera de mantenimiento.
      *
      * @param array $data
