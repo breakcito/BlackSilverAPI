@@ -49,4 +49,30 @@ class ProduccionService
 
         return ApiResponse::success($lotes);
     }
+
+    /**
+     * Finalizar el proceso de producción de un lote mineral.
+     */
+    public static function finalizar_produccion(int $id_lote_mineral): array
+    {
+        return DB::transaction(function () use ($id_lote_mineral) {
+            $lote = LoteMineral::where('id', $id_lote_mineral)->first();
+
+            if (!$lote) {
+                return ApiResponse::error('El lote mineral no existe.');
+            }
+
+            if ($lote->estado !== EstadoLoteMineral::EnProduccion->value) {
+                return ApiResponse::error('El lote mineral debe estar en producción para poder finalizarlo.');
+            }
+
+            $success = ProduccionData::finalizar_produccion($id_lote_mineral);
+
+            if (!$success) {
+                return ApiResponse::error('No se pudo finalizar el proceso de producción.');
+            }
+
+            return ApiResponse::success(null, 'Proceso de producción finalizado correctamente.');
+        });
+    }
 }

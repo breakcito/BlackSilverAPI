@@ -38,4 +38,23 @@ class ProduccionController extends Controller
         $res = ProduccionService::get_resumen();
         return response()->json($res);
     }
+
+    /**
+     * Finalizar el proceso de producción de un lote mineral.
+     */
+    public function finalizar_produccion(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_lote_mineral' => 'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 400);
+        }
+
+        $id_lote_mineral = (int) $request->input('id_lote_mineral');
+        $res = ProduccionService::finalizar_produccion($id_lote_mineral);
+
+        return response()->json($res);
+    }
 }
