@@ -61,7 +61,7 @@ class EmpleadosService
      * Registrar un nuevo empleado
      */
     public static function crear_empleado(
-        int $id_empresa,
+        ?int $id_empresa = null,
         int $id_cargo,
         string $nombre,
         string $apellido,

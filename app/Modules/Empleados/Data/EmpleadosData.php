@@ -19,7 +19,7 @@ class EmpleadosData
         SELECT DISTINCT
             e.id AS id_empleado,
             e.id_empresa,
-            COALESCE(emp_asoc.razon_social, "Sin empresa") AS empresa,
+            emp_asoc.razon_social AS empresa,
             e.id_cargo,
             car.nombre AS cargo,
             car.id_area,
@@ -72,7 +72,7 @@ class EmpleadosData
      * Crear un nuevo empleado
      */
     public static function crear_empleado(
-        int $id_empresa,
+        ?int $id_empresa,
         int $id_cargo,
         string $nombre,
         string $apellido,
