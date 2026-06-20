@@ -26,6 +26,7 @@ class CotizacionesData
     public static function crear_cotizacion(
         int $id_comparativo,
         int $id_proveedor,
+        int $id_empleado_registro,
         //
         string $correlativo,
         int $numero_correlativo,
@@ -54,6 +55,7 @@ class CotizacionesData
         return Cotizacion::crear_cotizacion(
             id_comparativo: $id_comparativo,
             id_proveedor: $id_proveedor,
+            id_empleado_registro: $id_empleado_registro,
             correlativo: $correlativo,
             numero_correlativo: $numero_correlativo,
             fecha_hora_cotizacion: $fecha_hora_cotizacion,

@@ -16,6 +16,7 @@ class Cotizacion extends Model
     protected $fillable = [
         'id_comparativo',
         'id_proveedor',
+        'id_empleado_registro',
         //
         'correlativo',
         'numero_correlativo',
@@ -62,6 +63,7 @@ class Cotizacion extends Model
     public static function crear_cotizacion(
         int $id_comparativo,
         int $id_proveedor,
+        int $id_empleado_registro,
         //
         string $correlativo,
         int $numero_correlativo,
@@ -90,6 +92,7 @@ class Cotizacion extends Model
         return self::insertGetId([
             'id_comparativo' => $id_comparativo,
             'id_proveedor' => $id_proveedor,
+            'id_empleado_registro' => $id_empleado_registro,
             //
             'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
@@ -117,7 +120,7 @@ class Cotizacion extends Model
             'created_at' => now(),
             'estado' => $estado->value,
         ]);
-    }
+     }
 
     /**
      * Actualizar cabecera de cotización
@@ -192,13 +195,19 @@ class Cotizacion extends Model
             -- 
             ct.evidencias,
             -- 
+            ct.id_empleado_registro,
+            CONCAT(emp_reg.nombre, \' \', emp_reg.apellido) as empleado_registro,
+            car_reg.nombre as cargo_empleado_registro,
+            -- 
             ct.created_at,
             ct.estado
         FROM
             cotizacion ct
         INNER JOIN proveedor prov ON
             prov.id = ct.id_proveedor
-		LEFT JOIN orden_compra oc on oc.id_cotizacion = ct.id            
+        LEFT JOIN orden_compra oc on oc.id_cotizacion = ct.id            
+        LEFT JOIN empleado emp_reg on emp_reg.id = ct.id_empleado_registro
+        LEFT JOIN cargo car_reg on car_reg.id = emp_reg.id_cargo
         WHERE
             1 = 1
         ';

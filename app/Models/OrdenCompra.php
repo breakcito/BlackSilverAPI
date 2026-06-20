@@ -17,6 +17,7 @@ class OrdenCompra extends Model
         'id_cotizacion', // Por si viene de una cotizacion
         'id_empresa', // Una de las empresas involucradas en la cotizacion
         'id_proveedor',
+        'id_empleado_registro',
         //
         'correlativo',
         'numero_correlativo',
@@ -58,6 +59,7 @@ class OrdenCompra extends Model
         int $id_cotizacion,
         int $id_empresa,
         int $id_proveedor,
+        int $id_empleado_registro,
         string $correlativo,
         int $numero_correlativo,
         string $fecha_hora_orden,
@@ -79,6 +81,7 @@ class OrdenCompra extends Model
             'id_cotizacion' => $id_cotizacion,
             'id_empresa' => $id_empresa,
             'id_proveedor' => $id_proveedor,
+            'id_empleado_registro' => $id_empleado_registro,
             'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
             'observacion' => $observacion,
@@ -144,12 +147,18 @@ class OrdenCompra extends Model
             oc.monto_igv,
             oc.total_despues_igv,
             -- 
+            oc.id_empleado_registro,
+            CONCAT(emp_reg.nombre, \' \', emp_reg.apellido) as empleado_registro,
+            car_reg.nombre as cargo_empleado_registro,
+            -- 
             oc.created_at,
             oc.estado
         FROM orden_compra oc
         LEFT JOIN cotizacion  cot ON cot.id = oc.id_cotizacion
         INNER JOIN empresa emp ON emp.id = oc.id_empresa
         INNER JOIN proveedor prov on prov.id = oc.id_proveedor
+        LEFT JOIN empleado emp_reg on emp_reg.id = oc.id_empleado_registro
+        LEFT JOIN cargo car_reg on car_reg.id = emp_reg.id_cargo
         WHERE 1 = 1
         ';
 

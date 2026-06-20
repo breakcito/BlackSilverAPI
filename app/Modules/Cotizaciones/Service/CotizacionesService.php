@@ -83,6 +83,7 @@ class CotizacionesService
                     $id_cotizacion = CotizacionesData::crear_cotizacion(
                         id_comparativo: $id_comparativo,
                         id_proveedor: (int) $c['id_proveedor'],
+                        id_empleado_registro: $id_empleado,
                         correlativo: $correlativoData['correlativo'],
                         numero_correlativo: (int) $correlativoData['numero_correlativo'],
                         fecha_hora_cotizacion: now()->toDateTimeString(),
@@ -193,6 +194,7 @@ class CotizacionesService
                                 id_cotizacion: $id_cotizacion,
                                 id_empresa: $id_empresa_compradora,
                                 id_proveedor: (int) $c['id_proveedor'],
+                                id_empleado_registro: $id_empleado,
                                 correlativo: $correlativoOC['correlativo'],
                                 numero_correlativo: (int) $correlativoOC['numero_correlativo'],
                                 fecha_hora_orden: now()->toDateTimeString(),
@@ -424,6 +426,7 @@ class CotizacionesService
                     id_cotizacion: $id_cotizacion,
                     id_empresa: $id_empresa_compradora,
                     id_proveedor: (int) $cotizacion->id_proveedor,
+                    id_empleado_registro: $id_empleado,
                     correlativo: $correlativoData['correlativo'],
                     numero_correlativo: (int) $correlativoData['numero_correlativo'],
                     fecha_hora_orden: now()->toDateTimeString(),
