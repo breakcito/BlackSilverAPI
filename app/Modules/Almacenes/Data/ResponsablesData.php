@@ -18,7 +18,7 @@ class ResponsablesData
             ra.id AS id_responsable_almacen,
             ra.id_empleado,
             CONCAT(emp.nombre, " ", emp.apellido) as nombre_completo,
-            emp.path_foto,
+            emp.url_foto,
             emp.dni,
             ra.fecha_inicio,
             ra.fecha_fin,
@@ -36,7 +36,6 @@ class ResponsablesData
         if ($id_responsable != null) {
             $sql .= ' AND ra.id = :id_responsable_almacen';
             $params['id_responsable_almacen'] = $id_responsable;
-
             return DB::selectOne($sql, $params);
         }
 
@@ -98,33 +97,5 @@ class ResponsablesData
             'fecha_fin' => null,
             'estado' => EstadoBase::Activo->value,
         ]);
-    }
-
-    /**
-     * Obtener listado de empleados para asignar como responsable de almacen
-     */
-    public static function get_empleados_disponibles(int $id_almacen): array
-    {
-        $sql = '
-        SELECT DISTINCT
-            emp.id AS id_empleado,
-            CONCAT(emp.nombre, " ", emp.apellido) AS nombre_completo,
-            emp.dni,
-            emp.path_foto
-        FROM
-            empleado emp
-        WHERE
-            emp.estado = "Activo" AND
-            emp.id NOT IN (
-                SELECT
-                    res.id_empleado
-                FROM responsable_almacen res
-                WHERE
-                    res.id_almacen = :id_almacen AND
-                    res.estado = "Activo"
-            )
-        ';
-
-        return DB::select($sql, ['id_almacen' => $id_almacen]);
     }
 }

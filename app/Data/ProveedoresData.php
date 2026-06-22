@@ -88,13 +88,20 @@ class ProveedoresData
      * Verificar si ya existe por razon social o dni o ruc
      */
     public static function ya_existe(
-        ?string $dni,
-        ?string $ruc,
-        ?string $razonSocial
+        ?string $dni = null,
+        ?string $ruc = null,
+        ?string $razonSocial = null
     ): bool {
-        return Proveedor::where('dni', $dni)
-            ->orWhere('ruc', $ruc)
-            ->orWhere('razon_social', $razonSocial)
+        if ($dni === null && $ruc === null && $razonSocial === null) {
+            return false;
+        }
+
+        return Proveedor::query()
+            ->where(function ($q) use ($dni, $ruc, $razonSocial) {
+                $q->when($dni !== null, fn($q) => $q->orWhere('dni', $dni))
+                    ->when($ruc !== null, fn($q) => $q->orWhere('ruc', $ruc))
+                    ->when($razonSocial !== null, fn($q) => $q->orWhere('razon_social', $razonSocial));
+            })
             ->exists();
     }
 }

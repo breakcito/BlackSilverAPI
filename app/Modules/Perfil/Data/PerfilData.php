@@ -22,7 +22,7 @@ class PerfilData
             emp.carnet_extranjeria,
             emp.pasaporte,
             emp.fecha_nacimiento,
-            emp.path_foto,
+            emp.url_foto,
             rol.nombre as nombre_rol,
             car.nombre as nombre_cargo,
             are.nombre as nombre_area,

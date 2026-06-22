@@ -21,7 +21,8 @@ class ClientesData
             cl.telefono,
             cl.correo,
             cl.estado,
-            cl.created_at
+            cl.created_at,
+            (SELECT COUNT(*) FROM cuenta_bancaria_cliente cbc WHERE cbc.id_cliente = cl.id) AS cantidad_cuentas_bancarias
         FROM
             cliente cl
         WHERE 1 = 1

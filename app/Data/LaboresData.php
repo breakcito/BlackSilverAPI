@@ -12,7 +12,8 @@ class LaboresData
     public static function get_labores(
         ?int $id_mina = null,
         ?int $id_labor = null,
-        ?int $id_requerimiento = null
+        ?int $id_requerimiento = null,
+        ?int $id_contratista_excluyente = null
     ): array {
 
         $query = DB::table('labor as lb')
@@ -41,6 +42,15 @@ class LaboresData
         // Filtro por mina
         if ($id_mina !== null) {
             $query->where('lb.id_mina', $id_mina);
+        }
+
+        // Filtro para listar solo las labores disponibles para un contratista
+        if ($id_contratista_excluyente !== null) {
+            $query->whereNotIn('lb.id', function ($query) use ($id_contratista_excluyente) {
+                $query->select('id_labor')
+                    ->from('labor_contratista')
+                    ->where('id_contratista', $id_contratista_excluyente);
+            });
         }
 
         return $query->orderBy('lb.correlativo', 'ASC')->get()->toArray();

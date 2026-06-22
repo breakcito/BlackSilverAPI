@@ -21,7 +21,7 @@ class Empleado extends Model
         'carnet_extranjeria',
         'pasaporte',
         'fecha_nacimiento',
-        'path_foto',
+        'url_foto',
         'es_contratista',
         'estado',
     ];

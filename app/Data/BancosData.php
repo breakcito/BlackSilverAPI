@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Proveedores\Data;
+namespace App\Data;
 
 use App\Models\Banco;
 use App\Shared\Enums\_Generic\EstadoBase;
@@ -30,11 +30,6 @@ class BancosData
 
         $sql .= ' ORDER BY bc.nombre ASC, bc.abreviatura ASC;';
         return DB::select($sql, $params);
-    }
-
-    public static function get_banco_by_id(int $id_banco): array
-    {
-        return self::get_bancos(id_banco: $id_banco);
     }
 
     public static function crear_banco(string $nombre, string $abreviatura): int

@@ -3,6 +3,7 @@
 namespace App\Modules\Roles\Data;
 
 use App\Models\Rol;
+use App\Shared\Enums\_Generic\EstadoBase;
 
 class RolesData
 {
@@ -11,8 +12,8 @@ class RolesData
      */
     public static function get_roles()
     {
-        return Rol::where('estado', 'Activo')
-            ->orderBy('id', 'desc')
+        return Rol::where('estado', EstadoBase::Activo->value)
+            ->orderBy('nombre', 'ASC')
             ->get();
     }
 

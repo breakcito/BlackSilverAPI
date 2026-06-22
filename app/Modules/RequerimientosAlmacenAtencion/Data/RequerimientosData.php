@@ -99,7 +99,7 @@ class RequerimientosData
     public static function get_minas_by_almacen(int $id_almacen)
     {
         $sql = '
-        SELECT DISTINCT
+        SELECT
             mn.id AS id_mina,
             mn.nombre
         FROM
@@ -120,13 +120,13 @@ class RequerimientosData
     public static function get_responsables_by_mina(int $id_mina)
     {
         $sql = '
-        SELECT DISTINCT
+        SELECT 
             c.id AS id_contratista,
             CONCAT(c.nombre, " ", c.apellido) AS nombre_completo
         FROM
             empleado c
         INNER JOIN responsable_mina res ON
-            res.id_empleado_contratista = c.id
+            res.id_empleado = c.id
         WHERE
             c.es_contratista = 1 AND
             res.id_mina = :id_mina AND

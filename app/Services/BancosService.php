@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Modules\Proveedores\Services;
+namespace App\Services;
 
 use App\Models\Banco;
 use App\Shared\Responses\ApiResponse;
-use App\Modules\Proveedores\Data\BancosData;
+use App\Data\BancosData;
 
 class BancosService
 {
@@ -25,7 +25,7 @@ class BancosService
         }
 
         $id = BancosData::crear_banco($nombre, $abreviatura);
-        $nuevoBanco = BancosData::get_banco_by_id($id);
+        $nuevoBanco = BancosData::get_bancos(id_banco: $id);
         return ApiResponse::success($nuevoBanco, "Banco creado correctamente");
     }
 }

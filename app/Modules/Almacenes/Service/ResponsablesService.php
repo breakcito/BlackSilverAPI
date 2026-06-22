@@ -29,11 +29,4 @@ class ResponsablesService
 
         return ApiResponse::success($historial);
     }
-
-    public static function get_empleados_disponibles(int $id_almacen)
-    {
-        $result = ResponsablesData::get_empleados_disponibles($id_almacen);
-
-        return ApiResponse::success($result);
-    }
 }

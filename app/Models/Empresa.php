@@ -17,7 +17,6 @@ class Empresa extends Model
         'ruc',
         'razon_social',
         'nombre_comercial',
-        'abreviatura',
         'path_logo',
     ];
 }

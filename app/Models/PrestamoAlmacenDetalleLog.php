@@ -49,7 +49,7 @@ class PrestamoAlmacenDetalleLog extends Model
             log.descripcion,
             log.created_at,
             CONCAT(e.nombre, " ", e.apellido) AS empleado,
-            e.path_foto,
+            e.url_foto,
             log.estado
         FROM
             prestamo_almacen_detalle_log log

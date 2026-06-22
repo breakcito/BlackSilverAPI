@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
-use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
+/**
+ * Tabla que registra el historial de empleados que 
+ * son/fueron responsables de una mina
+ */
 class ResponsableMina extends Model
 {
     protected $table = 'responsable_mina';
@@ -14,7 +16,7 @@ class ResponsableMina extends Model
 
     protected $fillable = [
         'id_mina',
-        'id_empleado_contratista',
+        'id_empleado', 
         'fecha_inicio',
         'fecha_fin',
         'estado',

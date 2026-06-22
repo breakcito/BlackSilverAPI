@@ -3,9 +3,7 @@
 namespace App\Modules\Contratistas\Data;
 
 use App\Models\Empleado;
-use App\Models\Labor;
 use App\Models\LaborContratista;
-use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
 class ContratistasData
@@ -13,13 +11,17 @@ class ContratistasData
     /**
      * Listar contratistas con su mina y labores asignadas
      */
-    public static function get_contratistas(?int $id_mina = null, ?int $id_contratista = null)
-    {
+    public static function get_contratistas(
+        ?int $id_mina = null,
+        ?int $id_contratista = null
+    ) {
         $sql = '
-        SELECT DISTINCT
+        SELECT 
             c.id AS id_contratista,
+
             c.id_mina,
-            COALESCE(mn.nombre, "No aplica") AS mina,
+            mn.nombre AS mina,
+
             c.nombre,
             c.apellido,
             c.dni,
@@ -27,21 +29,25 @@ class ContratistasData
             c.carnet_extranjeria,
             c.pasaporte,
             c.fecha_nacimiento,
-            c.path_foto,
-            c.estado,
-            COALESCE((
-                SELECT GROUP_CONCAT(lab.correlativo ORDER BY lab.correlativo SEPARATOR " | ")
+            c.url_foto as url_foto,
+
+            (
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        "id_labor_contratista", lc.id,
+                        "id_labor", lab.id,
+                        "correlativo", lab.correlativo,
+                        "nombre", lab.nombre
+                    )
+                )
                 FROM labor_contratista lc
                 INNER JOIN labor lab ON lab.id = lc.id_labor
-                WHERE lc.id_empleado_contratista = c.id
-            ), "No aplica") AS labores_asignadas,
-            (
-                SELECT GROUP_CONCAT(lc.id_labor)
-                FROM labor_contratista lc
-                WHERE lc.id_empleado_contratista = c.id
-            ) AS ids_labor_asignadas
-        FROM
-            empleado c
+                WHERE lc.id_contratista = c.id
+            ) AS labores_asignadas,
+
+            c.estado
+
+        FROM empleado c
         LEFT JOIN mina mn ON mn.id = c.id_mina
         WHERE c.es_contratista = 1
         ';
@@ -52,7 +58,12 @@ class ContratistasData
             $sql .= ' AND c.id = :id_contratista';
             $params['id_contratista'] = $id_contratista;
 
-            return DB::selectOne($sql, $params);
+            $contratista = DB::selectOne($sql, $params);
+            if (!$contratista) {
+                return null;
+            }
+            $contratista->labores_asignadas = json_decode($contratista->labores_asignadas, true);
+            return $contratista;
         }
 
         if ($id_mina !== null) {
@@ -62,141 +73,55 @@ class ContratistasData
 
         $sql .= ' ORDER BY c.apellido ASC, c.nombre ASC';
 
-        return DB::select($sql, $params);
-    }
-
-    /**
-     * Obtener contratista por ID
-     */
-    public static function get_contratista_by_id(int $id_contratista)
-    {
-        return self::get_contratistas(id_contratista: $id_contratista);
-    }
-
-    /**
-     * Crear un nuevo contratista
-     */
-    public static function crear_contratista(
-        ?int $id_mina,
-        string $nombre,
-        string $apellido,
-        ?string $dni,
-        ?string $ruc,
-        ?string $carnet_extranjeria,
-        ?string $pasaporte,
-        ?string $fecha_nacimiento,
-        ?string $path_foto
-    ) {
-        return Empleado::insertGetId([
-            'id_mina'            => $id_mina,
-            'id_cargo'           => null,
-            'es_contratista'     => 1,
-            'nombre'             => $nombre,
-            'apellido'           => $apellido,
-            'dni'                => $dni,
-            'ruc'                => $ruc,
-            'carnet_extranjeria' => $carnet_extranjeria,
-            'pasaporte'          => $pasaporte,
-            'fecha_nacimiento'   => $fecha_nacimiento,
-            'path_foto'          => $path_foto,
-            'estado'             => EstadoBase::Activo->value,
-        ]);
-    }
-
-    /**
-     * Verificar si ya existe un contratista con el mismo DNI
-     */
-    public static function existe_dni(string $dni): bool
-    {
-        return Empleado::where('dni', $dni)->exists();
-    }
-
-    /**
-     * Actualizar la ruta de la foto de un contratista
-     */
-    public static function actualizar_foto(int $id_contratista, ?string $path_foto): bool
-    {
-        return (bool) Empleado::where('id', $id_contratista)->update(['path_foto' => $path_foto]);
-    }
-
-    /**
-     * Obtener las labores activas de una mina, excluyendo las ya asignadas al contratista.
-     */
-    public static function get_labores_disponibles_mina(int $id_mina, ?int $id_contratista = null)
-    {
-        $sql = '
-        SELECT
-            lab.id AS id_labor,
-            lab.correlativo,
-            lab.nombre
-        FROM labor lab
-        WHERE lab.id_mina = :id_mina
-        AND lab.estado = :estado
-        ';
-
-        $params = [
-            'id_mina' => $id_mina,
-            'estado'  => EstadoBase::Activo->value,
-        ];
-
-        if ($id_contratista !== null) {
-            $sql .= '
-            AND lab.id NOT IN (
-                SELECT id_labor FROM labor_contratista WHERE id_empleado_contratista = :id_contratista
-            )
-            ';
-            $params['id_contratista'] = $id_contratista;
+        $contratistas = DB::select($sql, $params);
+        foreach ($contratistas as $contratista) {
+            $contratista->labores_asignadas = json_decode($contratista->labores_asignadas, true);
         }
-
-        $sql .= ' ORDER BY lab.correlativo ASC';
-
-        return DB::select($sql, $params);
+        return $contratistas;
     }
+
 
     /**
-     * Obtener las labores ya asignadas a un contratista
+     * Actualizar la foto de un contratista
      */
-    public static function get_labores_contratista(int $id_contratista)
+    public static function actualizar_foto(int $id_contratista, ?string $url_foto): bool
     {
-        return DB::select('
-        SELECT
-            lc.id AS id_labor_contratista,
-            lab.id AS id_labor,
-            lab.correlativo,
-            lab.nombre
-        FROM labor_contratista lc
-        INNER JOIN labor lab ON lab.id = lc.id_labor
-        WHERE lc.id_empleado_contratista = :id_contratista
-        ORDER BY lab.correlativo ASC
-        ', ['id_contratista' => $id_contratista]);
+        return (bool) Empleado::where('id', $id_contratista)->update(['url_foto' => $url_foto]);
     }
 
+
     /**
-     * Asignar una labor a un contratista
+     * Metodo para consultar datos dinamicos de uno o varios contratistas a la vez
      */
-    public static function asignar_labor(int $id_contratista, int $id_labor): void
+    public static function get_contratista_dinamico_by_id(int|array $id_contratista, array $columnas): ?array
     {
-        LaborContratista::create([
-            'id_empleado_contratista' => $id_contratista,
-            'id_labor'    => $id_labor,
-        ]);
+        $esArray = is_array($id_contratista);
+        $ids = $esArray ? $id_contratista : [$id_contratista];
+        // Forzamos la inclusión del ID con su alias
+        if (!in_array('id as id_contratista', $columnas)) {
+            $columnas[] = 'id as id_contratista';
+        }
+        $query = Empleado::where('es_contratista', 1)->whereIn('id', $ids)->get($columnas);
+        if ($esArray) {
+            return $query->toArray();
+        }
+        return $query->first()?->toArray();
     }
+
 
     /**
      * Eliminar todas las labores asignadas a un contratista
      */
-    public static function eliminar_labores_contratista(int $id_contratista): void
+    public static function eliminar_labores_asignadas(int $id_contratista): void
     {
-        LaborContratista::where('id_empleado_contratista', $id_contratista)->delete();
+        LaborContratista::where('id_contratista', $id_contratista)->delete();
     }
 
     /**
-     * Verificar si una labor pertenece a una mina
+     * Actualizar mina del contratista
      */
-    public static function labor_pertenece_a_mina(int $id_labor, int $id_mina): bool
+    public static function update_mina(int $id_contratista, int $id_mina)
     {
-        return Labor::where('id', $id_labor)
-            ->where('id_mina', $id_mina)
-            ->exists();
+        return Empleado::where('id', $id_contratista)->update(['id_mina' => $id_mina]);
     }
 }

@@ -25,7 +25,6 @@ Route::middleware('auth.jwt.custom')->prefix('minas')->group(function () {
     // ─── Responsables ────────────────────────────────────────────────────────────────
     Route::prefix('responsables')->controller(ResponsablesController::class)->group(function () {
         Route::get('/', 'get_historial_responsables');
-        Route::get('/contratistas-disponibles', 'get_contratistas_disponibles');
         Route::post('/asignar-responsable', 'asignar_responsable');
         Route::post('/inactivar-responsable', 'inactivar_responsable');
     });

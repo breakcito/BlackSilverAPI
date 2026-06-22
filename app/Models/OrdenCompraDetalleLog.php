@@ -47,7 +47,7 @@ class OrdenCompraDetalleLog extends Model
                 log.descripcion,
                 log.created_at,
                 CONCAT(e.nombre, " ", e.apellido) AS empleado,
-                e.path_foto,
+                e.url_foto,
                 log.estado
             FROM orden_compra_detalle_log log
             INNER JOIN empleado e ON e.id = log.id_empleado

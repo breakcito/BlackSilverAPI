@@ -1,7 +1,6 @@
 <?php
 
 
-use App\Modules\Cotizaciones\Controller\AuxController;
 use App\Modules\Cotizaciones\Controller\CotizacionesController;
 use App\Modules\Cotizaciones\Controller\OrdenesCompraController;
 use Illuminate\Support\Facades\Route;
@@ -19,10 +18,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
         Route::prefix('ordenes-compra')->controller(OrdenesCompraController::class)->group(function () {
             Route::get('/{id_orden_compra}', 'get_orden_compra');
-        });
-
-        Route::prefix('aux')->controller(AuxController::class)->group(function () {
-            Route::get('/empresas', 'get_empresas');
         });
     });
 });

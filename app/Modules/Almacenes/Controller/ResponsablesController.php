@@ -13,7 +13,7 @@ class ResponsablesController extends Controller
 {
     public function get_historial_responsables(Request $request, $id_almacen): JsonResponse
     {
-        if (! $id_almacen) {
+        if (!$id_almacen) {
             return response()->json(ApiResponse::error('El almacen es requerido'));
         }
 
@@ -45,17 +45,6 @@ class ResponsablesController extends Controller
             id_empleado: (int) $v['id_empleado'],
             fecha_inicio: (string) $v['fecha_inicio'],
         );
-
-        return response()->json($result);
-    }
-
-    public function get_empleados_disponibles(Request $request, $id_almacen): JsonResponse
-    {
-        if (! $id_almacen) {
-            return response()->json(ApiResponse::error('El almacen es requerido'));
-        }
-
-        $result = ResponsablesService::get_empleados_disponibles((int) $id_almacen);
 
         return response()->json($result);
     }

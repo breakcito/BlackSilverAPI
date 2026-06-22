@@ -2,6 +2,7 @@
 
 namespace App\Data;
 
+use App\Models\Empleado;
 use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
@@ -13,30 +14,155 @@ class EmpleadosData
     public static function get_empleados(
         ?int $id_empleado = null,
         ?EstadoBase $estado = EstadoBase::Activo,
-    ): array {
-        $sql = '
-        SELECT
-            emp.id AS id_empleado,
-            CONCAT(emp.nombre, " ", emp.apellido) AS nombre_completo,
+        ?int $id_almacen_excluyente = null,
+        ?int $id_mina_excluyente = null,
+        ?bool $con_cuenta = null
+    ) {
+        $query = DB::table('empleado as emp')
+            ->selectRaw('
+            emp.id as id_empleado,
+            CONCAT(emp.nombre, " ", emp.apellido) as nombre_completo,
             emp.dni,
             emp.ruc,
-            emp.path_foto
-        FROM
-            empleado emp
-        WHERE
-            emp.estado = :estado
-        ';
+            emp.url_foto
+            ')
+            ->where('emp.es_contratista', 0)
+            ->where('emp.estado', $estado->value);
 
-        $params = [];
-        $params['estado'] = $estado->value;
-
+        // filtro por id
         if ($id_empleado !== null) {
-            $sql .= ' AND emp.id = :id_empleado';
-            $params['id_empleado'] = $id_empleado;
+            $query->where('emp.id', $id_empleado);
+            return $query->first() ?? [];
         }
 
-        $sql .= ' ORDER BY nombre_completo ASC';
+        // filtro por empleados ya asignados a un almacén
+        if ($id_almacen_excluyente !== null) {
+            $query->whereNotExists(function ($subquery) use ($id_almacen_excluyente) {
+                $subquery->select(DB::raw(1))
+                    ->from('responsable_almacen as res')
+                    ->whereColumn('res.id_empleado', 'emp.id')
+                    ->where('res.id_almacen', $id_almacen_excluyente)
+                    ->where('res.estado', EstadoBase::Activo->value);
+            });
+        }
 
-        return DB::select($sql, $params);
+        // filtro por empleados ya asignados a una mina
+        if ($id_mina_excluyente !== null) {
+            $query->whereNotExists(function ($subquery) use ($id_mina_excluyente) {
+                $subquery->select(DB::raw(1))
+                    ->from('responsable_mina as res')
+                    ->whereColumn('res.id_empleado', 'emp.id')
+                    ->where('res.id_mina', $id_mina_excluyente)
+                    ->where('res.estado', EstadoBase::Activo->value);
+            });
+        }
+
+        // filtro listar solo empleados con/sin cuenta
+        if ($con_cuenta !== null) {
+            if ($con_cuenta == false) {
+                $query->whereNotExists(function ($subquery) {
+                    $subquery->select(DB::raw(1))
+                        ->from('usuario as u')
+                        ->whereColumn('u.id_empleado', 'emp.id');
+                });
+            } else {
+                $query->whereExists(function ($subquery) {
+                    $subquery->select(DB::raw(1))
+                        ->from('usuario as u')
+                        ->whereColumn('u.id_empleado', 'emp.id');
+                });
+            }
+        }
+
+        return $query
+            ->orderByRaw('CONCAT(emp.nombre, " ", emp.apellido) ASC')
+            ->get()
+            ->toArray();
+    }
+
+
+
+    /**
+     * Verificar si ya existe un empleado con el mismo documento
+     */
+    public static function ya_existe(
+        ?string $dni = null,
+        ?string $ruc = null,
+        ?string $carnet_extranjeria = null,
+        ?string $pasaporte = null
+    ): bool {
+        return Empleado::query()
+            ->where('es_contratista', 0)
+            ->where(function ($q) use ($dni, $ruc, $carnet_extranjeria, $pasaporte) {
+                $q->when($dni !== null, fn($q) => $q->orWhere('dni', $dni))
+                    ->when($ruc !== null, fn($q) => $q->orWhere('ruc', $ruc))
+                    ->when(
+                        $carnet_extranjeria !== null,
+                        fn($q) => $q->orWhere('carnet_extranjeria', $carnet_extranjeria)
+                    )
+                    ->when($pasaporte !== null, fn($q) => $q->orWhere('pasaporte', $pasaporte));
+            })
+            ->exists();
+    }
+
+    /**
+     * Crear un nuevo empleado
+     */
+    public static function crear_empleado(
+        int $id_cargo,
+        string $nombre,
+        string $apellido,
+        ?int $id_empresa = null,
+        ?string $dni = null,
+        ?string $ruc = null,
+        ?string $carnet_extranjeria = null,
+        ?string $pasaporte = null,
+        ?string $fecha_nacimiento = null,
+        ?string $url_foto = null
+    ) {
+        return Empleado::insertGetId([
+            'id_empresa' => $id_empresa,
+            'id_cargo' => $id_cargo,
+            'nombre' => $nombre,
+            'apellido' => $apellido,
+            'dni' => $dni,
+            'ruc' => $ruc,
+            'carnet_extranjeria' => $carnet_extranjeria,
+            'pasaporte' => $pasaporte,
+            'fecha_nacimiento' => $fecha_nacimiento,
+            'url_foto' => $url_foto,
+            'es_contratista' => 0,
+            'estado' => EstadoBase::Activo->value,
+        ]);
+    }
+
+    /**
+     * Metodo para consultar datos dinamicos de uno o varios empleados a la vez
+     */
+    public static function get_empleado_dinamico_by_id(int|array $id_empleado, array $columnas): ?array
+    {
+        $esArray = is_array($id_empleado);
+        $ids = $esArray ? $id_empleado : [$id_empleado];
+        // Forzamos la inclusión del ID con su alias
+        if (!in_array('id as id_empleado', $columnas)) {
+            $columnas[] = 'id as id_empleado';
+        }
+        $query = Empleado::where('es_contratista', 0)->whereIn('id', $ids)->get($columnas);
+        if ($esArray) {
+            return $query->toArray();
+        }
+        return $query->first()?->toArray();
+    }
+
+    /**
+     * Actualizar foto de un empleado
+     */
+    public static function actualizar_foto(
+        int $id_empleado,
+        ?string $url_foto = null
+    ) {
+        return Empleado::where('id', $id_empleado)->update([
+            'url_foto' => $url_foto
+        ]);
     }
 }

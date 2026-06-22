@@ -3,6 +3,7 @@
 namespace App\Modules\Cuentas;
 
 use App\Shared\Responses\ApiResponse;
+use App\Services\EmpleadosService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -21,36 +22,16 @@ class CuentasController extends Controller
     }
 
     /**
-     * Listar empleados disponibles (sin cuenta) para el select de registro
-     */
-    public function get_empleados_sin_cuenta(): JsonResponse
-    {
-        $result = CuentasService::get_empleados_sin_cuenta();
-        return response()->json($result);
-    }
-
-    /**
-     * Obtener los roles disponibles para asignar
-     */
-    public function get_roles_disponibles(): JsonResponse
-    {
-        $result = CuentasService::get_roles_disponibles();
-        return response()->json($result);
-    }
-
-    /**
      * Registrar una nueva cuenta de usuario
      */
     public function crear_cuenta(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'id_rol' => 'required|exists:rol,id',
-            'id_empleado' => 'required|exists:empleado,id|unique:usuario,id_empleado',
-            'username' => 'required|string|max:64|unique:usuario,username',
+            'id_empleado' => 'required',
+            'username' => 'required|string|max:64',
             'password' => 'required|string|min:6|max:512'
         ], [
-            'id_empleado.unique' => 'Este empleado ya tiene una cuenta asignada.',
-            'username.unique' => 'El nombre de usuario ya está en uso.',
             'password.min' => 'La contraseña debe tener al menos 6 caracteres.'
         ]);
 
@@ -106,15 +87,20 @@ class CuentasController extends Controller
     }
 
     /**
-     * Actualizar la foto del empleado asociado a una cuenta
+     * Actualizar foto de empleado
      */
     public function actualizar_foto_empleado(Request $request, int $id_empleado): JsonResponse
     {
-        if (!$request->hasFile('foto')) {
-            return response()->json(ApiResponse::error('No se ha enviado ninguna imagen.'));
+        $validator = Validator::make($request->all(), [
+            'foto' => 'required|image|mimes:jpg,png,jpeg|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
-        $result = CuentasService::actualizar_foto_empleado($id_empleado, $request->file('foto'));
+        $result = EmpleadosService::actualizar_foto($id_empleado, $request->file('foto'));
+
         return response()->json($result);
     }
 }

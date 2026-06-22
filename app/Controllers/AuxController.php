@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Services\ActivosFijosService;
 use App\Services\AlmacenesService;
 use App\Services\CategoriasService;
+use App\Services\ContratistasService;
 use App\Services\EmpleadosService;
 use App\Services\EmpresasService;
 use App\Services\LotesMineralService;
@@ -14,9 +15,12 @@ use App\Services\MinasService;
 use App\Services\PersonalExternoService;
 use App\Services\ProductosService;
 use App\Services\ProveedoresService;
+use App\Services\RolesService;
 use App\Services\UnidadesMedidaService;
 use App\Services\LaboresService;
-use App\Modules\Contratistas\Service\ContratistasService;
+use App\Services\AreasService;
+use App\Services\CargosService;
+use App\Services\BancosService;
 use App\Shared\Enums\_Generic\EstadoBase;
 use App\Shared\Enums\_Generic\Periodo;
 use App\Shared\Enums\_Generic\TipoBien;
@@ -104,10 +108,71 @@ class AuxController extends Controller
         $id_empleado = $request->input('id_empleado') ? (int) $request->input('id_empleado') : null;
         $estado_val = $request->input('estado');
         $estado = $estado_val ? EstadoBase::from($estado_val) : EstadoBase::Activo;
+        $id_almacen_excluyente = $request->input('id_almacen_excluyente') ? (int) $request->input('id_almacen_excluyente') : null;
+        $id_mina_excluyente = $request->input('id_mina_excluyente') ? (int) $request->input('id_mina_excluyente') : null;
+        $con_cuenta = $request->has('con_cuenta') ? $request->boolean('con_cuenta') : null;
 
         $result = EmpleadosService::get_empleados(
             id_empleado: $id_empleado,
+            estado: $estado,
+            id_almacen_excluyente: $id_almacen_excluyente,
+            id_mina_excluyente: $id_mina_excluyente,
+            con_cuenta: $con_cuenta
+        );
+
+        return response()->json($result);
+    }
+
+
+    /**
+     * Obtener los roles disponibles para asignar
+     */
+    public function get_roles_disponibles(Request $request): JsonResponse
+    {
+        $id_rol = $request->input('id_rol') ? (int) $request->input('id_rol') : null;
+        $estado_val = $request->input('estado');
+        $estado = $estado_val ? EstadoBase::from($estado_val) : EstadoBase::Activo;
+
+        $result = RolesService::get_roles(
+            id_rol: $id_rol,
             estado: $estado
+        );
+        return response()->json($result);
+    }
+
+    /**
+     * Crear empleado
+     */
+    public function crear_empleado(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_empresa' => 'nullable|integer',
+            'id_cargo' => 'required|integer',
+            'nombre' => 'required|string|max:255',
+            'apellido' => 'required|string|max:255',
+            'dni' => 'nullable|string|max:20',
+            'ruc' => 'nullable|string|max:20',
+            'carnet_extranjeria' => 'nullable|string|max:20',
+            'pasaporte' => 'nullable|string|max:20',
+            'fecha_nacimiento' => 'nullable|date',
+            'foto' => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $result = EmpleadosService::crear_empleado(
+            id_cargo: (int) $request->input('id_cargo'),
+            nombre: (string) $request->input('nombre'),
+            apellido: (string) $request->input('apellido'),
+            id_empresa: $request->input('id_empresa') ? (int) $request->input('id_empresa') : null,
+            dni: $request->input('dni'),
+            ruc: $request->input('ruc'),
+            carnet_extranjeria: $request->input('carnet_extranjeria'),
+            pasaporte: $request->input('pasaporte'),
+            fecha_nacimiento: $request->input('fecha_nacimiento'),
+            foto: $request->file('foto')
         );
 
         return response()->json($result);
@@ -259,8 +324,9 @@ class AuxController extends Controller
     public function get_contratistas(Request $request): JsonResponse
     {
         $id_mina = $request->input('id_mina') ? (int) $request->input('id_mina') : null;
+        $id_contratista = $request->input('id_contratista') ? (int) $request->input('id_contratista') : null;
 
-        return response()->json(ContratistasService::get_contratistas(id_mina: $id_mina));
+        return response()->json(ContratistasService::get_contratistas(id_mina: $id_mina, id_contratista: $id_contratista));
     }
 
     public function get_minas(Request $request): JsonResponse
@@ -348,11 +414,69 @@ class AuxController extends Controller
         $id_mina = $request->input('id_mina') ? (int) $request->input('id_mina') : null;
         $id_labor = $request->input('id_labor') ? (int) $request->input('id_labor') : null;
         $id_requerimiento = $request->input('id_requerimiento') ? (int) $request->input('id_requerimiento') : null;
+        $id_contratista_excluyente = $request->input('id_contratista_excluyente') ? (int) $request->input('id_contratista_excluyente') : null;
 
         return response()->json(LaboresService::get_labores(
             id_mina: $id_mina,
             id_labor: $id_labor,
-            id_requerimiento: $id_requerimiento
+            id_requerimiento: $id_requerimiento,
+            id_contratista_excluyente: $id_contratista_excluyente
+        ));
+    }
+
+    /**
+     * Catálogo de áreas.
+     */
+    public function get_areas(Request $request): JsonResponse
+    {
+        $id_area = $request->input('id_area') ? (int) $request->input('id_area') : null;
+        $estado_val = $request->input('estado');
+        $estado = $estado_val ? EstadoBase::from($estado_val) : EstadoBase::Activo;
+
+        return response()->json(AreasService::get_areas(
+            id_area: $id_area,
+            estado: $estado
+        ));
+    }
+
+    /**
+     * Catálogo de cargos.
+     */
+    public function get_cargos(Request $request): JsonResponse
+    {
+        $id_cargo = $request->input('id_cargo') ? (int) $request->input('id_cargo') : null;
+        $id_area = $request->input('id_area') ? (int) $request->input('id_area') : null;
+        $estado_val = $request->input('estado');
+        $estado = $estado_val ? EstadoBase::from($estado_val) : EstadoBase::Activo;
+
+        return response()->json(CargosService::get_cargos(
+            id_cargo: $id_cargo,
+            id_area: $id_area,
+            estado: $estado
+        ));
+    }
+
+    /**
+     * Catálogo de bancos.
+     */
+    public function get_bancos(Request $request): JsonResponse
+    {
+        return response()->json(BancosService::get_bancos());
+    }
+
+    /**
+     * Crear banco.
+     */
+    public function crear_banco(Request $request): JsonResponse
+    {
+        $request->validate([
+            'nombre' => 'required|string|max:100',
+            'abreviatura' => 'required|string|max:20',
+        ]);
+
+        return response()->json(BancosService::crear_banco(
+            nombre: (string) $request->input('nombre'),
+            abreviatura: (string) $request->input('abreviatura')
         ));
     }
 

@@ -14,17 +14,17 @@ class MinasData
     public static function get_resumen_minas(?int $id_concesion = null, ?int $id_mina = null)
     {
         $sql = '
-        SELECT DISTINCT
+        SELECT 
             mn.id AS id_mina,
             mn.id_concesion,
             cn.nombre AS concesion,
             mn.nombre,
             mn.descripcion,
-            -- Lista de responsables concatenada (Similar a almacenes)
+            -- Lista de responsables concatenada 
             (
                 SELECT GROUP_CONCAT(CONCAT(con.nombre, " ", con.apellido) ORDER BY res.id DESC SEPARATOR ", ")
                 FROM responsable_mina res
-                INNER JOIN empleado con ON con.id = res.id_empleado_contratista
+                INNER JOIN empleado con ON con.id = res.id_empleado
                 WHERE 
                     res.id_mina = mn.id AND 
                     res.estado = "Activo" AND 

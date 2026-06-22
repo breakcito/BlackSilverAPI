@@ -30,9 +30,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
             // Asignar un nuevo responsable de almacen
             Route::post('/', 'nuevo_responsable');
 
-            // Listar empleados disponibles para asignar como responsable de almacen
-            Route::post('/empleados-disponibles/{id_almacen}', 'get_empleados_disponibles');
-
             // Inactivar un responsable de almacen
             Route::post('/inactivar', 'inactivar_responsable');
         });

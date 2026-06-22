@@ -18,6 +18,18 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
             // empleados
             Route::get('/empleados', 'get_empleados');
+            Route::post('/empleados', 'crear_empleado');
+
+            // areas y cargos
+            Route::get('/areas', 'get_areas');
+            Route::get('/cargos', 'get_cargos');
+
+            // roles
+            Route::get('/roles-disponibles', 'get_roles_disponibles');
+
+            // bancos
+            Route::get('/bancos', 'get_bancos');
+            Route::post('/bancos', 'crear_banco');
 
             // unidades de medida
             Route::get('/unidades-medida', 'get_unidades_medida');

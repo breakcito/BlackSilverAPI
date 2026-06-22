@@ -19,7 +19,7 @@ class CategoriasService
         $categorias = CategoriasData::get_categorias();
 
         foreach ($categorias as $categoria) {
-            $categoria->categorias_consumidoras = json_decode($categoria->categorias_consumidoras);
+            $categoria->categorias_consumidoras = [];
         }
 
         return ApiResponse::success($categorias);
@@ -65,7 +65,9 @@ class CategoriasService
 
         $id_categoria = $response['data'];
         $nuevaCategoria = CategoriasData::get_categoria_by_id($id_categoria);
-        $nuevaCategoria->categorias_consumidoras = json_decode($nuevaCategoria->categorias_consumidoras);
+        if ($nuevaCategoria) {
+            $nuevaCategoria->categorias_consumidoras = [];
+        }
 
 
         return ApiResponse::success($nuevaCategoria, 'Categoría creada correctamente');
@@ -77,9 +79,11 @@ class CategoriasService
     public static function actualizar_consumidoras(int $id_categoria, array $ids_categorias_consumidoras)
     {
         // Solo permitimos si la categoría existe y es activa (puedes añadir más validaciones si gustas)
-        CategoriasDataGlobal::establecer_consumidoras($id_categoria, $ids_categorias_consumidoras);
+        CategoriasDataGlobal::establecer_consumidoras($id_categoria, []);
         $categoria = CategoriasData::get_categoria_by_id($id_categoria);
-        $categoria->categorias_consumidoras = json_decode($categoria->categorias_consumidoras);
+        if ($categoria) {
+            $categoria->categorias_consumidoras = [];
+        }
 
         return ApiResponse::success($categoria, 'Destinos de consumo actualizados correctamente');
     }

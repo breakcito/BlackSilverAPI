@@ -30,7 +30,7 @@ class EmpresasService
     /**
      * Crear una nueva empresa
      */
-    public static function crear_empresa(string $ruc, string $razon_social, string $nombre_comercial, ?string $abreviatura = null, ?UploadedFile $logo = null)
+    public static function crear_empresa(string $ruc, string $razon_social, string $nombre_comercial, ?UploadedFile $logo = null)
     {
         if (EmpresasData::verificar_ruc_duplicado($ruc)) {
             return ApiResponse::error('Ya existe una empresa registrada con este RUC.');
@@ -45,7 +45,7 @@ class EmpresasService
             }
         }
 
-        $id_empresa = EmpresasData::crear_empresa($ruc, $razon_social, $nombre_comercial, $abreviatura, $path_logo);
+        $id_empresa = EmpresasData::crear_empresa($ruc, $razon_social, $nombre_comercial, $path_logo);
         $nuevaEmpresa = EmpresasData::get_empresa_by_id($id_empresa);
 
         return ApiResponse::success($nuevaEmpresa, 'Empresa registrada correctamente');
