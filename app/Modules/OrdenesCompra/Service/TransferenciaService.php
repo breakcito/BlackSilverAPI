@@ -34,14 +34,14 @@ class TransferenciaService
         int $id_empleado_transferencia,
         int $id_orden_compra_recepcion,
         ?int $id_almacen_destino,
-        int $id_personal_recibe,
+        int $id_empleado_recibe,
         string $fecha_hora_transferencia,
         array $detalles,
         ?string $observacion = null,
         ?array $evidencias = null, // archivos
         ?int $id_mina_destino = null,
     ) {
-        return DB::transaction(function () use ($id_empleado_transferencia, $id_orden_compra_recepcion, $id_almacen_destino, $id_personal_recibe, $fecha_hora_transferencia, $observacion, $evidencias, $detalles, $id_mina_destino) {
+        return DB::transaction(function () use ($id_empleado_transferencia, $id_orden_compra_recepcion, $id_almacen_destino, $id_empleado_recibe, $fecha_hora_transferencia, $observacion, $evidencias, $detalles, $id_mina_destino) {
             // Procesar Evidencias si existen
             $evidenciasData = null;
             if (!empty($evidencias)) {
@@ -102,7 +102,7 @@ class TransferenciaService
                 id_almacen_destino: $id_almacen_destino,
                 id_orden_compra_recepcion: $id_orden_compra_recepcion,
                 id_empleado_transferencia: $id_empleado_transferencia,
-                id_personal_recibe: $id_personal_recibe,
+                id_empleado_recibe: $id_empleado_recibe,
                 correlativo: $correlativo_data['correlativo'],
                 numero_correlativo: $correlativo_data['numero_correlativo'],
                 fecha_hora_transferencia: $fecha_hora_transferencia,

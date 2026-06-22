@@ -12,7 +12,7 @@ class RequerimientoAlmacen extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_contratista_solicitante', // el responsable de la mina que solicita - opc
+        'id_empleado_solicitante', // la persona que solicita - opc
         'id_empleado_registro',  // el almacenero que registra el requerimiento 
         'id_mina', // la mina que solicita - opc
         'id_almacen_destino', // el almacen que recibe el requerimiento
@@ -36,7 +36,7 @@ class RequerimientoAlmacen extends Model
     public static function get_requerimientos(
         ?int $id_requerimiento = null,
         ?int $id_almacen_destino = null,
-        ?int $id_contratista_solicitante = null,
+        ?int $id_empleado_solicitante = null,
         ?string $mes = null,
         ?string $yearcito = null
     ) {
@@ -47,7 +47,7 @@ class RequerimientoAlmacen extends Model
             ra.id_almacen_destino,
             alm.nombre AS almacen_destino,
             --
-            ra.id_contratista_solicitante,
+            ra.id_empleado_solicitante,
             CONCAT(emp.nombre, " ", emp.apellido) AS solicitante,
             CONCAT(empr.nombre, " ", empr.apellido) AS responsable,
             --
@@ -66,7 +66,7 @@ class RequerimientoAlmacen extends Model
             requerimiento_almacen ra
         LEFT JOIN mina m ON m.id = ra.id_mina
         INNER JOIN almacen alm ON alm.id = ra.id_almacen_destino
-        LEFT JOIN empleado emp ON emp.id = ra.id_contratista_solicitante
+        LEFT JOIN empleado emp ON emp.id = ra.id_empleado_solicitante
         INNER JOIN empleado empr ON empr.id = ra.id_empleado_registro
         WHERE 1=1
         ';
@@ -80,9 +80,9 @@ class RequerimientoAlmacen extends Model
             return DB::selectOne($sql, $params);
         }
 
-        if ($id_contratista_solicitante !== null) {
-            $sql .= ' AND ra.id_contratista_solicitante = :id_contratista_solicitante';
-            $params['id_contratista_solicitante'] = $id_contratista_solicitante;
+        if ($id_empleado_solicitante !== null) {
+            $sql .= ' AND ra.id_empleado_solicitante = :id_empleado_solicitante';
+            $params['id_empleado_solicitante'] = $id_empleado_solicitante;
         }
 
         if ($id_almacen_destino !== null) {

@@ -11,12 +11,12 @@ use Illuminate\Support\Facades\DB;
 class RequerimientosService
 {
     public function get_requerimientos(
-        int $id_contratista,
+        int $id_empleado_solicitante,
         ?string $mes = null,
         ?string $yearcito = null
     ): array {
         $data = RequerimientosData::get_resumen_requerimientos(
-            id_contratista_solicitante: $id_contratista,
+            id_empleado_solicitante: $id_empleado_solicitante,
             mes: $mes,
             yearcito: $yearcito
         );

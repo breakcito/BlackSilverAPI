@@ -29,13 +29,13 @@ class EntregaService
     public static function registrar_despacho(
         int $id_prestamo,
         int $id_empleado_entrega,
-        int $id_personal_recibe,
+        int $id_empleado_recibe,
         string $fecha_hora_entrega,
         ?string $observacion,
         ?array $evidencias, // Archivos
         array $detalles
     ) {
-        return DB::transaction(function () use ($id_prestamo, $id_empleado_entrega, $id_personal_recibe, $fecha_hora_entrega, $observacion, $evidencias, $detalles) {
+        return DB::transaction(function () use ($id_prestamo, $id_empleado_entrega, $id_empleado_recibe, $fecha_hora_entrega, $observacion, $evidencias, $detalles) {
             $fecha_mysql = ($fecha_hora_entrega && $fecha_hora_entrega !== "null")
                 ? Carbon::parse($fecha_hora_entrega)->toDateTimeString()
                 : now()->toDateTimeString();
@@ -76,7 +76,7 @@ class EntregaService
             $id_entrega = EntregasData::crear_entrega(
                 $id_prestamo,
                 $id_empleado_entrega,
-                $id_personal_recibe,
+                $id_empleado_recibe,
                 $correlativoData['correlativo'],
                 $correlativoData['numero_correlativo'],
                 $fecha_mysql,

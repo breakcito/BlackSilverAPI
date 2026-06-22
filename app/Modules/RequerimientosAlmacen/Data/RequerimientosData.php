@@ -16,13 +16,13 @@ class RequerimientosData
      */
     public static function get_resumen_requerimientos(
         ?int $id_requerimiento = null,
-        ?int $id_contratista_solicitante = null,
+        ?int $id_empleado_solicitante = null,
         ?string $mes = null,
         ?string $yearcito = null
     ) {
         return RequerimientoAlmacen::get_requerimientos(
             id_requerimiento: $id_requerimiento,
-            id_contratista_solicitante: $id_contratista_solicitante,
+            id_empleado_solicitante: $id_empleado_solicitante,
             mes: $mes,
             yearcito: $yearcito
         );

@@ -50,7 +50,7 @@ class AtencionService
      * ]
      */
     public static function registrar_requerimiento(
-        ?int $id_contratista_solicitante,
+        ?int $id_empleado_solicitante,
         int $id_empleado_registro,
         ?int $id_mina,
         int $id_almacen_destino,
@@ -62,7 +62,7 @@ class AtencionService
         ?string $observacion = null,
         ?array $evidencias = null
     ) {
-        return DB::transaction(function () use ($id_contratista_solicitante, $id_empleado_registro, $id_mina, $id_almacen_destino, $es_auditable, $premura, $observacion, $fecha_entrega_requerida, $labores, $detalles, $evidencias) {
+        return DB::transaction(function () use ($id_empleado_solicitante, $id_empleado_registro, $id_mina, $id_almacen_destino, $es_auditable, $premura, $observacion, $fecha_entrega_requerida, $labores, $detalles, $evidencias) {
             // 1. Generar correlativo
             $correlativo = RequerimientosData::get_nuevo_correlativo();
 
@@ -74,7 +74,7 @@ class AtencionService
 
             // 3. Crear cabecera
             $id_requerimiento = RequerimientosData::crear_requerimiento(
-                id_contratista_solicitante: $id_contratista_solicitante,
+                id_empleado_solicitante: $id_empleado_solicitante,
                 id_empleado_registro: $id_empleado_registro,
                 id_mina: $id_mina,
                 id_almacen_destino: $id_almacen_destino,

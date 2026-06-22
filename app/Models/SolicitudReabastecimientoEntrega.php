@@ -15,7 +15,7 @@ class SolicitudReabastecimientoEntrega extends Model
         'id_solicitud_reabastecimiento',
         'id_almacen_entrega', // un almacen principal
         'id_empleado_entrega',
-        'id_personal_recibe', // Personal externo
+        'id_empleado_recibe', // empleado que recibe los productos para el envio
         'correlativo',
         'numero_correlativo',
         'fecha_hora_entrega',
@@ -33,7 +33,7 @@ class SolicitudReabastecimientoEntrega extends Model
         ?int $id_solicitud = null
     ) {
         $sql = '
-        SELECT DISTINCT
+        SELECT
             ent.id AS id_reabastecimiento_entrega,
             ent.id_solicitud_reabastecimiento,
             --
@@ -41,7 +41,7 @@ class SolicitudReabastecimientoEntrega extends Model
             alm.nombre as almacen_entrega,
             --
             CONCAT(emp_ent.nombre," ",emp_ent.apellido) AS empleado_entrega,
-            TRIM(CONCAT_WS(" ", NULLIF(TRIM(per_rec.nombre), ""), NULLIF(TRIM(per_rec.apellido), ""))) AS personal_recibe,
+            TRIM(CONCAT_WS(" ", NULLIF(TRIM(emp_rec.nombre), ""), NULLIF(TRIM(emp_rec.apellido), ""))) AS empleado_recibe,
             --
             ent.correlativo,
             ent.fecha_hora_entrega,
@@ -52,10 +52,8 @@ class SolicitudReabastecimientoEntrega extends Model
         FROM
             solicitud_reabastecimiento_entrega ent
         INNER JOIN almacen alm on alm.id = ent.id_almacen_entrega
-        INNER JOIN empleado emp_ent ON
-            emp_ent.id = ent.id_empleado_entrega
-        INNER JOIN personal_externo per_rec ON
-            per_rec.id = ent.id_personal_recibe
+        INNER JOIN empleado emp_ent ON emp_ent.id = ent.id_empleado_entrega
+        INNER JOIN empleado emp_rec ON emp_rec.id = ent.id_empleado_recibe
         WHERE 1 = 1
         ';
 

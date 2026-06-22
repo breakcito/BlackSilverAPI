@@ -22,7 +22,7 @@ class PrestamoAlmacenReposicion extends Model
         'id_prestamo_almacen', // el prestamo que se esta reponiendo
         'id_almacen_entrega', // uno de los almacenes principales
         'id_empleado_entrega', // empleado que hace la reposicion
-        'id_personal_recibe', // la persona que recibe los productos para el envio
+        'id_empleado_recibe', // el empleado que recibe los productos para el envio
         'correlativo', // prefijo: RPS
         'numero_correlativo',
         'observacion',
@@ -51,7 +51,7 @@ class PrestamoAlmacenReposicion extends Model
         int $id_prestamo_almacen,
         int $id_almacen_entrega,
         int $id_empleado_entrega,
-        int $id_personal_recibe,
+        int $id_empleado_recibe,
         string $correlativo,
         int $numero_correlativo,
         string $fecha_hora_reposicion,
@@ -62,7 +62,7 @@ class PrestamoAlmacenReposicion extends Model
             'id_prestamo_almacen' => $id_prestamo_almacen,
             'id_almacen_entrega' => $id_almacen_entrega,
             'id_empleado_entrega' => $id_empleado_entrega,
-            'id_personal_recibe' => $id_personal_recibe,
+            'id_empleado_recibe' => $id_empleado_recibe,
             'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
             'fecha_hora_reposicion' => $fecha_hora_reposicion,
@@ -93,14 +93,14 @@ class PrestamoAlmacenReposicion extends Model
             r.observacion,
             r.evidencias,
             CONCAT(e.nombre, " ", e.apellido) AS registrado_por,
-            TRIM(CONCAT_WS(" ", NULLIF(TRIM(per_rec.nombre), ""), NULLIF(TRIM(per_rec.apellido), ""))) AS personal_recibe,
+            TRIM(CONCAT_WS(" ", NULLIF(TRIM(emp_rec.nombre), ""), NULLIF(TRIM(emp_rec.apellido), ""))) AS empleado_recibe,
             r.created_at,
             r.estado
         FROM 
             prestamo_almacen_reposicion r
         INNER JOIN almacen a ON a.id = r.id_almacen_entrega
         INNER JOIN empleado e ON e.id = r.id_empleado_entrega
-        INNER JOIN personal_externo per_rec ON per_rec.id = r.id_personal_recibe
+        INNER JOIN empleado emp_rec ON emp_rec.id = r.id_empleado_recibe
         WHERE 1 = 1
         ';
 

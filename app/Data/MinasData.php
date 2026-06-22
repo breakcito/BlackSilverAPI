@@ -14,7 +14,8 @@ class MinasData
     public static function get_minas(
         ?int $id_mina = null,
         ?int $id_concesion = null,
-        ?int $id_contratista_responsable = null
+        ?int $id_empleado_responsable = null,
+        ?int $id_almacen_abastece = null,
     ) {
         $query = DB::table('mina as mn')
             ->select(
@@ -38,10 +39,16 @@ class MinasData
             $query->where('mn.id_concesion', $id_concesion);
         }
 
-        // Filtro por contratista responsable
-        if ($id_contratista_responsable !== null) {
+        // filtro para listar las minas abastecidas por un almacen
+        if($id_almacen_abastece !== null){
+            $query->join('almacen_mina as am', 'am.id_mina', '=', 'mn.id')
+                ->where('am.id_almacen', $id_almacen_abastece);
+        }
+
+        // Filtro por responsable
+        if ($id_empleado_responsable !== null) {
             $query->join('responsable_mina as res', 'res.id_mina', '=', 'mn.id')
-                ->where('res.id_contratista', $id_contratista_responsable)
+                ->where('res.id_empleado', $id_empleado_responsable)
                 ->where('res.estado', 'Activo');
         }
 

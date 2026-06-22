@@ -18,7 +18,7 @@ class EntregaController extends Controller
         $validator = Validator::make($request->all(), [
             'id_solicitud' => 'required|integer',
             'id_almacen_entrega' => 'required|integer',
-            'id_personal_recibe' => 'required|integer',
+            'id_empleado_recibe' => 'required|integer',
             'fecha_hora_entrega' => 'required|date',
             'observacion' => 'nullable|string',
             'detalles' => 'required|array|min:1',
@@ -40,7 +40,7 @@ class EntregaController extends Controller
             (int) $request->id_almacen_entrega,
             $authUser->id_empleado,
             (int) $request->id_solicitud,
-            (int) $request->id_personal_recibe,
+            (int) $request->id_empleado_recibe,
             $request->fecha_hora_entrega,
             $request->observacion,
             $request->file('evidencias'), // archivos

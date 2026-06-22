@@ -20,12 +20,12 @@ class RequerimientosController extends Controller
 
     public function get_requerimientos(Request $request): JsonResponse
     {
-        $id_contratista = $request->attributes->get('id_contratista');
+        $id_empleado_solicitante = $request->attributes->get('id_empleado_solicitante');
         $mes = $request->query('mes');
         $yearcito = $request->query('yearcito');
 
         $result = $this->requerimientoService->get_requerimientos(
-            $id_contratista,
+            $id_empleado_solicitante,
             $mes,
             $yearcito
         );

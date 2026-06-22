@@ -333,12 +333,14 @@ class AuxController extends Controller
     {
         $id_mina = $request->input('id_mina') ? (int) $request->input('id_mina') : null;
         $id_concesion = $request->input('id_concesion') ? (int) $request->input('id_concesion') : null;
-        $id_contratista_responsable = $request->input('id_contratista_responsable') ? (int) $request->input('id_contratista_responsable') : null;
+        $id_empleado_responsable = $request->input('id_empleado_responsable') ? (int) $request->input('id_empleado_responsable') : null;
+        $id_almacen_abastece = $request->input('id_almacen_abastece') ? (int) $request->input('id_almacen_abastece') : null;
 
         return response()->json(MinasService::get_minas(
             id_mina: $id_mina,
             id_concesion: $id_concesion,
-            id_contratista_responsable: $id_contratista_responsable
+            id_empleado_responsable: $id_empleado_responsable,
+            id_almacen_abastece: $id_almacen_abastece
         ));
     }
 

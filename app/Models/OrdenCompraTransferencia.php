@@ -17,7 +17,7 @@ class OrdenCompraTransferencia extends Model
         'id_mina_destino', // la mina a la que se le transfiere el activo fijo
         'id_orden_compra_recepcion', // la recepcion de la orden de compra
         'id_empleado_transferencia', // quien registra la transferencia
-        'id_personal_recibe', // la persona que recibe los productos para el envio
+        'id_empleado_recibe', // la persona que recibe los productos para el envio
         //
         'correlativo', // TRN | anual | por almacen de destino
         'numero_correlativo',
@@ -40,7 +40,7 @@ class OrdenCompraTransferencia extends Model
         ?int $id_almacen_destino,
         int $id_orden_compra_recepcion,
         int $id_empleado_transferencia,
-        int $id_personal_recibe,
+        int $id_empleado_recibe,
         string $correlativo,
         int $numero_correlativo,
         $evidencias = null,
@@ -56,7 +56,7 @@ class OrdenCompraTransferencia extends Model
             'id_almacen_destino' => $id_almacen_destino,
             'id_mina_destino' => $id_mina_destino,
             'id_empleado_transferencia' => $id_empleado_transferencia,
-            'id_personal_recibe' => $id_personal_recibe,
+            'id_empleado_recibe' => $id_empleado_recibe,
             'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
             'fecha_hora_transferencia' => $fecha_hora_transferencia ?? now(),
@@ -104,7 +104,7 @@ class OrdenCompraTransferencia extends Model
             mna_dest.nombre as mina_destino,
             -- 
             CONCAT(emp_ent.nombre, " ", emp_ent.apellido) AS empleado_transferencia,
-            TRIM(CONCAT_WS(" ", NULLIF(TRIM(per_rec.nombre), ""), NULLIF(TRIM(per_rec.apellido), ""))) AS personal_recibe,
+            TRIM(CONCAT_WS(" ", NULLIF(TRIM(emp_rec.nombre), ""), NULLIF(TRIM(emp_rec.apellido), ""))) AS empleado_recibe,
             -- 
             trn.fecha_hora_transferencia,
             trn.observacion,
@@ -120,7 +120,7 @@ class OrdenCompraTransferencia extends Model
         LEFT JOIN almacen alm_dest on alm_dest.id = trn.id_almacen_destino
         LEFT JOIN mina mna_dest on mna_dest.id = trn.id_mina_destino
         INNER JOIN empleado emp_ent ON emp_ent.id = trn.id_empleado_transferencia
-        INNER JOIN personal_externo per_rec ON per_rec.id = trn.id_personal_recibe
+        INNER JOIN empleado emp_rec ON emp_rec.id = trn.id_empleado_recibe
         WHERE 
             1 = 1
         ';

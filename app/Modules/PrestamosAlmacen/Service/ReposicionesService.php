@@ -41,7 +41,7 @@ class ReposicionesService
         int $id_prestamo_almacen,
         int $id_almacen_entrega,
         int $id_empleado_entrega,
-        int $id_personal_recibe,
+        int $id_empleado_recibe,
         string $fecha_hora_reposicion,
         //
         // [{id_prestamo_detalle, id_lote_producto, cantidad_base, cantidad_lote, cantidad_prestamo}]
@@ -50,7 +50,7 @@ class ReposicionesService
         ?string $observacion,
         ?array $evidencias = null
     ) {
-        return DB::transaction(function () use ($id_prestamo_almacen, $id_almacen_entrega, $id_empleado_entrega, $id_personal_recibe, $fecha_hora_reposicion, $observacion, $items, $evidencias) {
+        return DB::transaction(function () use ($id_prestamo_almacen, $id_almacen_entrega, $id_empleado_entrega, $id_empleado_recibe, $fecha_hora_reposicion, $observacion, $items, $evidencias) {
             // 1. Obtener el correlativo del prestamo
             $prestamo = PrestamosData::get_correlativo_by_id($id_prestamo_almacen);
 
@@ -68,7 +68,7 @@ class ReposicionesService
                 $id_prestamo_almacen,
                 $id_almacen_entrega,
                 $id_empleado_entrega,
-                $id_personal_recibe,
+                $id_empleado_recibe,
                 $correlativoData['correlativo'],
                 $correlativoData['numero_correlativo'],
                 Carbon::parse($fecha_hora_reposicion)->toDateTimeString(),

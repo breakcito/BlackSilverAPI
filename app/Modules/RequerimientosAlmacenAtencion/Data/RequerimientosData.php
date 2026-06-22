@@ -9,7 +9,6 @@ use App\Shared\Enums\_Generic\Premura;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimiento;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Helpers\CorrelativoHelper;
-use Illuminate\Support\Facades\DB;
 
 class RequerimientosData
 {
@@ -93,74 +92,9 @@ class RequerimientosData
         );
     }
 
-    /**
-     * Obtiene la lista de minas a las que abastece el almacen elegido
-     */
-    public static function get_minas_by_almacen(int $id_almacen)
-    {
-        $sql = '
-        SELECT
-            mn.id AS id_mina,
-            mn.nombre
-        FROM
-            mina mn
-        INNER JOIN almacen_mina ami ON
-            ami.id_mina = mn.id
-        WHERE
-            ami.id_almacen = :id_almacen
-        ORDER BY mn.nombre ASC
-        ';
-
-        return DB::select($sql, ['id_almacen' => $id_almacen]);
-    }
-
-    /**
-     * Obtiene los responsables activos de una mina
-     */
-    public static function get_responsables_by_mina(int $id_mina)
-    {
-        $sql = '
-        SELECT 
-            c.id AS id_contratista,
-            CONCAT(c.nombre, " ", c.apellido) AS nombre_completo
-        FROM
-            empleado c
-        INNER JOIN responsable_mina res ON
-            res.id_empleado = c.id
-        WHERE
-            c.es_contratista = 1 AND
-            res.id_mina = :id_mina AND
-            res.estado = "Activo" AND
-            res.fecha_fin IS NULL
-        ORDER BY nombre_completo ASC
-        ';
-
-        return DB::select($sql, ['id_mina' => $id_mina]);
-    }
-
-    /**
-     * Obtiene las labores de una mina
-     */
-    public static function get_labores(int $id_mina)
-    {
-        $sql = '
-        SELECT
-            lab.id AS id_labor,
-            lab.nombre,
-            lab.correlativo
-        FROM
-            labor lab
-        WHERE
-            lab.estado = "Activo" AND
-            lab.id_mina = :id_mina
-        ORDER BY lab.nombre ASC
-        ';
-
-        return DB::select($sql, ['id_mina' => $id_mina]);
-    }
 
     public static function crear_requerimiento(
-        ?int $id_contratista_solicitante,
+        ?int $id_empleado_solicitante,
         int $id_empleado_registro,
         ?int $id_mina,
         int $id_almacen_destino,
@@ -173,7 +107,7 @@ class RequerimientosData
         ?array $evidencias = null
     ) {
         return RequerimientoAlmacen::insertGetId([
-            'id_contratista_solicitante' => $id_contratista_solicitante,
+            'id_empleado_solicitante' => $id_empleado_solicitante,
             'id_empleado_registro' => $id_empleado_registro,
             'id_mina' => $id_mina,
             'id_almacen_destino' => $id_almacen_destino,

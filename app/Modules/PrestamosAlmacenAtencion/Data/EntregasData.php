@@ -53,7 +53,7 @@ class EntregasData
     public static function crear_entrega(
         int $id_prestamo,
         int $id_empleado_entrega,
-        int $id_personal_recibe,
+        int $id_empleado_recibe,
         string $correlativo,
         int $numero_correlativo,
         string $fecha_hora_entrega,
@@ -63,14 +63,14 @@ class EntregasData
         return PrestamoAlmacenEntrega::insertGetId([
             'id_prestamo_almacen' => $id_prestamo,
             'id_empleado_entrega' => $id_empleado_entrega,
-            'id_personal_recibe'  => $id_personal_recibe,
-            'correlativo'         => $correlativo,
-            'numero_correlativo'  => $numero_correlativo,
-            'fecha_hora_entrega'  => $fecha_hora_entrega,
-            'observacion'         => $observacion,
-            'evidencias'          => $evidencias ? json_encode($evidencias) : null,
-            'created_at'          => now(),
-            'estado'              => EstadoPrestamoEntrega::EnDespacho->value
+            'id_empleado_recibe' => $id_empleado_recibe,
+            'correlativo' => $correlativo,
+            'numero_correlativo' => $numero_correlativo,
+            'fecha_hora_entrega' => $fecha_hora_entrega,
+            'observacion' => $observacion,
+            'evidencias' => $evidencias ? json_encode($evidencias) : null,
+            'created_at' => now(),
+            'estado' => EstadoPrestamoEntrega::EnDespacho->value
         ]);
     }
 
