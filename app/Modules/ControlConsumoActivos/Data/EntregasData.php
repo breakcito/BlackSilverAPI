@@ -27,8 +27,8 @@ class EntregasData
             rq.es_auditable,
             
             -- quien solicito ese requerimiento
-            rq.id_contratista_solicitante,
-            CONCAT(ctr.nombre, " ", ctr.apellido) as contratista_solicitante,
+            rq.id_empleado_solicitante,
+            CONCAT(emp_sol.nombre, " ", emp_sol.apellido) as empleado_solicitante,
             
             -- para que mina se solicito
             rq.id_mina,
@@ -92,7 +92,7 @@ class EntregasData
  
         -- para saber quien y de donde se pidio 
         INNER JOIN requerimiento_almacen rq on rq.id = rad.id_requerimiento_almacen
-        INNER JOIN empleado ctr on ctr.id = rq.id_contratista_solicitante
+        INNER JOIN empleado emp_sol on emp_sol.id = rq.id_empleado_solicitante
         INNER JOIN mina mn on mn.id = rq.id_mina
         INNER JOIN almacen alm on alm.id = rq.id_almacen_destino
 
