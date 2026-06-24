@@ -61,7 +61,19 @@ class AuxData
         $sql = "
         SELECT
             alm.id AS id_almacen,
-            alm.nombre
+            alm.nombre,
+            alm.es_principal,
+            CASE
+            	WHEN EXISTS(
+                    SELECT 1 FROM almacen_vecino vc
+                    WHERE 
+                    	(vc.id_almacen_a = 4 OR
+                    	vc.id_almacen_b = 4) AND
+                    	(vc.id_almacen_a = alm.id OR
+                         vc.id_almacen_b = alm.id)
+                ) THEN 1
+                ELSE 0
+            END AS es_vecino
         FROM
             almacen alm
         INNER JOIN (
@@ -94,7 +106,7 @@ class AuxData
             alm.id,
             alm.nombre
         HAVING
-            COUNT(DISTINCT lot.id_producto) = ?; -- MAGIA: Debe tener TODOS los productos buscados
+            COUNT(DISTINCT lot.id_producto) = ?;
         ";
 
         // Unimos los bindings: id_excluido, ids de productos, y el total al final para el HAVING

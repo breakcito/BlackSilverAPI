@@ -19,6 +19,7 @@ class Labor extends Model
         'correlativo',
         'numero_correlativo',
         'nombre',
+        'prefijo', // utilizado para concatenarlo en los correlativos de los lotes de mineral
         'descripcion',
         'tipo_sostenimiento',
         'veta',
