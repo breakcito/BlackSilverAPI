@@ -1,10 +1,10 @@
 
-
 <?php
 
 use App\Modules\Almacenes\Controller\AbastecimientoController;
 use App\Modules\Almacenes\Controller\AlmacenesController;
 use App\Modules\Almacenes\Controller\ResponsablesController;
+use App\Modules\Almacenes\Controller\VecinosController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -47,6 +47,21 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
             // Listar las minas disponibles para abastecer
             Route::get('/minas/{id_almacen}', 'get_minas');
+        });
+
+        // Vecinos
+        Route::prefix('vecinos')->controller(VecinosController::class)->group(function () {
+            // Listar vecinos de un almacen
+            Route::get('/{id_almacen}', 'get_vecinos');
+
+            // Listar almacenes disponibles para ser vecinos de un almacen
+            Route::get('/disponibles/{id_almacen}', 'get_almacenes_disponibles_vecinos');
+
+            // Asignar un nuevo vecino
+            Route::post('/', 'agregar_vecino');
+
+            // Eliminar un vecino
+            Route::delete('/{id_almacen_vecino}', 'eliminar_vecino');
         });
     });
 });

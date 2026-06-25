@@ -67,8 +67,8 @@ class AuxData
             	WHEN EXISTS(
                     SELECT 1 FROM almacen_vecino vc
                     WHERE 
-                    	(vc.id_almacen_a = 4 OR
-                    	vc.id_almacen_b = 4) AND
+                    	(vc.id_almacen_a = ? OR
+                    	vc.id_almacen_b = ?) AND
                     	(vc.id_almacen_a = alm.id OR
                          vc.id_almacen_b = alm.id)
                 ) THEN 1
@@ -109,8 +109,8 @@ class AuxData
             COUNT(DISTINCT lot.id_producto) = ?;
         ";
 
-        // Unimos los bindings: id_excluido, ids de productos, y el total al final para el HAVING
-        $bindings = array_merge([$id_almacen_excluido], $ids_unicos, [$totalIds]);
+        // Unimos los bindings: id_excluido para el exists (dos veces), id_excluido para la exclusión, ids de productos, y el total al final para el HAVING
+        $bindings = array_merge([$id_almacen_excluido, $id_almacen_excluido, $id_almacen_excluido], $ids_unicos, [$totalIds]);
 
         return DB::select($sql, $bindings);
     }
