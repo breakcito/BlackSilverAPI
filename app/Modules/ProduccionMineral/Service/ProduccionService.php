@@ -12,6 +12,8 @@ class ProduccionService
 {
     /**
      * Iniciar el proceso de producción de un lote mineral.
+     * Genera el código interno a partir del prefijo de la labor y la fecha actual.
+     * Formato: <PREFIJO>-<DD><MM><AA>
      */
     public static function iniciar_produccion(int $id_lote_mineral): array
     {
@@ -26,7 +28,24 @@ class ProduccionService
                 return ApiResponse::error('El lote mineral debe estar en estado Pendiente para poder iniciar producción.');
             }
 
-            $success = ProduccionData::iniciar_produccion($id_lote_mineral);
+            // Fecha/hora de inicio de produccion (ahora mismo)
+            $now = now();
+            $inicio_produccion = $now->format('Y-m-d H:i:s');
+
+            // Generar codigo_interno si la labor tiene prefijo
+            $prefijo = ProduccionData::get_prefijo_labor_by_lote($id_lote_mineral);
+            $codigo_interno = null;
+
+            if ($prefijo) {
+                // Formato: SB-200526 (<Prefijo>-<DD><MM><YY>)
+                $codigo_interno = strtoupper($prefijo) . '-' . $now->format('dmY');
+            }
+
+            $success = ProduccionData::iniciar_produccion(
+                $id_lote_mineral,
+                $inicio_produccion,
+                $codigo_interno
+            );
 
             if (!$success) {
                 return ApiResponse::error('No se pudo iniciar el proceso de producción.');

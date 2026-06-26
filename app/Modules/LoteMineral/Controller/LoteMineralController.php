@@ -34,11 +34,11 @@ class LoteMineralController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'id_contratista' => 'required|integer',
-            'id_mina' => 'required|integer',
-            'id_labor' => 'nullable|integer',
-            'codigo_interno' => 'nullable|string',
-            'descripcion' => 'nullable|string',
+            'id_contratista'   => 'required|integer',
+            'id_mina'          => 'required|integer',
+            'id_labor'         => 'nullable|integer',
+            'descripcion'      => 'nullable|string',
+            'inicio_produccion' => 'nullable|date',
         ], [
             'id_contratista.required' => 'El contratista es requerido',
             'id_mina.required' => 'La mina es requerida',
@@ -53,8 +53,9 @@ class LoteMineralController extends Controller
             (int) $request->input('id_mina'),
             $request->input('id_labor') ? (int) $request->input('id_labor') : null,
             (int) $authUser->id_empleado,
-            $request->input('codigo_interno') ? (string) $request->input('codigo_interno') : '',
-            $request->input('descripcion') ? (string) $request->input('descripcion') : null
+            null, // codigo_interno: se genera al iniciar producción
+            $request->input('descripcion') ? (string) $request->input('descripcion') : null,
+            $request->input('inicio_produccion') ? (string) $request->input('inicio_produccion') : null
         );
 
         return response()->json($result);

@@ -20,6 +20,7 @@ class LoteMineralData
                 'lm.id as id_lote_mineral',
                 'lm.correlativo',
                 'lm.codigo_interno',
+                'lm.inicio_produccion',
                 'lm.descripcion',
                 'lm.estado',
                 'lm.created_at',
@@ -29,6 +30,7 @@ class LoteMineralData
                 'm.nombre as mina',
                 'l.id as id_labor',
                 'l.nombre as labor',
+                'l.prefijo as labor_prefijo',
                 'e.id as id_empleado_registro',
                 DB::raw("CONCAT(e.nombre, ' ', COALESCE(e.apellido, '')) as empleado_registro"),
             ])
@@ -67,25 +69,27 @@ class LoteMineralData
         int $id_mina,
         ?int $id_labor,
         int $id_empleado_registro,
-        string $codigo_interno,
+        ?string $codigo_interno,
         ?string $descripcion,
         string $correlativo,
-        int $numero_correlativo
+        int $numero_correlativo,
+        ?string $inicio_produccion = null,
     ) {
         return LoteMineral::insertGetId([
-            'id_contratista' => $id_contratista,
-            'id_mina' => $id_mina,
-            'id_labor' => $id_labor,
+            'id_contratista'    => $id_contratista,
+            'id_mina'           => $id_mina,
+            'id_labor'          => $id_labor,
             'id_empleado_registro' => $id_empleado_registro,
-            'codigo_interno' => $codigo_interno,
-            'descripcion' => $descripcion,
-            'correlativo' => $correlativo,
+            'codigo_interno'    => $codigo_interno,
+            'inicio_produccion' => $inicio_produccion,
+            'descripcion'       => $descripcion,
+            'correlativo'       => $correlativo,
             'numero_correlativo' => $numero_correlativo,
-            'created_at' => now(),
-            'estado' => EstadoLoteMineral::Pendiente->value,
+            'created_at'        => now(),
+            'estado'            => EstadoLoteMineral::Pendiente->value,
         ]);
     }
-    
+
     /**
      * Obtener lote por ID.
      */
@@ -96,6 +100,7 @@ class LoteMineralData
                 'lm.id as id_lote_mineral',
                 'lm.correlativo',
                 'lm.codigo_interno',
+                'lm.inicio_produccion',
                 'lm.descripcion',
                 'lm.estado',
                 'lm.created_at',
@@ -105,6 +110,7 @@ class LoteMineralData
                 'm.nombre as mina',
                 'l.id as id_labor',
                 'l.nombre as labor',
+                'l.prefijo as labor_prefijo',
                 'e.id as id_empleado_registro',
                 DB::raw("CONCAT(e.nombre, ' ', COALESCE(e.apellido, '')) as empleado_registro"),
             ])

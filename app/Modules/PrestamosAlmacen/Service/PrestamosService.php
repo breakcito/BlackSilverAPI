@@ -10,7 +10,7 @@ class PrestamosService
     /**
      * Obtiene los préstamos por almacén y periodo
      */
-    public static function get_prestamos_por_almacen(int $id_almacen, int $mes, int $yearcito)
+    public static function get_prestamos_por_almacen(?int $id_almacen, int $mes, int $yearcito)
     {
         $data = PrestamosData::get_prestamos_por_almacen($id_almacen, $mes, $yearcito);
         return ApiResponse::success($data);

@@ -21,8 +21,9 @@ class LaboresService
     public static function crear_labor(
         int $id_mina,
         int $id_empresa,
-        int $id_tipo_labor,
-        ?string $nombre,
+        ?int $id_tipo_labor,
+        string $nombre,
+        string $prefijo,
         ?string $descripcion,
         string $tipo_sostenimiento,
         ?string $veta,
@@ -32,20 +33,31 @@ class LaboresService
         ?string $fecha_inicio,
         ?string $fecha_fin_estimada = null
     ): array|object {
-        $codigo_tipo_labor = LaboresData::get_codigo_tipo_labor($id_tipo_labor);
-        $correlativo_data = LaboresData::get_nuevo_correlativo(
-            $id_mina,
-            $id_empresa,
-            $id_tipo_labor,
-            $codigo_tipo_labor
-        );
+        // El correlativo (TJ-001, CH-001...) solo se genera si hay tipo de labor.
+        // Si no hay tipo, se deja null.
+        $correlativo = null;
+        $numero_correlativo = null;
+
+        if ($id_tipo_labor !== null) {
+            $codigo_tipo_labor = LaboresData::get_codigo_tipo_labor($id_tipo_labor);
+            $correlativo_data = LaboresData::get_nuevo_correlativo(
+                $id_mina,
+                $id_empresa,
+                $id_tipo_labor,
+                $codigo_tipo_labor
+            );
+            $correlativo = $correlativo_data['correlativo'];
+            $numero_correlativo = $correlativo_data['numero_correlativo'];
+        }
+
         $id_labor = LaboresData::crear_labor(
             id_mina: $id_mina,
             id_empresa: $id_empresa,
             id_tipo_labor: $id_tipo_labor,
             nombre: $nombre,
-            correlativo: $correlativo_data["correlativo"],
-            numero_correlativo: $correlativo_data["numero_correlativo"],
+            prefijo: $prefijo,
+            correlativo: $correlativo,
+            numero_correlativo: $numero_correlativo,
             descripcion: $descripcion,
             tipo_sostenimiento: $tipo_sostenimiento,
             veta: $veta,

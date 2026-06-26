@@ -25,8 +25,9 @@ class LoteMineralService
         int $id_mina,
         ?int $id_labor,
         int $id_empleado_registro,
-        string $codigo_interno,
-        ?string $descripcion
+        ?string $codigo_interno = null,
+        ?string $descripcion = null,
+        ?string $inicio_produccion = null
     ) {
         return DB::transaction(function () use (
             $id_contratista,
@@ -34,7 +35,8 @@ class LoteMineralService
             $id_labor,
             $id_empleado_registro,
             $codigo_interno,
-            $descripcion
+            $descripcion,
+            $inicio_produccion
         ) {
             // Generar correlativo
             $nuevo_correlativo = LoteMineralData::get_nuevo_correlativo();
@@ -47,10 +49,11 @@ class LoteMineralService
                 $id_mina,
                 $id_labor,
                 $id_empleado_registro,
-                $codigo_interno,
+                null, // codigo_interno se genera en Produccion
                 $descripcion,
                 $correlativo,
-                $numero_correlativo
+                $numero_correlativo,
+                $inicio_produccion
             );
 
             $lote = LoteMineralData::get_lote_by_id($id_lote);

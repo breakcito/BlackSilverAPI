@@ -22,11 +22,15 @@ class LotesMineralData
             mna.nombre as mina,
             
             lt.id_labor,
+            lb.nombre as labor,
+            lb.prefijo as labor_prefijo,
             
             lt.correlativo,
-            lt.codigo_interno
+            lt.codigo_interno,
+            lt.inicio_produccion
         FROM lote_mineral lt
         INNER JOIN mina mna on mna.id = lt.id_mina
+        LEFT JOIN labor lb on lb.id = lt.id_labor
         WHERE 1=1
         ';
 

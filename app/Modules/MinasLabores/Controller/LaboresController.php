@@ -30,18 +30,22 @@ class LaboresController extends Controller
     public function crear_labor(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'id_mina' => 'required|integer',
-            'id_empresa' => 'required|integer',
-            'id_tipo_labor' => 'required|integer',
-            'nombre' => 'nullable|string|max:128',
-            'descripcion' => 'nullable|string',
+            'id_mina'          => 'required|integer',
+            'id_empresa'       => 'required|integer',
+            'id_tipo_labor'    => 'nullable|integer',
+            'nombre'           => 'required|string|max:128',
+            'prefijo'          => 'required|string|max:32',
+            'descripcion'      => 'nullable|string',
             'tipo_sostenimiento' => 'required|string',
-            'veta' => 'nullable|string|max:128',
-            'ancho' => 'nullable|numeric',
-            'alto' => 'nullable|numeric',
-            'nivel' => 'nullable|string|max:64',
-            'fecha_inicio' => 'nullable|date',
+            'veta'             => 'nullable|string|max:128',
+            'ancho'            => 'nullable|numeric',
+            'alto'             => 'nullable|numeric',
+            'nivel'            => 'nullable|string|max:64',
+            'fecha_inicio'     => 'nullable|date',
             'fecha_fin_estimada' => 'nullable|date',
+        ], [
+            'nombre.required' => 'El nombre de la labor es obligatorio',
+            'prefijo.required' => 'El prefijo es obligatorio',
         ]);
 
         if ($validator->fails()) {
@@ -53,8 +57,9 @@ class LaboresController extends Controller
         return response()->json(LaboresService::crear_labor(
             id_mina: (int) $v['id_mina'],
             id_empresa: (int) $v['id_empresa'],
-            id_tipo_labor: (int) $v['id_tipo_labor'],
-            nombre: isset($v['nombre']) ? (string) $v['nombre'] : null,
+            id_tipo_labor: isset($v['id_tipo_labor']) ? (int) $v['id_tipo_labor'] : null,
+            nombre: (string) $v['nombre'],
+            prefijo: (string) $v['prefijo'],
             descripcion: isset($v['descripcion']) ? (string) $v['descripcion'] : null,
             tipo_sostenimiento: (string) $v['tipo_sostenimiento'],
             veta: isset($v['veta']) ? (string) $v['veta'] : null,

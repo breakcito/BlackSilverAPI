@@ -15,12 +15,12 @@ class PrestamosAlmacenController extends Controller
      */
     public function get_prestamos_resumen(Request $request): JsonResponse
     {
-        $id_almacen = (int) $request->query('id_almacen');
+        $id_almacen = $request->query('id_almacen') ? (int) $request->query('id_almacen') : null;
         $mes = (int) $request->query('mes');
         $yearcito = (int) $request->query('yearcito');
 
-        if (!$id_almacen || !$mes || !$yearcito) {
-            return response()->json(ApiResponse::error('id_almacen, mes y yearcito son requeridos'));
+        if (!$mes || !$yearcito) {
+            return response()->json(ApiResponse::error('mes y yearcito son requeridos'));
         }
 
         $result = PrestamosService::get_prestamos_por_almacen($id_almacen, $mes, $yearcito);

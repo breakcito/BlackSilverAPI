@@ -25,7 +25,7 @@ class LaboresData
                 'tp.nombre as tipo_labor',
                 'lb.nombre'
             ])
-            ->join('tipo_labor as tp', 'tp.id', '=', 'lb.id_tipo_labor')
+            ->leftJoin('tipo_labor as tp', 'tp.id', '=', 'lb.id_tipo_labor')
             ->join('mina as mna', 'mna.id', '=', 'lb.id_mina');
 
         // Filtro por requerimiento: Agrega el JOIN dinámicamente solo si se solicita
