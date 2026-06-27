@@ -28,22 +28,22 @@ class ProduccionService
                 return ApiResponse::error('El lote mineral debe estar en estado Pendiente para poder iniciar producción.');
             }
 
-            // Fecha/hora de inicio de produccion (ahora mismo)
+            // Fecha de inicio de produccion (hoy)
             $now = now();
-            $inicio_produccion = $now->format('Y-m-d H:i:s');
+            $fecha_inicio_produccion = $now->format('Y-m-d');
 
-            // Generar codigo_interno si la labor tiene prefijo
+            // Generar o regenerar codigo_interno si la labor tiene prefijo
             $prefijo = ProduccionData::get_prefijo_labor_by_lote($id_lote_mineral);
-            $codigo_interno = null;
+            $codigo_interno = $lote->codigo_interno;
 
             if ($prefijo) {
-                // Formato: SB-200526 (<Prefijo>-<DD><MM><YY>)
-                $codigo_interno = strtoupper($prefijo) . '-' . $now->format('dmY');
+                // Formato: SB-260626 (<Prefijo>-<DD><MM><YY>)
+                $codigo_interno = strtoupper($prefijo) . '-' . $now->format('dmy');
             }
 
             $success = ProduccionData::iniciar_produccion(
                 $id_lote_mineral,
-                $inicio_produccion,
+                $fecha_inicio_produccion,
                 $codigo_interno
             );
 

@@ -19,9 +19,9 @@ class ProduccionData
     ): bool {
         return LoteMineral::where('id', $id_lote_mineral)
             ->update([
-                'estado'            => EstadoLoteMineral::EnProduccion->value,
-                'inicio_produccion' => $inicio_produccion,
-                'codigo_interno'    => $codigo_interno,
+                'estado'                  => EstadoLoteMineral::EnProduccion->value,
+                'fecha_inicio_produccion' => $inicio_produccion,
+                'codigo_interno'          => $codigo_interno,
             ]) > 0;
     }
 
@@ -47,7 +47,7 @@ class ProduccionData
             lm.id AS id_lote_mineral,
             lm.correlativo,
             lm.codigo_interno,
-            lm.inicio_produccion,
+            lm.fecha_inicio_produccion,
             lm.descripcion,
             lm.created_at,
             lm.estado,

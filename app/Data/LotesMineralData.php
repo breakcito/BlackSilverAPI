@@ -27,7 +27,7 @@ class LotesMineralData
             
             lt.correlativo,
             lt.codigo_interno,
-            lt.inicio_produccion
+            lt.fecha_inicio_produccion
         FROM lote_mineral lt
         INNER JOIN mina mna on mna.id = lt.id_mina
         LEFT JOIN labor lb on lb.id = lt.id_labor

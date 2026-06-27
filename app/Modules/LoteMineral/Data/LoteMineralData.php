@@ -20,7 +20,7 @@ class LoteMineralData
                 'lm.id as id_lote_mineral',
                 'lm.correlativo',
                 'lm.codigo_interno',
-                'lm.inicio_produccion',
+                'lm.fecha_inicio_produccion',
                 'lm.descripcion',
                 'lm.estado',
                 'lm.created_at',
@@ -73,7 +73,8 @@ class LoteMineralData
         ?string $descripcion,
         string $correlativo,
         int $numero_correlativo,
-        ?string $inicio_produccion = null,
+        ?string $fecha_inicio_produccion = null,
+        string $estado = 'Pendiente'
     ) {
         return LoteMineral::insertGetId([
             'id_contratista'    => $id_contratista,
@@ -81,12 +82,12 @@ class LoteMineralData
             'id_labor'          => $id_labor,
             'id_empleado_registro' => $id_empleado_registro,
             'codigo_interno'    => $codigo_interno,
-            'inicio_produccion' => $inicio_produccion,
+            'fecha_inicio_produccion' => $fecha_inicio_produccion,
             'descripcion'       => $descripcion,
             'correlativo'       => $correlativo,
             'numero_correlativo' => $numero_correlativo,
             'created_at'        => now(),
-            'estado'            => EstadoLoteMineral::Pendiente->value,
+            'estado'            => $estado,
         ]);
     }
 
@@ -100,7 +101,7 @@ class LoteMineralData
                 'lm.id as id_lote_mineral',
                 'lm.correlativo',
                 'lm.codigo_interno',
-                'lm.inicio_produccion',
+                'lm.fecha_inicio_produccion',
                 'lm.descripcion',
                 'lm.estado',
                 'lm.created_at',

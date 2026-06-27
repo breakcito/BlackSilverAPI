@@ -17,9 +17,6 @@ class LoteMineralService
         return ApiResponse::success($lotes);
     }
 
-    /**
-     * Registrar un nuevo lote de mineral.
-     */
     public static function registrar_lote(
         int $id_contratista,
         int $id_mina,
@@ -27,21 +24,41 @@ class LoteMineralService
         int $id_empleado_registro,
         ?string $codigo_interno = null,
         ?string $descripcion = null,
-        ?string $inicio_produccion = null
+        ?string $fecha_inicio_produccion = null
     ) {
         return DB::transaction(function () use (
             $id_contratista,
             $id_mina,
             $id_labor,
             $id_empleado_registro,
-            $codigo_interno,
             $descripcion,
-            $inicio_produccion
+            $fecha_inicio_produccion
         ) {
             // Generar correlativo
             $nuevo_correlativo = LoteMineralData::get_nuevo_correlativo();
             $correlativo = $nuevo_correlativo['correlativo'];
             $numero_correlativo = $nuevo_correlativo['numero_correlativo'];
+
+            // Obtener prefijo de la labor para generar el código interno
+            $prefijo = null;
+            if ($id_labor) {
+                $prefijo = DB::table('labor')->where('id', $id_labor)->value('prefijo');
+            }
+
+            $codigo_interno = null;
+            if ($prefijo && $fecha_inicio_produccion) {
+                $codigo_interno = strtoupper($prefijo) . '-' . date('dmy', strtotime($fecha_inicio_produccion));
+            }
+
+            // Calcular estado inicial
+            $estado = \App\Shared\Enums\LoteMineral\EstadoLoteMineral::Pendiente->value;
+            if ($fecha_inicio_produccion) {
+                $today = date('Y-m-d');
+                $fecha_db = date('Y-m-d', strtotime($fecha_inicio_produccion));
+                if ($fecha_db <= $today) {
+                    $estado = \App\Shared\Enums\LoteMineral\EstadoLoteMineral::EnProduccion->value;
+                }
+            }
 
             // Registrar lote
             $id_lote = LoteMineralData::registrar_lote(
@@ -49,11 +66,12 @@ class LoteMineralService
                 $id_mina,
                 $id_labor,
                 $id_empleado_registro,
-                null, // codigo_interno se genera en Produccion
+                $codigo_interno,
                 $descripcion,
                 $correlativo,
                 $numero_correlativo,
-                $inicio_produccion
+                $fecha_inicio_produccion,
+                $estado
             );
 
             $lote = LoteMineralData::get_lote_by_id($id_lote);
