@@ -43,6 +43,7 @@ class VecinosData
         WHERE
             a.id != :id_almacen AND
             a.estado = 'Activo' AND
+            a.es_principal = 0 AND
             a.id NOT IN (
                 SELECT id_almacen_b FROM almacen_vecino WHERE id_almacen_a = :id_almacen_1
                 UNION

@@ -9,6 +9,7 @@ use App\Services\ActivosFijosService;
 use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
+use App\Shared\Enums\RequerimientoAlmacen\TipoOrigenTrazabilidad;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimiento\Data\RecepcionesData;
@@ -433,9 +434,9 @@ class RecepcionesService
     /**
      * Obtener el historial de recepciones de una entrega
      */
-    public static function obtener_historial_recepciones(int $id_entrega, string $tipo_entrega)
+    public static function obtener_historial_recepciones(int $id_entrega, TipoOrigenTrazabilidad $tipo_entrega)
     {
-        if ($tipo_entrega === 'Solicitud') {
+        if ($tipo_entrega == TipoOrigenTrazabilidad::Solicitud) {
             $cabeceras = RecepcionesData::get_historial_recepciones($id_entrega);
             foreach ($cabeceras as $cab) {
                 $cab->evidencias = $cab->evidencias ? json_decode($cab->evidencias) : null;

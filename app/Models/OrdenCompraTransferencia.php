@@ -17,10 +17,24 @@ class OrdenCompraTransferencia extends Model
         'id_mina_destino', // la mina a la que se le transfiere el activo fijo
         'id_orden_compra_recepcion', // la recepcion de la orden de compra
         'id_empleado_transferencia', // quien registra la transferencia
-        'id_empleado_recibe', // la persona que recibe los productos para el envio
+        'id_empleado_recibe', // empleado quien recibe los productos - solo cuando es medio propio
+        'id_proveedor_transporte', // proveedor encargado de llevar los productos
+        'id_agencia_transporte', // agencia encargada de llevar los productos
+        'id_lote_mineral', // Si es por terceros o agencia - util para tomar en cuesta ese costo en la produccion de un lote de mineral
         //
         'correlativo', // TRN | anual | por almacen de destino
         'numero_correlativo',
+        'medio_entrega', // Terceros (Proveedores de Transporte) / Agencia / Propio
+        // Si es por terceros o por agencia
+        'numero_factura',
+        'serie_factura',
+        'serie_guia_transportista',
+        'numero_guia_transportista',
+        // Si es por terceros o por medio propio
+        'serie_guia_remitente',
+        'numero_guia_remitente',
+        // Si es por terceros o agencia
+        'costo_envio',
         //
         'observacion',
         'fecha_hora_transferencia',

@@ -12,7 +12,6 @@ class Concesion extends Model
 
     protected $fillable = [
         'nombre',
-        'codigo_concesion',
         'codigo_reinfo',
         'ubigeo', // coordenadas
         'tipo_mineral', // TipoMineral

@@ -17,7 +17,6 @@ class ConcesionesData
         SELECT DISTINCT
             cn.id AS id_concesion,
             cn.nombre,
-            cn.codigo_concesion,
             cn.codigo_reinfo,
             cn.ubigeo,
             cn.tipo_mineral,
@@ -63,14 +62,12 @@ class ConcesionesData
      */
     public static function crear_concesion(
         string $nombre,
-        string $codigo_concesion,
-        ?string $codigo_reinfo,
-        ?string $ubigeo,
-        string $tipo_mineral
+        string $tipo_mineral,
+        ?string $codigo_reinfo = null,
+        ?string $ubigeo = null,
     ): int {
         return Concesion::insertGetId([
             'nombre' => $nombre,
-            'codigo_concesion' => $codigo_concesion,
             'codigo_reinfo' => $codigo_reinfo,
             'ubigeo' => $ubigeo,
             'tipo_mineral' => $tipo_mineral,

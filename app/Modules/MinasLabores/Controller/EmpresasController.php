@@ -15,7 +15,7 @@ class EmpresasController extends Controller
     public function get_empresas_ejecutoras(Request $request): JsonResponse
     {
         $id_mina = $request->query('id_mina');
-        if (! $id_mina) {
+        if (!$id_mina) {
             return response()->json(ApiResponse::error('id_mina es requerido'), 400);
         }
 

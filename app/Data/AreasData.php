@@ -2,6 +2,7 @@
 
 namespace App\Data;
 
+use App\Models\Area;
 use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
@@ -38,5 +39,24 @@ class AreasData
 
         $sql .= " ORDER BY ar.nombre;";
         return DB::select($sql, $params);
+    }
+
+    /**
+     * Crear área
+     */
+    public static function crear_area(string $nombre): int
+    {
+        return Area::insertGetId([
+            'nombre' => $nombre,
+            'estado' => EstadoBase::Activo->value,
+        ]);
+    }
+
+    /**
+     * Verificar duplicado
+     */
+    public static function verificar_nombre_duplicado(string $nombre): bool
+    {
+        return Area::where('nombre', $nombre)->exists();
     }
 }

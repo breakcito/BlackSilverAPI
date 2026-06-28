@@ -3,7 +3,6 @@
 namespace App\Data;
 
 use App\Models\Categoria;
-use App\Models\CategoriaConsumible;
 use App\Shared\Enums\_Generic\EstadoBase;
 use App\Shared\Enums\_Generic\TipoBien;
 use App\Shared\Enums\_Generic\TipoProducto;
@@ -96,26 +95,5 @@ class CategoriasData
     {
         return Categoria::where('nombre', $nombre)
             ->exists();
-    }
-
-    /**
-     * Establecer las categorías consumidoras para un insumo
-     */
-    public static function establecer_consumidoras(int $id_categoria_consumible, array $ids_categorias_consumidoras): void
-    {
-        // Limpiamos relaciones previas
-        CategoriaConsumible::where('id_categoria_consumible', $id_categoria_consumible)
-            ->delete();
-
-        if (empty($ids_categorias_consumidoras))
-            return;
-
-        // Insertamos nuevas relaciones
-        $data = array_map(fn($id) => [
-            'id_categoria_consumible' => $id_categoria_consumible,
-            'id_categoria_consumidora' => (int) $id
-        ], $ids_categorias_consumidoras);
-
-        CategoriaConsumible::insert($data);
     }
 }

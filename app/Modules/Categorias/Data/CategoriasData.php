@@ -2,8 +2,6 @@
 
 namespace App\Modules\Categorias\Data;
 
-use App\Models\Categoria;
-use App\Models\CategoriaConsumible;
 use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
@@ -35,19 +33,6 @@ class CategoriasData
             -- destinos de uso
             cat.para_cocina,
             cat.para_mina,
-            
-            -- Categorias que consumen esta categoria
-            (
-                SELECT JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        "id_categoria_consumidora", cc.id_categoria_consumidora,
-                        "nombre", c_con.nombre
-                    )
-                )
-                FROM categoria_consumible cc
-                JOIN categoria c_con ON c_con.id = cc.id_categoria_consumidora
-                WHERE cc.id_categoria_consumible = cat.id
-            ) AS categorias_consumidoras,
             
             cat.estado
         FROM categoria cat

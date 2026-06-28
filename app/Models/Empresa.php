@@ -16,7 +16,6 @@ class Empresa extends Model
     protected $fillable = [
         'ruc',
         'razon_social',
-        'nombre_comercial',
-        'path_logo',
+        'url_logo',
     ];
 }

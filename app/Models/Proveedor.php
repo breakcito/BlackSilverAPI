@@ -19,6 +19,7 @@ class Proveedor extends Model
         'telefono',
         'correo',
         'para_mantenimiento', // true/false | util para listar en el modulo de mantenimiento
+        'para_transporte',    // true/false | util para listar en las entregas
         'estado', // Estado Basico
     ];
 }

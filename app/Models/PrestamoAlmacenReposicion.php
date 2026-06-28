@@ -22,9 +22,26 @@ class PrestamoAlmacenReposicion extends Model
         'id_prestamo_almacen', // el prestamo que se esta reponiendo
         'id_almacen_entrega', // uno de los almacenes principales
         'id_empleado_entrega', // empleado que hace la reposicion
-        'id_empleado_recibe', // el empleado que recibe los productos para el envio
+        'id_empleado_recibe', // empleado quien recibe los productos - solo cuando es medio propio
+        'id_proveedor_transporte', // proveedor encargado de llevar los productos
+        'id_agencia_transporte', // agencia encargada de llevar los productos
+        'id_lote_mineral', // Si es por terceros o agencia - util para tomar en cuesta ese costo en la produccion de un lote de mineral
+        //
         'correlativo', // prefijo: RPS
         'numero_correlativo',
+        //
+        'medio_entrega', // Terceros (Proveedores de Transporte) / Agencia / Propio | Enum de MedioEntrega
+        // Si es por terceros o por agencia
+        'numero_factura',
+        'serie_factura',
+        'serie_guia_transportista',
+        'numero_guia_transportista',
+        // Si es por terceros o por medio propio
+        'serie_guia_remitente',
+        'numero_guia_remitente',
+        // Si es por terceros o agencia
+        'costo_envio',
+        //
         'observacion',
         'fecha_hora_reposicion', // fecha y hora que el usuario fija en la ui
         'evidencias',

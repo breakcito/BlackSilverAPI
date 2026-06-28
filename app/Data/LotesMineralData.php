@@ -23,14 +23,17 @@ class LotesMineralData
             
             lt.id_labor,
             lb.nombre as labor,
-            lb.prefijo as labor_prefijo,
-            
-            lt.correlativo,
-            lt.codigo_interno,
-            lt.fecha_inicio_produccion
+
+            lt.id_contratista,
+            CONCAT(ctr.nombre, " ", ctr.apellido) as contratista,
+
+            lt.codigo,
+            lt.fecha_inicio_produccion,
+            lt.descripcion
         FROM lote_mineral lt
         INNER JOIN mina mna on mna.id = lt.id_mina
-        LEFT JOIN labor lb on lb.id = lt.id_labor
+        INNER JOIN labor lb on lb.id = lt.id_labor
+        INNER JOIN empleado ctr on ctr.id = lt.id_contratista
         WHERE 1=1
         ';
 

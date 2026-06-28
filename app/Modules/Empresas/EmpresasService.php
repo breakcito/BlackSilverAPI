@@ -5,8 +5,8 @@ namespace App\Modules\Empresas;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\Empresas\Data\EmpresasData;
+use App\Data\EmpresasData as EmpresasDataGlobal;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Request as FacadesRequest;
 
 class EmpresasService
 {
@@ -15,14 +15,7 @@ class EmpresasService
      */
     public static function get_empresas()
     {
-        $empresas = EmpresasData::get_empresas();
-
-        // Convertir path_logo a URL completa (compatible con registros viejos y nuevos)
-        foreach ($empresas as $empresa) {
-            if ($empresa->path_logo && !str_starts_with($empresa->path_logo, 'http')) {
-                $empresa->path_logo = asset('storage/' . $empresa->path_logo);
-            }
-        }
+        $empresas = EmpresasDataGlobal::get_empresas();
 
         return ApiResponse::success($empresas);
     }
@@ -30,23 +23,22 @@ class EmpresasService
     /**
      * Crear una nueva empresa
      */
-    public static function crear_empresa(string $ruc, string $razon_social, string $nombre_comercial, ?UploadedFile $logo = null)
+    public static function crear_empresa(string $ruc, string $razon_social, ?UploadedFile $logo = null)
     {
         if (EmpresasData::verificar_ruc_duplicado($ruc)) {
             return ApiResponse::error('Ya existe una empresa registrada con este RUC.');
         }
 
-        $path_logo = null;
+        $url_logo_str = null;
         if ($logo && $logo->isValid()) {
-            $archivos = ArchivoHelper::guardarArchivos('logos-empresas', [$logo]);
-            if (!empty($archivos)) {
-                // Guardar URL completa en BD (no solo el path relativo)
-                $path_logo = asset('storage/' . $archivos[0]['path_relativo']);
+            $archivo = ArchivoHelper::guardarArchivos('logos-empresas', [$logo])[0] ?? null;
+            if ($archivo && isset($archivo['url'])) {
+                $url_logo_str = $archivo['url'];
             }
         }
 
-        $id_empresa = EmpresasData::crear_empresa($ruc, $razon_social, $nombre_comercial, $path_logo);
-        $nuevaEmpresa = EmpresasData::get_empresa_by_id($id_empresa);
+        $id_empresa = EmpresasData::crear_empresa($ruc, $razon_social, $url_logo_str);
+        $nuevaEmpresa = EmpresasDataGlobal::get_empresas(id_empresa: $id_empresa);
 
         return ApiResponse::success($nuevaEmpresa, 'Empresa registrada correctamente');
     }
@@ -54,23 +46,44 @@ class EmpresasService
     /**
      * Actualizar el logo de una empresa
      */
-    public static function actualizar_logo(int $id_empresa, ?UploadedFile $file)
+    public static function actualizar_logo(int $id_empresa, ?UploadedFile $nuevo_logo = null)
     {
-        if (!$file || !$file->isValid()) {
+        $empresa = EmpresasDataGlobal::get_empresa_dinamica_by_id(id_empresa: $id_empresa, columnas: ['url_logo']);
+        $url_logo_old = !empty($empresa['url_logo']) ? $empresa['url_logo'] : null;
+
+        // Caso: eliminar logo (sin nuevo)
+        if (is_null($nuevo_logo)) {
+            if ($url_logo_old) {
+                ArchivoHelper::eliminarArchivo($url_logo_old);
+                EmpresasData::actualizar_logo($id_empresa, null);
+
+                return ApiResponse::success(null, 'Logo eliminado correctamente.');
+            }
+
+            return ApiResponse::success(null, 'No hay logo para eliminar.');
+        }
+
+        if (!$nuevo_logo->isValid()) {
             return ApiResponse::error('Archivo no válido.');
         }
 
-        $archivos = ArchivoHelper::guardarArchivos('logos-empresas', [$file]);
-        if (empty($archivos)) {
-            return ApiResponse::error('No se pudo procesar la imagen.');
+        // Caso: actualizar o agregar logo
+        if ($url_logo_old) {
+            ArchivoHelper::eliminarArchivo($url_logo_old);
         }
 
-        // Guardar URL completa en BD (no solo el path relativo)
-        $path_logo = asset('storage/' . $archivos[0]['path_relativo']);
-        EmpresasData::actualizar_logo($id_empresa, $path_logo);
+        $resultado = ArchivoHelper::guardarArchivos('logos-empresas', [$nuevo_logo]);
+        $url_logo = $resultado[0]['url'] ?? null;
 
-        $empresa = EmpresasData::get_empresa_by_id($id_empresa);
+        if (empty($url_logo)) {
+            return ApiResponse::error('Error al procesar el archivo.');
+        }
 
-        return ApiResponse::success($empresa, 'Logo de empresa actualizado correctamente');
+        EmpresasData::actualizar_logo(
+            id_empresa: $id_empresa,
+            url_logo: $url_logo
+        );
+
+        return ApiResponse::success($url_logo, 'Logo actualizado correctamente.');
     }
 }

@@ -34,13 +34,12 @@ class LaboresData
     public static function get_historial_labores(?int $id_mina = null, ?int $id_labor = null)
     {
         $sql = '
-        SELECT DISTINCT
+        SELECT
             lb.id AS id_labor,
             em.razon_social AS empresa,
-            em.path_logo AS path_logo_empresa,
+            em.url_logo AS url_logo_empresa,
             tp.nombre AS tipo_labor,
             tp.es_de_produccion,
-            lb.correlativo,
             lb.nombre,
             lb.prefijo,
             lb.descripcion,
@@ -114,8 +113,6 @@ class LaboresData
         ?int $id_tipo_labor,
         string $nombre,
         string $prefijo,
-        ?string $correlativo,
-        ?int $numero_correlativo,
         ?string $descripcion,
         string $tipo_sostenimiento,
         ?string $veta,
@@ -126,23 +123,21 @@ class LaboresData
         ?string $fecha_fin_estimada = null,
     ) {
         return Labor::insertGetId([
-            'id_mina'            => $id_mina,
-            'id_empresa'         => $id_empresa,
-            'id_tipo_labor'      => $id_tipo_labor,
-            'nombre'             => $nombre,
-            'prefijo'            => $prefijo,
-            'correlativo'        => $correlativo,
-            'numero_correlativo' => $numero_correlativo,
-            'descripcion'        => $descripcion,
+            'id_mina' => $id_mina,
+            'id_empresa' => $id_empresa,
+            'id_tipo_labor' => $id_tipo_labor,
+            'nombre' => $nombre,
+            'prefijo' => $prefijo,
+            'descripcion' => $descripcion,
             'tipo_sostenimiento' => $tipo_sostenimiento,
-            'veta'               => $veta,
-            'ancho'              => $ancho,
-            'alto'               => $alto,
-            'nivel'              => $nivel,
-            'fecha_inicio'       => $fecha_inicio,
+            'veta' => $veta,
+            'ancho' => $ancho,
+            'alto' => $alto,
+            'nivel' => $nivel,
+            'fecha_inicio' => $fecha_inicio,
             'fecha_fin_estimada' => $fecha_fin_estimada,
-            'estado'             => EstadoBase::Activo->value,
-            'created_at'         => now(),
+            'estado' => EstadoBase::Activo->value,
+            'created_at' => now(),
         ]);
     }
 

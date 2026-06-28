@@ -19,21 +19,11 @@ class ConcesionesService
     }
 
     /**
-     * Obtener empresas asociadas al usuario para nuevos contratos
-     */
-    public static function get_empresas(): array|object
-    {
-        $empresas = ContratosData::get_empresas();
-        return ApiResponse::success($empresas);
-    }
-
-    /**
      * Crear una nueva concesión
      */
     public static function crear_concesion(
         string $nombre,
-        string $codigo_concesion,
-        ?string $codigo_reinfo,
+        string $codigo_reinfo,
         ?string $ubigeo,
         string|TipoMineral $tipo_mineral
     ): array|object {
@@ -46,7 +36,6 @@ class ConcesionesService
 
         $id = ConcesionesData::crear_concesion(
             nombre: $nombre,
-            codigo_concesion: $codigo_concesion,
             codigo_reinfo: $codigo_reinfo,
             ubigeo: $ubigeo,
             tipo_mineral: (string) $val_tipo

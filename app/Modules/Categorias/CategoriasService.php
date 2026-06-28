@@ -41,7 +41,6 @@ class CategoriasService
         bool $para_cocina = false,
         bool $para_mina = false,
         bool $es_auditable = false,
-        array $ids_categorias_consumidoras = []
     ) {
         $response = CategoriasServiceGlobal::crear_categoria(
             nombre: $nombre,
@@ -56,7 +55,6 @@ class CategoriasService
             para_cocina: $para_cocina,
             para_mina: $para_mina,
             es_auditable: $es_auditable,
-            ids_categorias_consumidoras: $ids_categorias_consumidoras,
         );
 
         if ($response['success'] == false) {
@@ -71,20 +69,5 @@ class CategoriasService
 
 
         return ApiResponse::success($nuevaCategoria, 'Categoría creada correctamente');
-    }
-
-    /**
-     * Actualizar las categorías consumidoras para un insumo existente
-     */
-    public static function actualizar_consumidoras(int $id_categoria, array $ids_categorias_consumidoras)
-    {
-        // Solo permitimos si la categoría existe y es activa (puedes añadir más validaciones si gustas)
-        CategoriasDataGlobal::establecer_consumidoras($id_categoria, []);
-        $categoria = CategoriasData::get_categoria_by_id($id_categoria);
-        if ($categoria) {
-            $categoria->categorias_consumidoras = [];
-        }
-
-        return ApiResponse::success($categoria, 'Destinos de consumo actualizados correctamente');
     }
 }

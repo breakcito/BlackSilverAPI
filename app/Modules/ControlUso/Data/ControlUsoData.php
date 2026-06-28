@@ -58,14 +58,14 @@ class ControlUsoData
             log.odometro_inicio,
             log.odometro_fin,
             GREATEST(0, COALESCE(log.odometro_fin, 0) - COALESCE(log.odometro_inicio, 0)) as total_km
-        FROM activo_fijo_uso_log log
+        FROM control_uso_activo log
         INNER JOIN activo_fijo act ON act.id = log.id_activo_fijo
         INNER JOIN producto pr ON pr.id = act.id_producto
         INNER JOIN categoria cat ON cat.id = pr.id_categoria
         LEFT JOIN mina mi ON mi.id = log.id_mina
         LEFT JOIN labor la ON la.id = log.id_labor
         LEFT JOIN cliente cli ON cli.id = log.id_cliente
-        LEFT JOIN activo_fijo_tarifa tar ON tar.id = log.id_tarifa
+        LEFT JOIN tarifa_uso_activo tar ON tar.id = log.id_tarifa
         LEFT JOIN tipo_material mat ON mat.id = tar.id_tipo_material
         WHERE 1=1
         ';
@@ -104,7 +104,7 @@ class ControlUsoData
         SELECT 
             horometro_fin,
             fecha_hora_fin_control
-        FROM activo_fijo_uso_log
+        FROM control_uso_activo
         WHERE id_activo_fijo = :id_activo_fijo AND horometro_fin IS NOT NULL
         ORDER BY fecha_hora_fin_control DESC, id DESC
         LIMIT 1
@@ -122,7 +122,7 @@ class ControlUsoData
         SELECT 
             odometro_fin,
             fecha_hora_fin_control
-        FROM activo_fijo_uso_log
+        FROM control_uso_activo
         WHERE id_activo_fijo = :id_activo_fijo AND odometro_fin IS NOT NULL
         ORDER BY fecha_hora_fin_control DESC, id DESC
         LIMIT 1
@@ -147,7 +147,7 @@ class ControlUsoData
             t.distancia_metros,
             m.nombre as tipo_material,
             t.created_at
-        FROM activo_fijo_tarifa t
+        FROM tarifa_uso_activo t
         LEFT JOIN tipo_material m ON m.id = t.id_tipo_material
         WHERE t.id_activo_fijo = :id_activo_fijo
         ORDER BY t.id DESC

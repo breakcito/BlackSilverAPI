@@ -184,11 +184,9 @@ class AuxController extends Controller
     public function get_unidades_medida(Request $request): JsonResponse
     {
         $id_unidad_medida = $request->input('id_unidad_medida') ? (int) $request->input('id_unidad_medida') : null;
-        $solo_base = $request->has('solo_base') ? (int) $request->input('solo_base') : null;
 
         $result = UnidadesMedidaService::get_unidades(
             id_unidad_medida: $id_unidad_medida,
-            solo_base: $solo_base
         );
 
         return response()->json($result);
@@ -250,11 +248,9 @@ class AuxController extends Controller
      */
     public function get_productos(Request $request): JsonResponse
     {
-        $con_categorias = (bool) $request->input('con_categorias_consumidoras', false);
         $tipo_bien_excluido = $request->input('tipo_bien_excluido') ? TipoBien::from($request->input('tipo_bien_excluido')) : null;
         $tipo_bien = $request->input('tipo_bien') ? TipoBien::from($request->input('tipo_bien')) : null;
         return response()->json(ProductosService::get_productos(
-            con_categorias_consumidoras: $con_categorias,
             tipo_bien_excluido: $tipo_bien_excluido,
             tipo_bien: $tipo_bien
         ));
@@ -434,10 +430,12 @@ class AuxController extends Controller
         $id_area = $request->input('id_area') ? (int) $request->input('id_area') : null;
         $estado_val = $request->input('estado');
         $estado = $estado_val ? EstadoBase::from($estado_val) : EstadoBase::Activo;
+        $con_cargos = (bool) $request->input('con_cargos', false);
 
         return response()->json(AreasService::get_areas(
             id_area: $id_area,
-            estado: $estado
+            estado: $estado,
+            con_cargos: $con_cargos
         ));
     }
 
@@ -450,11 +448,15 @@ class AuxController extends Controller
         $id_area = $request->input('id_area') ? (int) $request->input('id_area') : null;
         $estado_val = $request->input('estado');
         $estado = $estado_val ? EstadoBase::from($estado_val) : EstadoBase::Activo;
+        $con_area = $request->has('con_area')
+            ? filter_var($request->input('con_area'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
+            : null;
 
         return response()->json(CargosService::get_cargos(
             id_cargo: $id_cargo,
             id_area: $id_area,
-            estado: $estado
+            estado: $estado,
+            con_area: $con_area
         ));
     }
 
@@ -510,8 +512,6 @@ class AuxController extends Controller
             'para_cocina' => 'boolean',
             'para_mina' => 'boolean',
             'es_auditable' => 'boolean',
-            'ids_categorias_consumidoras' => 'array',
-            'ids_categorias_consumidoras.*' => 'integer',
         ], [
             'nombre.required' => 'El nombre es obligatorio',
             'tipo_producto.required' => 'El tipo de requerimiento es obligatorio',
@@ -534,7 +534,6 @@ class AuxController extends Controller
             para_cocina: (bool) $request->boolean('para_cocina'),
             para_mina: (bool) $request->boolean('para_mina'),
             es_auditable: (bool) $request->boolean('es_auditable'),
-            ids_categorias_consumidoras: (array) $request->input('ids_categorias_consumidoras', []),
             return_object: true
         );
 

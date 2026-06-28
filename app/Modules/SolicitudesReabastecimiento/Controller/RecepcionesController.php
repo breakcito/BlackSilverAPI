@@ -2,6 +2,7 @@
 
 namespace App\Modules\SolicitudesReabastecimiento\Controller;
 
+use App\Shared\Enums\RequerimientoAlmacen\TipoOrigenTrazabilidad;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\SolicitudesReabastecimiento\Service\RecepcionesService;
 use Illuminate\Http\Request;
@@ -78,7 +79,7 @@ class RecepcionesController extends Controller
     public function get_historial_recepciones_entrega(Request $request): JsonResponse
     {
         $id_reabastecimiento_entrega = $request->input('id_reabastecimiento_entrega');
-        $tipo_entrega = $request->input('tipo_entrega', 'Solicitud'); // Solicitud | Prestamo
+        $tipo_entrega = $request->input('tipo_entrega', TipoOrigenTrazabilidad::Solicitud); // Solicitud | Prestamo
 
         if (!$id_reabastecimiento_entrega) {
             return response()->json(ApiResponse::error('El id_reabastecimiento_entrega es requerido'), 400);

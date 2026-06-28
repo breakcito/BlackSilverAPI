@@ -20,18 +20,10 @@ class ConcesionesController
         return response()->json($result);
     }
 
-    public function get_empresas(Request $request): JsonResponse
-    {
-        $result = ConcesionesService::get_empresas();
-
-        return response()->json($result);
-    }
-
     public function crear_concesion(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:255',
-            'codigo_concesion' => 'required|string|max:100',
             'codigo_reinfo' => 'nullable|string|max:100',
             'ubigeo' => 'nullable|string|max:100',
             'tipo_mineral' => ['required', Rule::enum(TipoMineral::class)],
@@ -45,7 +37,6 @@ class ConcesionesController
 
         $result = ConcesionesService::crear_concesion(
             nombre: (string) $v['nombre'],
-            codigo_concesion: (string) $v['codigo_concesion'],
             codigo_reinfo: isset($v['codigo_reinfo']) ? (string) $v['codigo_reinfo'] : null,
             ubigeo: isset($v['ubigeo']) ? (string) $v['ubigeo'] : null,
             tipo_mineral: (string) $v['tipo_mineral']

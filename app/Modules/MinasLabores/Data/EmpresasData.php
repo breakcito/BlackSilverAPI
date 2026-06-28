@@ -13,10 +13,10 @@ class EmpresasData
     public static function get_empresas_disponibles(int $id_concesion, int $id_mina)
     {
         $sql = '
-        SELECT DISTINCT
+        SELECT
             em.id AS id_empresa,
             em.razon_social,
-            em.path_logo
+            em.url_logo
         FROM
             empresa em
         INNER JOIN contrato_concesion ctr ON
@@ -58,7 +58,7 @@ class EmpresasData
             em.id AS id_empresa,
             em.razon_social,
             em.ruc,
-            em.path_logo
+            em.url_logo
         FROM
             empresa em
         INNER JOIN empresa_mina emi ON

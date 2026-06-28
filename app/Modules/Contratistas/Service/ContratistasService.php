@@ -55,7 +55,7 @@ class ContratistasService
 
             $contratista = ContratistasData::get_contratistas(id_contratista: $id);
             if ($contratista) {
-                $contratista->labores_asignadas = $contratista->labores_asignadas ? json_decode($contratista->labores_asignadas) : [];
+                $contratista->labores_asignadas = $contratista->labores_asignadas ?? [];
             }
             return ApiResponse::success($contratista, 'Contratista registrado correctamente');
         }

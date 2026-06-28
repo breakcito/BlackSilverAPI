@@ -14,9 +14,25 @@ class PrestamoAlmacenEntrega extends Model
     protected $fillable = [
         'id_prestamo_almacen',
         'id_empleado_entrega', // quien registra la entrega
-        'id_empleado_recibe', // el empleado que recibe los productos para el envio
+        'id_empleado_recibe', // empleado quien recibe los productos - solo cuando es medio propio
+        'id_proveedor_transporte', // proveedor encargado de llevar los productos
+        'id_agencia_transporte', // agencia encargada de llevar los productos
+        'id_lote_mineral', // Si es por terceros o agencia - util para tomar en cuesta ese costo en la produccion de un lote de mineral
+        //
         'correlativo',
         'numero_correlativo',
+        'medio_entrega', // Terceros (Proveedores de Transporte) / Agencia / Propio
+        // Si es por terceros o por agencia
+        'numero_factura',
+        'serie_factura',
+        'serie_guia_transportista',
+        'numero_guia_transportista',
+        // Si es por terceros o por medio propio
+        'serie_guia_remitente',
+        'numero_guia_remitente',
+        // Si es por terceros o agencia
+        'costo_envio',
+        //
         'fecha_hora_entrega',
         'observacion',
         'evidencias',

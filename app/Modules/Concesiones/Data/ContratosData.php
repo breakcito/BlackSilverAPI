@@ -9,24 +9,6 @@ use Illuminate\Support\Facades\DB;
 
 class ContratosData
 {
-    /**
-     * Obtener las empresas asociadas al usuario para crear contratos
-     */
-    public static function get_empresas(): array
-    {
-        $sql = '
-        SELECT DISTINCT
-            emp.id AS id_empresa,
-            emp.ruc,
-            emp.nombre_comercial,
-            emp.razon_social,
-            emp.path_logo
-        FROM
-            empresa emp
-        ';
-
-        return DB::select($sql);
-    }
 
     /**
      * Obtener historial de contratos de una concesión o un contrato específico
@@ -37,9 +19,9 @@ class ContratosData
         SELECT
             cc.id AS id_contrato,
             cc.id_empresa,
-            e.nombre_comercial,
+            e.razon_social,
             e.ruc,
-            e.path_logo,
+            e.url_logo,
             cc.fecha_inicio,
             cc.fecha_fin,
             cc.estado
@@ -103,7 +85,7 @@ class ContratosData
     {
         return ContratoConcesion::where('id', $id_contrato)
             ->update([
-                'estado'    => EstadoBase::Inactivo->value,
+                'estado' => EstadoBase::Inactivo->value,
                 'fecha_fin' => Carbon::today()->toDateString(),
             ]);
     }

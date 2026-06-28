@@ -16,7 +16,6 @@ class ProductosData
     public static function get_productos(
         ?int $id_producto = null,
         ?EstadoBase $estado = EstadoBase::Activo,
-        ?bool $con_categorias_consumidoras = false,
         ?TipoBien $tipo_bien_excluido = null,
         ?TipoBien $tipo_bien = null,
         ?bool $para_mantenimiento = null,
@@ -32,18 +31,6 @@ class ProductosData
             c.es_consumible,
             c.clasificacion_bien as tipo_bien,
             c.para_transporte,
-            -- las categorias que consumen esta categoria del producto
-            CASE
-            	WHEN :con_categorias_consumidoras = 1 THEN
-                (
-                    SELECT 
-                        GROUP_CONCAT(DISTINCT cc.id_categoria_consumidora)
-                    FROM categoria_consumible cc
-                    WHERE 
-                        cc.id_categoria_consumible = c.id
-                )
-                ELSE NULL
-            END AS ids_categorias_consumidoras, 
             
             p.stock_minimo_base, -- cuanto deberia tener como minimo
             
@@ -74,7 +61,6 @@ class ProductosData
         $params = [];
 
         $params['estado'] = $estado->value;
-        $params['con_categorias_consumidoras'] = $con_categorias_consumidoras ? 1 : 0;
 
         if ($id_producto != null) {
             $sql .= ' AND p.id = :id_producto';

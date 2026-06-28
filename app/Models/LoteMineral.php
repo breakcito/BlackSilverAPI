@@ -16,9 +16,7 @@ class LoteMineral extends Model
         'id_labor',
         'id_empleado_registro',
         //
-        'correlativo',
-        'numero_correlativo',
-        'codigo_interno',
+        'codigo',
         'descripcion',
         //
         'created_at',

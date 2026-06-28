@@ -2,7 +2,9 @@
 
 namespace App\Modules\ControlUso\Service;
 
-use App\Models\ActivoFijoUsoLog;
+use App\Models\ControlUsoActivo;
+use App\Models\TarifaUsoActivo;
+use App\Models\TipoMaterial;
 use App\Modules\ControlUso\Data\ControlUsoData;
 use App\Shared\Responses\ApiResponse;
 use Carbon\Carbon;
@@ -61,25 +63,7 @@ class ControlUsoService
         ?string $tipo_carga = null,
         ?string $observacion = null
     ) {
-        return DB::transaction(function () use (
-            $id_activo_fijo,
-            $fecha_hora_inicio_control,
-            $fecha_hora_fin_control,
-            $horometro_inicio,
-            $horometro_fin,
-            $odometro_inicio,
-            $odometro_fin,
-            $cantidad_vueltas,
-            $cantidad_sacos,
-            $id_tarifa,
-            $precio_unitario,
-            $es_para_mina,
-            $id_mina,
-            $id_labor,
-            $id_cliente,
-            $tipo_carga,
-            $observacion
-        ) {
+        return DB::transaction(function () use ($id_activo_fijo, $fecha_hora_inicio_control, $fecha_hora_fin_control, $horometro_inicio, $horometro_fin, $odometro_inicio, $odometro_fin, $cantidad_vueltas, $cantidad_sacos, $id_tarifa, $precio_unitario, $es_para_mina, $id_mina, $id_labor, $id_cliente, $tipo_carga, $observacion) {
             // Parses dates with Carbon
             $fecha_inicio = Carbon::parse($fecha_hora_inicio_control)->toDateTimeString();
             $fecha_fin = $fecha_hora_fin_control ? Carbon::parse($fecha_hora_fin_control)->toDateTimeString() : null;
@@ -99,7 +83,7 @@ class ControlUsoService
             }
 
             // Inserts standard usage log
-            $log = ActivoFijoUsoLog::create([
+            $log = ControlUsoActivo::create([
                 'id_activo_fijo' => $id_activo_fijo,
                 'fecha_hora_inicio_control' => $fecha_inicio,
                 'fecha_hora_fin_control' => $fecha_fin,
@@ -108,8 +92,8 @@ class ControlUsoService
                 'odometro_inicio' => $odometro_inicio,
                 'odometro_fin' => $odometro_fin,
                 'cantidad_vueltas' => $cantidad_vueltas,
-                'cantidad_sacos'   => $cantidad_sacos,
-                'total_horas'      => $total_horas,
+                'cantidad_sacos' => $cantidad_sacos,
+                'total_horas' => $total_horas,
                 'precio_unitario' => $precio_unitario ?? 0.0,
                 'costo_total' => $costo_total,
                 'es_para_mina' => $es_para_mina,
@@ -175,14 +159,14 @@ class ControlUsoService
         ?int $id_tipo_material,
         ?int $distancia_metros = null
     ) {
-        $tarifa = \App\Models\ActivoFijoTarifa::create([
-            'id_activo_fijo'   => $id_activo_fijo,
-            'tipo_control'     => $tipo_control,
-            'precio_unitario'  => $precio_unitario,
-            'descripcion'      => $descripcion,
+        $tarifa = TarifaUsoActivo::create([
+            'id_activo_fijo' => $id_activo_fijo,
+            'tipo_control' => $tipo_control,
+            'precio_unitario' => $precio_unitario,
+            'descripcion' => $descripcion,
             'id_tipo_material' => $id_tipo_material,
             'distancia_metros' => $distancia_metros,
-            'created_at'       => now()->toDateTimeString()
+            'created_at' => now()->toDateTimeString()
         ]);
         return ApiResponse::success($tarifa, 'Tarifa registrada exitosamente');
     }
@@ -195,7 +179,7 @@ class ControlUsoService
 
     public static function crear_material(string $nombre)
     {
-        $material = \App\Models\TipoMaterial::create([
+        $material = TipoMaterial::create([
             'nombre' => $nombre,
             'created_at' => now()->toDateTimeString()
         ]);

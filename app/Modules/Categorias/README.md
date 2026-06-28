@@ -8,16 +8,12 @@ Gestiona la taxonomía de productos y las reglas de negocio que definen qué ár
 
 - **`crear_categoria`**:
     - **Validación**: Valida campos técnicos (`nombre`, `tipo_producto`) y flags operativos (`para_cocina`, `para_mina`).
-- **`actualizar_consumidoras`**:
-    - **Validación**: ID de la categoría y un array de IDs de las categorías que consumirán este insumo.
 
 ### 2. Servicio de Clasificación (`CategoriasService`)
 
 - **`crear_categoria`**:
     - **Validación de Regla de Negocio**: Obliga a que toda categoría pertenezca al menos a un área operativa (`para_cocina` o `para_mina`). No se permiten categorías "huérfanas".
     - **Gestión de Consumibles**: Si la categoría es marcada como `es_consumible`, el servicio orquesta la creación de vínculos en la tabla de relaciones consumidoras. Esto es vital para el módulo de Requerimientos, ya que filtra qué productos puede pedir cada labor.
-- **`actualizar_consumidoras`**:
-    - Permite redefinir dinámicamente qué áreas o tipos de labor tienen permiso para solicitar los productos pertenecientes a esta categoría.
 
 ### 3. Capa de Datos (`CategoriasData`)
 
@@ -34,5 +30,4 @@ Gestiona la taxonomía de productos y las reglas de negocio que definen qué ár
 ## 📂 Esquema de Base de Datos Relacionada
 
 - `categoria`: Maestro de clasificaciones.
-- `categoria_consumidora`: Tabla de reglas de destino (id_categoria_insumo -> id_categoria_destino).
 - `producto`: Vinculado a una categoría única.

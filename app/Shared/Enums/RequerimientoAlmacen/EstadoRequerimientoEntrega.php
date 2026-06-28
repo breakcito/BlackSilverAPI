@@ -4,7 +4,7 @@ namespace App\Shared\Enums\RequerimientoAlmacen;
 
 enum EstadoRequerimientoEntrega: string
 {
-    case EnDespacho = "En Despacho";
-    case RecepcionadoParcialmente = "Recepcionado Parcialmente";
-    case RecepcionCompleta = "Recepción Completa";
+    case SinConsumir = "Sin Consumir";
+    case ConsumoParcial = "Consumo Parcial";
+    case ConsumoTotal = "Consumo Total";
 }

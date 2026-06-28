@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Modelo que hace referencia a la tabla de tarifas de uso por activo fijo.
  */
-class ActivoFijoTarifa extends Model
+class TarifaUsoActivo extends Model
 {
-    protected $table = 'activo_fijo_tarifa';
+    protected $table = 'tarifa_uso_activo';
 
     public $timestamps = false;
 

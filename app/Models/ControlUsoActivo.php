@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\Model;
  * Modelo que hace referencia al registro de control de uso de los activos fijos,
  * como horómetro o odómetro de inicio y fin, horas de trabajo, precio y costo total.
  */
-class ActivoFijoUsoLog extends Model
+class ControlUsoActivo extends Model
 {
-    protected $table = 'activo_fijo_uso_log';
+    protected $table = 'control_uso_activo';
 
     public $timestamps = false;
 

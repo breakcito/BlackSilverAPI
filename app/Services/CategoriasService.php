@@ -41,10 +41,9 @@ class CategoriasService
         bool $para_cocina = false,
         bool $para_mina = false,
         bool $es_auditable = false,
-        array $ids_categorias_consumidoras = [],
         bool $return_object = false
     ) {
-        return DB::transaction(function () use ($nombre, $tipo_producto, $clasificacion_bien, $descripcion, $para_transporte, $control_por_odometro, $control_por_horometro, $control_por_vueltas, $es_consumible, $para_cocina, $para_mina, $es_auditable, $ids_categorias_consumidoras, $return_object) {
+        return DB::transaction(function () use ($nombre, $tipo_producto, $clasificacion_bien, $descripcion, $para_transporte, $control_por_odometro, $control_por_horometro, $control_por_vueltas, $es_consumible, $para_cocina, $para_mina, $es_auditable, $return_object) {
             if (CategoriasData::ya_existe($nombre)) {
                 return ApiResponse::error('Ya existe una categoría con este nombre.');
             }
@@ -68,11 +67,6 @@ class CategoriasService
                 para_mina: $para_mina,
                 es_auditable: $es_auditable
             );
-
-            // Si es consumible, guardamos sus relaciones
-            if ($es_consumible && !empty($ids_categorias_consumidoras)) {
-                CategoriasData::establecer_consumidoras($id_categoria, $ids_categorias_consumidoras);
-            }
 
             if ($return_object) {
                 $nuevaCategoria = CategoriasData::get_categorias(id_categoria: $id_categoria);

@@ -45,14 +45,14 @@ class ControlUsoReporteData
             log.odometro_fin,
             GREATEST(0, COALESCE(log.odometro_fin, 0) - COALESCE(log.odometro_inicio, 0)) as total_km,
             tm.nombre as tipo_material
-        FROM activo_fijo_uso_log log
+        FROM control_uso_activo log
         INNER JOIN activo_fijo act ON act.id = log.id_activo_fijo
         INNER JOIN producto pr ON pr.id = act.id_producto
         INNER JOIN categoria cat ON cat.id = pr.id_categoria
         LEFT JOIN mina mi ON mi.id = log.id_mina
         LEFT JOIN labor la ON la.id = log.id_labor
         LEFT JOIN cliente cli ON cli.id = log.id_cliente
-        LEFT JOIN activo_fijo_tarifa tar ON tar.id = log.id_tarifa
+        LEFT JOIN tarifa_uso_activo tar ON tar.id = log.id_tarifa
         LEFT JOIN mina act_mi ON act_mi.id = act.id_mina
         LEFT JOIN almacen act_al ON act_al.id = act.id_almacen
         LEFT JOIN tipo_material tm ON tm.id = tar.id_tipo_material

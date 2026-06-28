@@ -11,14 +11,12 @@ class UnidadesMedidaData
      */
     public static function get_unidades(
         ?int $id_unidad_medida = null,
-        ?int $solo_base = null
     ) {
         $sql = '
         SELECT 
             id AS id_unidad_medida, 
             nombre, 
-            abreviatura,
-            es_base
+            abreviatura
         FROM unidad_medida
         WHERE 1 = 1
         ';
@@ -29,11 +27,6 @@ class UnidadesMedidaData
             $sql .= " AND id = :id_unidad_medida";
             $params['id_unidad_medida'] = $id_unidad_medida;
             return DB::selectOne($sql, $params);
-        }
-
-        if ($solo_base) {
-            $sql .= " AND es_base = :solo_base";
-            $params['solo_base'] = $solo_base;
         }
 
         $sql .= " ORDER BY nombre ASC";

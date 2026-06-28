@@ -21,7 +21,6 @@ class LaboresData
                 'lb.id as id_labor',
                 'lb.id_mina',
                 'mna.nombre as mina',
-                'lb.correlativo',
                 'tp.nombre as tipo_labor',
                 'lb.nombre'
             ])

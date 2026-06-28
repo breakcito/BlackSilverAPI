@@ -45,7 +45,7 @@ class EntregasDetalleData
             'id_activo_fijo_destino' => $id_activo_fijo_destino,
             'id_lote_mineral' => $id_lote_mineral,
             'created_at' => now(),
-            'estado' => EstadoRequerimientoDetalleEntrega::RecepcionCompleta->value,
+            'estado' => EstadoRequerimientoDetalleEntrega::SinConsumir->value,
         ]);
     }
 

@@ -12,9 +12,10 @@ Route::middleware('auth.jwt.custom')->group(function () {
         });
 
         Route::prefix('cargos')->group(function () {
-            Route::get('/{id_area}', 'get_cargos');
+            Route::get('/{id_area?}', 'get_cargos');
             Route::post('/', 'crear_cargo');
             Route::patch('/{id_cargo}/estado', 'cambiar_estado_cargo');
+            Route::patch('/{id_cargo}/area', 'actualizar_area_cargo');
         });
     });
 });

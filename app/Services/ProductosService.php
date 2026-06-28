@@ -13,14 +13,12 @@ class ProductosService
      */
     public static function get_productos(
         ?EstadoBase $estado = EstadoBase::Activo,
-        ?bool $con_categorias_consumidoras = false,
         ?TipoBien $tipo_bien_excluido = null,
         ?TipoBien $tipo_bien = null,
         ?bool $para_mantenimiento = null
     ) {
         $productos = ProductosData::get_productos(
             estado: $estado,
-            con_categorias_consumidoras: $con_categorias_consumidoras,
             tipo_bien_excluido: $tipo_bien_excluido,
             tipo_bien: $tipo_bien,
             para_mantenimiento: $para_mantenimiento,

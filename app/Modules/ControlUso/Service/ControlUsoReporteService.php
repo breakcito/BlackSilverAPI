@@ -20,8 +20,8 @@ class ControlUsoReporteService
 
             $empresa = Empresa::first();
             $empresa_logo = null;
-            if ($empresa && $empresa->path_logo) {
-                $empresa_logo = self::logo_a_base64($empresa->path_logo);
+            if ($empresa && $empresa->url_logo) {
+                $empresa_logo = self::logo_a_base64($empresa->url_logo);
             }
 
             return ApiResponse::success([
@@ -36,26 +36,27 @@ class ControlUsoReporteService
     }
 
     /**
-     * Convierte un path_logo a data URL base64.
+     * Convierte un url_logo a data URL base64.
      */
     private static function logo_a_base64(string $logo): ?string
     {
         if (str_starts_with($logo, 'http')) {
-            $parsed      = parse_url($logo, PHP_URL_PATH);
+            $parsed = parse_url($logo, PHP_URL_PATH);
             $relativePath = ltrim(str_replace('/storage/', '', $parsed ?? ''), '/');
         } else {
             $relativePath = ltrim($logo, '/');
         }
 
         $fullPath = storage_path('app/public/' . $relativePath);
-        if (!file_exists($fullPath)) return null;
+        if (!file_exists($fullPath))
+            return null;
 
-        $ext  = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+        $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
         $mime = match ($ext) {
-            'png'  => 'image/png',
-            'gif'  => 'image/gif',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
             'webp' => 'image/webp',
-            'svg'  => 'image/svg+xml',
+            'svg' => 'image/svg+xml',
             default => 'image/jpeg',
         };
 

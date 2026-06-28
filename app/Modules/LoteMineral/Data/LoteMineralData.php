@@ -11,54 +11,63 @@ use Illuminate\Support\Facades\DB;
 class LoteMineralData
 {
     /**
-     * Listar lotes de mineral con filtros opcionales.
+     * Listar lotes de mineral
+     * segun filtros opcionales.
      */
-    public static function get_lotes(?int $mes = null, ?int $anio = null)
-    {
-        $query = DB::table('lote_mineral as lm')
-            ->select([
-                'lm.id as id_lote_mineral',
-                'lm.correlativo',
-                'lm.codigo_interno',
-                'lm.fecha_inicio_produccion',
-                'lm.descripcion',
-                'lm.estado',
-                'lm.created_at',
-                'c.id as id_contratista',
-                DB::raw("CONCAT(c.nombre, ' ', COALESCE(c.apellido, '')) as contratista"),
-                'm.id as id_mina',
-                'm.nombre as mina',
-                'l.id as id_labor',
-                'l.nombre as labor',
-                'l.prefijo as labor_prefijo',
-                'e.id as id_empleado_registro',
-                DB::raw("CONCAT(e.nombre, ' ', COALESCE(e.apellido, '')) as empleado_registro"),
-            ])
-            ->join('empleado as c', 'lm.id_contratista', '=', 'c.id')
-            ->join('mina as m', 'lm.id_mina', '=', 'm.id')
-            ->leftJoin('labor as l', 'lm.id_labor', '=', 'l.id')
-            ->join('empleado as e', 'lm.id_empleado_registro', '=', 'e.id');
+    public static function get_lotes(
+        ?int $id_lote_mineral = null,
+        ?int $mes = null,
+        ?int $yearcito = null
+    ) {
+        $sql = '
+        SELECT
+            lm.id as id_lote_mineral,
 
-        if ($mes && $anio) {
-            $query->whereYear('lm.created_at', $anio)
-                  ->whereMonth('lm.created_at', $mes);
+            lm.codigo,
+            lm.fecha_inicio_produccion,
+            lm.descripcion,
+            
+            m.id as id_mina,
+            m.nombre as mina,
+            
+            l.id as id_labor,
+            l.nombre as labor,
+            
+            c.id as id_contratista,
+            CONCAT(c.nombre, " ", COALESCE(c.apellido, "")) as contratista,
+
+            CONCAT(e.nombre, " ", COALESCE(e.apellido, "")) as empleado_registro
+
+            lm.estado,
+            lm.created_at
+        FROM lote_mineral lm
+        INNER JOIN empleado c ON lm.id_contratista = c.id
+        INNER JOIN mina m ON lm.id_mina = m.id
+        INNER JOIN labor l ON lm.id_labor = l.id
+        INNER JOIN empleado e ON lm.id_empleado_registro = e.id
+        WHERE 1=1
+        ';
+
+        $params = [];
+
+        if ($id_lote_mineral != null) {
+            $sql .= ' AND lm.id = :id_lote_mineral';
+            $params['id_lote_mineral'] = $id_lote_mineral;
+
+            return DB::selectOne($sql, $params);
         }
 
-        return $query->orderBy('lm.created_at', 'desc')->get()->toArray();
-    }
+        if ($mes != null && $yearcito != null) {
+            $sql .= ' AND MONTH(lm.created_at) = :mes';
+            $sql .= ' AND YEAR(lm.created_at) = :yearcito';
 
-    /**
-     * Generar nuevo correlativo para lote_mineral.
-     */
-    public static function get_nuevo_correlativo()
-    {
-        return CorrelativoHelper::generar(
-            tabla: 'lote_mineral',
-            prefijo: 'SC',
-            filtros: [],
-            reseteo: Periodo::Anual,
-            columnaFecha: 'created_at'
-        );
+            $params['mes'] = $mes;
+            $params['yearcito'] = $yearcito;
+        }
+
+        $sql .= ' ORDER BY lm.fecha_inicio_produccion DESC';
+
+        return DB::select($sql, $params);
     }
 
     /**
@@ -67,59 +76,23 @@ class LoteMineralData
     public static function registrar_lote(
         int $id_contratista,
         int $id_mina,
-        ?int $id_labor,
+        int $id_labor,
         int $id_empleado_registro,
-        ?string $codigo_interno,
+        string $codigo,
         ?string $descripcion,
-        string $correlativo,
-        int $numero_correlativo,
         ?string $fecha_inicio_produccion = null,
-        string $estado = 'Pendiente'
+        EstadoLoteMineral $estado = EstadoLoteMineral::Pendiente
     ) {
         return LoteMineral::insertGetId([
-            'id_contratista'    => $id_contratista,
-            'id_mina'           => $id_mina,
-            'id_labor'          => $id_labor,
+            'id_contratista' => $id_contratista,
+            'id_mina' => $id_mina,
+            'id_labor' => $id_labor,
             'id_empleado_registro' => $id_empleado_registro,
-            'codigo_interno'    => $codigo_interno,
+            'codigo' => $codigo,
             'fecha_inicio_produccion' => $fecha_inicio_produccion,
-            'descripcion'       => $descripcion,
-            'correlativo'       => $correlativo,
-            'numero_correlativo' => $numero_correlativo,
-            'created_at'        => now(),
-            'estado'            => $estado,
+            'descripcion' => $descripcion,
+            'created_at' => now(),
+            'estado' => $estado->value,
         ]);
-    }
-
-    /**
-     * Obtener lote por ID.
-     */
-    public static function get_lote_by_id(int $id_lote)
-    {
-        return DB::table('lote_mineral as lm')
-            ->select([
-                'lm.id as id_lote_mineral',
-                'lm.correlativo',
-                'lm.codigo_interno',
-                'lm.fecha_inicio_produccion',
-                'lm.descripcion',
-                'lm.estado',
-                'lm.created_at',
-                'c.id as id_contratista',
-                DB::raw("CONCAT(c.nombre, ' ', COALESCE(c.apellido, '')) as contratista"),
-                'm.id as id_mina',
-                'm.nombre as mina',
-                'l.id as id_labor',
-                'l.nombre as labor',
-                'l.prefijo as labor_prefijo',
-                'e.id as id_empleado_registro',
-                DB::raw("CONCAT(e.nombre, ' ', COALESCE(e.apellido, '')) as empleado_registro"),
-            ])
-            ->join('empleado as c', 'lm.id_contratista', '=', 'c.id')
-            ->join('mina as m', 'lm.id_mina', '=', 'm.id')
-            ->leftJoin('labor as l', 'lm.id_labor', '=', 'l.id')
-            ->join('empleado as e', 'lm.id_empleado_registro', '=', 'e.id')
-            ->where('lm.id', $id_lote)
-            ->first();
     }
 }
