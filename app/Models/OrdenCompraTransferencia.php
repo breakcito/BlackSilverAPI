@@ -54,14 +54,24 @@ class OrdenCompraTransferencia extends Model
         ?int $id_almacen_destino,
         int $id_orden_compra_recepcion,
         int $id_empleado_transferencia,
-        int $id_empleado_recibe,
+        ?int $id_empleado_recibe,
         string $correlativo,
         int $numero_correlativo,
         $evidencias = null,
         ?string $fecha_hora_transferencia = null,
         ?string $observacion = null,
         ?int $id_mina_destino = null,
-        ?EstadoOCTransferencia $estado = null
+        ?EstadoOCTransferencia $estado = null,
+        ?string $medio_entrega = null,
+        ?int $id_proveedor_transporte = null,
+        ?int $id_agencia_transporte = null,
+        ?string $numero_factura = null,
+        ?string $serie_factura = null,
+        ?string $serie_guia_transportista = null,
+        ?string $numero_guia_transportista = null,
+        ?string $serie_guia_remitente = null,
+        ?string $numero_guia_remitente = null,
+        ?float $costo_envio = null
     ) {
         $estadoVal = $estado ? $estado->value : ($id_mina_destino !== null ? EstadoOCTransferencia::RecepcionCompleta->value : EstadoOCTransferencia::EnDespacho->value);
 
@@ -76,6 +86,16 @@ class OrdenCompraTransferencia extends Model
             'fecha_hora_transferencia' => $fecha_hora_transferencia ?? now(),
             'observacion' => $observacion,
             'evidencias' => $evidencias ? json_encode($evidencias) : null,
+            'medio_entrega' => $medio_entrega,
+            'id_proveedor_transporte' => $id_proveedor_transporte,
+            'id_agencia_transporte' => $id_agencia_transporte,
+            'numero_factura' => $numero_factura,
+            'serie_factura' => $serie_factura,
+            'serie_guia_transportista' => $serie_guia_transportista,
+            'numero_guia_transportista' => $numero_guia_transportista,
+            'serie_guia_remitente' => $serie_guia_remitente,
+            'numero_guia_remitente' => $numero_guia_remitente,
+            'costo_envio' => $costo_envio,
             'created_at' => now(),
             'estado' => $estadoVal,
         ]);
@@ -119,6 +139,20 @@ class OrdenCompraTransferencia extends Model
             -- 
             CONCAT(emp_ent.nombre, " ", emp_ent.apellido) AS empleado_transferencia,
             TRIM(CONCAT_WS(" ", NULLIF(TRIM(emp_rec.nombre), ""), NULLIF(TRIM(emp_rec.apellido), ""))) AS empleado_recibe,
+            --
+            trn.id_empleado_recibe,
+            trn.id_proveedor_transporte,
+            prov_t.razon_social as proveedor_transporte,
+            trn.id_agencia_transporte,
+            age_t.razon_social as agencia_transporte,
+            trn.medio_entrega,
+            trn.numero_factura,
+            trn.serie_factura,
+            trn.serie_guia_transportista,
+            trn.numero_guia_transportista,
+            trn.serie_guia_remitente,
+            trn.numero_guia_remitente,
+            trn.costo_envio,
             -- 
             trn.fecha_hora_transferencia,
             trn.observacion,
@@ -128,13 +162,15 @@ class OrdenCompraTransferencia extends Model
             trn.estado
         FROM
             orden_compra_transferencia trn
-		INNER JOIN orden_compra_recepcion ocr on ocr.id = trn.id_orden_compra_recepcion
+        INNER JOIN orden_compra_recepcion ocr on ocr.id = trn.id_orden_compra_recepcion
         INNER JOIN orden_compra oc on oc.id = ocr.id_orden_compra
         INNER JOIN almacen alm on alm.id = ocr.id_almacen_recepcionista
         LEFT JOIN almacen alm_dest on alm_dest.id = trn.id_almacen_destino
         LEFT JOIN mina mna_dest on mna_dest.id = trn.id_mina_destino
         INNER JOIN empleado emp_ent ON emp_ent.id = trn.id_empleado_transferencia
-        INNER JOIN empleado emp_rec ON emp_rec.id = trn.id_empleado_recibe
+        LEFT JOIN empleado emp_rec ON emp_rec.id = trn.id_empleado_recibe
+        LEFT JOIN proveedor prov_t ON prov_t.id = trn.id_proveedor_transporte
+        LEFT JOIN agencia_transporte age_t ON age_t.id = trn.id_agencia_transporte
         WHERE 
             1 = 1
         ';

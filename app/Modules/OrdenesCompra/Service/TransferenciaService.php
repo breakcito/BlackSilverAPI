@@ -34,14 +34,24 @@ class TransferenciaService
         int $id_empleado_transferencia,
         int $id_orden_compra_recepcion,
         ?int $id_almacen_destino,
-        int $id_empleado_recibe,
+        ?int $id_empleado_recibe,
         string $fecha_hora_transferencia,
         array $detalles,
         ?string $observacion = null,
         ?array $evidencias = null, // archivos
         ?int $id_mina_destino = null,
+        ?string $medio_entrega = null,
+        ?int $id_proveedor_transporte = null,
+        ?int $id_agencia_transporte = null,
+        ?string $numero_factura = null,
+        ?string $serie_factura = null,
+        ?string $serie_guia_transportista = null,
+        ?string $numero_guia_transportista = null,
+        ?string $serie_guia_remitente = null,
+        ?string $numero_guia_remitente = null,
+        ?float $costo_envio = null
     ) {
-        return DB::transaction(function () use ($id_empleado_transferencia, $id_orden_compra_recepcion, $id_almacen_destino, $id_empleado_recibe, $fecha_hora_transferencia, $observacion, $evidencias, $detalles, $id_mina_destino) {
+        return DB::transaction(function () use ($id_empleado_transferencia, $id_orden_compra_recepcion, $id_almacen_destino, $id_empleado_recibe, $fecha_hora_transferencia, $observacion, $evidencias, $detalles, $id_mina_destino, $medio_entrega, $id_proveedor_transporte, $id_agencia_transporte, $numero_factura, $serie_factura, $serie_guia_transportista, $numero_guia_transportista, $serie_guia_remitente, $numero_guia_remitente, $costo_envio) {
             // Procesar Evidencias si existen
             $evidenciasData = null;
             if (!empty($evidencias)) {
@@ -108,7 +118,18 @@ class TransferenciaService
                 fecha_hora_transferencia: $fecha_hora_transferencia,
                 observacion: $observacion,
                 evidencias: $evidenciasData,
-                id_mina_destino: $id_mina_destino
+                id_mina_destino: $id_mina_destino,
+                estado: null,
+                medio_entrega: $medio_entrega,
+                id_proveedor_transporte: $id_proveedor_transporte,
+                id_agencia_transporte: $id_agencia_transporte,
+                numero_factura: $numero_factura,
+                serie_factura: $serie_factura,
+                serie_guia_transportista: $serie_guia_transportista,
+                numero_guia_transportista: $numero_guia_transportista,
+                serie_guia_remitente: $serie_guia_remitente,
+                numero_guia_remitente: $numero_guia_remitente,
+                costo_envio: $costo_envio
             );
 
             // Procesar e Insertar Detalles + Ajustar Stock + Kardex

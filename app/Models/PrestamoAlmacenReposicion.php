@@ -68,12 +68,22 @@ class PrestamoAlmacenReposicion extends Model
         int $id_prestamo_almacen,
         int $id_almacen_entrega,
         int $id_empleado_entrega,
-        int $id_empleado_recibe,
+        ?int $id_empleado_recibe,
         string $correlativo,
         int $numero_correlativo,
         string $fecha_hora_reposicion,
         ?string $observacion = null,
-        $evidencias = null
+        $evidencias = null,
+        ?string $medio_entrega = null,
+        ?int $id_proveedor_transporte = null,
+        ?int $id_agencia_transporte = null,
+        ?string $numero_factura = null,
+        ?string $serie_factura = null,
+        ?string $serie_guia_transportista = null,
+        ?string $numero_guia_transportista = null,
+        ?string $serie_guia_remitente = null,
+        ?string $numero_guia_remitente = null,
+        ?float $costo_envio = null
     ) {
         return self::insertGetId([
             'id_prestamo_almacen' => $id_prestamo_almacen,
@@ -85,6 +95,16 @@ class PrestamoAlmacenReposicion extends Model
             'fecha_hora_reposicion' => $fecha_hora_reposicion,
             'observacion' => $observacion ?? '',
             'evidencias' => $evidencias ? json_encode($evidencias) : null,
+            'medio_entrega' => $medio_entrega,
+            'id_proveedor_transporte' => $id_proveedor_transporte,
+            'id_agencia_transporte' => $id_agencia_transporte,
+            'numero_factura' => $numero_factura,
+            'serie_factura' => $serie_factura,
+            'serie_guia_transportista' => $serie_guia_transportista,
+            'numero_guia_transportista' => $numero_guia_transportista,
+            'serie_guia_remitente' => $serie_guia_remitente,
+            'numero_guia_remitente' => $numero_guia_remitente,
+            'costo_envio' => $costo_envio,
             'estado' => EstadoPrestamoReposicion::EnDespacho->value,
             'created_at' => now(),
         ]);
@@ -111,13 +131,30 @@ class PrestamoAlmacenReposicion extends Model
             r.evidencias,
             CONCAT(e.nombre, " ", e.apellido) AS registrado_por,
             TRIM(CONCAT_WS(" ", NULLIF(TRIM(emp_rec.nombre), ""), NULLIF(TRIM(emp_rec.apellido), ""))) AS empleado_recibe,
+            --
+            r.id_empleado_recibe,
+            r.id_proveedor_transporte,
+            prov_t.razon_social as proveedor_transporte,
+            r.id_agencia_transporte,
+            age_t.razon_social as agencia_transporte,
+            r.medio_entrega,
+            r.numero_factura,
+            r.serie_factura,
+            r.serie_guia_transportista,
+            r.numero_guia_transportista,
+            r.serie_guia_remitente,
+            r.numero_guia_remitente,
+            r.costo_envio,
+            --
             r.created_at,
             r.estado
         FROM 
             prestamo_almacen_reposicion r
         INNER JOIN almacen a ON a.id = r.id_almacen_entrega
         INNER JOIN empleado e ON e.id = r.id_empleado_entrega
-        INNER JOIN empleado emp_rec ON emp_rec.id = r.id_empleado_recibe
+        LEFT JOIN empleado emp_rec ON emp_rec.id = r.id_empleado_recibe
+        LEFT JOIN proveedor prov_t ON prov_t.id = r.id_proveedor_transporte
+        LEFT JOIN agencia_transporte age_t ON age_t.id = r.id_agencia_transporte
         WHERE 1 = 1
         ';
 

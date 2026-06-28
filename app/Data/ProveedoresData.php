@@ -17,7 +17,8 @@ class ProveedoresData
         ?int $id_proveedor = null,
         ?EstadoBase $estado = null,
         ?TipoEntidad $tipoEntidad = null,
-        ?bool $paraMantenimiento = null
+        ?bool $paraMantenimiento = null,
+        ?bool $paraTransporte = null
     ) {
         $sql = '
         SELECT 
@@ -27,7 +28,8 @@ class ProveedoresData
             p.ruc,
             p.dni,
             p.tipo_entidad,
-            p.para_mantenimiento
+            p.para_mantenimiento,
+            p.para_transporte
         FROM proveedor p
         WHERE 1 = 1
         ';
@@ -43,6 +45,11 @@ class ProveedoresData
         if($paraMantenimiento !== null) {
             $sql .= 'AND p.para_mantenimiento = :paraMantenimiento';
             $params['paraMantenimiento'] = $paraMantenimiento ? 1 : 0;
+        }
+
+        if($paraTransporte !== null) {
+            $sql .= 'AND p.para_transporte = :paraTransporte';
+            $params['paraTransporte'] = $paraTransporte ? 1 : 0;
         }
 
         if ($estado !== null) {
@@ -65,6 +72,7 @@ class ProveedoresData
         TipoEntidad $tipoEntidad,
         string $razonSocial,
         bool $paraMantenimiento,
+        bool $paraTransporte = false,
         ?string $dni = null,
         ?string $ruc = null,
         ?string $direccion = null,
@@ -80,6 +88,7 @@ class ProveedoresData
             'telefono' => $telefono,
             'correo' => $correo,
             'para_mantenimiento' => $paraMantenimiento,
+            'para_transporte' => $paraTransporte,
             'estado' => 'Activo'
         ]);
     }

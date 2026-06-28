@@ -18,7 +18,6 @@ class EntregaController extends Controller
         $validator = Validator::make($request->all(), [
             'id_solicitud' => 'required|integer',
             'id_almacen_entrega' => 'required|integer',
-            'id_empleado_recibe' => 'required|integer',
             'fecha_hora_entrega' => 'required|date',
             'observacion' => 'nullable|string',
             'detalles' => 'required|array|min:1',
@@ -28,6 +27,18 @@ class EntregaController extends Controller
             'detalles.*.cantidad_base' => 'required|numeric|min:0.01',
             'detalles.*.cantidad_lote' => 'required|numeric|min:0.01',
             'detalles.*.cantidad_solicitud' => 'required|numeric|min:0.01',
+            // Transport validations
+            'medio_entrega' => 'required|string|in:Terceros,Agencia,Propio',
+            'id_empleado_recibe' => 'required_if:medio_entrega,Propio|nullable|integer',
+            'id_proveedor_transporte' => 'required_if:medio_entrega,Terceros|nullable|integer',
+            'id_agencia_transporte' => 'required_if:medio_entrega,Agencia|nullable|integer',
+            'numero_factura' => 'required_if:medio_entrega,Terceros,Agencia|nullable|string',
+            'serie_factura' => 'required_if:medio_entrega,Terceros,Agencia|nullable|string',
+            'serie_guia_transportista' => 'required_if:medio_entrega,Terceros,Agencia|nullable|string',
+            'numero_guia_transportista' => 'required_if:medio_entrega,Terceros,Agencia|nullable|string',
+            'serie_guia_remitente' => 'required_if:medio_entrega,Terceros,Propio|nullable|string',
+            'numero_guia_remitente' => 'required_if:medio_entrega,Terceros,Propio|nullable|string',
+            'costo_envio' => 'required_if:medio_entrega,Terceros|nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -37,14 +48,24 @@ class EntregaController extends Controller
         $authUser = $request->attributes->get('auth_user');
 
         $result = EntregaService::registrar_entrega(
-            (int) $request->id_almacen_entrega,
-            $authUser->id_empleado,
-            (int) $request->id_solicitud,
-            (int) $request->id_empleado_recibe,
-            $request->fecha_hora_entrega,
-            $request->observacion,
-            $request->file('evidencias'), // archivos
-            $request->detalles
+            id_almacen_entrega: (int) $request->id_almacen_entrega,
+            id_empleado_entrega: $authUser->id_empleado,
+            id_solicitud: (int) $request->id_solicitud,
+            id_empleado_recibe: $request->id_empleado_recibe ? (int) $request->id_empleado_recibe : null,
+            fecha_hora_entrega: $request->fecha_hora_entrega,
+            observacion: $request->observacion,
+            evidencias: $request->file('evidencias'), // archivos
+            detalles: $request->detalles,
+            medio_entrega: $request->medio_entrega,
+            id_proveedor_transporte: $request->id_proveedor_transporte ? (int) $request->id_proveedor_transporte : null,
+            id_agencia_transporte: $request->id_agencia_transporte ? (int) $request->id_agencia_transporte : null,
+            numero_factura: $request->numero_factura,
+            serie_factura: $request->serie_factura,
+            serie_guia_transportista: $request->serie_guia_transportista,
+            numero_guia_transportista: $request->numero_guia_transportista,
+            serie_guia_remitente: $request->serie_guia_remitente,
+            numero_guia_remitente: $request->numero_guia_remitente,
+            costo_envio: $request->costo_envio ? (float) $request->costo_envio : null,
         );
 
         return response()->json($result);

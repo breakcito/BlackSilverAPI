@@ -15,13 +15,15 @@ class ProveedoresService
         ?int $id_proveedor = null,
         ?EstadoBase $estado = null,
         ?TipoEntidad $tipoEntidad = null,
-        ?bool $paraMantenimiento = null
+        ?bool $paraMantenimiento = null,
+        ?bool $paraTransporte = null
     ) {
         $empleados = ProveedoresData::get_proveedores(
             id_proveedor: $id_proveedor,
             estado: $estado,
             tipoEntidad: $tipoEntidad,
-            paraMantenimiento: $paraMantenimiento
+            paraMantenimiento: $paraMantenimiento,
+            paraTransporte: $paraTransporte
         );
 
         return ApiResponse::success($empleados);
@@ -34,6 +36,7 @@ class ProveedoresService
         TipoEntidad $tipoEntidad,
         string $razonSocial,
         bool $paraMantenimiento,
+        bool $paraTransporte = false,
         ?string $dni = null,
         ?string $ruc = null,
         ?string $direccion = null,
@@ -51,6 +54,7 @@ class ProveedoresService
             tipoEntidad: $tipoEntidad,
             razonSocial: $razonSocial,
             paraMantenimiento: $paraMantenimiento,
+            paraTransporte: $paraTransporte,
             dni: $dni,
             ruc: $ruc,
             direccion: $direccion,

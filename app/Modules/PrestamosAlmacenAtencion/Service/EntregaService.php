@@ -29,13 +29,23 @@ class EntregaService
     public static function registrar_despacho(
         int $id_prestamo,
         int $id_empleado_entrega,
-        int $id_empleado_recibe,
+        ?int $id_empleado_recibe,
         string $fecha_hora_entrega,
         ?string $observacion,
         ?array $evidencias, // Archivos
-        array $detalles
+        array $detalles,
+        ?string $medio_entrega = null,
+        ?int $id_proveedor_transporte = null,
+        ?int $id_agencia_transporte = null,
+        ?string $numero_factura = null,
+        ?string $serie_factura = null,
+        ?string $serie_guia_transportista = null,
+        ?string $numero_guia_transportista = null,
+        ?string $serie_guia_remitente = null,
+        ?string $numero_guia_remitente = null,
+        ?float $costo_envio = null
     ) {
-        return DB::transaction(function () use ($id_prestamo, $id_empleado_entrega, $id_empleado_recibe, $fecha_hora_entrega, $observacion, $evidencias, $detalles) {
+        return DB::transaction(function () use ($id_prestamo, $id_empleado_entrega, $id_empleado_recibe, $fecha_hora_entrega, $observacion, $evidencias, $detalles, $medio_entrega, $id_proveedor_transporte, $id_agencia_transporte, $numero_factura, $serie_factura, $serie_guia_transportista, $numero_guia_transportista, $serie_guia_remitente, $numero_guia_remitente, $costo_envio) {
             $fecha_mysql = ($fecha_hora_entrega && $fecha_hora_entrega !== "null")
                 ? Carbon::parse($fecha_hora_entrega)->toDateTimeString()
                 : now()->toDateTimeString();
@@ -74,14 +84,24 @@ class EntregaService
 
             // 3. Crear Cabecera de Entrega de Préstamo
             $id_entrega = EntregasData::crear_entrega(
-                $id_prestamo,
-                $id_empleado_entrega,
-                $id_empleado_recibe,
-                $correlativoData['correlativo'],
-                $correlativoData['numero_correlativo'],
-                $fecha_mysql,
-                $observacion,
-                $evidenciasData
+                id_prestamo: $id_prestamo,
+                id_empleado_entrega: $id_empleado_entrega,
+                id_empleado_recibe: $id_empleado_recibe,
+                correlativo: $correlativoData['correlativo'],
+                numero_correlativo: $correlativoData['numero_correlativo'],
+                fecha_hora_entrega: $fecha_mysql,
+                observacion: $observacion,
+                evidencias: $evidenciasData,
+                medio_entrega: $medio_entrega,
+                id_proveedor_transporte: $id_proveedor_transporte,
+                id_agencia_transporte: $id_agencia_transporte,
+                numero_factura: $numero_factura,
+                serie_factura: $serie_factura,
+                serie_guia_transportista: $serie_guia_transportista,
+                numero_guia_transportista: $numero_guia_transportista,
+                serie_guia_remitente: $serie_guia_remitente,
+                numero_guia_remitente: $numero_guia_remitente,
+                costo_envio: $costo_envio,
             );
 
             $almSol = PrestamosData::get_almacen_solicitante_by_id($id_prestamo);
@@ -215,6 +235,14 @@ class EntregaService
         foreach ($data as $entrega) {
             $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
             $entrega->detalles = EntregasData::get_detalles_entrega((int) $entrega->id_entrega);
+            
+            // Cargar recepciones de prestamo
+            $recepciones = \App\Modules\PrestamosAlmacenAtencion\Data\RecepcionesData::get_historial_recepciones((int) $entrega->id_entrega);
+            foreach ($recepciones as $rec) {
+                $rec->evidencias = $rec->evidencias ? json_decode($rec->evidencias) : null;
+                $rec->detalles = \App\Modules\PrestamosAlmacenAtencion\Data\RecepcionesData::get_detalles_recepcion((int) $rec->id_recepcion);
+            }
+            $entrega->recepciones = $recepciones;
         }
 
         return ApiResponse::success($data);

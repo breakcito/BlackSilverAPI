@@ -17,14 +17,24 @@ class TransferenciaOCData
         ?int $id_almacen_destino,
         int $id_orden_compra_recepcion,
         int $id_empleado_transferencia,
-        int $id_empleado_recibe,
+        ?int $id_empleado_recibe,
         string $correlativo,
         int $numero_correlativo,
         ?array $evidencias = null,
         ?string $fecha_hora_transferencia = null,
         ?string $observacion = null,
         ?int $id_mina_destino = null,
-        ?EstadoOCTransferencia $estado = null
+        ?EstadoOCTransferencia $estado = null,
+        ?string $medio_entrega = null,
+        ?int $id_proveedor_transporte = null,
+        ?int $id_agencia_transporte = null,
+        ?string $numero_factura = null,
+        ?string $serie_factura = null,
+        ?string $serie_guia_transportista = null,
+        ?string $numero_guia_transportista = null,
+        ?string $serie_guia_remitente = null,
+        ?string $numero_guia_remitente = null,
+        ?float $costo_envio = null
     ): int {
         return (int) OrdenCompraTransferencia::crear_transferencia(
             id_almacen_destino: $id_almacen_destino,
@@ -37,7 +47,17 @@ class TransferenciaOCData
             observacion: $observacion,
             evidencias: $evidencias,
             id_mina_destino: $id_mina_destino,
-            estado: $estado
+            estado: $estado,
+            medio_entrega: $medio_entrega,
+            id_proveedor_transporte: $id_proveedor_transporte,
+            id_agencia_transporte: $id_agencia_transporte,
+            numero_factura: $numero_factura,
+            serie_factura: $serie_factura,
+            serie_guia_transportista: $serie_guia_transportista,
+            numero_guia_transportista: $numero_guia_transportista,
+            serie_guia_remitente: $serie_guia_remitente,
+            numero_guia_remitente: $numero_guia_remitente,
+            costo_envio: $costo_envio
         );
     }
 

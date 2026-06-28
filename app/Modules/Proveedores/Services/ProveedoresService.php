@@ -30,6 +30,7 @@ class ProveedoresService
         TipoEntidad $tipoEntidad,
         string $razonSocial,
         bool $paraMantenimiento,
+        bool $paraTransporte = false,
         ?string $dni = null,
         ?string $ruc = null,
         ?string $direccion = null,
@@ -37,13 +38,14 @@ class ProveedoresService
         ?string $correo = null,
         array $cuentas = []
     ): array {
-        return DB::transaction(function () use ($tipoEntidad, $dni, $ruc, $razonSocial, $paraMantenimiento, $direccion, $telefono, $correo, $cuentas) {
+        return DB::transaction(function () use ($tipoEntidad, $dni, $ruc, $razonSocial, $paraMantenimiento, $paraTransporte, $direccion, $telefono, $correo, $cuentas) {
             $response = ProveedoresServiceGlobal::crear_proveedor(
                 tipoEntidad: $tipoEntidad,
                 dni: $dni,
                 ruc: $ruc,
                 razonSocial: $razonSocial,
                 paraMantenimiento: $paraMantenimiento,
+                paraTransporte: $paraTransporte,
                 direccion: $direccion,
                 telefono: $telefono,
                 correo: $correo

@@ -2,7 +2,9 @@
 
 namespace App\Controllers;
 
+use App\Models\AgenciaTransporte;
 use App\Services\ActivosFijosService;
+use App\Services\AgenciasService;
 use App\Services\AlmacenesService;
 use App\Services\CategoriasService;
 use App\Services\ContratistasService;
@@ -200,14 +202,16 @@ class AuxController extends Controller
         $id_proveedor = $request->input('id_proveedor') ? (int) $request->input('id_proveedor') : null;
         $estado_val = $request->input('estado');
         $estado = $estado_val ? EstadoBase::from($estado_val) : null;
-        $tipo_entidad = $request->input('tipo_entidad');
+        $tipo_entidad = $request->input('tipo_entidad') ? TipoEntidad::from($request->input('tipo_entidad')) : null;
         $para_mantenimiento = $request->input('para_mantenimiento') ? (bool) $request->input('para_mantenimiento') : null;
+        $para_transporte = $request->has('para_transporte') ? $request->boolean('para_transporte') : null;
 
         $result = ProveedoresService::get_proveedores(
             id_proveedor: $id_proveedor,
             estado: $estado,
             tipoEntidad: $tipo_entidad,
-            paraMantenimiento: $para_mantenimiento
+            paraMantenimiento: $para_mantenimiento,
+            paraTransporte: $para_transporte
         );
 
         return response()->json($result);
@@ -219,6 +223,7 @@ class AuxController extends Controller
             'tipo_entidad' => 'required|string',
             'razonSocial' => 'required|string',
             'paraMantenimiento' => 'nullable|boolean',
+            'paraTransporte' => 'nullable|boolean',
             'dni' => 'nullable|string',
             'ruc' => 'nullable|string',
             'direccion' => 'nullable|string',
@@ -232,6 +237,7 @@ class AuxController extends Controller
             tipoEntidad: $tipo_entidad,
             razonSocial: $request->input('razonSocial'),
             paraMantenimiento: $request->input('paraMantenimiento') ?? false,
+            paraTransporte: $request->input('paraTransporte') ?? false,
             dni: $request->input('dni'),
             ruc: $request->input('ruc'),
             direccion: $request->input('direccion'),
@@ -554,6 +560,26 @@ class AuxController extends Controller
             id_mina: $id_mina,
             id_labor: $id_labor,
             estado: $estado
+        );
+
+        return response()->json($result);
+    }
+
+    public function get_agencias_transporte(): JsonResponse
+    {
+        $result = AgenciasService::get_agencias();
+        return response()->json($result);
+    }
+
+    public function crear_agencia_transporte(Request $request): JsonResponse
+    {
+        $request->validate([
+            'razon_social' => 'required|string|max:255',
+        ]);
+
+        $result = AgenciasService::crear_agencia(
+            razon_social: $request->input('razon_social'),
+            return_object: true
         );
 
         return response()->json($result);

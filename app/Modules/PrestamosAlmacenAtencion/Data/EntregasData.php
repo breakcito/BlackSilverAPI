@@ -53,12 +53,22 @@ class EntregasData
     public static function crear_entrega(
         int $id_prestamo,
         int $id_empleado_entrega,
-        int $id_empleado_recibe,
+        ?int $id_empleado_recibe,
         string $correlativo,
         int $numero_correlativo,
         string $fecha_hora_entrega,
         ?string $observacion,
-        ?array $evidencias
+        ?array $evidencias,
+        ?string $medio_entrega = null,
+        ?int $id_proveedor_transporte = null,
+        ?int $id_agencia_transporte = null,
+        ?string $numero_factura = null,
+        ?string $serie_factura = null,
+        ?string $serie_guia_transportista = null,
+        ?string $numero_guia_transportista = null,
+        ?string $serie_guia_remitente = null,
+        ?string $numero_guia_remitente = null,
+        ?float $costo_envio = null
     ): int {
         return PrestamoAlmacenEntrega::insertGetId([
             'id_prestamo_almacen' => $id_prestamo,
@@ -69,6 +79,16 @@ class EntregasData
             'fecha_hora_entrega' => $fecha_hora_entrega,
             'observacion' => $observacion,
             'evidencias' => $evidencias ? json_encode($evidencias) : null,
+            'medio_entrega' => $medio_entrega,
+            'id_proveedor_transporte' => $id_proveedor_transporte,
+            'id_agencia_transporte' => $id_agencia_transporte,
+            'numero_factura' => $numero_factura,
+            'serie_factura' => $serie_factura,
+            'serie_guia_transportista' => $serie_guia_transportista,
+            'numero_guia_transportista' => $numero_guia_transportista,
+            'serie_guia_remitente' => $serie_guia_remitente,
+            'numero_guia_remitente' => $numero_guia_remitente,
+            'costo_envio' => $costo_envio,
             'created_at' => now(),
             'estado' => EstadoPrestamoEntrega::EnDespacho->value
         ]);

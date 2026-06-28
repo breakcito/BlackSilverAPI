@@ -31,12 +31,28 @@ class EntregaService
         foreach ($data_logistica as $entrega) {
             $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
             $entrega->detalles = EntregasDetalleData::get_detalles_entrega_logistica((int) $entrega->id_reabastecimiento_entrega);
+            
+            // Cargar recepciones de logistica
+            $recepciones = \App\Modules\SolicitudesReabastecimiento\Data\RecepcionesData::get_historial_recepciones((int) $entrega->id_reabastecimiento_entrega);
+            foreach ($recepciones as $rec) {
+                $rec->evidencias = $rec->evidencias ? json_decode($rec->evidencias) : null;
+                $rec->detalles = \App\Modules\SolicitudesReabastecimiento\Data\RecepcionesData::get_detalles_recepcion((int) $rec->id_recepcion);
+            }
+            $entrega->recepciones = $recepciones;
         }
 
         $data_prestamo = EntregasData::get_historial_entregas_prestamo($id_solicitud);
         foreach ($data_prestamo as $entrega) {
             $entrega->evidencias = $entrega->evidencias ? json_decode($entrega->evidencias) : null;
             $entrega->detalles = EntregasDetalleData::get_detalles_entrega_prestamo((int) $entrega->id_prestamo_entrega);
+
+            // Cargar recepciones de prestamo
+            $recepciones = \App\Modules\SolicitudesReabastecimiento\Data\RecepcionesPrestamoData::get_historial_recepciones((int) $entrega->id_prestamo_entrega);
+            foreach ($recepciones as $rec) {
+                $rec->evidencias = $rec->evidencias ? json_decode($rec->evidencias) : null;
+                $rec->detalles = \App\Modules\SolicitudesReabastecimiento\Data\RecepcionesPrestamoData::get_detalles_recepcion((int) $rec->id_recepcion);
+            }
+            $entrega->recepciones = $recepciones;
         }
 
         return ApiResponse::success([
@@ -52,13 +68,23 @@ class EntregaService
         int $id_almacen_entrega,
         int $id_empleado_entrega,
         int $id_solicitud,
-        int $id_empleado_recibe,
+        ?int $id_empleado_recibe,
         string $fecha_hora_entrega,
         ?string $observacion,
         ?array $evidencias, // archivos
-        array $detalles // {id_solicitud_detalle, id_lote_producto, id_activo_fijo, cantidad_base, cantidad_lote, cantidad_solicitud
+        array $detalles, // {id_solicitud_detalle, id_lote_producto, id_activo_fijo, cantidad_base, cantidad_lote, cantidad_solicitud
+        ?string $medio_entrega = null,
+        ?int $id_proveedor_transporte = null,
+        ?int $id_agencia_transporte = null,
+        ?string $numero_factura = null,
+        ?string $serie_factura = null,
+        ?string $serie_guia_transportista = null,
+        ?string $numero_guia_transportista = null,
+        ?string $serie_guia_remitente = null,
+        ?string $numero_guia_remitente = null,
+        ?float $costo_envio = null
     ) {
-        return DB::transaction(function () use ($id_almacen_entrega, $id_empleado_entrega, $id_solicitud, $id_empleado_recibe, $fecha_hora_entrega, $observacion, $evidencias, $detalles) {
+        return DB::transaction(function () use ($id_almacen_entrega, $id_empleado_entrega, $id_solicitud, $id_empleado_recibe, $fecha_hora_entrega, $observacion, $evidencias, $detalles, $medio_entrega, $id_proveedor_transporte, $id_agencia_transporte, $numero_factura, $serie_factura, $serie_guia_transportista, $numero_guia_transportista, $serie_guia_remitente, $numero_guia_remitente, $costo_envio) {
 
             // Procesar Evidencias si existen
             $evidenciasData = null;
@@ -88,15 +114,25 @@ class EntregaService
 
             // Crear Cabecera de Entrega
             $id_entrega = EntregasData::crear_entrega(
-                $id_solicitud,
-                $id_almacen_entrega,
-                $id_empleado_entrega,
-                $id_empleado_recibe,
-                $correlativoData['correlativo'],
-                $correlativoData['numero_correlativo'],
-                $fecha_hora_entrega,
-                $observacion,
-                $evidenciasData,
+                id_solicitud: $id_solicitud,
+                id_almacen_entrega: $id_almacen_entrega,
+                id_empleado_entrega: $id_empleado_entrega,
+                id_empleado_recibe: $id_empleado_recibe,
+                correlativo: $correlativoData['correlativo'],
+                numero_correlativo: $correlativoData['numero_correlativo'],
+                fecha_hora_entrega: $fecha_hora_entrega,
+                observacion: $observacion,
+                evidencias: $evidenciasData,
+                medio_entrega: $medio_entrega,
+                id_proveedor_transporte: $id_proveedor_transporte,
+                id_agencia_transporte: $id_agencia_transporte,
+                numero_factura: $numero_factura,
+                serie_factura: $serie_factura,
+                serie_guia_transportista: $serie_guia_transportista,
+                numero_guia_transportista: $numero_guia_transportista,
+                serie_guia_remitente: $serie_guia_remitente,
+                numero_guia_remitente: $numero_guia_remitente,
+                costo_envio: $costo_envio,
             );
 
             foreach ($detalles as $item) {

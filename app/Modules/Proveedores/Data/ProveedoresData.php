@@ -13,6 +13,7 @@ class ProveedoresData
             pr.id AS id_proveedor,
             pr.tipo_entidad,
             pr.para_mantenimiento,
+            pr.para_transporte,
             pr.dni,
             pr.ruc,
             pr.razon_social,

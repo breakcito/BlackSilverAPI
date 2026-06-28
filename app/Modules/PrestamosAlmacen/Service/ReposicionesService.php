@@ -41,16 +41,26 @@ class ReposicionesService
         int $id_prestamo_almacen,
         int $id_almacen_entrega,
         int $id_empleado_entrega,
-        int $id_empleado_recibe,
+        ?int $id_empleado_recibe,
         string $fecha_hora_reposicion,
         //
         // [{id_prestamo_detalle, id_lote_producto, cantidad_base, cantidad_lote, cantidad_prestamo}]
         array $items,
         //
         ?string $observacion,
-        ?array $evidencias = null
+        ?array $evidencias = null,
+        ?string $medio_entrega = null,
+        ?int $id_proveedor_transporte = null,
+        ?int $id_agencia_transporte = null,
+        ?string $numero_factura = null,
+        ?string $serie_factura = null,
+        ?string $serie_guia_transportista = null,
+        ?string $numero_guia_transportista = null,
+        ?string $serie_guia_remitente = null,
+        ?string $numero_guia_remitente = null,
+        ?float $costo_envio = null
     ) {
-        return DB::transaction(function () use ($id_prestamo_almacen, $id_almacen_entrega, $id_empleado_entrega, $id_empleado_recibe, $fecha_hora_reposicion, $observacion, $items, $evidencias) {
+        return DB::transaction(function () use ($id_prestamo_almacen, $id_almacen_entrega, $id_empleado_entrega, $id_empleado_recibe, $fecha_hora_reposicion, $observacion, $items, $evidencias, $medio_entrega, $id_proveedor_transporte, $id_agencia_transporte, $numero_factura, $serie_factura, $serie_guia_transportista, $numero_guia_transportista, $serie_guia_remitente, $numero_guia_remitente, $costo_envio) {
             // 1. Obtener el correlativo del prestamo
             $prestamo = PrestamosData::get_correlativo_by_id($id_prestamo_almacen);
 
@@ -65,15 +75,25 @@ class ReposicionesService
 
             // 4. Insertar la cabecera de la reposición
             $id_reposicion = ReposicionesData::crear_reposicion(
-                $id_prestamo_almacen,
-                $id_almacen_entrega,
-                $id_empleado_entrega,
-                $id_empleado_recibe,
-                $correlativoData['correlativo'],
-                $correlativoData['numero_correlativo'],
-                Carbon::parse($fecha_hora_reposicion)->toDateTimeString(),
-                $observacion,
-                $evidenciasData,
+                id_prestamo_almacen: $id_prestamo_almacen,
+                id_almacen_entrega: $id_almacen_entrega,
+                id_empleado_entrega: $id_empleado_entrega,
+                id_empleado_recibe: $id_empleado_recibe,
+                correlativo: $correlativoData['correlativo'],
+                numero_correlativo: $correlativoData['numero_correlativo'],
+                fecha_hora_reposicion: Carbon::parse($fecha_hora_reposicion)->toDateTimeString(),
+                observacion: $observacion,
+                evidencias: $evidenciasData,
+                medio_entrega: $medio_entrega,
+                id_proveedor_transporte: $id_proveedor_transporte,
+                id_agencia_transporte: $id_agencia_transporte,
+                numero_factura: $numero_factura,
+                serie_factura: $serie_factura,
+                serie_guia_transportista: $serie_guia_transportista,
+                numero_guia_transportista: $numero_guia_transportista,
+                serie_guia_remitente: $serie_guia_remitente,
+                numero_guia_remitente: $numero_guia_remitente,
+                costo_envio: $costo_envio,
             );
 
             // 5. Pre-cargar lotes solo para ítems de productos comunes

@@ -32,12 +32,22 @@ class ReposicionesData
         int $id_prestamo_almacen,
         int $id_almacen_entrega,
         int $id_empleado_entrega,
-        int $id_empleado_recibe,
+        ?int $id_empleado_recibe,
         string $correlativo,
         int $numero_correlativo,
         ?string $fecha_hora_reposicion,
         ?string $observacion = null,
-        ?array $evidencias = null
+        ?array $evidencias = null,
+        ?string $medio_entrega = null,
+        ?int $id_proveedor_transporte = null,
+        ?int $id_agencia_transporte = null,
+        ?string $numero_factura = null,
+        ?string $serie_factura = null,
+        ?string $serie_guia_transportista = null,
+        ?string $numero_guia_transportista = null,
+        ?string $serie_guia_remitente = null,
+        ?string $numero_guia_remitente = null,
+        ?float $costo_envio = null
     ): int {
         return PrestamoAlmacenReposicion::crear_reposicion(
             id_prestamo_almacen: $id_prestamo_almacen,
@@ -48,7 +58,17 @@ class ReposicionesData
             numero_correlativo: $numero_correlativo,
             fecha_hora_reposicion: $fecha_hora_reposicion,
             observacion: $observacion,
-            evidencias: $evidencias
+            evidencias: $evidencias,
+            medio_entrega: $medio_entrega,
+            id_proveedor_transporte: $id_proveedor_transporte,
+            id_agencia_transporte: $id_agencia_transporte,
+            numero_factura: $numero_factura,
+            serie_factura: $serie_factura,
+            serie_guia_transportista: $serie_guia_transportista,
+            numero_guia_transportista: $numero_guia_transportista,
+            serie_guia_remitente: $serie_guia_remitente,
+            numero_guia_remitente: $numero_guia_remitente,
+            costo_envio: $costo_envio
         );
     }
 

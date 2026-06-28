@@ -59,6 +59,20 @@ class SolicitudReabastecimientoEntrega extends Model
             CONCAT(emp_ent.nombre," ",emp_ent.apellido) AS empleado_entrega,
             TRIM(CONCAT_WS(" ", NULLIF(TRIM(emp_rec.nombre), ""), NULLIF(TRIM(emp_rec.apellido), ""))) AS empleado_recibe,
             --
+            ent.id_empleado_recibe,
+            ent.id_proveedor_transporte,
+            prov_t.razon_social as proveedor_transporte,
+            ent.id_agencia_transporte,
+            age_t.razon_social as agencia_transporte,
+            ent.medio_entrega,
+            ent.numero_factura,
+            ent.serie_factura,
+            ent.serie_guia_transportista,
+            ent.numero_guia_transportista,
+            ent.serie_guia_remitente,
+            ent.numero_guia_remitente,
+            ent.costo_envio,
+            --
             ent.correlativo,
             ent.fecha_hora_entrega,
             ent.observacion,
@@ -69,7 +83,9 @@ class SolicitudReabastecimientoEntrega extends Model
             solicitud_reabastecimiento_entrega ent
         INNER JOIN almacen alm on alm.id = ent.id_almacen_entrega
         INNER JOIN empleado emp_ent ON emp_ent.id = ent.id_empleado_entrega
-        INNER JOIN empleado emp_rec ON emp_rec.id = ent.id_empleado_recibe
+        LEFT JOIN empleado emp_rec ON emp_rec.id = ent.id_empleado_recibe
+        LEFT JOIN proveedor prov_t ON prov_t.id = ent.id_proveedor_transporte
+        LEFT JOIN agencia_transporte age_t ON age_t.id = ent.id_agencia_transporte
         WHERE 1 = 1
         ';
 

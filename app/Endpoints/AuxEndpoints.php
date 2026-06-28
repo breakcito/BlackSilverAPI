@@ -42,6 +42,10 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::get('/proveedores', 'get_proveedores');
             Route::post('/proveedores', 'crear_proveedor');
 
+            // agencias de transporte
+            Route::get('/agencias-transporte', 'get_agencias_transporte');
+            Route::post('/agencias-transporte', 'crear_agencia_transporte');
+
             // empresas
             Route::get('/empresas', 'get_empresas');
 

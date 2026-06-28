@@ -23,14 +23,14 @@ class EntregasDetalleData
         ?int $id_activo_fijo = null,
     ) {
         return SolicitudReabastecimientoEntregaDetalle::insertGetId([
-            'id_reabastecimiento_entrega'                 => $id_entrega,
-            'id_solicitud_reabastecimiento_detalle'       => $id_solicitud_detalle,
-            'id_lote_producto'                            => $id_lote,
-            'id_activo_fijo'                              => $id_activo_fijo,
-            'cantidad_base'                               => $cantidad_base,
-            'cantidad_lote'                               => $cantidad_lote,
-            'cantidad_solicitud'                          => $cantidad_solicitud,
-            'estado'                                      => EstadoSolicitudDetalleEntrega::EnDespacho->value,
+            'id_reabastecimiento_entrega' => $id_entrega,
+            'id_solicitud_reabastecimiento_detalle' => $id_solicitud_detalle,
+            'id_lote_producto' => $id_lote,
+            'id_activo_fijo' => $id_activo_fijo,
+            'cantidad_base' => $cantidad_base,
+            'cantidad_lote' => $cantidad_lote,
+            'cantidad_solicitud' => $cantidad_solicitud,
+            'estado' => EstadoSolicitudDetalleEntrega::EnDespacho->value,
         ]);
     }
 

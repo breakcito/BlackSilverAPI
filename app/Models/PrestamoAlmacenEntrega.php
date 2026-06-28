@@ -61,6 +61,20 @@ class PrestamoAlmacenEntrega extends Model
             CONCAT(emp_ent.nombre, " ", emp_ent.apellido) AS empleado_entrega,
             TRIM(CONCAT_WS(" ", NULLIF(TRIM(emp_rec.nombre), ""), NULLIF(TRIM(emp_rec.apellido), ""))) AS empleado_recibe,
             --
+            pae.id_empleado_recibe,
+            pae.id_proveedor_transporte,
+            prov_t.razon_social as proveedor_transporte,
+            pae.id_agencia_transporte,
+            age_t.razon_social as agencia_transporte,
+            pae.medio_entrega,
+            pae.numero_factura,
+            pae.serie_factura,
+            pae.serie_guia_transportista,
+            pae.numero_guia_transportista,
+            pae.serie_guia_remitente,
+            pae.numero_guia_remitente,
+            pae.costo_envio,
+            --
             pae.correlativo,
             pae.fecha_hora_entrega,
             pae.observacion,
@@ -70,7 +84,9 @@ class PrestamoAlmacenEntrega extends Model
         FROM
             prestamo_almacen_entrega pae
         INNER JOIN empleado emp_ent ON emp_ent.id = pae.id_empleado_entrega
-        INNER JOIN empleado emp_rec ON emp_rec.id = pae.id_empleado_recibe
+        LEFT JOIN empleado emp_rec ON emp_rec.id = pae.id_empleado_recibe
+        LEFT JOIN proveedor prov_t ON prov_t.id = pae.id_proveedor_transporte
+        LEFT JOIN agencia_transporte age_t ON age_t.id = pae.id_agencia_transporte
         INNER JOIN prestamo_almacen pa ON pa.id = pae.id_prestamo_almacen
         INNER JOIN almacen alm on alm.id = pa.id_almacen_prestamista
         WHERE 

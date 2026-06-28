@@ -18,6 +18,7 @@ class ProveedoresController
         $request->validate([
             'tipo_entidad' => 'required|string',
             'paraMantenimiento' => 'nullable|boolean',
+            'paraTransporte' => 'nullable|boolean',
             'dni' => 'nullable|string|size:8',
             'ruc' => 'nullable|string|size:11',
             'razon_social' => 'required|string|max:255',
@@ -31,7 +32,8 @@ class ProveedoresController
         return response()->json(ProveedoresService::crear_proveedor(
             tipoEntidad: $tipo_entidad,
             razonSocial: $request->razon_social,
-            paraMantenimiento: $request->paraMantenimiento,
+            paraMantenimiento: (bool) $request->paraMantenimiento,
+            paraTransporte: (bool) $request->paraTransporte,
             dni: $request->dni,
             ruc: $request->ruc,
             direccion: $request->direccion,
