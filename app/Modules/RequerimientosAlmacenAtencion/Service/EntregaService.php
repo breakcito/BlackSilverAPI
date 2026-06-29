@@ -54,13 +54,14 @@ class EntregaService
     public static function registrar_entrega(
         int $id_empleado_entrega,
         int $id_requerimiento,
-        int $id_empleado_recibe,
+        ?int $id_empleado_recibe,
+        ?int $id_contratista_recibe,
         string $fecha_entrega,
         ?string $observacion,
         ?array $evidencias, // archivos
         array $detalles
     ) {
-        return DB::transaction(function () use ($id_empleado_entrega, $id_requerimiento, $id_empleado_recibe, $fecha_entrega, $observacion, $evidencias, $detalles) {
+        return DB::transaction(function () use ($id_empleado_entrega, $id_requerimiento, $id_empleado_recibe, $id_contratista_recibe, $fecha_entrega, $observacion, $evidencias, $detalles) {
 
             // Procesar Evidencias si existen
             $evidenciasData = null;
@@ -93,20 +94,21 @@ class EntregaService
 
             // Crear Cabecera de Entrega
             $id_entrega = EntregasData::crear_entrega(
-                $id_requerimiento,
-                $id_empleado_entrega,
-                $id_empleado_recibe,
-                $correlativoData['correlativo'],
-                $correlativoData['numero_correlativo'],
-                $fecha_entrega,
-                $observacion,
-                $evidenciasData,
+                id_requerimiento: $id_requerimiento,
+                id_empleado_entrega: $id_empleado_entrega,
+                id_empleado_recibe: $id_empleado_recibe,
+                id_contratista_recibe: $id_contratista_recibe,
+                correlativo: $correlativoData['correlativo'],
+                numero_correlativo: $correlativoData['numero_correlativo'],
+                fecha_hora_entrega: $fecha_entrega,
+                observacion: $observacion,
+                evidencias: $evidenciasData,
             );
 
             foreach ($detalles as $item) {
-                $id_rad        = $item['id_requerimiento_almacen_detalle'];
-                $id_activo     = !empty($item['id_activo_fijo']) ? (int) $item['id_activo_fijo'] : null;
-                $es_activo     = $id_activo !== null;
+                $id_rad = $item['id_requerimiento_almacen_detalle'];
+                $id_activo = !empty($item['id_activo_fijo']) ? (int) $item['id_activo_fijo'] : null;
+                $es_activo = $id_activo !== null;
 
                 $para_mantenimiento = (bool) ($item['para_mantenimiento'] ?? false);
                 $para_produccion = (bool) ($item['para_produccion'] ?? false);
@@ -114,8 +116,6 @@ class EntregaService
                 $id_lote_mineral = !empty($item['id_lote_mineral']) ? (int) $item['id_lote_mineral'] : null;
 
                 if ($es_activo) {
-                    // --- Camino: Activo Fijo ---
-                    // Activos siempre van de almacén a mina (el requerimiento implica uso en mina)
                     // El almacén que entrega pierde el activo; pasa a la mina del requerimiento
                     $id_mina_destino = RequerimientosData::get_id_mina_by_requerimiento($id_requerimiento);
 
@@ -189,7 +189,7 @@ class EntregaService
                 $detalle_req = RequerimientosDetalleData::get_cantidades_of_detalle_by_id($id_rad);
                 $ya_entregado_antes = $detalle_req->cantidad_entregada_base;
 
-                $cant_entregada      = $es_activo ? 1 : $item['cantidad_requerimiento'];
+                $cant_entregada = $es_activo ? 1 : $item['cantidad_requerimiento'];
                 $cant_entregada_base = $es_activo ? 1 : $item['cantidad_base'];
 
                 RequerimientosDetalleData::increment_detalle_entregado($id_rad, $cant_entregada, $cant_entregada_base);

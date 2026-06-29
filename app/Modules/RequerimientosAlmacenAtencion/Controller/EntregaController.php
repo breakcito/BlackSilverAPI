@@ -19,7 +19,8 @@ class EntregaController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id_requerimiento' => 'required|integer',
-            'id_empleado_recibe' => 'required|integer',
+            'id_empleado_recibe' => 'nullable|integer',
+            'id_contratista_recibe' => 'nullable|integer',
             'fecha_entrega' => 'required|date',
             'observacion' => 'nullable|string',
             'evidencias' => 'nullable|array',
@@ -47,13 +48,14 @@ class EntregaController extends Controller
         }
 
         $result = EntregaService::registrar_entrega(
-            $authUser->id_empleado,
-            (int) $request->id_requerimiento,
-            (int) $request->id_empleado_recibe,
-            $request->fecha_entrega,
-            $request->observacion,
-            $request->file('evidencias'),
-            $request->detalles
+            id_empleado_entrega: $authUser->id_empleado,
+            id_requerimiento: (int) $request->id_requerimiento,
+            id_empleado_recibe: $request->id_empleado_recibe ? (int) $request->id_empleado_recibe : null,
+            id_contratista_recibe: $request->id_contratista_recibe ? (int) $request->id_contratista_recibe : null,
+            fecha_entrega: $request->fecha_entrega,
+            observacion: $request->observacion,
+            evidencias: $request->file('evidencias'),
+            detalles: $request->detalles
         );
 
         return response()->json($result);

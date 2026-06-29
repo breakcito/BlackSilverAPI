@@ -18,6 +18,9 @@ class LoteMineralService
         return ApiResponse::success($lotes);
     }
 
+    /**
+     * Registrar un nuevo lote de mineral para un contratista en una labor.
+     */
     public static function registrar_lote(
         int $id_contratista,
         int $id_mina,
@@ -30,7 +33,7 @@ class LoteMineralService
             // Obtener prefijo de la labor para generar el código interno
             $prefijo = null;
             if ($id_labor) {
-                $prefijo = DB::table('labor')->where('id', $id_labor)->value('prefijo');
+                $prefijo = LoteMineralData::get_prefijo_labor($id_labor);
             }
 
             $codigo = null;

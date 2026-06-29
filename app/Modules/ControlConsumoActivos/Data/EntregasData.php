@@ -28,11 +28,18 @@ class EntregasData
             
             -- quien solicito ese requerimiento
             rq.id_empleado_solicitante,
-            CONCAT(emp_sol.nombre, " ", emp_sol.apellido) as empleado_solicitante,
+            rq.id_contratista_solicitante,
+            CASE
+            	WHEN rq.id_empleado_solicitante IS NOT NULL THEN CONCAT(emp_sol.nombre, " ", emp_sol.apellido)
+                WHEN rq.id_contratista_solicitante IS NOT NULL THEN CONCAT(ctr_sol.nombre, " ", ctr_sol.apellido)
+                ELSE NULL
+            END AS solicitante,
             
-            -- para que mina se solicito
-            rq.id_mina,
+            -- para que mina y labor se solicito
+            lb.id_mina,
             mn.nombre as mina,
+            rq.id_labor,
+            lb.nombre as labor,
             
             -- que almacen atendio
             rq.id_almacen_destino,
@@ -69,7 +76,7 @@ class EntregasData
             entd.id_activo_fijo_destino,
             entd.id_lote_mineral,
             act_dest.correlativo as correlativo_activo_fijo_destino,
-            lm_dest.correlativo as correlativo_lote_mineral_destino,
+            lm_dest.codigo as codigo_lote_mineral_destino,
             pr.para_mantenimiento as producto_para_mantenimiento,
 
             -- cantidad consumida
@@ -92,8 +99,10 @@ class EntregasData
  
         -- para saber quien y de donde se pidio 
         INNER JOIN requerimiento_almacen rq on rq.id = rad.id_requerimiento_almacen
-        INNER JOIN empleado emp_sol on emp_sol.id = rq.id_empleado_solicitante
-        INNER JOIN mina mn on mn.id = rq.id_mina
+        LEFT JOIN empleado emp_sol on emp_sol.id = rq.id_empleado_solicitante
+        LEFT JOIN empleado ctr_sol on ctr_sol.id = rq.id_contratista_solicitante
+        LEFT JOIN labor lb on lb.id = rq.id_labor
+        LEFT JOIN mina mn on mn.id = lb.id_mina
         INNER JOIN almacen alm on alm.id = rq.id_almacen_destino
 
         -- destinos confirmados

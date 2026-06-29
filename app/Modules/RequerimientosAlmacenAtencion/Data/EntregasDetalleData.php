@@ -97,8 +97,7 @@ class EntregasDetalleData
             raed.id_lote_mineral,
             act_dest.correlativo AS correlativo_activo_fijo_destino,
             act_dest.codigo AS codigo_activo_fijo_destino,
-            lm.correlativo AS correlativo_lote_mineral,
-            lm.codigo_interno AS codigo_interno_lote_mineral,
+            lm.codigo AS correlativo_lote_mineral,
             
             uni_lot.nombre as unidad_lote,
             uni_lot.abreviatura as unidad_lote_abv,

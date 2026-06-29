@@ -16,10 +16,11 @@ class EntregasData
     public static function get_historial_entregas(?int $id_requerimiento = null, ?int $id_entrega = null)
     {
         $sql = '
-        SELECT DISTINCT
+        SELECT
             ent.id AS id_requerimiento_almacen_entrega,
             CONCAT(emp_ent.nombre," ",emp_ent.apellido) AS empleado_entrega,
             CONCAT(emp_rec.nombre," ",emp_rec.apellido) AS empleado_recibe,
+            CONCAT(ctr_rec.nombre," ",ctr_rec.apellido) AS contratista_recibe,
             ent.correlativo,
             ent.fecha_hora_entrega,
             ent.observacion,
@@ -32,6 +33,8 @@ class EntregasData
             emp_ent.id = ent.id_empleado_entrega
         LEFT JOIN empleado emp_rec ON
             emp_rec.id = ent.id_empleado_recibe
+        LEFT JOIN empleado ctr_rec ON
+            ctr_rec.id = ent.id_contratista_recibe
         WHERE 1 = 1
         ';
 
@@ -90,7 +93,8 @@ class EntregasData
     public static function crear_entrega(
         int $id_requerimiento,
         int $id_empleado_entrega,
-        int $id_empleado_recibe,
+        ?int $id_empleado_recibe,
+        ?int $id_contratista_recibe,
         string $correlativo,
         int $numero_correlativo,
         string $fecha_hora_entrega,
@@ -101,6 +105,7 @@ class EntregasData
             'id_requerimiento_almacen' => $id_requerimiento,
             'id_empleado_entrega' => $id_empleado_entrega,
             'id_empleado_recibe' => $id_empleado_recibe,
+            'id_contratista_recibe' => $id_contratista_recibe,
             'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
             'fecha_hora_entrega' => $fecha_hora_entrega,

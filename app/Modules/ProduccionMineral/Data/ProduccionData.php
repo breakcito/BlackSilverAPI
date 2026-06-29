@@ -15,13 +15,13 @@ class ProduccionData
     public static function iniciar_produccion(
         int $id_lote_mineral,
         string $inicio_produccion,
-        ?string $codigo_interno
+        ?string $codigo
     ): bool {
         return LoteMineral::where('id', $id_lote_mineral)
             ->update([
-                'estado'                  => EstadoLoteMineral::EnProduccion->value,
+                'estado' => EstadoLoteMineral::EnProduccion->value,
                 'fecha_inicio_produccion' => $inicio_produccion,
-                'codigo_interno'          => $codigo_interno,
+                'codigo' => $codigo,
             ]) > 0;
     }
 
@@ -45,8 +45,7 @@ class ProduccionData
         $sql = "
         SELECT
             lm.id AS id_lote_mineral,
-            lm.correlativo,
-            lm.codigo_interno,
+            lm.codigo,
             lm.fecha_inicio_produccion,
             lm.descripcion,
             lm.created_at,
@@ -62,6 +61,7 @@ class ProduccionData
         LEFT JOIN empleado c ON c.id = lm.id_contratista
         LEFT JOIN mina m ON m.id = lm.id_mina
         LEFT JOIN labor l ON l.id = lm.id_labor
+
         WHERE lm.estado IN (:estado_en_produccion, :estado_finalizado)
         ORDER BY lm.estado DESC, lm.created_at DESC
         ";

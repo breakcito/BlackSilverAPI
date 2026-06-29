@@ -30,7 +30,6 @@ class AtencionService
         // Adjuntar labores a cada requerimiento
         foreach ($data as $req) {
             $req->evidencias = $req->evidencias ? json_decode($req->evidencias) : null;
-            $req->labores = RequerimientosData::get_labores_by_requerimiento((int) $req->id_requerimiento);
         }
 
         return ApiResponse::success($data);
@@ -51,18 +50,18 @@ class AtencionService
      */
     public static function registrar_requerimiento(
         ?int $id_empleado_solicitante,
+        ?int $id_contratista_solicitante,
         int $id_empleado_registro,
-        ?int $id_mina,
+        ?int $id_labor,
         int $id_almacen_destino,
         bool $es_auditable,
         Premura $premura,
         array $detalles,
-        ?array $labores = null,
         ?string $fecha_entrega_requerida = null,
         ?string $observacion = null,
         ?array $evidencias = null
     ) {
-        return DB::transaction(function () use ($id_empleado_solicitante, $id_empleado_registro, $id_mina, $id_almacen_destino, $es_auditable, $premura, $observacion, $fecha_entrega_requerida, $labores, $detalles, $evidencias) {
+        return DB::transaction(function () use ($id_empleado_solicitante, $id_contratista_solicitante, $id_empleado_registro, $id_labor, $id_almacen_destino, $es_auditable, $premura, $observacion, $fecha_entrega_requerida, $detalles, $evidencias) {
             // 1. Generar correlativo
             $correlativo = RequerimientosData::get_nuevo_correlativo();
 
@@ -75,8 +74,9 @@ class AtencionService
             // 3. Crear cabecera
             $id_requerimiento = RequerimientosData::crear_requerimiento(
                 id_empleado_solicitante: $id_empleado_solicitante,
+                id_contratista_solicitante: $id_contratista_solicitante,
                 id_empleado_registro: $id_empleado_registro,
-                id_mina: $id_mina,
+                id_labor: $id_labor,
                 id_almacen_destino: $id_almacen_destino,
                 correlativo: $correlativo['correlativo'],
                 numero_correlativo: $correlativo['numero_correlativo'],
@@ -86,13 +86,6 @@ class AtencionService
                 fecha_entrega_requerida: $fecha_entrega_requerida,
                 evidencias: $evidenciasFinal
             );
-
-            // 3. Asociar Labores
-            if (!empty($labores)) {
-                foreach ($labores as $id_labor) {
-                    RequerimientosData::asignar_labor($id_requerimiento, $id_labor);
-                }
-            }
 
             // 4. Crear Detalles y Trazabilidad
             foreach ($detalles as $detalle) {
@@ -118,7 +111,6 @@ class AtencionService
             // 5. Obtener resumen para el front
             $resumen = RequerimientosData::get_requerimiento_by_id($id_requerimiento);
             $resumen->evidencias = $resumen->evidencias ? json_decode($resumen->evidencias) : null;
-            $resumen->labores = RequerimientosData::get_labores_by_requerimiento($id_requerimiento);
             $resumen->detalles = RequerimientosDetalleData::get_detalles_by_requerimiento($id_requerimiento);
 
             return ApiResponse::success(
@@ -189,5 +181,30 @@ class AtencionService
     {
         $data = RequerimientosDetalleData::get_detalle_logs($id_detalle);
         return ApiResponse::success($data);
+    }
+
+    /**
+     * Sube y asocia más evidencias a un requerimiento de almacén.
+     *
+     * @param array $evidencias Listado de archivos a subir (Illuminate\Http\UploadedFile[])
+     */
+    public static function subir_evidencias(int $id_requerimiento, array $evidencias)
+    {
+        return DB::transaction(function () use ($id_requerimiento, $evidencias) {
+            $requerimiento = \App\Models\RequerimientoAlmacen::find($id_requerimiento);
+            if (!$requerimiento) {
+                throw new \Exception('Requerimiento no encontrado');
+            }
+
+            $nuevasEvidencias = RequerimientosData::guardar_evidencias($evidencias);
+
+            $evidenciasExistentes = $requerimiento->evidencias ? json_decode($requerimiento->evidencias, true) : [];
+            $evidenciasFinal = array_merge($evidenciasExistentes, $nuevasEvidencias);
+
+            $requerimiento->evidencias = json_encode($evidenciasFinal);
+            $requerimiento->save();
+
+            return ApiResponse::success($evidenciasFinal, 'Evidencias subidad correctamente');
+        });
     }
 }

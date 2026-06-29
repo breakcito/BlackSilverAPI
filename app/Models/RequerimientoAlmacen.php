@@ -12,9 +12,10 @@ class RequerimientoAlmacen extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_empleado_solicitante', // la persona que solicita - opc
+        'id_empleado_solicitante', // el empleado que solicita - opc
+        'id_contratista_solicitante', // el contratista que solicita - opc
         'id_empleado_registro',  // el almacenero que registra el requerimiento 
-        'id_mina', // la mina que solicita - opc
+        'id_labor', // la labor que solicita - opc
         'id_almacen_destino', // el almacen que recibe el requerimiento
         //
         'correlativo',
@@ -36,7 +37,7 @@ class RequerimientoAlmacen extends Model
     public static function get_requerimientos(
         ?int $id_requerimiento = null,
         ?int $id_almacen_destino = null,
-        ?int $id_empleado_solicitante = null,
+        ?int $id_solicitante = null,
         ?string $mes = null,
         ?string $yearcito = null
     ) {
@@ -48,11 +49,16 @@ class RequerimientoAlmacen extends Model
             alm.nombre AS almacen_destino,
             --
             ra.id_empleado_solicitante,
-            CONCAT(emp.nombre, " ", emp.apellido) AS solicitante,
-            CONCAT(empr.nombre, " ", empr.apellido) AS responsable,
+            ra.id_contratista_solicitante,
+            CASE
+                WHEN ra.id_empleado_solicitante IS NOT NULL THEN CONCAT(emp.nombre, " ", emp.apellido)
+                WHEN ra.id_contratista_solicitante IS NOT NULL THEN CONCAT(ctr.nombre, " ", ctr.apellido)
+                ELSE NULL
+            END AS solicitante,
+            CONCAT(empr.nombre, " ", empr.apellido) AS empleado_registro,
             --
-            ra.id_mina,
-            m.nombre AS mina,
+            ra.id_labor,
+            lb.nombre AS labor,
             --
             ra.correlativo,
             ra.evidencias,
@@ -64,9 +70,10 @@ class RequerimientoAlmacen extends Model
             ra.created_at
         FROM
             requerimiento_almacen ra
-        LEFT JOIN mina m ON m.id = ra.id_mina
+        LEFT JOIN labor lb ON lb.id = ra.id_labor
         INNER JOIN almacen alm ON alm.id = ra.id_almacen_destino
         LEFT JOIN empleado emp ON emp.id = ra.id_empleado_solicitante
+        LEFT JOIN empleado ctr ON ctr.id = ra.id_contratista_solicitante
         INNER JOIN empleado empr ON empr.id = ra.id_empleado_registro
         WHERE 1=1
         ';
@@ -80,9 +87,9 @@ class RequerimientoAlmacen extends Model
             return DB::selectOne($sql, $params);
         }
 
-        if ($id_empleado_solicitante !== null) {
-            $sql .= ' AND ra.id_empleado_solicitante = :id_empleado_solicitante';
-            $params['id_empleado_solicitante'] = $id_empleado_solicitante;
+        if ($id_solicitante !== null) {
+            $sql .= ' AND (ra.id_empleado_solicitante = :id_solicitante OR ra.id_contratista_solicitante = :id_solicitante)';
+            $params['id_solicitante'] = $id_solicitante;
         }
 
         if ($id_almacen_destino !== null) {

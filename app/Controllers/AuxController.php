@@ -417,13 +417,11 @@ class AuxController extends Controller
     {
         $id_mina = $request->input('id_mina') ? (int) $request->input('id_mina') : null;
         $id_labor = $request->input('id_labor') ? (int) $request->input('id_labor') : null;
-        $id_requerimiento = $request->input('id_requerimiento') ? (int) $request->input('id_requerimiento') : null;
         $id_contratista_excluyente = $request->input('id_contratista_excluyente') ? (int) $request->input('id_contratista_excluyente') : null;
 
         return response()->json(LaboresService::get_labores(
             id_mina: $id_mina,
             id_labor: $id_labor,
-            id_requerimiento: $id_requerimiento,
             id_contratista_excluyente: $id_contratista_excluyente
         ));
     }

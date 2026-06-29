@@ -172,6 +172,10 @@ El sistema hace un uso intensivo de _Backed Enums_ de PHP para evitar "magic str
     *   **PROHIBIDO** documentar parámetros individuales simples (como `int`, `string`, `float`, `bool`, etc.). No utilices `@param` para tipos primitivos.
     *   **SOLO es obligatorio** documentar con `@param` los parámetros que sean de tipo **array**, detallando exactamente qué claves y tipos contiene dicho array para evitar adivinanzas.
     *   Si eres una IA, aunque el usuario no lo solicite, es **obligatorio** estructurar la documentación de esta manera.
+7.  **Separación de Responsabilidades en Base de Datos**:
+    *   **NUNCA** utilices consultas a la base de datos (ya sea mediante el Query Builder `DB` o directamente a través de Modelos de Eloquent) dentro de la capa de **Servicio** (`Services`).
+    *   Toda consulta, lectura o escritura directa en la base de datos debe ser delegada **exclusivamente** a la capa de **Datos** (`Data`). La capa de Servicio debe consumir la información a través de los métodos expuestos por las clases de Datos correspondientes.
+
 
 
 ## ⚙️ Ejecución

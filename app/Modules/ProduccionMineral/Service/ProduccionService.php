@@ -32,19 +32,19 @@ class ProduccionService
             $now = now();
             $fecha_inicio_produccion = $now->format('Y-m-d');
 
-            // Generar o regenerar codigo_interno si la labor tiene prefijo
+            // Generar o regenerar codigo si la labor tiene prefijo
             $prefijo = ProduccionData::get_prefijo_labor_by_lote($id_lote_mineral);
-            $codigo_interno = $lote->codigo_interno;
+            $codigo = $lote->codigo;
 
             if ($prefijo) {
                 // Formato: SB-260626 (<Prefijo>-<DD><MM><YY>)
-                $codigo_interno = strtoupper($prefijo) . '-' . $now->format('dmy');
+                $codigo = strtoupper($prefijo) . '-' . $now->format('dmy');
             }
 
             $success = ProduccionData::iniciar_produccion(
                 $id_lote_mineral,
                 $fecha_inicio_produccion,
-                $codigo_interno
+                $codigo
             );
 
             if (!$success) {

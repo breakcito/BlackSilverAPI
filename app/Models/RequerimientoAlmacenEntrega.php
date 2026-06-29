@@ -14,6 +14,7 @@ class RequerimientoAlmacenEntrega extends Model
         'id_requerimiento_almacen',
         'id_empleado_entrega',
         'id_empleado_recibe',
+        'id_contratista_recibe',
         'correlativo',
         'numero_correlativo',
         'fecha_hora_entrega',

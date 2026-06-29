@@ -36,7 +36,6 @@ class ContratistasData
                     JSON_OBJECT(
                         "id_labor_contratista", lc.id,
                         "id_labor", lab.id,
-                        "correlativo", lab.correlativo,
                         "nombre", lab.nombre
                     )
                 )

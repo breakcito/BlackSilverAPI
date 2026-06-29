@@ -36,7 +36,7 @@ class LoteMineralData
             c.id as id_contratista,
             CONCAT(c.nombre, " ", COALESCE(c.apellido, "")) as contratista,
 
-            CONCAT(e.nombre, " ", COALESCE(e.apellido, "")) as empleado_registro
+            CONCAT(e.nombre, " ", COALESCE(e.apellido, "")) as empleado_registro,
 
             lm.estado,
             lm.created_at
@@ -94,5 +94,13 @@ class LoteMineralData
             'created_at' => now(),
             'estado' => $estado->value,
         ]);
+    }
+
+    /**
+     * Obtener el prefijo de una labor específica.
+     */
+    public static function get_prefijo_labor(int $id_labor): ?string
+    {
+        return DB::table('labor')->where('id', $id_labor)->value('prefijo');
     }
 }

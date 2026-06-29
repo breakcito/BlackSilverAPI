@@ -61,7 +61,7 @@ class LotesMineralData
             $params['estado'] = $estado->value;
         }
 
-        $sql .= ' ORDER BY lt.correlativo ASC';
+        $sql .= ' ORDER BY lt.codigo ASC';
         return DB::select($sql, $params);
     }
 

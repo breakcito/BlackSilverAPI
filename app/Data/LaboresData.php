@@ -12,7 +12,6 @@ class LaboresData
     public static function get_labores(
         ?int $id_mina = null,
         ?int $id_labor = null,
-        ?int $id_requerimiento = null,
         ?int $id_contratista_excluyente = null
     ): array {
 
@@ -26,12 +25,6 @@ class LaboresData
             ])
             ->leftJoin('tipo_labor as tp', 'tp.id', '=', 'lb.id_tipo_labor')
             ->join('mina as mna', 'mna.id', '=', 'lb.id_mina');
-
-        // Filtro por requerimiento: Agrega el JOIN dinámicamente solo si se solicita
-        if ($id_requerimiento !== null) {
-            $query->join('requerimiento_almacen_labor as ral', 'ral.id_labor', '=', 'lb.id')
-                ->where('ral.id_requerimiento', $id_requerimiento);
-        }
 
         // Filtro por labor específica
         if ($id_labor !== null) {
@@ -52,6 +45,6 @@ class LaboresData
             });
         }
 
-        return $query->orderBy('lb.correlativo', 'ASC')->get()->toArray();
+        return $query->orderBy('lb.nombre', 'ASC')->get()->toArray();
     }
 }

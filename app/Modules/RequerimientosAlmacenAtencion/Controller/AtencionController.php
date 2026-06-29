@@ -46,13 +46,13 @@ class AtencionController extends Controller
 
         $reglas = [
             'id_empleado_solicitante' => 'nullable|integer',
-            'id_mina' => 'nullable|integer',
+            'id_contratista_solicitante' => 'nullable|integer',
+            'id_labor' => 'nullable|integer',
             'id_almacen_destino' => 'required|integer',
             'es_auditable' => 'required|boolean',
             'premura' => 'required|string',
             'fecha_entrega_requerida' => 'required|date',
             'observacion' => 'nullable|string',
-            'labores' => 'nullable|array',
             'detalles' => 'required|array|min:1',
             'detalles.*.id_producto' => 'required|integer',
             'detalles.*.id_unidad_medida' => 'required|integer',
@@ -79,14 +79,14 @@ class AtencionController extends Controller
         try {
             $resultado = AtencionService::registrar_requerimiento(
                 id_empleado_solicitante: $request->id_empleado_solicitante ? (int) $request->id_empleado_solicitante : null,
+                id_contratista_solicitante: $request->id_contratista_solicitante ? (int) $request->id_contratista_solicitante : null,
                 id_empleado_registro: (int) $id_empleado_registro,
-                id_mina: $request->id_mina ? (int) $request->id_mina : null,
+                id_labor: $request->id_labor ? (int) $request->id_labor : null,
                 id_almacen_destino: (int) $request->id_almacen_destino,
                 es_auditable: (bool) $request->es_auditable,
                 premura: $premura,
                 observacion: $request->observacion,
                 fecha_entrega_requerida: $request->fecha_entrega_requerida,
-                labores: $request->labores,
                 detalles: $request->detalles,
                 evidencias: $evidencias
             );
@@ -181,5 +181,31 @@ class AtencionController extends Controller
         $result = AtencionService::obtener_trazabilidad((int) $id_detalle);
 
         return response()->json($result);
+    }
+
+    /**
+     * Sube más evidencias a un requerimiento de almacén existente.
+     */
+    public function subir_evidencias(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_requerimiento' => 'required|integer',
+            'evidencias' => 'required|array|min:1',
+            'evidencias.*' => 'file',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 400);
+        }
+
+        $id_requerimiento = (int) $request->input('id_requerimiento');
+        $evidencias = $request->file('evidencias', []);
+
+        try {
+            $resultado = AtencionService::subir_evidencias($id_requerimiento, $evidencias);
+            return response()->json($resultado);
+        } catch (\Exception $e) {
+            return response()->json(ApiResponse::error('Error al subir evidencias: ' . $e->getMessage()), 500);
+        }
     }
 }

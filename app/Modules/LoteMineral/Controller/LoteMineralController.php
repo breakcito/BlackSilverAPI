@@ -49,13 +49,12 @@ class LoteMineralController extends Controller
         }
 
         $result = LoteMineralService::registrar_lote(
-            (int) $request->input('id_contratista'),
-            (int) $request->input('id_mina'),
-            $request->input('id_labor') ? (int) $request->input('id_labor') : null,
-            (int) $authUser->id_empleado,
-            null, // codigo_interno: se calculará en el servicio
-            $request->input('descripcion') ? (string) $request->input('descripcion') : null,
-            $request->input('fecha_inicio_produccion') ? (string) $request->input('fecha_inicio_produccion') : null
+            id_contratista: (int) $request->input('id_contratista'),
+            id_mina: (int) $request->input('id_mina'),
+            id_labor: (int) $request->input('id_labor'),
+            id_empleado_registro: (int) $authUser->id_empleado,
+            descripcion: $request->input('descripcion') ? (string) $request->input('descripcion') : null,
+            fecha_inicio_produccion: $request->input('fecha_inicio_produccion') ? (string) $request->input('fecha_inicio_produccion') : null
         );
 
         return response()->json($result);
