@@ -2,14 +2,17 @@
 
 namespace App\Controllers;
 
-use App\Models\AgenciaTransporte;
 use App\Services\ActivosFijosService;
 use App\Services\AgenciasService;
 use App\Services\AlmacenesService;
+use App\Services\AreasService;
+use App\Services\BancosService;
+use App\Services\CargosService;
 use App\Services\CategoriasService;
 use App\Services\ContratistasService;
 use App\Services\EmpleadosService;
 use App\Services\EmpresasService;
+use App\Services\LaboresService;
 use App\Services\LotesMineralService;
 use App\Services\LotesProductosService;
 use App\Services\MarcasService;
@@ -19,24 +22,20 @@ use App\Services\ProductosService;
 use App\Services\ProveedoresService;
 use App\Services\RolesService;
 use App\Services\UnidadesMedidaService;
-use App\Services\LaboresService;
-use App\Services\AreasService;
-use App\Services\CargosService;
-use App\Services\BancosService;
 use App\Shared\Enums\_Generic\EstadoBase;
 use App\Shared\Enums\_Generic\Periodo;
 use App\Shared\Enums\_Generic\TipoBien;
 use App\Shared\Enums\_Generic\TipoEntidad;
 use App\Shared\Enums\_Generic\TipoProducto;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
+use App\Shared\Enums\Contrato\TipoContrato;
 use App\Shared\Enums\LoteMineral\EstadoLoteMineral;
 use App\Shared\Responses\ApiResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Enum;
-
 
 class AuxController extends Controller
 {
@@ -64,7 +63,7 @@ class AuxController extends Controller
         $id_almacen = (int) $request->input('id_almacen');
         $ids_productos = $request->input('ids_productos');
 
-        if (!$id_almacen || empty($ids_productos) || !is_array($ids_productos)) {
+        if (! $id_almacen || empty($ids_productos) || ! is_array($ids_productos)) {
             return response()->json(ApiResponse::error('ID de almacén y arreglo de productos son requeridos'), 400);
         }
 
@@ -83,6 +82,7 @@ class AuxController extends Controller
             id_proveedor: $id_proveedor,
             estado: $estado
         );
+
         return response()->json($result);
     }
 
@@ -125,7 +125,6 @@ class AuxController extends Controller
         return response()->json($result);
     }
 
-
     /**
      * Obtener los roles disponibles para asignar
      */
@@ -139,6 +138,7 @@ class AuxController extends Controller
             id_rol: $id_rol,
             estado: $estado
         );
+
         return response()->json($result);
     }
 
@@ -148,15 +148,20 @@ class AuxController extends Controller
     public function crear_empleado(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'id_empresa' => 'nullable|integer',
-            'id_cargo' => 'required|integer',
+            'id_cargo' => 'nullable|integer',
+            'id_contrato_vigente' => 'nullable|integer',
+            'con_contrato' => 'nullable|boolean',
             'nombre' => 'required|string|max:255',
             'apellido' => 'required|string|max:255',
+            'genero' => 'nullable|string|max:16',
             'dni' => 'nullable|string|max:20',
             'ruc' => 'nullable|string|max:20',
             'carnet_extranjeria' => 'nullable|string|max:20',
             'pasaporte' => 'nullable|string|max:20',
             'fecha_nacimiento' => 'nullable|date',
+            'direccion' => 'nullable|string|max:255',
+            'telefono' => 'nullable|string|max:32',
+            'email' => 'nullable|email|max:128',
             'foto' => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
         ]);
 
@@ -164,16 +169,34 @@ class AuxController extends Controller
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
+        $id_cargo_input = $request->input('id_cargo');
+        $con_contrato = $request->boolean('con_contrato');
+
+        // Si tiene contrato vigente, el id_cargo se gestiona con el contrato (no se requiere elegirlo en este flujo)
+        if ($con_contrato) {
+            $id_cargo = ! empty($id_cargo_input) ? (int) $id_cargo_input : 0;
+        } else {
+            if (empty($id_cargo_input)) {
+                return response()->json(ApiResponse::error('Debe seleccionar un cargo.'));
+            }
+            $id_cargo = (int) $id_cargo_input;
+        }
+
         $result = EmpleadosService::crear_empleado(
-            id_cargo: (int) $request->input('id_cargo'),
+            id_cargo: $id_cargo,
             nombre: (string) $request->input('nombre'),
             apellido: (string) $request->input('apellido'),
-            id_empresa: $request->input('id_empresa') ? (int) $request->input('id_empresa') : null,
+            con_contrato: $con_contrato,
+            id_contrato_vigente: $request->input('id_contrato_vigente') ? (int) $request->input('id_contrato_vigente') : null,
+            genero: $request->input('genero'),
             dni: $request->input('dni'),
             ruc: $request->input('ruc'),
             carnet_extranjeria: $request->input('carnet_extranjeria'),
             pasaporte: $request->input('pasaporte'),
             fecha_nacimiento: $request->input('fecha_nacimiento'),
+            direccion: $request->input('direccion'),
+            telefono: $request->input('telefono'),
+            email: $request->input('email'),
             foto: $request->file('foto')
         );
 
@@ -228,7 +251,7 @@ class AuxController extends Controller
             'ruc' => 'nullable|string',
             'direccion' => 'nullable|string',
             'telefono' => 'nullable|string',
-            'correo' => 'nullable|string'
+            'correo' => 'nullable|string',
         ]);
 
         $tipo_entidad = TipoEntidad::from($request->input('tipo_entidad'));
@@ -256,6 +279,7 @@ class AuxController extends Controller
     {
         $tipo_bien_excluido = $request->input('tipo_bien_excluido') ? TipoBien::from($request->input('tipo_bien_excluido')) : null;
         $tipo_bien = $request->input('tipo_bien') ? TipoBien::from($request->input('tipo_bien')) : null;
+
         return response()->json(ProductosService::get_productos(
             tipo_bien_excluido: $tipo_bien_excluido,
             tipo_bien: $tipo_bien
@@ -351,6 +375,7 @@ class AuxController extends Controller
         $id_marca = $request->input('id_marca') ? (int) $request->input('id_marca') : null;
         $estado_val = $request->input('estado');
         $estado = $estado_val ? EstadoBase::from($estado_val) : null;
+
         return response()->json(MarcasService::get_marcas(id_marca: $id_marca, estado: $estado));
     }
 
@@ -366,7 +391,6 @@ class AuxController extends Controller
 
         return response()->json($result);
     }
-
 
     /**
      * Obtener solo los activos fijos
@@ -495,6 +519,7 @@ class AuxController extends Controller
         $estado_val = $request->input('estado');
         $estado = $estado_val ? EstadoBase::from($estado_val) : null;
         $result = CategoriasService::get_categorias(id_categoria: $id_categoria, estado: $estado);
+
         return response()->json($result);
     }
 
@@ -544,6 +569,44 @@ class AuxController extends Controller
         return response()->json($result);
     }
 
+    /**
+     * Catálogo de tipos de contrato disponibles (Planilla / JornadaDiaria).
+     */
+    public function get_tipos_contrato(Request $request): JsonResponse
+    {
+        $tipos = array_map(
+            fn (TipoContrato $c) => [
+                'value' => $c->value,
+                'label' => $c->value === TipoContrato::Planilla->value ? 'Planilla' : 'Jornada Diaria',
+            ],
+            TipoContrato::cases()
+        );
+
+        return response()->json(ApiResponse::success($tipos));
+    }
+
+    /**
+     * Catálogo de periodos para duración de contrato (excluyendo Semanal y Ninguno).
+     */
+    public function get_periodos_duracion(Request $request): JsonResponse
+    {
+        $excluidos = ['semanal', 'ninguno'];
+        $periodos = array_values(array_filter(
+            Periodo::cases(),
+            fn (Periodo $p) => ! in_array($p->value, $excluidos, true)
+        ));
+
+        $data = array_map(
+            fn (Periodo $p) => [
+                'value' => $p->value,
+                'label' => ucfirst($p->value),
+            ],
+            $periodos
+        );
+
+        return response()->json(ApiResponse::success($data));
+    }
+
     public function get_lotes_mineral(Request $request): JsonResponse
     {
         $id_lote_mineral = $request->input('id_lote_mineral') ? (int) $request->input('id_lote_mineral') : null;
@@ -566,6 +629,7 @@ class AuxController extends Controller
     public function get_agencias_transporte(): JsonResponse
     {
         $result = AgenciasService::get_agencias();
+
         return response()->json($result);
     }
 

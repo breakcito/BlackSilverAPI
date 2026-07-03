@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        channels: __DIR__ . '/../routes/channels.php',
-        commands: __DIR__ . '/../routes/console.php',
+        channels: __DIR__.'/../routes/channels.php',
+        commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function () {
             Route::middleware('api')->prefix('api')->group(function () {
@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Modules/Organigrama/OrganigramaEndpoints.php');
                 require base_path('app/Modules/Concesiones/ConcesionesEndpoints.php');
                 require base_path('app/Modules/Empleados/EmpleadosEndpoints.php');
+                require base_path('app/Modules/ContratosEmpleado/ContratosEmpleadoEndpoints.php');
                 require base_path('app/Modules/Contratistas/ContratistasEndpoints.php');
                 require base_path('app/Modules/Productos/ProductosEndpoints.php');
                 require base_path('app/Modules/MinasLabores/MinasLaboresEndpoints.php');

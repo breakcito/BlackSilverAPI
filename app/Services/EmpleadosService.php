@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Data\EmpleadosData;
@@ -30,7 +31,6 @@ class EmpleadosService
         return ApiResponse::success($empleados);
     }
 
-
     /**
      * Registrar un nuevo empleado
      */
@@ -38,12 +38,17 @@ class EmpleadosService
         int $id_cargo,
         string $nombre,
         string $apellido,
-        ?int $id_empresa = null,
+        bool $con_contrato = false,
+        ?int $id_contrato_vigente = null,
+        ?string $genero = null,
         ?string $dni = null,
         ?string $ruc = null,
         ?string $carnet_extranjeria = null,
         ?string $pasaporte = null,
         ?string $fecha_nacimiento = null,
+        ?string $direccion = null,
+        ?string $telefono = null,
+        ?string $email = null,
         ?UploadedFile $foto = null,
         ?bool $return_object = false
     ) {
@@ -60,28 +65,34 @@ class EmpleadosService
         }
 
         $id = EmpleadosData::crear_empleado(
-            id_empresa: $id_empresa,
             id_cargo: $id_cargo,
             nombre: $nombre,
             apellido: $apellido,
+            con_contrato: $con_contrato,
+            id_contrato_vigente: $id_contrato_vigente,
+            genero: $genero,
             dni: $dni,
             ruc: $ruc,
             carnet_extranjeria: $carnet_extranjeria,
             pasaporte: $pasaporte,
             fecha_nacimiento: $fecha_nacimiento,
+            direccion: $direccion,
+            telefono: $telefono,
+            email: $email,
             url_foto: $url_foto_str
         );
 
         if ($return_object) {
             $nuevoEmpleado = EmpleadosData::get_empleados(id_empleado: $id);
+
             return ApiResponse::success(
                 $nuevoEmpleado,
                 'Empleado registrado correctamente'
             );
         }
+
         return ApiResponse::success($id, 'Empleado registrado correctamente');
     }
-
 
     /**
      * Actualizar la foto del empleado asociado a una cuenta
@@ -89,15 +100,17 @@ class EmpleadosService
     public static function actualizar_foto(int $id_empleado, ?UploadedFile $nueva_foto = null)
     {
         $emp = EmpleadosData::get_empleado_dinamico_by_id($id_empleado, ['url_foto']);
-        $url_foto_old = !empty($emp['url_foto']) ? $emp['url_foto'] : null;
+        $url_foto_old = ! empty($emp['url_foto']) ? $emp['url_foto'] : null;
 
         // Caso: eliminar foto (sin nueva)
         if (is_null($nueva_foto)) {
             if ($url_foto_old) {
                 ArchivoHelper::eliminarArchivo($url_foto_old);
                 EmpleadosData::actualizar_foto($id_empleado, null);
+
                 return ApiResponse::success(null, 'Foto eliminada correctamente.');
             }
+
             return ApiResponse::success(null, 'No hay foto para eliminar.');
         }
 

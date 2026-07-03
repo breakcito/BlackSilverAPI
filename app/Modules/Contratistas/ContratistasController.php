@@ -2,17 +2,14 @@
 
 namespace App\Modules\Contratistas;
 
+use App\Modules\Contratistas\Service\ContratistasService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use App\Modules\Contratistas\Service\ContratistasService;
 
 class ContratistasController
 {
-    /**
-     * Listar contratistas
-     */
     public function get_contratistas(Request $request): JsonResponse
     {
         $id_mina = $request->query('id_mina') ? (int) $request->query('id_mina') : null;
@@ -21,20 +18,21 @@ class ContratistasController
         return response()->json($result);
     }
 
-    /**
-     * Crear contratista
-     */
     public function crear_contratista(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'id_mina' => 'required|integer',
             'nombre' => 'required|string|max:255',
             'apellido' => 'required|string|max:255',
+            'genero' => 'nullable|string|max:16',
             'dni' => 'nullable|string|max:20',
             'ruc' => 'nullable|string|max:20',
             'carnet_extranjeria' => 'nullable|string|max:20',
             'pasaporte' => 'nullable|string|max:20',
             'fecha_nacimiento' => 'nullable|date',
+            'direccion' => 'nullable|string|max:255',
+            'telefono' => 'nullable|string|max:32',
+            'email' => 'nullable|email|max:128',
             'foto' => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
         ]);
 
@@ -43,14 +41,18 @@ class ContratistasController
         }
 
         $result = ContratistasService::crear_contratista(
-            id_mina: $request->input('id_mina') ? (int) $request->input('id_mina') : null,
             nombre: (string) $request->input('nombre'),
             apellido: (string) $request->input('apellido'),
+            id_mina: $request->input('id_mina') ? (int) $request->input('id_mina') : null,
+            genero: $request->input('genero'),
             dni: $request->input('dni'),
             ruc: $request->input('ruc'),
             carnet_extranjeria: $request->input('carnet_extranjeria'),
             pasaporte: $request->input('pasaporte'),
             fecha_nacimiento: $request->input('fecha_nacimiento'),
+            direccion: $request->input('direccion'),
+            telefono: $request->input('telefono'),
+            email: $request->input('email'),
             foto: $request->file('foto'),
             ids_labor: (array) $request->input('ids_labor', [])
         );
@@ -58,13 +60,10 @@ class ContratistasController
         return response()->json($result);
     }
 
-    /**
-     * Actualizar foto de contratista
-     */
     public function actualizar_foto(Request $request, int $id): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'foto' => 'required|image|mimes:jpg,png,jpeg|max:2048',
+            'foto' => 'required|image|mimes:jpg,png,jpeg',
         ]);
 
         if ($validator->fails()) {
@@ -76,10 +75,6 @@ class ContratistasController
         return response()->json($result);
     }
 
-    
-    /**
-     * Asignar labores a un contratista
-     */
     public function asignar_labores(Request $request, int $id): JsonResponse
     {
         $validator = Validator::make($request->all(), [

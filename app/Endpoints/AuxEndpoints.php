@@ -71,6 +71,10 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
             // lotes de mineral
             Route::get('/lotes-mineral', 'get_lotes_mineral');
+
+            // contratos de empleado (catálogos)
+            Route::get('/tipos-contrato', 'get_tipos_contrato');
+            Route::get('/periodos-duracion', 'get_periodos_duracion');
         });
     });
 });

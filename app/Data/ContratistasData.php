@@ -6,10 +6,10 @@ use App\Models\Empleado;
 use App\Models\LaborContratista;
 use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ContratistasData
 {
-
     /**
      * Crear un nuevo contratista
      */
@@ -22,19 +22,31 @@ class ContratistasData
         ?string $carnet_extranjeria = null,
         ?string $pasaporte = null,
         ?string $fecha_nacimiento = null,
-        ?string $url_foto = null
+        ?string $url_foto = null,
+        ?string $genero = null,
+        ?string $direccion = null,
+        ?string $telefono = null,
+        ?string $email = null,
+        ?string $qr_token = null,
     ) {
+        $qr_token = ! empty($qr_token) ? $qr_token : (string) Str::uuid();
+
         return Empleado::insertGetId([
             'id_mina' => $id_mina,
             'id_cargo' => null,
             'es_contratista' => 1,
+            'qr_token' => $qr_token,
             'nombre' => $nombre,
             'apellido' => $apellido,
+            'genero' => $genero,
             'dni' => $dni,
             'ruc' => $ruc,
             'carnet_extranjeria' => $carnet_extranjeria,
             'pasaporte' => $pasaporte,
             'fecha_nacimiento' => $fecha_nacimiento,
+            'direccion' => $direccion,
+            'telefono' => $telefono,
+            'email' => $email,
             'url_foto' => $url_foto,
             'estado' => EstadoBase::Activo->value,
         ]);
@@ -58,10 +70,10 @@ class ContratistasData
         return Empleado::query()
             ->where('es_contratista', 1)
             ->where(function ($q) use ($dni, $ruc, $carnet_extranjeria, $pasaporte) {
-                $q->when($dni !== '', fn($q) => $q->orWhere('dni', $dni))
-                    ->when($ruc !== '', fn($q) => $q->orWhere('ruc', $ruc))
-                    ->when($carnet_extranjeria !== '', fn($q) => $q->orWhere('carnet_extranjeria', $carnet_extranjeria))
-                    ->when($pasaporte !== '', fn($q) => $q->orWhere('pasaporte', $pasaporte));
+                $q->when($dni !== '', fn ($q) => $q->orWhere('dni', $dni))
+                    ->when($ruc !== '', fn ($q) => $q->orWhere('ruc', $ruc))
+                    ->when($carnet_extranjeria !== '', fn ($q) => $q->orWhere('carnet_extranjeria', $carnet_extranjeria))
+                    ->when($pasaporte !== '', fn ($q) => $q->orWhere('pasaporte', $pasaporte));
             })
             ->exists();
     }
@@ -78,7 +90,7 @@ class ContratistasData
         $id_labores = array_values(array_unique($id_labores));
 
         $data = array_map(
-            fn($id_labor) => [
+            fn ($id_labor) => [
                 'id_contratista' => $id_contratista,
                 'id_labor' => $id_labor,
             ],
@@ -96,19 +108,27 @@ class ContratistasData
         ?int $id_contratista = null
     ) {
         $sql = '
-        SELECT 
+        SELECT
             c.id AS id_contratista,
 
             c.id_mina,
             mn.nombre AS mina,
 
+            c.qr_token,
             CONCAT(c.nombre, " ", c.apellido) as nombre_completo,
+            c.nombre,
+            c.apellido,
+            c.genero,
             c.dni,
             c.ruc,
             c.carnet_extranjeria,
             c.pasaporte,
+            c.direccion,
+            c.telefono,
+            c.email,
+            c.fecha_nacimiento,
             c.url_foto
-            
+
         FROM empleado c
         LEFT JOIN mina mn ON mn.id = c.id_mina
         WHERE c.es_contratista = 1

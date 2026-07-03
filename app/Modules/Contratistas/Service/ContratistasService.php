@@ -2,13 +2,13 @@
 
 namespace App\Modules\Contratistas\Service;
 
+use App\Data\ContratistasData as ContratistasDataGlobal;
+use App\Modules\Contratistas\Data\ContratistasData;
+use App\Services\ContratistasService as ContratistasServiceGlobal;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
-use App\Modules\Contratistas\Data\ContratistasData;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use App\Services\ContratistasService as ContratistasServiceGlobal;
-use App\Data\ContratistasData as ContratistasDataGlobal;
 
 class ContratistasService
 {
@@ -18,6 +18,7 @@ class ContratistasService
     public static function get_contratistas(?int $id_mina = null)
     {
         $contratistas = ContratistasData::get_contratistas(id_mina: $id_mina);
+
         return ApiResponse::success($contratistas);
     }
 
@@ -33,6 +34,10 @@ class ContratistasService
         ?string $carnet_extranjeria = null,
         ?string $pasaporte = null,
         ?string $fecha_nacimiento = null,
+        ?string $genero = null,
+        ?string $direccion = null,
+        ?string $telefono = null,
+        ?string $email = null,
         ?UploadedFile $foto = null,
         array $ids_labor = []
     ) {
@@ -45,6 +50,10 @@ class ContratistasService
             carnet_extranjeria: $carnet_extranjeria,
             pasaporte: $pasaporte,
             fecha_nacimiento: $fecha_nacimiento,
+            genero: $genero,
+            direccion: $direccion,
+            telefono: $telefono,
+            email: $email,
             foto: $foto,
             ids_labor: $ids_labor,
             return_object: false
@@ -57,6 +66,7 @@ class ContratistasService
             if ($contratista) {
                 $contratista->labores_asignadas = $contratista->labores_asignadas ?? [];
             }
+
             return ApiResponse::success($contratista, 'Contratista registrado correctamente');
         }
 
@@ -69,15 +79,17 @@ class ContratistasService
     public static function actualizar_foto(int $id_contratista, ?UploadedFile $nueva_foto = null): array|object
     {
         $emp = ContratistasData::get_contratista_dinamico_by_id($id_contratista, ['url_foto']);
-        $url_foto_old = !empty($emp['url_foto']) ? $emp['url_foto'] : null;
+        $url_foto_old = ! empty($emp['url_foto']) ? $emp['url_foto'] : null;
 
         // Caso: eliminar foto (sin nueva)
         if (is_null($nueva_foto)) {
             if ($url_foto_old) {
                 ArchivoHelper::eliminarArchivo($url_foto_old);
                 ContratistasData::actualizar_foto(id_contratista: $id_contratista, url_foto: null);
+
                 return ApiResponse::success(null, 'Foto eliminada correctamente.');
             }
+
             return ApiResponse::success(null, 'No hay foto para eliminar.');
         }
 
@@ -87,7 +99,6 @@ class ContratistasService
         } else {
             $resultado = ArchivoHelper::guardarArchivos('fotos-contratistas', [$nueva_foto]);
         }
-
         $foto = $resultado[0] ?? null;
         $url_foto = $foto['url'] ?? null;
 
@@ -116,6 +127,7 @@ class ContratistasService
             ContratistasDataGlobal::asignar_labor(id_contratista: $id_contratista, id_labores: $ids_labor);
 
             $editado = ContratistasData::get_contratistas(id_contratista: $id_contratista);
+
             return ApiResponse::success($editado, 'Labores asignadas correctamente');
         });
     }

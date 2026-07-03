@@ -5,6 +5,7 @@ namespace App\Data;
 use App\Models\Empleado;
 use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class EmpleadosData
 {
@@ -24,7 +25,15 @@ class EmpleadosData
             CONCAT(emp.nombre, " ", emp.apellido) as nombre_completo,
             emp.dni,
             emp.ruc,
-            emp.url_foto
+            emp.url_foto,
+            emp.qr_token,
+            emp.genero,
+            emp.con_contrato,
+            emp.direccion,
+            emp.telefono,
+            emp.email,
+            emp.id_contrato_vigente,
+            emp.id_cargo
             ')
             ->where('emp.es_contratista', 0)
             ->where('emp.estado', $estado->value);
@@ -32,6 +41,7 @@ class EmpleadosData
         // filtro por id
         if ($id_empleado !== null) {
             $query->where('emp.id', $id_empleado);
+
             return $query->first() ?? [];
         }
 
@@ -77,10 +87,15 @@ class EmpleadosData
         return $query
             ->orderByRaw('CONCAT(emp.nombre, " ", emp.apellido) ASC')
             ->get()
+            ->map(function ($row) {
+                $row = (array) $row;
+                // Cast manual: la query builder no aplica los $casts del modelo.
+                $row['con_contrato'] = (bool) ($row['con_contrato'] ?? 0);
+
+                return $row;
+            })
             ->toArray();
     }
-
-
 
     /**
      * Verificar si ya existe un empleado con el mismo documento
@@ -94,13 +109,13 @@ class EmpleadosData
         return Empleado::query()
             ->where('es_contratista', 0)
             ->where(function ($q) use ($dni, $ruc, $carnet_extranjeria, $pasaporte) {
-                $q->when($dni !== null, fn($q) => $q->orWhere('dni', $dni))
-                    ->when($ruc !== null, fn($q) => $q->orWhere('ruc', $ruc))
+                $q->when($dni !== null, fn ($q) => $q->orWhere('dni', $dni))
+                    ->when($ruc !== null, fn ($q) => $q->orWhere('ruc', $ruc))
                     ->when(
                         $carnet_extranjeria !== null,
-                        fn($q) => $q->orWhere('carnet_extranjeria', $carnet_extranjeria)
+                        fn ($q) => $q->orWhere('carnet_extranjeria', $carnet_extranjeria)
                     )
-                    ->when($pasaporte !== null, fn($q) => $q->orWhere('pasaporte', $pasaporte));
+                    ->when($pasaporte !== null, fn ($q) => $q->orWhere('pasaporte', $pasaporte));
             })
             ->exists();
     }
@@ -112,24 +127,38 @@ class EmpleadosData
         int $id_cargo,
         string $nombre,
         string $apellido,
-        ?int $id_empresa = null,
+        bool $con_contrato = false,
+        ?int $id_contrato_vigente = null,
+        ?string $genero = null,
         ?string $dni = null,
         ?string $ruc = null,
         ?string $carnet_extranjeria = null,
         ?string $pasaporte = null,
         ?string $fecha_nacimiento = null,
-        ?string $url_foto = null
+        ?string $direccion = null,
+        ?string $telefono = null,
+        ?string $email = null,
+        ?string $url_foto = null,
+        ?string $qr_token = null,
     ) {
+        $qr_token = ! empty($qr_token) ? $qr_token : (string) Str::uuid();
+
         return Empleado::insertGetId([
-            'id_empresa' => $id_empresa,
             'id_cargo' => $id_cargo,
+            'id_contrato_vigente' => $id_contrato_vigente,
+            'qr_token' => $qr_token,
             'nombre' => $nombre,
             'apellido' => $apellido,
             'dni' => $dni,
+            'genero' => $genero,
             'ruc' => $ruc,
             'carnet_extranjeria' => $carnet_extranjeria,
             'pasaporte' => $pasaporte,
             'fecha_nacimiento' => $fecha_nacimiento,
+            'con_contrato' => $con_contrato,
+            'direccion' => $direccion,
+            'telefono' => $telefono,
+            'email' => $email,
             'url_foto' => $url_foto,
             'es_contratista' => 0,
             'estado' => EstadoBase::Activo->value,
@@ -144,13 +173,14 @@ class EmpleadosData
         $esArray = is_array($id_empleado);
         $ids = $esArray ? $id_empleado : [$id_empleado];
         // Forzamos la inclusión del ID con su alias
-        if (!in_array('id as id_empleado', $columnas)) {
+        if (! in_array('id as id_empleado', $columnas)) {
             $columnas[] = 'id as id_empleado';
         }
         $query = Empleado::where('es_contratista', 0)->whereIn('id', $ids)->get($columnas);
         if ($esArray) {
             return $query->toArray();
         }
+
         return $query->first()?->toArray();
     }
 
@@ -162,7 +192,7 @@ class EmpleadosData
         ?string $url_foto = null
     ) {
         return Empleado::where('id', $id_empleado)->update([
-            'url_foto' => $url_foto
+            'url_foto' => $url_foto,
         ]);
     }
 }
