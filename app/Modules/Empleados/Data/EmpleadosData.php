@@ -7,11 +7,50 @@ use Illuminate\Support\Facades\DB;
 class EmpleadosData
 {
     /**
+     * Convierte una URL (relativa o absoluta) o un path a data URL base64.
+     * Si ya es un data URL, lo retorna tal cual. Si el archivo no existe,
+     * retorna null.
+     */
+    private static function logo_a_base64(string $logo): ?string
+    {
+        if (str_starts_with($logo, 'data:')) {
+            return $logo; // ya es data URL
+        }
+        if (str_starts_with($logo, 'http')) {
+            $parsed = parse_url($logo, PHP_URL_PATH);
+            $relativePath = ltrim(str_replace('/storage/', '', $parsed ?? ''), '/');
+        } else {
+            $relativePath = ltrim($logo, '/');
+        }
+
+        $fullPath = storage_path('app/public/'.$relativePath);
+        if (! file_exists($fullPath)) {
+            return null;
+        }
+
+        $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+        $mime = match ($ext) {
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'svg' => 'image/svg+xml',
+            default => 'image/jpeg',
+        };
+
+        return 'data:'.$mime.';base64,'.base64_encode(file_get_contents($fullPath));
+    }
+
+    /**
      * Listar empleados con su cargo y area.
      *
-     * Si el empleado tiene `id_contrato_vigente` (y por tanto `id_cargo = 0`),
-     * se hace un JOIN adicional a `contrato_trabajo` + `cargo` + `area` para
-     * obtener el nombre del cargo y del área del contrato vigente.
+     * Si el empleado tiene `id_contrato_vigente` (y por tanto `id_cargo = 0),
+     * se hace un JOIN adicional a `contrato_trabajo` + `cargo_contrato` para
+     * obtener el nombre del cargo y del área del contrato.
+     *
+     * Las URLs de foto y logo de empresa se convierten a data URL base64
+     * para que el frontend (incluyendo `react-pdf` para el fotocheck) pueda
+     * renderizarlas sin hacer fetch (evita problemas de CORS, URLs relativas,
+     * headers de auth faltantes, etc.).
      */
     public static function get_empleados(?int $id_empleado = null)
     {
@@ -65,8 +104,13 @@ class EmpleadosData
         return collect(DB::select($sql, $params))
             ->map(function ($row) {
                 $row = (array) $row;
-                // Cast manual: la query builder no aplica los $casts del modelo.
                 $row['con_contrato'] = (bool) ($row['con_contrato'] ?? 0);
+                $row['url_foto'] = ! empty($row['url_foto'])
+                    ? self::logo_a_base64($row['url_foto'])
+                    : null;
+                $row['empresa_url_logo'] = ! empty($row['empresa_url_logo'])
+                    ? self::logo_a_base64($row['empresa_url_logo'])
+                    : null;
 
                 return $row;
             })
