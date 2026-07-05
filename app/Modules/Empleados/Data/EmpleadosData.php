@@ -78,7 +78,8 @@ class EmpleadosData
             e.telefono,
             e.email,
             e.url_foto,
-            e.estado
+            e.estado,
+            (SELECT COUNT(*) FROM cuenta_bancaria_empleado cbe WHERE cbe.id_empleado = e.id) AS cantidad_cuentas_bancarias
         FROM
             empleado e
         LEFT JOIN cargo car ON car.id = e.id_cargo
@@ -105,6 +106,7 @@ class EmpleadosData
             ->map(function ($row) {
                 $row = (array) $row;
                 $row['con_contrato'] = (bool) ($row['con_contrato'] ?? 0);
+                $row['cantidad_cuentas_bancarias'] = (int) ($row['cantidad_cuentas_bancarias'] ?? 0);
                 $row['url_foto'] = ! empty($row['url_foto'])
                     ? self::logo_a_base64($row['url_foto'])
                     : null;
