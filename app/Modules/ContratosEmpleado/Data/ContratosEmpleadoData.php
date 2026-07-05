@@ -214,4 +214,42 @@ class ContratosEmpleadoData
             default => $inicio->toDateString(),
         };
     }
+
+    /**
+     * Listar ids de contratos Activos no indefinidos cuya fecha_fin ya pasó.
+     * Usado por el comando programado `contratos:inactivar-vencidos`.
+     *
+     * @return array<int, int>
+     */
+    public static function get_ids_contratos_vencidos_no_indefinidos(?string $fecha_referencia = null): array
+    {
+        $fecha = $fecha_referencia ?? Carbon::now()->toDateString();
+
+        $rows = DB::table('contrato_trabajo')
+            ->where('estado', EstadoBase::Activo->value)
+            ->where('por_tiempo_indefinido', 0)
+            ->whereNotNull('fecha_fin')
+            ->where('fecha_fin', '<', $fecha)
+            ->select('id')
+            ->get();
+
+        return $rows->map(fn ($r) => (int) $r->id)->all();
+    }
+
+    /**
+     * Inactivar contratos por ids. Devuelve la cantidad afectada.
+     *
+     * @param  array<int, int>  $ids_contratos
+     */
+    public static function inactivar_contratos(array $ids_contratos): int
+    {
+        if (empty($ids_contratos)) {
+            return 0;
+        }
+
+        return DB::table('contrato_trabajo')
+            ->whereIn('id', $ids_contratos)
+            ->where('estado', EstadoBase::Activo->value)
+            ->update(['estado' => EstadoBase::Inactivo->value]);
+    }
 }

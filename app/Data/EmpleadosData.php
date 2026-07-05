@@ -17,7 +17,9 @@ class EmpleadosData
         ?EstadoBase $estado = EstadoBase::Activo,
         ?int $id_almacen_excluyente = null,
         ?int $id_mina_excluyente = null,
-        ?bool $con_cuenta = null
+        ?bool $con_cuenta = null,
+        ?bool $solo_con_contrato_vigente = null,
+        ?string $fecha_fin_programacion = null
     ) {
         $query = DB::table('empleado as emp')
             ->selectRaw('
@@ -33,8 +35,12 @@ class EmpleadosData
             emp.telefono,
             emp.email,
             emp.id_contrato_vigente,
-            emp.id_cargo
+            emp.id_cargo,
+            ct.estado AS contrato_estado,
+            ct.por_tiempo_indefinido AS contrato_indefinido,
+            ct.fecha_fin AS contrato_fecha_fin
             ')
+            ->leftJoin('contrato_trabajo as ct', 'ct.id', '=', 'emp.id_contrato_vigente')
             ->where('emp.es_contratista', 0)
             ->where('emp.estado', $estado->value);
 
@@ -84,13 +90,34 @@ class EmpleadosData
             }
         }
 
-        return $query
+        // filtro listar solo empleados con contrato vigente Activo.
+        // Se exige: con_contrato = 1, id_contrato_vigente NOT NULL, contrato.estado = 'Activo'.
+        if ($solo_con_contrato_vigente === true) {
+            $query->where('emp.con_contrato', 1)
+                ->whereNotNull('emp.id_contrato_vigente')
+                ->where('ct.estado', EstadoBase::Activo->value);
+        }
+
+        $rows = $query
             ->orderByRaw('CONCAT(emp.nombre, " ", emp.apellido) ASC')
-            ->get()
-            ->map(function ($row) {
+            ->get();
+
+        return $rows
+            ->map(function ($row) use ($fecha_fin_programacion) {
                 $row = (array) $row;
                 // Cast manual: la query builder no aplica los $casts del modelo.
                 $row['con_contrato'] = (bool) ($row['con_contrato'] ?? 0);
+                $row['contrato_indefinido'] = (bool) ($row['contrato_indefinido'] ?? 0);
+
+                if ($fecha_fin_programacion !== null && $fecha_fin_programacion !== '') {
+                    $contrato_indefinido = $row['contrato_indefinido'];
+                    $contrato_fecha_fin = $row['contrato_fecha_fin'] ?? null;
+                    $row['puede_cubrir'] = $contrato_indefinido
+                        || $contrato_fecha_fin === null
+                        || (string) $contrato_fecha_fin >= (string) $fecha_fin_programacion;
+                } else {
+                    $row['puede_cubrir'] = true;
+                }
 
                 return $row;
             })

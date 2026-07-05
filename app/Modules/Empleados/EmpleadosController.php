@@ -135,7 +135,7 @@ class EmpleadosController
         // Foto
         $foto = $request->file('empleado.foto');
 
-        return DB::transaction(function () use ($empData, $id_cargo_emp, $foto, $ctrData, $request) {
+        $result = DB::transaction(function () use ($empData, $id_cargo_emp, $foto, $ctrData, $request) {
             // 1. Crear empleado (sin id_contrato_vigente aún)
             $idEmpleado = (int) EmpleadosServiceGlobal::crear_empleado(
                 id_cargo: $id_cargo_emp,
@@ -185,6 +185,8 @@ class EmpleadosController
                 'contrato' => $result['data'],
             ], 'Empleado y contrato registrados correctamente');
         });
+
+        return response()->json($result);
     }
 
     /**

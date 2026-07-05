@@ -18,14 +18,18 @@ class EmpleadosService
         ?EstadoBase $estado = EstadoBase::Activo,
         ?int $id_almacen_excluyente = null,
         ?int $id_mina_excluyente = null,
-        ?bool $con_cuenta = null
+        ?bool $con_cuenta = null,
+        ?bool $solo_con_contrato_vigente = null,
+        ?string $fecha_fin_programacion = null
     ) {
         $empleados = EmpleadosData::get_empleados(
             id_empleado: $id_empleado,
             estado: $estado,
             id_almacen_excluyente: $id_almacen_excluyente,
             id_mina_excluyente: $id_mina_excluyente,
-            con_cuenta: $con_cuenta
+            con_cuenta: $con_cuenta,
+            solo_con_contrato_vigente: $solo_con_contrato_vigente,
+            fecha_fin_programacion: $fecha_fin_programacion
         );
 
         return ApiResponse::success($empleados);

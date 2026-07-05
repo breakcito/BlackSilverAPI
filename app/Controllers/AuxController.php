@@ -113,13 +113,19 @@ class AuxController extends Controller
         $id_almacen_excluyente = $request->input('id_almacen_excluyente') ? (int) $request->input('id_almacen_excluyente') : null;
         $id_mina_excluyente = $request->input('id_mina_excluyente') ? (int) $request->input('id_mina_excluyente') : null;
         $con_cuenta = $request->has('con_cuenta') ? $request->boolean('con_cuenta') : null;
+        $solo_con_contrato_vigente = $request->has('solo_con_contrato_vigente')
+            ? $request->boolean('solo_con_contrato_vigente')
+            : null;
+        $fecha_fin_programacion = $request->input('fecha_fin_programacion');
 
         $result = EmpleadosService::get_empleados(
             id_empleado: $id_empleado,
             estado: $estado,
             id_almacen_excluyente: $id_almacen_excluyente,
             id_mina_excluyente: $id_mina_excluyente,
-            con_cuenta: $con_cuenta
+            con_cuenta: $con_cuenta,
+            solo_con_contrato_vigente: $solo_con_contrato_vigente,
+            fecha_fin_programacion: $fecha_fin_programacion
         );
 
         return response()->json($result);

@@ -190,4 +190,34 @@ class ContratosEmpleadoService
 
         return ApiResponse::success(null, 'Contrato finalizado anticipadamente');
     }
+
+    /**
+     * Inactivar masivamente todos los contratos no indefinidos cuya fecha_fin ya pasó.
+     * Usado por el comando programado `contratos:inactivar-vencidos`.
+     *
+     * @param  bool  $dry_run  Si true, no escribe: solo devuelve el conteo que se inactivaría.
+     */
+    public static function inactivar_vencidos_no_indefinidos(bool $dry_run = false): array
+    {
+        $ids = ContratosEmpleadoData::get_ids_contratos_vencidos_no_indefinidos();
+
+        $conteo = count($ids);
+
+        if ($dry_run) {
+            return [
+                'total_evaluados' => $conteo,
+                'total_inactivados' => 0,
+                'dry_run' => true,
+                'ids' => $ids,
+            ];
+        }
+
+        $afectados = ContratosEmpleadoData::inactivar_contratos($ids);
+
+        return [
+            'total_evaluados' => $conteo,
+            'total_inactivados' => $afectados,
+            'dry_run' => false,
+        ];
+    }
 }
