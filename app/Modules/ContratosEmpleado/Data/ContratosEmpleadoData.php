@@ -78,7 +78,18 @@ class ContratosEmpleadoData
 
         $sql .= ' ORDER BY ct.fecha_inicio DESC, ct.id DESC';
 
-        return DB::select($sql, $params);
+        $rows = DB::select($sql, $params);
+
+        // Cast explícito: DATEDIFF devuelve un entero en MySQL, pero el driver
+        // PDO lo entrega como string. El front lo espera como number.
+        return array_map(function ($row) {
+            $row = (array) $row;
+            if (array_key_exists('duracion_dias', $row) && $row['duracion_dias'] !== null) {
+                $row['duracion_dias'] = (int) $row['duracion_dias'];
+            }
+
+            return $row;
+        }, $rows);
     }
 
     /**
@@ -192,7 +203,16 @@ class ContratosEmpleadoData
         ORDER BY ct.fecha_inicio DESC, ct.id DESC
         ';
 
-        return DB::select($sql, ['id_empleado' => $id_empleado]);
+        $rows = DB::select($sql, ['id_empleado' => $id_empleado]);
+
+        return array_map(function ($row) {
+            $row = (array) $row;
+            if (array_key_exists('duracion_dias', $row) && $row['duracion_dias'] !== null) {
+                $row['duracion_dias'] = (int) $row['duracion_dias'];
+            }
+
+            return $row;
+        }, $rows);
     }
 
     /**

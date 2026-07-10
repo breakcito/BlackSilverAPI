@@ -24,6 +24,7 @@ class TurnoLaboralData
             tl.hora_ingreso,
             tl.hora_salida,
             tl.minutos_tolerancia,
+            tl.total_horas,
             tl.estado
         FROM turno_laboral tl
         WHERE 1 = 1

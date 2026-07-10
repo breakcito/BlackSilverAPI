@@ -17,10 +17,12 @@ class TurnoLaboral extends Model
         'hora_ingreso',
         'hora_salida',
         'minutos_tolerancia',
+        'total_horas',
         'estado',
     ];
 
     protected $casts = [
         'minutos_tolerancia' => 'integer',
+        'total_horas' => 'decimal:2',
     ];
 }

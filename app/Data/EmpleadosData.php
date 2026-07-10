@@ -19,10 +19,18 @@ class EmpleadosData
         ?int $id_mina_excluyente = null,
         ?bool $con_cuenta = null,
         ?bool $solo_con_contrato_vigente = null,
-        ?string $fecha_fin_programacion = null
+        ?string $fecha_fin_programacion = null,
+        ?int $id_lugar = null,
+        ?string $tipo_lugar = null
     ) {
-        $query = DB::table('empleado as emp')
-            ->selectRaw('
+        $campo_lugar = match ($tipo_lugar) {
+            'almacen' => 'id_almacen',
+            'labor' => 'id_labor',
+            'oficina' => 'id_oficina',
+            default => null,
+        };
+
+        $expressions = '
             emp.id as id_empleado,
             CONCAT(emp.nombre, " ", emp.apellido) as nombre_completo,
             emp.dni,
@@ -38,8 +46,12 @@ class EmpleadosData
             emp.id_cargo,
             ct.estado AS contrato_estado,
             ct.por_tiempo_indefinido AS contrato_indefinido,
-            ct.fecha_fin AS contrato_fecha_fin
-            ')
+            ct.fecha_fin AS contrato_fecha_fin,
+            0 AS matchea_lugar
+        ';
+
+        $query = DB::table('empleado as emp')
+            ->selectRaw($expressions)
             ->leftJoin('contrato_trabajo as ct', 'ct.id', '=', 'emp.id_contrato_vigente')
             ->where('emp.es_contratista', 0)
             ->where('emp.estado', $estado->value);
@@ -98,8 +110,16 @@ class EmpleadosData
                 ->where('ct.estado', EstadoBase::Activo->value);
         }
 
+        // Si se pide filtrar por lugar, filtrar por el lugar del contrato y ordenar.
+        if ($id_lugar !== null && $campo_lugar !== null) {
+            $query->where("ct.{$campo_lugar}", $id_lugar);
+            $query->addSelect(DB::raw("1 AS matchea_lugar_calculado"));
+            $query->orderByRaw('emp.nombre ASC, emp.apellido ASC');
+        } else {
+            $query->orderByRaw('CONCAT(emp.nombre, " ", emp.apellido) ASC');
+        }
+
         $rows = $query
-            ->orderByRaw('CONCAT(emp.nombre, " ", emp.apellido) ASC')
             ->get();
 
         return $rows
@@ -108,6 +128,10 @@ class EmpleadosData
                 // Cast manual: la query builder no aplica los $casts del modelo.
                 $row['con_contrato'] = (bool) ($row['con_contrato'] ?? 0);
                 $row['contrato_indefinido'] = (bool) ($row['contrato_indefinido'] ?? 0);
+                $row['matchea_lugar'] = isset($row['matchea_lugar_calculado'])
+                    ? (bool) $row['matchea_lugar_calculado']
+                    : false;
+                unset($row['matchea_lugar_calculado']);
 
                 if ($fecha_fin_programacion !== null && $fecha_fin_programacion !== '') {
                     $contrato_indefinido = $row['contrato_indefinido'];

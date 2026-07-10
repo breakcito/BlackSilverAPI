@@ -20,7 +20,9 @@ class EmpleadosService
         ?int $id_mina_excluyente = null,
         ?bool $con_cuenta = null,
         ?bool $solo_con_contrato_vigente = null,
-        ?string $fecha_fin_programacion = null
+        ?string $fecha_fin_programacion = null,
+        ?int $id_lugar = null,
+        ?string $tipo_lugar = null
     ) {
         $empleados = EmpleadosData::get_empleados(
             id_empleado: $id_empleado,
@@ -29,7 +31,9 @@ class EmpleadosService
             id_mina_excluyente: $id_mina_excluyente,
             con_cuenta: $con_cuenta,
             solo_con_contrato_vigente: $solo_con_contrato_vigente,
-            fecha_fin_programacion: $fecha_fin_programacion
+            fecha_fin_programacion: $fecha_fin_programacion,
+            id_lugar: $id_lugar,
+            tipo_lugar: $tipo_lugar
         );
 
         return ApiResponse::success($empleados);

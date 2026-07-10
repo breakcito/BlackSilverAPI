@@ -25,6 +25,9 @@ class ProgramacionHorariosController
             estado: $estado,
             fecha_desde: $request->query('fecha_desde'),
             fecha_hasta: $request->query('fecha_hasta'),
+            id_almacen: $request->query('id_almacen') ? (int) $request->query('id_almacen') : null,
+            id_labor: $request->query('id_labor') ? (int) $request->query('id_labor') : null,
+            id_oficina: $request->query('id_oficina') ? (int) $request->query('id_oficina') : null,
         );
 
         return response()->json($result);
@@ -60,13 +63,16 @@ class ProgramacionHorariosController
         return response()->json(ProgramacionHorarioService::get_grilla_semanal(
             (string) $request->query('fecha_inicio'),
             (string) $request->query('fecha_fin'),
+            id_almacen: $request->query('id_almacen') ? (int) $request->query('id_almacen') : null,
+            id_labor: $request->query('id_labor') ? (int) $request->query('id_labor') : null,
+            id_oficina: $request->query('id_oficina') ? (int) $request->query('id_oficina') : null,
         ));
     }
 
     /**
      * Asignar horario a uno o varios empleados (soporta ingreso masivo).
      *
-     * @param  array  $payload  ['id_turno_laboral', 'fecha_inicio', 'por_tiempo_indefinido', 'fecha_fin', 'dias_laborables', 'empleados' => [int,...]]
+     * @param  array  $payload  ['id_turno_laboral', 'fecha_inicio', 'por_tiempo_indefinido', 'fecha_fin', 'dias_laborables', 'empleados' => [int,...], 'id_oficina'?, 'id_almacen'?, 'id_labor'?]
      */
     public function asignar_horario(Request $request): JsonResponse
     {
@@ -76,6 +82,9 @@ class ProgramacionHorariosController
             'por_tiempo_indefinido' => 'nullable|boolean',
             'fecha_fin' => 'nullable|date_format:Y-m-d',
             'dias_laborables' => 'required|string|size:7|regex:/^[01]{7}$/',
+            'id_oficina' => 'nullable|integer|min:1',
+            'id_almacen' => 'nullable|integer|min:1',
+            'id_labor' => 'nullable|integer|min:1',
             'empleados' => 'required|array|min:1',
             'empleados.*' => 'integer|min:1',
         ], [
@@ -88,6 +97,17 @@ class ProgramacionHorariosController
             'empleados.array' => 'La lista de empleados es inválida.',
         ]);
 
+        $validator->after(function ($v) use ($request) {
+            $lugares = array_filter([
+                $request->input('id_oficina'),
+                $request->input('id_almacen'),
+                $request->input('id_labor'),
+            ], fn ($v) => $v !== null && $v !== '');
+            if (count($lugares) !== 1) {
+                $v->errors()->add('id_lugar', 'Debe indicar exactamente un lugar de trabajo (almacén, labor u oficina).');
+            }
+        });
+
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
@@ -98,6 +118,9 @@ class ProgramacionHorariosController
             'por_tiempo_indefinido' => (bool) $request->boolean('por_tiempo_indefinido'),
             'fecha_fin' => $request->input('fecha_fin'),
             'dias_laborables' => (string) $request->input('dias_laborables'),
+            'id_oficina' => $request->input('id_oficina') ? (int) $request->input('id_oficina') : null,
+            'id_almacen' => $request->input('id_almacen') ? (int) $request->input('id_almacen') : null,
+            'id_labor' => $request->input('id_labor') ? (int) $request->input('id_labor') : null,
             'empleados' => $request->input('empleados'),
         ];
 

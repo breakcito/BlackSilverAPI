@@ -48,7 +48,7 @@ class ContratosEmpleadoController
     public function crear_contrato(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'id_empleado' => 'required|integer',
+            'id_empleado' => 'required|integer|min:1',
             'id_cargo' => 'required|integer',
             'id_empresa' => 'nullable|integer',
             'id_almacen' => 'nullable|integer',

@@ -16,12 +16,14 @@ class ContratistasData
         ?int $id_contratista = null
     ) {
         $sql = '
-        SELECT 
+        SELECT
             c.id AS id_contratista,
 
             c.id_mina,
             mn.nombre AS mina,
 
+            c.qr_token,
+            CONCAT(c.nombre, " ", c.apellido) as nombre_completo,
             c.nombre,
             c.apellido,
             c.dni,
@@ -58,10 +60,11 @@ class ContratistasData
             $params['id_contratista'] = $id_contratista;
 
             $contratista = DB::selectOne($sql, $params);
-            if (!$contratista) {
+            if (! $contratista) {
                 return null;
             }
             $contratista->labores_asignadas = json_decode($contratista->labores_asignadas, true);
+
             return $contratista;
         }
 
@@ -76,9 +79,9 @@ class ContratistasData
         foreach ($contratistas as $contratista) {
             $contratista->labores_asignadas = json_decode($contratista->labores_asignadas, true);
         }
+
         return $contratistas;
     }
-
 
     /**
      * Actualizar la foto de un contratista
@@ -88,7 +91,6 @@ class ContratistasData
         return (bool) Empleado::where('id', $id_contratista)->update(['url_foto' => $url_foto]);
     }
 
-
     /**
      * Metodo para consultar datos dinamicos de uno o varios contratistas a la vez
      */
@@ -97,16 +99,16 @@ class ContratistasData
         $esArray = is_array($id_contratista);
         $ids = $esArray ? $id_contratista : [$id_contratista];
         // Forzamos la inclusión del ID con su alias
-        if (!in_array('id as id_contratista', $columnas)) {
+        if (! in_array('id as id_contratista', $columnas)) {
             $columnas[] = 'id as id_contratista';
         }
         $query = Empleado::where('es_contratista', 1)->whereIn('id', $ids)->get($columnas);
         if ($esArray) {
             return $query->toArray();
         }
+
         return $query->first()?->toArray();
     }
-
 
     /**
      * Eliminar todas las labores asignadas a un contratista

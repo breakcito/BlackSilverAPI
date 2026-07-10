@@ -64,6 +64,12 @@ class ContratosEmpleadoService
         ?string $periodo_duracion = null,
         ?array $evidencias = [],
     ): array {
+        // Defensa en profundidad: el Controller ya exige min:1, pero el Service
+        // también lo valida para evitar contratos huérfanos con id_empleado = 0.
+        if ($id_empleado < 1) {
+            return ApiResponse::error('Debe especificar un empleado válido (id_empleado >= 1).');
+        }
+
         // Validar tipo
         $tiposValidos = ['Planilla', 'JornadaDiaria'];
         if (! in_array($tipo_contrato, $tiposValidos, true)) {
@@ -80,6 +86,7 @@ class ContratosEmpleadoService
 
         // Validar duracion cuando NO es indefinido
         $fecha_fin = null;
+        $duracion_dias = null;
         if (! $por_tiempo_indefinido) {
             if ($duracion === null || $periodo_duracion === null) {
                 return ApiResponse::error('Si el contrato no es por tiempo indefinido, debe especificar duración y periodo.');
@@ -90,6 +97,8 @@ class ContratosEmpleadoService
                 duracion: (int) $duracion,
                 periodo_duracion: $periodo_duracion
             );
+
+            $duracion_dias = (int) \Carbon\Carbon::parse($fecha_inicio)->diffInDays(\Carbon\Carbon::parse($fecha_fin));
         }
 
         // Validar duplicado: mismo empleado, mismo cargo, misma fecha_inicio, Activo
@@ -126,6 +135,7 @@ class ContratosEmpleadoService
             'fecha_fin' => $fecha_fin,
             'duracion' => $por_tiempo_indefinido ? null : $duracion,
             'periodo_duracion' => $por_tiempo_indefinido ? null : $periodo_duracion,
+            'duracion_dias' => $duracion_dias,
         ];
 
         // INSERT + UPDATE en transacción

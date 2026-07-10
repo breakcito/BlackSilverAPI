@@ -117,6 +117,11 @@ class AuxController extends Controller
             ? $request->boolean('solo_con_contrato_vigente')
             : null;
         $fecha_fin_programacion = $request->input('fecha_fin_programacion');
+        $id_lugar = $request->input('id_lugar') ? (int) $request->input('id_lugar') : null;
+        $tipo_lugar = $request->input('tipo_lugar');
+        if ($tipo_lugar !== null && ! in_array($tipo_lugar, ['almacen', 'labor', 'oficina'], true)) {
+            $tipo_lugar = null;
+        }
 
         $result = EmpleadosService::get_empleados(
             id_empleado: $id_empleado,
@@ -125,7 +130,9 @@ class AuxController extends Controller
             id_mina_excluyente: $id_mina_excluyente,
             con_cuenta: $con_cuenta,
             solo_con_contrato_vigente: $solo_con_contrato_vigente,
-            fecha_fin_programacion: $fecha_fin_programacion
+            fecha_fin_programacion: $fecha_fin_programacion,
+            id_lugar: $id_lugar,
+            tipo_lugar: $tipo_lugar
         );
 
         return response()->json($result);

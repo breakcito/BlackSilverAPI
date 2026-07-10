@@ -39,6 +39,7 @@ class TurnoLaboralService
         string $hora_ingreso,
         string $hora_salida,
         ?int $minutos_tolerancia = null,
+        ?float $total_horas = null,
         ?string $estado = null,
     ): array {
         $tipo_enum = TipoTurno::tryFrom($tipo_turno);
@@ -53,6 +54,7 @@ class TurnoLaboralService
             'hora_ingreso' => $hora_ingreso,
             'hora_salida' => $hora_salida,
             'minutos_tolerancia' => $minutos_tolerancia,
+            'total_horas' => $total_horas,
             'estado' => $estado_final,
         ];
 
@@ -71,6 +73,7 @@ class TurnoLaboralService
         ?string $hora_ingreso = null,
         ?string $hora_salida = null,
         ?int $minutos_tolerancia = null,
+        ?float $total_horas = null,
     ): array {
         $payload = [];
 
@@ -92,6 +95,10 @@ class TurnoLaboralService
 
         if ($minutos_tolerancia !== null) {
             $payload['minutos_tolerancia'] = $minutos_tolerancia;
+        }
+
+        if ($total_horas !== null) {
+            $payload['total_horas'] = $total_horas;
         }
 
         if (empty($payload)) {

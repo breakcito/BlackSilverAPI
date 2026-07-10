@@ -20,6 +20,9 @@ class ProgramacionHorarioData
         ?EstadoBase $estado = null,
         ?string $fecha_desde = null,
         ?string $fecha_hasta = null,
+        ?int $id_almacen = null,
+        ?int $id_labor = null,
+        ?int $id_oficina = null,
     ) {
         $sql = '
         SELECT
@@ -37,6 +40,12 @@ class ProgramacionHorarioData
             tl.hora_ingreso,
             tl.hora_salida,
             tl.minutos_tolerancia,
+            ph.id_oficina,
+            ph.id_almacen,
+            ph.id_labor,
+            alm.nombre AS almacen_nombre,
+            lab.nombre AS labor_nombre,
+            NULL AS oficina_nombre,
             ph.fecha_inicio,
             ph.por_tiempo_indefinido,
             ph.fecha_fin,
@@ -46,6 +55,8 @@ class ProgramacionHorarioData
         INNER JOIN empleado emp ON emp.id = ph.id_empleado
         INNER JOIN contrato_trabajo ct ON ct.id = ph.id_contrato_trabajo
         INNER JOIN turno_laboral tl ON tl.id = ph.id_turno_laboral
+        LEFT JOIN almacen alm ON alm.id = ph.id_almacen
+        LEFT JOIN labor lab ON lab.id = ph.id_labor
         WHERE 1 = 1
         ';
 
@@ -85,7 +96,23 @@ class ProgramacionHorarioData
             $params['fecha_hasta'] = $fecha_hasta;
         }
 
-        $sql .= ' ORDER BY ph.fecha_inicio DESC, ph.id DESC';
+        if ($id_almacen !== null) {
+            $sql .= ' AND ph.id_almacen = :id_almacen';
+            $params['id_almacen'] = $id_almacen;
+        }
+
+        if ($id_labor !== null) {
+            $sql .= ' AND ph.id_labor = :id_labor';
+            $params['id_labor'] = $id_labor;
+        }
+
+        if ($id_oficina !== null) {
+            $sql .= ' AND ph.id_oficina = :id_oficina';
+            $params['id_oficina'] = $id_oficina;
+        }
+
+        // Orden: por fecha_inicio ASC, hora_ingreso del turno ASC (mañana → noche), id ASC.
+        $sql .= ' ORDER BY ph.fecha_inicio ASC, tl.hora_ingreso ASC, ph.id ASC';
 
         $rows = DB::select($sql, $params);
 
@@ -236,5 +263,159 @@ class ProgramacionHorarioData
 
             return $row;
         }, DB::select($sql, $bindings));
+    }
+
+    /**
+     * Verifica si la nueva programación se cruza con alguna existente del mismo empleado.
+     *
+     * Regla estricta: para que haya cruce, deben cumplirse las 3 condiciones:
+     *  1. Solapamiento de rango de fechas (considerando indefinidos).
+     *  2. Intersección de días laborables (bitwise AND de los strings "0101010" no da "0000000").
+     *  3. Cruce de rangos de hora del turno (nueva.ingreso < existente.salida Y existente.ingreso < nueva.salida).
+     *
+     * Devuelve la primera programación conflictiva encontrada, o null.
+     */
+    public static function existe_cruce_horario(
+        int $id_empleado,
+        int $id_turno_laboral,
+        string $dias_laborables_nuevo,
+        string $fecha_inicio_nuevo,
+        ?string $fecha_fin_nuevo,
+        ?int $id_programacion_excluir = null,
+    ): ?object {
+        $nueva_indefinida = $fecha_fin_nuevo === null ? 1 : 0;
+
+        $bindings = [
+            'id_empleado' => $id_empleado,
+            'estado' => EstadoBase::Activo->value,
+        ];
+
+        if ($nueva_indefinida === 1) {
+            $sql_cond = "
+                (ph.por_tiempo_indefinido = 1)
+                OR (ph.por_tiempo_indefinido = 0 AND ph.fecha_fin >= :nueva_fecha_inicio)
+            ";
+            $bindings['nueva_fecha_inicio'] = $fecha_inicio_nuevo;
+        } else {
+            $sql_cond = "
+                (ph.por_tiempo_indefinido = 1 AND ph.fecha_inicio <= :nueva_fecha_fin_indef)
+                OR (ph.por_tiempo_indefinido = 0 
+                    AND ph.fecha_inicio <= :nueva_fecha_fin_finit 
+                    AND :nueva_fecha_inicio <= ph.fecha_fin)
+            ";
+            $bindings['nueva_fecha_fin_indef'] = $fecha_fin_nuevo;
+            $bindings['nueva_fecha_fin_finit'] = $fecha_fin_nuevo;
+            $bindings['nueva_fecha_inicio'] = $fecha_inicio_nuevo;
+        }
+
+        // 1. Buscar programaciones Activas del empleado que se solapen en rango de fechas.
+        $sql = "
+        SELECT
+            ph.id,
+            ph.id_empleado,
+            ph.id_contrato_trabajo,
+            ph.id_turno_laboral,
+            tl.hora_ingreso,
+            tl.hora_salida,
+            ph.fecha_inicio,
+            ph.por_tiempo_indefinido,
+            ph.fecha_fin,
+            ph.dias_laborables
+        FROM programacion_horario ph
+        INNER JOIN turno_laboral tl ON tl.id = ph.id_turno_laboral
+        WHERE ph.id_empleado = :id_empleado
+          AND ph.estado = :estado
+          AND ({$sql_cond})
+        ";
+
+        if ($id_programacion_excluir !== null) {
+            $sql .= ' AND ph.id != :id_excluir';
+            $bindings['id_excluir'] = $id_programacion_excluir;
+        }
+
+        $existentes = DB::select($sql, $bindings);
+
+        // 2 y 3. Verificar intersección de días laborables y cruce de hora.
+        foreach ($existentes as $prog) {
+            $diasComun = self::diasLaborablesInterseccion(
+                $dias_laborables_nuevo,
+                (string) $prog->dias_laborables,
+            );
+            if ($diasComun === '0000000') {
+                continue;
+            }
+
+            // 3. Cruce de rangos de hora (por día, no por fecha, soportando cruce de medianoche).
+            $hNuevaIngreso = self::parseHoraMinutos(self::getHora($id_turno_laboral, 'hora_ingreso'));
+            $hNuevaSalida = self::parseHoraMinutos(self::getHora($id_turno_laboral, 'hora_salida'));
+            $hExistIngreso = self::parseHoraMinutos($prog->hora_ingreso);
+            $hExistSalida = self::parseHoraMinutos($prog->hora_salida);
+
+            if (self::horasSeSolapan($hNuevaIngreso, $hNuevaSalida, $hExistIngreso, $hExistSalida)) {
+                return $prog;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Calcula la intersección bitwise AND de dos strings de 7 caracteres "0"/"1".
+     */
+    private static function diasLaborablesInterseccion(string $a, string $b): string
+    {
+        $a = str_pad($a, 7, '0');
+        $b = str_pad($b, 7, '0');
+        $result = '';
+        for ($i = 0; $i < 7; $i++) {
+            $result .= ($a[$i] === '1' && $b[$i] === '1') ? '1' : '0';
+        }
+
+        return $result;
+    }
+
+    /**
+     * Devuelve la hora de ingreso o salida de un turno_laboral.
+     */
+    private static function getHora(int $id_turno_laboral, string $campo): string
+    {
+        $row = DB::table('turno_laboral')->where('id', $id_turno_laboral)->first([$campo]);
+        if ($row === null) {
+            return '00:00:00';
+        }
+
+        return (string) $row->{$campo};
+    }
+
+    /**
+     * Convierte "HH:mm:ss" o "HH:mm" a minutos desde medianoche.
+     */
+    private static function parseHoraMinutos(string $hora): int
+    {
+        $partes = explode(':', $hora);
+        $h = (int) ($partes[0] ?? 0);
+        $m = (int) ($partes[1] ?? 0);
+
+        return $h * 60 + $m;
+    }
+
+    /**
+     * Comprueba si dos rangos de horas se solapan en un ciclo de 24 horas.
+     * Soporta turnos que cruzan la medianoche (ingreso > salida).
+     */
+    private static function horasSeSolapan(int $s1, int $e1, int $s2, int $e2): bool
+    {
+        $intervals1 = ($s1 < $e1) ? [[$s1, $e1]] : [[$s1, 1440], [0, $e1]];
+        $intervals2 = ($s2 < $e2) ? [[$s2, $e2]] : [[$s2, 1440], [0, $e2]];
+
+        foreach ($intervals1 as $int1) {
+            foreach ($intervals2 as $int2) {
+                if ($int1[0] < $int2[1] && $int2[0] < $int1[1]) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

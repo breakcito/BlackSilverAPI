@@ -28,6 +28,7 @@ class ContratoTrabajo extends Model
         'fecha_fin',
         'duracion',
         'periodo_duracion',
+        'duracion_dias',
         'fecha_fin_anticipada',
         'created_at',
         'estado',
@@ -43,5 +44,6 @@ class ContratoTrabajo extends Model
         'evidencias' => 'array',
         'created_at' => 'datetime',
         'duracion' => 'integer',
+        'duracion_dias' => 'integer',
     ];
 }

@@ -107,10 +107,10 @@ class EmpleadosController
             'empleado.foto' => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
 
             // Datos del contrato
-            'contrato.id_cargo' => 'required|integer',
+            'contrato.id_cargo' => 'required|integer|min:1',
             'contrato.id_empresa' => 'nullable|integer',
-            'contrato.id_almacen' => 'nullable|integer',
-            'contrato.id_labor' => 'nullable|integer',
+            'contrato.id_almacen' => 'nullable|integer|min:1',
+            'contrato.id_labor' => 'nullable|integer|min:1',
             'contrato.tipo_contrato' => 'required|in:Planilla,JornadaDiaria',
             'contrato.sueldo_base' => 'nullable|numeric',
             'contrato.salario_diario' => 'nullable|numeric',

@@ -47,6 +47,7 @@ class TurnoLaboralController
             'hora_ingreso' => 'required|date_format:H:i,H:i:s',
             'hora_salida' => 'required|date_format:H:i,H:i:s',
             'minutos_tolerancia' => 'nullable|integer|min:0|max:1440',
+            'total_horas' => 'required|numeric|min:0|max:48',
             'estado' => 'nullable|in:Activo,Inactivo',
         ], [
             'tipo_turno.required' => 'Debe indicar el tipo de turno (Día o Noche).',
@@ -58,6 +59,10 @@ class TurnoLaboralController
             'minutos_tolerancia.integer' => 'Los minutos de tolerancia deben ser un número entero.',
             'minutos_tolerancia.min' => 'Los minutos de tolerancia no pueden ser negativos.',
             'minutos_tolerancia.max' => 'Los minutos de tolerancia no pueden superar un día.',
+            'total_horas.required' => 'Las horas totales son obligatorias.',
+            'total_horas.numeric' => 'Las horas totales deben ser un número.',
+            'total_horas.min' => 'Las horas totales no pueden ser negativas.',
+            'total_horas.max' => 'Las horas totales no pueden superar 48h.',
         ]);
 
         if ($validator->fails()) {
@@ -71,6 +76,7 @@ class TurnoLaboralController
             minutos_tolerancia: $request->input('minutos_tolerancia') !== null
                 ? (int) $request->input('minutos_tolerancia')
                 : null,
+            total_horas: (float) $request->input('total_horas'),
             estado: $request->input('estado'),
         );
 
@@ -87,6 +93,7 @@ class TurnoLaboralController
             'hora_ingreso' => 'sometimes|date_format:H:i,H:i:s',
             'hora_salida' => 'sometimes|date_format:H:i,H:i:s',
             'minutos_tolerancia' => 'sometimes|nullable|integer|min:0|max:1440',
+            'total_horas' => 'sometimes|numeric|min:0|max:48',
         ]);
 
         if ($validator->fails()) {
@@ -97,12 +104,17 @@ class TurnoLaboralController
             ? ($request->input('minutos_tolerancia') !== null ? (int) $request->input('minutos_tolerancia') : null)
             : null;
 
+        $totalHoras = $request->has('total_horas') && $request->input('total_horas') !== null
+            ? (float) $request->input('total_horas')
+            : null;
+
         $result = TurnoLaboralService::actualizar_turno(
             id_turno: $id_turno,
             tipo_turno: $request->input('tipo_turno'),
             hora_ingreso: $request->input('hora_ingreso'),
             hora_salida: $request->input('hora_salida'),
             minutos_tolerancia: $minutos,
+            total_horas: $totalHoras,
         );
 
         return response()->json($result);
