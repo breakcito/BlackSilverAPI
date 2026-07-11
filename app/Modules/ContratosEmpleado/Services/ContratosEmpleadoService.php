@@ -3,7 +3,7 @@
 namespace App\Modules\ContratosEmpleado\Services;
 
 use App\Modules\ContratosEmpleado\Data\ContratosEmpleadoData;
-use App\Shared\Enums\_Generic\EstadoBase;
+use App\Shared\Enums\Contrato\EstadoContrato;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\UploadedFile;
@@ -16,7 +16,7 @@ class ContratosEmpleadoService
      */
     public static function get_contratos(
         ?int $id_empleado = null,
-        ?EstadoBase $estado = null,
+        ?EstadoContrato $estado = null,
     ): array {
         $data = ContratosEmpleadoData::get_contratos(id_empleado: $id_empleado, estado: $estado);
 
@@ -101,13 +101,21 @@ class ContratosEmpleadoService
             $duracion_dias = (int) \Carbon\Carbon::parse($fecha_inicio)->diffInDays(\Carbon\Carbon::parse($fecha_fin));
         }
 
-        // Validar duplicado: mismo empleado, mismo cargo, misma fecha_inicio, Activo
+        // Validar que el empleado no tenga ya un contrato Vigente.
+        // Solo puede existir un contrato Vigente por empleado a la vez. Para
+        // registrar uno nuevo primero hay que finalizar el vigente actual.
+        $vigentes = ContratosEmpleadoData::get_contratos(id_empleado: $id_empleado, estado: EstadoContrato::Vigente);
+        if (! empty($vigentes)) {
+            return ApiResponse::error('El empleado ya tiene un contrato Vigente. Debe finalizarlo antes de registrar uno nuevo.');
+        }
+
+        // Validar duplicado: mismo empleado, mismo cargo, misma fecha_inicio, Vigente
         if (ContratosEmpleadoData::existe_contrato_activo(
             id_empleado: $id_empleado,
             id_cargo: $id_cargo,
             fecha_inicio: $fecha_inicio,
         )) {
-            return ApiResponse::error('Ya existe un contrato Activo para este empleado con el mismo cargo y fecha de inicio.');
+            return ApiResponse::error('Ya existe un contrato Vigente para este empleado con el mismo cargo y fecha de inicio.');
         }
 
         // Guardar archivos de evidencia y obtener JSON serializado
@@ -144,36 +152,27 @@ class ContratosEmpleadoService
             $fecha_inicio_tx = (string) $payload['fecha_inicio'];
             $esIndefinido_tx = (bool) ($payload['por_tiempo_indefinido'] ?? false);
 
-            // Si el empleado tiene un contrato vigente con fecha_fin y el nuevo
-            // contrato comienza ANTES de esa fecha_fin, cerramos el contrato
-            // anterior anticipadamente con fecha_fin_anticipada = fecha_inicio
-            // del nuevo.
-            $vigentesActuales = ContratosEmpleadoData::get_contratos(
-                id_empleado: $id_empleado_tx
-            );
+            // Estado inicial según la fecha de inicio.
+            $estado_inicial = $fecha_inicio_tx <= now()->toDateString()
+                ? EstadoContrato::Vigente->value
+                : EstadoContrato::Pendiente->value;
+            $payload['estado'] = $estado_inicial;
 
-            if (! $esIndefinido_tx && ! empty($vigentesActuales)) {
-                foreach ($vigentesActuales as $vigente) {
-                    if (
-                        ($vigente->estado ?? null) === EstadoBase::Activo->value
-                        && ! empty($vigente->fecha_fin)
-                        && $fecha_inicio_tx < (string) $vigente->fecha_fin
-                    ) {
-                        ContratosEmpleadoData::finalizar_anticipado(
-                            (int) $vigente->id_contrato,
-                            $fecha_inicio_tx
-                        );
-                    }
-                }
-            }
+            // NOTA: La validación arriba garantiza que NO existe un contrato
+            // Vigente previo. No auto-cerramos nada aquí — el frontend debe
+            // llamar explícitamente al endpoint "finalizar-anticipado" antes.
 
             $id_contrato = ContratosEmpleadoData::crear_contrato($payload, $evidenciasJson);
 
-            // Actualizar empleado con el contrato vigente
-            ContratosEmpleadoData::update_id_contrato_vigente_empleado(
-                $id_empleado_tx,
-                $id_contrato
-            );
+            // Solo actualizamos id_contrato_vigente si el nuevo entra en vigencia
+            // inmediatamente (estado Vigente). Si es Pendiente, no debe pisar
+            // el vigente anterior (que ya no existe, garantizado por la validación).
+            if ($estado_inicial === EstadoContrato::Vigente->value) {
+                ContratosEmpleadoData::update_id_contrato_vigente_empleado(
+                    $id_empleado_tx,
+                    $id_contrato
+                );
+            }
 
             $nuevo = ContratosEmpleadoData::get_contratos(id_contrato: $id_contrato);
 
@@ -196,14 +195,38 @@ class ContratosEmpleadoService
      */
     public static function finalizar_anticipado(int $id_contrato, string $fecha_fin_anticipada): array
     {
-        ContratosEmpleadoData::finalizar_anticipado($id_contrato, $fecha_fin_anticipada);
+        return DB::transaction(function () use ($id_contrato, $fecha_fin_anticipada) {
+            $contrato = DB::table('contrato_trabajo')->where('id', $id_contrato)->first();
+            if (! $contrato) {
+                return ApiResponse::error('Contrato no encontrado.');
+            }
 
-        return ApiResponse::success(null, 'Contrato finalizado anticipadamente');
+            ContratosEmpleadoData::finalizar_anticipado($id_contrato, $fecha_fin_anticipada);
+
+            $id_empleado = (int) $contrato->id_empleado;
+
+            // Si el contrato finalizado era el vigente del empleado, limpiarlo.
+            DB::table('empleado')
+                ->where('id', $id_empleado)
+                ->where('id_contrato_vigente', $id_contrato)
+                ->update([
+                    'id_contrato_vigente' => null,
+                    'con_contrato' => false,
+                ]);
+
+            $empleadoActualizado = \App\Modules\Empleados\Data\EmpleadosData::get_empleados(
+                id_empleado: $id_empleado
+            );
+
+            return ApiResponse::success([
+                'empleado' => $empleadoActualizado,
+            ], 'Contrato finalizado anticipadamente');
+        });
     }
 
     /**
-     * Inactivar masivamente todos los contratos no indefinidos cuya fecha_fin ya pasó.
-     * Usado por el comando programado `contratos:inactivar-vencidos`.
+     * Mantenido por compatibilidad: inactiva Vigentes cuya fecha_fin ya pasó.
+     * Usado por el comando programado `contratos:procesar-vencimientos-pendientes`.
      *
      * @param  bool  $dry_run  Si true, no escribe: solo devuelve el conteo que se inactivaría.
      */
@@ -229,5 +252,51 @@ class ContratosEmpleadoService
             'total_inactivados' => $afectados,
             'dry_run' => false,
         ];
+    }
+
+    /**
+     * Procesa diariamente el ciclo de vida de los contratos:
+     *  1. Finaliza los Vigentes cuya fecha_fin ya pasó.
+     *  2. Limpia `empleado.id_contrato_vigente` para los empleados cuyo vigente
+     *     quedó en Finalizado y ya no hay contrato posterior que los apunte.
+     *  3. Activa los Pendientes cuya fecha_inicio ya llegó.
+     *
+     * Cada paso se ejecuta en orden; el segundo paso trabaja sobre los efectos
+     * del primero.
+     *
+     * @return array<string, int>
+     */
+    public static function procesar_vencimientos_y_pendientes(?string $fecha_referencia = null, bool $dry_run = false): array
+    {
+        $fecha = $fecha_referencia ?? \Carbon\Carbon::now()->toDateString();
+
+        $resultado = [
+            'fecha_referencia' => $fecha,
+            'finalizados' => 0,
+            'empleados_limpiados' => 0,
+            'pendientes_activados' => 0,
+            'dry_run' => $dry_run,
+        ];
+
+        // Paso 1: finalizar Vigentes con fecha_fin vencida.
+        $ids_vencidos = ContratosEmpleadoData::get_ids_contratos_vencidos_no_indefinidos($fecha);
+        $resultado['finalizados'] = $dry_run
+            ? count($ids_vencidos)
+            : ContratosEmpleadoData::inactivar_contratos($ids_vencidos);
+
+        // Paso 2: limpiar id_contrato_vigente de los empleados cuyo vigente
+        // quedó Finalizado y la fecha_fin ya pasó.
+        $ids_empleados_huerfanos = ContratosEmpleadoData::get_empleados_con_vigente_finalizado($fecha);
+        $resultado['empleados_limpiados'] = $dry_run
+            ? count($ids_empleados_huerfanos)
+            : ContratosEmpleadoData::limpiar_id_contrato_vigente($ids_empleados_huerfanos);
+
+        // Paso 3: activar Pendientes cuya fecha_inicio ya llegó.
+        $ids_pendientes = ContratosEmpleadoData::get_ids_contratos_pendientes_para_activar($fecha);
+        $resultado['pendientes_activados'] = $dry_run
+            ? count($ids_pendientes)
+            : ContratosEmpleadoData::activar_contratos_pendientes($ids_pendientes);
+
+        return $resultado;
     }
 }

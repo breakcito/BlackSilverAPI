@@ -4,6 +4,7 @@ namespace App\Data;
 
 use App\Models\Empleado;
 use App\Shared\Enums\_Generic\EstadoBase;
+use App\Shared\Enums\Contrato\EstadoContrato;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -102,18 +103,18 @@ class EmpleadosData
             }
         }
 
-        // filtro listar solo empleados con contrato vigente Activo.
-        // Se exige: con_contrato = 1, id_contrato_vigente NOT NULL, contrato.estado = 'Activo'.
+        // filtro listar solo empleados con contrato vigente Vigente.
+        // Se exige: con_contrato = 1, id_contrato_vigente NOT NULL, contrato.estado = 'Vigente'.
         if ($solo_con_contrato_vigente === true) {
             $query->where('emp.con_contrato', 1)
                 ->whereNotNull('emp.id_contrato_vigente')
-                ->where('ct.estado', EstadoBase::Activo->value);
+                ->where('ct.estado', EstadoContrato::Vigente->value);
         }
 
         // Si se pide filtrar por lugar, filtrar por el lugar del contrato y ordenar.
         if ($id_lugar !== null && $campo_lugar !== null) {
             $query->where("ct.{$campo_lugar}", $id_lugar);
-            $query->addSelect(DB::raw("1 AS matchea_lugar_calculado"));
+            $query->addSelect(DB::raw('1 AS matchea_lugar_calculado'));
             $query->orderByRaw('emp.nombre ASC, emp.apellido ASC');
         } else {
             $query->orderByRaw('CONCAT(emp.nombre, " ", emp.apellido) ASC');

@@ -51,6 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Modules/MantenimientoActivos/MantenimientoActivosEndpoints.php');
                 require base_path('app/Modules/ProduccionMineral/ProduccionEndpoints.php');
                 require base_path('app/Modules/ProgramacionHorarios/ProgramacionHorariosEndpoints.php');
+                require base_path('app/Modules/Asistencia/AsistenciaEndpoints.php');
             });
         },
     )

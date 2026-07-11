@@ -145,7 +145,7 @@ class ProgramacionHorarioService
                 $rechazados[] = [
                     'id_empleado' => $id_empleado,
                     'nombre' => $nombre_completo,
-                    'motivo' => "{$nombre_completo}: El empleado no tiene un contrato vigente Activo.",
+                    'motivo' => "{$nombre_completo}: El empleado no tiene un contrato Vigente.",
                 ];
 
                 continue;

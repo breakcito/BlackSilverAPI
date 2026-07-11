@@ -4,7 +4,7 @@ namespace App\Modules\ContratosEmpleado\Data;
 
 use App\Models\ContratoTrabajo;
 use App\Models\Empleado;
-use App\Shared\Enums\_Generic\EstadoBase;
+use App\Shared\Enums\Contrato\EstadoContrato;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -16,7 +16,7 @@ class ContratosEmpleadoData
     public static function get_contratos(
         ?int $id_empleado = null,
         ?int $id_contrato = null,
-        ?EstadoBase $estado = null,
+        ?EstadoContrato $estado = null,
     ) {
         $sql = '
         SELECT
@@ -109,7 +109,7 @@ class ContratosEmpleadoData
             $payload['evidencias'] = null;
         }
 
-        $payload['estado'] = $payload['estado'] ?? EstadoBase::Activo->value;
+        $payload['estado'] = $payload['estado'] ?? EstadoContrato::Vigente->value;
         $payload['created_at'] = now();
 
         // No se persiste `duracion_dias` en la BD (no existe la columna).
@@ -125,7 +125,7 @@ class ContratosEmpleadoData
     {
         return (bool) ContratoTrabajo::where('id', $id_contrato)->update([
             'fecha_fin_anticipada' => $fecha_fin_anticipada,
-            'estado' => EstadoBase::Inactivo->value,
+            'estado' => EstadoContrato::TerminoAnticipado->value,
         ]);
     }
 
@@ -152,7 +152,7 @@ class ContratosEmpleadoData
             ->where('id_empleado', $id_empleado)
             ->where('id_cargo', $id_cargo)
             ->where('fecha_inicio', $fecha_inicio)
-            ->where('estado', EstadoBase::Activo->value);
+            ->where('estado', EstadoContrato::Vigente->value);
 
         if ($id_contrato_excluir !== null) {
             $query->where('id', '!=', $id_contrato_excluir);
@@ -246,7 +246,7 @@ class ContratosEmpleadoData
         $fecha = $fecha_referencia ?? Carbon::now()->toDateString();
 
         $rows = DB::table('contrato_trabajo')
-            ->where('estado', EstadoBase::Activo->value)
+            ->where('estado', EstadoContrato::Vigente->value)
             ->where('por_tiempo_indefinido', 0)
             ->whereNotNull('fecha_fin')
             ->where('fecha_fin', '<', $fecha)
@@ -257,7 +257,7 @@ class ContratosEmpleadoData
     }
 
     /**
-     * Inactivar contratos por ids. Devuelve la cantidad afectada.
+     * Inactivar contratos por ids (transición Vigente → Finalizado).
      *
      * @param  array<int, int>  $ids_contratos
      */
@@ -269,7 +269,81 @@ class ContratosEmpleadoData
 
         return DB::table('contrato_trabajo')
             ->whereIn('id', $ids_contratos)
-            ->where('estado', EstadoBase::Activo->value)
-            ->update(['estado' => EstadoBase::Inactivo->value]);
+            ->where('estado', EstadoContrato::Vigente->value)
+            ->update(['estado' => EstadoContrato::Finalizado->value]);
+    }
+
+    /**
+     * Ids de contratos en estado Pendiente cuya fecha_inicio ya llegó y
+     * siguen dentro de su periodo de vigencia (indefinido o fecha_fin >= hoy).
+     *
+     * @return array<int, int>
+     */
+    public static function get_ids_contratos_pendientes_para_activar(string $fecha_referencia): array
+    {
+        $rows = DB::table('contrato_trabajo')
+            ->where('estado', EstadoContrato::Pendiente->value)
+            ->where('fecha_inicio', '<=', $fecha_referencia)
+            ->where(function ($q) use ($fecha_referencia) {
+                $q->where('por_tiempo_indefinido', 1)
+                    ->orWhereNull('fecha_fin')
+                    ->orWhere('fecha_fin', '>=', $fecha_referencia);
+            })
+            ->select('id')
+            ->get();
+
+        return $rows->map(fn ($r) => (int) $r->id)->all();
+    }
+
+    /**
+     * Activa contratos Pendiente → Vigente en una sola pasada.
+     * Devuelve la cantidad activada.
+     *
+     * @param  array<int, int>  $ids_contratos
+     */
+    public static function activar_contratos_pendientes(array $ids_contratos): int
+    {
+        if (empty($ids_contratos)) {
+            return 0;
+        }
+
+        return DB::table('contrato_trabajo')
+            ->whereIn('id', $ids_contratos)
+            ->where('estado', EstadoContrato::Pendiente->value)
+            ->update(['estado' => EstadoContrato::Vigente->value]);
+    }
+
+    /**
+     * Ids de empleados cuyo id_contrato_vigente apunta a un contrato ya
+     * Finalizado. Sirve para limpiar el FK huérfano.
+     *
+     * @return array<int, int>
+     */
+    public static function get_empleados_con_vigente_finalizado(string $fecha_referencia): array
+    {
+        return DB::table('empleado as emp')
+            ->join('contrato_trabajo as ct', 'ct.id', '=', 'emp.id_contrato_vigente')
+            ->where('ct.estado', EstadoContrato::Finalizado->value)
+            ->where('ct.por_tiempo_indefinido', 0)
+            ->whereNotNull('ct.fecha_fin')
+            ->where('ct.fecha_fin', '<', $fecha_referencia)
+            ->pluck('emp.id')
+            ->all();
+    }
+
+    /**
+     * Setea id_contrato_vigente = NULL en los empleados provistos.
+     * Devuelve la cantidad afectada.
+     *
+     * @param  array<int, int>  $ids_empleados
+     */
+    public static function limpiar_id_contrato_vigente(array $ids_empleados): int
+    {
+        if (empty($ids_empleados)) {
+            return 0;
+        }
+
+        return Empleado::whereIn('id', $ids_empleados)
+            ->update(['id_contrato_vigente' => null]);
     }
 }

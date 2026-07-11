@@ -3,7 +3,7 @@
 namespace App\Modules\ContratosEmpleado\Controllers;
 
 use App\Modules\ContratosEmpleado\Services\ContratosEmpleadoService;
-use App\Shared\Enums\_Generic\EstadoBase;
+use App\Shared\Enums\Contrato\EstadoContrato;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +18,7 @@ class ContratosEmpleadoController
     {
         $id_empleado = $request->query('id_empleado') ? (int) $request->query('id_empleado') : null;
         $estado_val = $request->query('estado');
-        $estado = $estado_val ? EstadoBase::from($estado_val) : null;
+        $estado = $estado_val ? EstadoContrato::tryFrom($estado_val) : null;
 
         return response()->json(
             ContratosEmpleadoService::get_contratos(id_empleado: $id_empleado, estado: $estado)

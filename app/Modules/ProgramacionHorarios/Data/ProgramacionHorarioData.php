@@ -4,6 +4,7 @@ namespace App\Modules\ProgramacionHorarios\Data;
 
 use App\Models\ProgramacionHorario;
 use App\Shared\Enums\_Generic\EstadoBase;
+use App\Shared\Enums\Contrato\EstadoContrato;
 use Illuminate\Support\Facades\DB;
 
 class ProgramacionHorarioData
@@ -252,7 +253,9 @@ class ProgramacionHorarioData
         ";
 
         $bindings = array_merge(
-            [EstadoBase::Activo->value, EstadoBase::Activo->value],
+            // 1er param: emp.estado (sigue siendo "Activo" — empleado NO migró su enum).
+            // 2do param: ct.estado (migró a "Vigente" — contrato_trabajo.estado).
+            [EstadoBase::Activo->value, EstadoContrato::Vigente->value],
             $ids_empleados
         );
 
@@ -291,18 +294,18 @@ class ProgramacionHorarioData
         ];
 
         if ($nueva_indefinida === 1) {
-            $sql_cond = "
+            $sql_cond = '
                 (ph.por_tiempo_indefinido = 1)
                 OR (ph.por_tiempo_indefinido = 0 AND ph.fecha_fin >= :nueva_fecha_inicio)
-            ";
+            ';
             $bindings['nueva_fecha_inicio'] = $fecha_inicio_nuevo;
         } else {
-            $sql_cond = "
+            $sql_cond = '
                 (ph.por_tiempo_indefinido = 1 AND ph.fecha_inicio <= :nueva_fecha_fin_indef)
                 OR (ph.por_tiempo_indefinido = 0 
                     AND ph.fecha_inicio <= :nueva_fecha_fin_finit 
                     AND :nueva_fecha_inicio <= ph.fecha_fin)
-            ";
+            ';
             $bindings['nueva_fecha_fin_indef'] = $fecha_fin_nuevo;
             $bindings['nueva_fecha_fin_finit'] = $fecha_fin_nuevo;
             $bindings['nueva_fecha_inicio'] = $fecha_inicio_nuevo;
