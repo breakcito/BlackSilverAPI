@@ -127,9 +127,9 @@ class AsistenciaData
      *
      * @param  array<string, mixed>  $payload
      */
-    public static function upsert_asistencia_diaria(int $id_empleado, string $fecha, array $payload): int
+    public static function upsert_asistencia_diaria(int $id_empleado, string $fecha, array $payload, bool $sobreescribir_jornada = false): int
     {
-        return DB::transaction(function () use ($id_empleado, $fecha, $payload) {
+        return DB::transaction(function () use ($id_empleado, $fecha, $payload, $sobreescribir_jornada) {
             $existente = self::get_asistencia_del_dia($id_empleado, $fecha);
 
             if ($existente === null) {
@@ -147,10 +147,16 @@ class AsistenciaData
                 }
             }
 
-            // jornada_trabajada se SUMA.
-            $jornada_nueva = (float) ($payload['jornada_trabajada'] ?? 0);
-            $jornada_existente = (float) $existente->jornada_trabajada;
-            $update['jornada_trabajada'] = $jornada_existente + $jornada_nueva;
+            // jornada_trabajada se SUMA o SOBREESCRIBE.
+            if ($sobreescribir_jornada) {
+                if (array_key_exists('jornada_trabajada', $payload)) {
+                    $update['jornada_trabajada'] = (float) $payload['jornada_trabajada'];
+                }
+            } else {
+                $jornada_nueva = (float) ($payload['jornada_trabajada'] ?? 0);
+                $jornada_existente = (float) $existente->jornada_trabajada;
+                $update['jornada_trabajada'] = $jornada_existente + $jornada_nueva;
+            }
 
             DB::table('asistencia')
                 ->where('id', $existente->id)

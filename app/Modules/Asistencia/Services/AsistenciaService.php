@@ -131,6 +131,10 @@ class AsistenciaService
             return ApiResponse::error('Empleado inactivo. No puede registrar asistencia.');
         }
 
+        if (empty($row->id_contrato_vigente)) {
+            return ApiResponse::error('El empleado no tiene un contrato vigente activo. No puede registrar asistencia.');
+        }
+
         $id_empleado = (int) $row->id;
 
         // Determinamos el siguiente tipo de marcaje según el historial del día.
@@ -193,12 +197,12 @@ class AsistenciaService
         $programacion = self::get_programacion_vigente_en_fecha($id_empleado, $fecha);
         $turno = $programacion['turno'] ?? null;
 
-        // Calculamos tardanza (si es Ingreso) o total_horas (si es Salida).
-        $minutos_tardanza = 0;
-        $total_horas = null;
-        $jornada_trabajada = 0.0;
+        // Recuperar asistencia del día existente.
+        $asistencia_hoy = AsistenciaData::get_asistencia_del_dia($id_empleado, $fecha);
 
-        if ($tipo === TipoMarcaje::Ingreso) {
+        // Calculamos tardanza (solo si es el primer ingreso del día).
+        $minutos_tardanza = 0;
+        if ($tipo === TipoMarcaje::Ingreso && $asistencia_hoy === null) {
             if ($turno !== null && ! empty($turno['hora_ingreso'])) {
                 $minutos_tardanza = self::calcular_minutos_tardanza(
                     $fecha_hora_marcaje,
@@ -206,48 +210,42 @@ class AsistenciaService
                     (int) ($turno['minutos_tolerancia'] ?? 0),
                 );
             }
-
-            $id_asistencia = AsistenciaData::upsert_asistencia_diaria(
-                $id_empleado,
-                $fecha,
-                [
-                    'fecha_hora_ingreso' => $fecha_hora_marcaje,
-                    'minutos_tardanza' => $minutos_tardanza,
-                    'id_programacion_horario' => $programacion['id_programacion_horario'] ?? null,
-                    'es_manual' => false,
-                    'jornada_trabajada' => 0.0,
-                ]
-            );
-        } else { // Salida
-            // Recuperar asistencia del día para calcular total_horas.
-            $asistencia_hoy = AsistenciaData::get_asistencia_del_dia($id_empleado, $fecha);
-            if ($asistencia_hoy && $asistencia_hoy->fecha_hora_ingreso) {
-                $total_horas = self::calcular_total_horas(
-                    Carbon::parse($asistencia_hoy->fecha_hora_ingreso),
-                    $fecha_hora_marcaje,
-                );
-
-                $turno_total_horas = isset($turno['total_horas']) && $turno['total_horas'] !== null
-                    ? (float) $turno['total_horas']
-                    : 8.0;
-
-                $jornada_trabajada = $total_horas > 0
-                    ? round($total_horas / $turno_total_horas, 4)
-                    : 0.0;
-            }
-
-            $id_asistencia = AsistenciaData::upsert_asistencia_diaria(
-                $id_empleado,
-                $fecha,
-                [
-                    'fecha_hora_salida' => $fecha_hora_marcaje,
-                    'total_horas' => $total_horas,
-                    'id_programacion_horario' => $programacion['id_programacion_horario'] ?? null,
-                    'es_manual' => false,
-                    'jornada_trabajada' => $jornada_trabajada,
-                ]
-            );
+        } elseif ($asistencia_hoy !== null) {
+            $minutos_tardanza = (int) $asistencia_hoy->minutos_tardanza;
         }
+
+        // Simulamos el nuevo marcaje actual para calcular el consolidado del día.
+        $nuevo_marcaje = [
+            'tipo_marcaje' => $tipo->value,
+            'fecha_hora' => $fecha_hora_marcaje->toDateTimeString(),
+        ];
+
+        $consolidado = self::consolidar_asistencia_diaria($id_empleado, $fecha, $nuevo_marcaje);
+
+        $payload = [
+            'id_programacion_horario' => $consolidado['id_programacion_horario'],
+            'es_manual' => false,
+            'total_horas' => $consolidado['total_horas'],
+            'jornada_trabajada' => $consolidado['jornada_trabajada'],
+            'minutos_tardanza' => $minutos_tardanza,
+        ];
+
+        if ($consolidado['fecha_hora_ingreso'] !== null) {
+            $payload['fecha_hora_ingreso'] = $consolidado['fecha_hora_ingreso'];
+        }
+        if ($consolidado['fecha_hora_salida'] !== null) {
+            $payload['fecha_hora_salida'] = $consolidado['fecha_hora_salida'];
+        }
+
+        $id_asistencia = AsistenciaData::upsert_asistencia_diaria(
+            $id_empleado,
+            $fecha,
+            $payload,
+            true // sobreescribir_jornada = true
+        );
+
+        $total_horas = $consolidado['total_horas'];
+        $jornada_trabajada = $consolidado['jornada_trabajada'];
 
         // Construimos el array de evidencias.
         $evidencias = [];
@@ -643,6 +641,87 @@ class AsistenciaService
                 'minutos_tolerancia' => (int) $row->minutos_tolerancia,
                 'total_horas' => $row->total_horas !== null ? (float) $row->total_horas : null,
             ],
+        ];
+    }
+
+    /**
+     * Consolida las horas y la jornada diaria basándose en todos los marcajes confirmados
+     * del día para el empleado, más el nuevo marcaje actual simulado.
+     *
+     * @param  array<string, mixed>|null  $nuevo_marcaje
+     * @return array{fecha_hora_ingreso: Carbon|null, fecha_hora_salida: Carbon|null, total_horas: float, jornada_trabajada: float, id_programacion_horario: int|null}
+     */
+    private static function consolidar_asistencia_diaria(int $id_empleado, string $fecha, ?array $nuevo_marcaje = null): array
+    {
+        // 1. Obtener marcajes previos ya confirmados del día
+        $marcajes_previos = \Illuminate\Support\Facades\DB::table('marcaje')
+            ->where('id_empleado', $id_empleado)
+            ->whereDate('fecha_hora', $fecha)
+            ->where('proceso_confirmado', 1)
+            ->orderBy('fecha_hora')
+            ->get()
+            ->toArray();
+
+        $marcajes = [];
+        foreach ($marcajes_previos as $m) {
+            $marcajes[] = (object) $m;
+        }
+
+        if ($nuevo_marcaje !== null) {
+            $marcajes[] = (object) $nuevo_marcaje;
+        }
+
+        // 2. Ordenar por fecha_hora
+        usort($marcajes, function ($a, $b) {
+            return strcmp((string) $a->fecha_hora, (string) $b->fecha_hora);
+        });
+
+        // 3. Calcular total_horas por tramos
+        $total_segundos = 0;
+        /** @var Carbon|null $ultimo_ingreso */
+        $ultimo_ingreso = null;
+        /** @var Carbon|null $fecha_hora_ingreso */
+        $fecha_hora_ingreso = null;
+        /** @var Carbon|null $fecha_hora_salida */
+        $fecha_hora_salida = null;
+
+        foreach ($marcajes as $m) {
+            $tipo_m = (string) ($m->tipo_marcaje ?? '');
+            $fh = Carbon::parse((string) $m->fecha_hora);
+
+            if ($tipo_m === 'Ingreso') {
+                $ultimo_ingreso = $fh;
+                if ($fecha_hora_ingreso === null) {
+                    $fecha_hora_ingreso = $fh;
+                }
+            } elseif ($tipo_m === 'Salida') {
+                $fecha_hora_salida = $fh;
+                if ($ultimo_ingreso !== null) {
+                    $total_segundos += abs($fh->diffInSeconds($ultimo_ingreso));
+                    $ultimo_ingreso = null;
+                }
+            }
+        }
+
+        $total_horas = round($total_segundos / 3600.0, 4);
+
+        // Obtener programación para el divisor
+        $programacion = self::get_programacion_vigente_en_fecha($id_empleado, $fecha);
+        $turno = $programacion['turno'] ?? null;
+        $turno_total_horas = isset($turno['total_horas']) && $turno['total_horas'] !== null
+            ? (float) $turno['total_horas']
+            : 8.0;
+
+        $jornada_trabajada = $total_horas > 0
+            ? round($total_horas / $turno_total_horas, 4)
+            : 0.0;
+
+        return [
+            'fecha_hora_ingreso' => $fecha_hora_ingreso,
+            'fecha_hora_salida' => $fecha_hora_salida,
+            'total_horas' => $total_horas,
+            'jornada_trabajada' => $jornada_trabajada,
+            'id_programacion_horario' => $programacion['id_programacion_horario'] ?? null,
         ];
     }
 }
