@@ -205,13 +205,11 @@ class ContratosEmpleadoService
 
             $id_empleado = (int) $contrato->id_empleado;
 
-            // Si el contrato finalizado era el vigente del empleado, limpiarlo.
             DB::table('empleado')
                 ->where('id', $id_empleado)
                 ->where('id_contrato_vigente', $id_contrato)
                 ->update([
                     'id_contrato_vigente' => null,
-                    'con_contrato' => false,
                 ]);
 
             $empleadoActualizado = \App\Modules\Empleados\Data\EmpleadosData::get_empleados(

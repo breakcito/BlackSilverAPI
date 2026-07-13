@@ -157,16 +157,35 @@ class ProgramacionHorarioService
             $contrato_indefinido = (bool) $contrato['contrato_indefinido'];
             $contrato_fecha_fin = $contrato['contrato_fecha_fin'] ?? null;
 
-            // Si el horario es por tiempo indefinido, contrato también debe cubrirlo (ser indefinido)
-            // o su fecha_fin >= hoy. Aceptamos siempre que el contrato esté Activo.
-            if (! $por_tiempo_indefinido && ! $contrato_indefinido && $contrato_fecha_fin !== null && $fecha_fin > $contrato_fecha_fin) {
-                $rechazados[] = [
-                    'id_empleado' => $id_empleado,
-                    'nombre' => $nombre_completo,
-                    'motivo' => "{$nombre_completo}: Su contrato culmina el {$contrato_fecha_fin}, antes de la fecha de fin de la programación.",
-                ];
-
-                continue;
+            // Validar que la programación esté dentro de la vigencia del contrato
+            if (! $contrato_indefinido && $contrato_fecha_fin !== null) {
+                // Caso 1: Se intenta programar por tiempo indefinido, pero el contrato tiene fecha de fin
+                if ($por_tiempo_indefinido) {
+                    $rechazados[] = [
+                        'id_empleado' => $id_empleado,
+                        'nombre' => $nombre_completo,
+                        'motivo' => "{$nombre_completo}: No se puede asignar una programación indefinida porque su contrato culmina el {$contrato_fecha_fin}.",
+                    ];
+                    continue;
+                }
+                // Caso 2: La fecha de inicio de la programación es posterior al fin del contrato
+                if ($fecha_inicio > $contrato_fecha_fin) {
+                    $rechazados[] = [
+                        'id_empleado' => $id_empleado,
+                        'nombre' => $nombre_completo,
+                        'motivo' => "{$nombre_completo}: La fecha de inicio de la programación ({$fecha_inicio}) es posterior al término de su contrato ({$contrato_fecha_fin}).",
+                    ];
+                    continue;
+                }
+                // Caso 3: La fecha de fin de la programación es posterior al fin del contrato
+                if ($fecha_fin !== null && $fecha_fin > $contrato_fecha_fin) {
+                    $rechazados[] = [
+                        'id_empleado' => $id_empleado,
+                        'nombre' => $nombre_completo,
+                        'motivo' => "{$nombre_completo}: Su contrato culmina el {$contrato_fecha_fin}, antes de la fecha de fin de la programación ({$fecha_fin}).",
+                    ];
+                    continue;
+                }
             }
 
             // Evitar duplicado exacto Activo.

@@ -80,7 +80,12 @@ class AsistenciaData
             DAYNAME(DATE(a.fecha_hora_ingreso)) AS dia_semana
         FROM asistencia a
         INNER JOIN empleado emp ON emp.id = a.id_empleado
-        INNER JOIN contrato_trabajo ct ON ct.id = emp.id_contrato_vigente
+        INNER JOIN contrato_trabajo ct ON ct.id_empleado = a.id_empleado
+            AND DATE(a.fecha_hora_ingreso) >= ct.fecha_inicio
+            AND (
+                (ct.fecha_fin IS NULL AND ct.fecha_fin_anticipada IS NULL)
+                OR DATE(a.fecha_hora_ingreso) <= COALESCE(ct.fecha_fin_anticipada, ct.fecha_fin)
+            )
         LEFT JOIN cargo car ON car.id = ct.id_cargo
         LEFT JOIN area are ON are.id = car.id_area
         LEFT JOIN programacion_horario ph ON ph.id = a.id_programacion_horario
