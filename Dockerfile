@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY composer.json composer.lock ./
 
+# Agregamos --ignore-platform-reqs para que no falle por falta de extensiones locales en esta etapa
 RUN composer install \
     --no-dev \
     --prefer-dist \
@@ -11,7 +12,8 @@ RUN composer install \
     --no-scripts \
     --no-interaction \
     --no-progress \
-    --no-plugins
+    --no-plugins \
+    --ignore-platform-reqs
 
 # ---------- STAGE 2: Runtime (Con Apache) ----------
 FROM php:8.3-apache AS runtime
