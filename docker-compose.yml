@@ -75,8 +75,8 @@ services:
       ]
     env_file: .env
     volumes:
-      # Read-only: Reverb puede necesitar leer archivos de la app
-      - laravel-storage:/var/www/storage:ro
+      # Permisos de lectura/escritura para que Reverb pueda escribir logs
+      - laravel-storage:/var/www/storage
 
     depends_on:
       php-fpm:

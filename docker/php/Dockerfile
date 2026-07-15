@@ -44,16 +44,15 @@ RUN composer dump-autoload --optimize --no-dev --classmap-authoritative \
 # =============================================================================
 FROM php:8.4-fpm-alpine AS production
 
-# Instalar dependencias de runtime mínimas y netcat para healthcheck
-RUN apk add --no-cache \
-    icu-libs \
-    libzip \
-    netcat-openbsd
+# Instalar dependencias de runtime y netcat para healthcheck
+RUN apk add --no-cache curl netcat-openbsd
 
-# Copiar extensiones PHP y configuraciones desde el builder
-COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
-COPY --from=builder /usr/local/etc/php/conf.d/    /usr/local/etc/php/conf.d/
-COPY --from=builder /usr/local/bin/docker-php-ext-* /usr/local/bin/
+# Descargar e instalar el instalador de extensiones PHP
+ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+RUN chmod +x /usr/local/bin/install-php-extensions
+
+# Instalar extensiones PHP (usa binarios precompilados de Alpine e instala dependencias del sistema automáticamente)
+RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets redis opcache
 
 # Usar la configuración de producción de PHP para máxima seguridad y rendimiento
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
