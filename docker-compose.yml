@@ -1,46 +1,113 @@
+# =============================================================================
+# Servicios:
+#   nginx    → Reverse proxy: API (FastCGI) + WebSockets (proxy_pass a Reverb)
+#   php-fpm  → Sirve la API Laravel vía FastCGI en el puerto 9000
+#   reverb   → Laravel Reverb WebSocket server en el puerto 8080
+#   queue    → Worker de cola (QUEUE_CONNECTION=database)
+#
+# La base de datos MySQL es EXTERNA al compose (ya corre en el VPS).
+# Coolify inyecta el .env con las variables de entorno en el deploy.
+# =============================================================================
+
 services:
-  api:
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # NGINX — Punto de entrada único. Expone el puerto 80.
+  # Coolify/Traefik gestiona SSL en el host; este contenedor solo hace HTTP.
+  # ──────────────────────────────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      # Configuración personalizada de Nginx
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Volumen de storage (read-only) para servir archivos subidos directamente
+      - laravel-storage:/var/www/storage:ro
+    networks:
+      - blacksilver-net
+    depends_on:
+      php-fpm:
+        condition: service_healthy
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # PHP-FPM — Procesa las peticiones HTTP de la API Laravel.
+  # El entrypoint corre migraciones y cachea configs en el primer arranque.
+  # ──────────────────────────────────────────────────────────────────────────
+  php-fpm:
     build:
       context: .
-      dockerfile: Dockerfile
-      args:
-        - APP_ENV=production
-    image: blacksilver-api:latest
-    container_name: ${CONTAINER_NAME:-blacksilver-api}
+      dockerfile: docker/php/Dockerfile
+      target: production
     restart: unless-stopped
-
-    # Volúmenes persistentes
+    # El entrypoint solo lo usa php-fpm para correr migraciones/cache al inicio
+    entrypoint: ["/usr/local/bin/entrypoint.sh"]
+    command: ["php-fpm"]
+    env_file: .env
     volumes:
-      - api_storage:/var/www/html/storage
-      - api_logs:/var/log
-
-    # Recursos asignados para exprimir tu VPS
-    deploy:
-      resources:
-        limits:
-          cpus: '8.0'
-          memory: 16G
-        reservations:
-          cpus: '2.0'
-          memory: 4G
-
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1/up"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-
+      # Storage persistente: archivos subidos, caché de framework, sesiones
+      - laravel-storage:/var/www/storage
     networks:
-      - coolify
+      - blacksilver-net
+    healthcheck:
+      # Verifica que FPM está escuchando en el puerto 9000
+      test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s  # Tiempo para migraciones en el primer arranque
 
-volumes:
-  api_storage:
-    name: ${VOLUME_STORAGE:-blacksilver_api_storage}
-  api_logs:
-    name: ${VOLUME_LOGS:-blacksilver_api_logs}
+  # ──────────────────────────────────────────────────────────────────────────
+  # REVERB — Laravel Reverb WebSocket Server.
+  # Misma imagen que php-fpm pero con CMD distinto. Sin entrypoint de setup.
+  # Nginx lo proxea en las rutas /app/, /apps/, /channels/.
+  # ──────────────────────────────────────────────────────────────────────────
+  reverb:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: production
+    restart: unless-stopped
+    # Sin entrypoint.sh — Reverb no debe correr migraciones
+    entrypoint: []
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080", "--no-interaction"]
+    env_file: .env
+    volumes:
+      # Read-only: Reverb puede necesitar leer archivos de la app
+      - laravel-storage:/var/www/storage:ro
+    networks:
+      - blacksilver-net
+    depends_on:
+      php-fpm:
+        condition: service_healthy
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # QUEUE — Worker de cola de trabajos en background.
+  # QUEUE_CONNECTION=database (usa la misma MySQL externa).
+  # ──────────────────────────────────────────────────────────────────────────
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: production
+    restart: unless-stopped
+    entrypoint: []
+    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3"]
+    env_file: .env
+    volumes:
+      - laravel-storage:/var/www/storage
+    networks:
+      - blacksilver-net
+    depends_on:
+      php-fpm:
+        condition: service_healthy
 
 networks:
-  coolify:
-    name: ${NETWORK:-coolify}
-    external: true
+  blacksilver-net:
+
+volumes:
+  # Volumen persistente para storage de Laravel.
+  # Compartido entre php-fpm (escritura), reverb (lectura), queue (escritura)
+  # y nginx (lectura para servir archivos públicos).
+  laravel-storage:

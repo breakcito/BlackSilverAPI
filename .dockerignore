@@ -1,68 +1,53 @@
-# =============================================================================
-# .dockerignore - Excluye archivos del contexto de build de Docker
-# =============================================================================
-; Esto reduce significativamente el tiempo de build y el tamaño de la imagen,
-; evitando copiar archivos innecesarios al contexto.
-; =============================================================================
+# === Dependencias (se instalan dentro del build) ===
+vendor/
+node_modules/
 
-# Git
-.git
+# === Control de versiones ===
+.git/
 .gitignore
 .gitattributes
-.github
 
-# Entornos y configs locales
+# === Entorno (se provee en Coolify, nunca en imagen) ===
 .env
-.env.local
-.env.*.local
-.env.backup
-.editorconfig
+.env.*
 
-# Dependencias (se instalan en el Dockerfile)
-node_modules
-/vendor
+# === Logs y cache de runtime ===
+storage/logs/
+storage/pail/
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
 
-# Archivos de IDE y editores
-.vscode
-.idea
-.cursor
-.kiro
-.trae
-.claude
-.gemini
-*.swp
-*.swo
-*~
+# === Herramientas de desarrollo (no van a producción) ===
+docker/
+docker-compose.yml
+
+# === IDEs y editores ===
+.idea/
+.vscode/
+.cursor/
+.zed/
+.nova/
+.fleet/
+
+# === Archivos del SO ===
 .DS_Store
-
-# Logs y caches
-*.log
-.cache
-.phpunit.result.cache
-.phpunit.cache
-
-# Build artifacts
-/dist
-/public/storage
-/storage/framework/cache/data/*
-/storage/framework/sessions/*
-/storage/framework/views/*
-/storage/logs/*
-/bootstrap/cache/*.php
-
-# Documentación
-README.md
-AGENTS.md
-CLAUDE.md
-GEMINI.md
-tipo-bien.md
-prototipos
-
-# Otros
-auth.json
-Homestead.json
-Homestead.yaml
 Thumbs.db
-.mcp.json
+
+# === Documentación y configs de análisis estático ===
+README.md
+*.md
+phpstan.neon
 opencode.json
 boost.json
+CLAUDE.md
+GEMINI.md
+AGENTS.md
+
+# === Testing ===
+.phpunit.cache/
+.phpunit.result.cache
+
+# === Otros ===
+.mcp.json
+.editorconfig
