@@ -10,7 +10,6 @@
 # =============================================================================
 
 services:
-
   # ──────────────────────────────────────────────────────────────────────────
   # NGINX — Punto de entrada único. Expone el puerto 80.
   # Coolify/Traefik gestiona SSL en el host; este contenedor solo hace HTTP.
@@ -23,8 +22,7 @@ services:
     volumes:
       # Volumen de storage (read-only) para servir archivos subidos directamente
       - laravel-storage:/var/www/storage:ro
-    networks:
-      - blacksilver-net
+
     depends_on:
       php-fpm:
         condition: service_healthy
@@ -46,15 +44,14 @@ services:
     volumes:
       # Storage persistente: archivos subidos, caché de framework, sesiones
       - laravel-storage:/var/www/storage
-    networks:
-      - blacksilver-net
+
     healthcheck:
       # Verifica que FPM está escuchando en el puerto 9000
       test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 40s  # Tiempo para migraciones en el primer arranque
+      start_period: 40s # Tiempo para migraciones en el primer arranque
 
   # ──────────────────────────────────────────────────────────────────────────
   # REVERB — Laravel Reverb WebSocket Server.
@@ -67,13 +64,20 @@ services:
       dockerfile: docker/php/Dockerfile
       target: production
     restart: unless-stopped
-    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080", "--no-interaction"]
+    command:
+      [
+        "php",
+        "artisan",
+        "reverb:start",
+        "--host=0.0.0.0",
+        "--port=8080",
+        "--no-interaction",
+      ]
     env_file: .env
     volumes:
       # Read-only: Reverb puede necesitar leer archivos de la app
       - laravel-storage:/var/www/storage:ro
-    networks:
-      - blacksilver-net
+
     depends_on:
       php-fpm:
         condition: service_healthy
@@ -88,18 +92,15 @@ services:
       dockerfile: docker/php/Dockerfile
       target: production
     restart: unless-stopped
-    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3"]
+    command:
+      ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3"]
     env_file: .env
     volumes:
       - laravel-storage:/var/www/storage
-    networks:
-      - blacksilver-net
+
     depends_on:
       php-fpm:
         condition: service_healthy
-
-networks:
-  blacksilver-net:
 
 volumes:
   # Volumen persistente para storage de Laravel.
