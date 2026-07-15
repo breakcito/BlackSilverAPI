@@ -69,8 +69,6 @@ services:
       dockerfile: docker/php/Dockerfile
       target: production
     restart: unless-stopped
-    # Sin entrypoint.sh — Reverb no debe correr migraciones
-    entrypoint: []
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080", "--no-interaction"]
     env_file: .env
     volumes:
@@ -92,7 +90,6 @@ services:
       dockerfile: docker/php/Dockerfile
       target: production
     restart: unless-stopped
-    entrypoint: []
     command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3"]
     env_file: .env
     volumes:
