@@ -4,7 +4,6 @@ WORKDIR /app
 
 COPY composer.json composer.lock ./
 
-# Agregamos --ignore-platform-reqs para que no falle por falta de extensiones locales en esta etapa
 RUN composer install \
     --no-dev \
     --prefer-dist \
@@ -19,20 +18,19 @@ RUN composer install \
 FROM php:8.3-apache AS runtime
 
 LABEL maintainer="BlackSilver <dev@blacksilver.pe>"
-LABEL description="BlackSilver API - Laravel 12 Apache production image"
 
 ARG APP_ENV=production
 ENV APP_ENV=${APP_ENV}
 
-# Ajustar el DocumentRoot de Apache directamente a la carpeta /public de Laravel
+# Ajustar el DocumentRoot de Apache directamente a /public
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# Habilitar el módulo rewrite de Apache para que funcione el .htaccess nativo de Laravel
+# Habilitar rewrite para el .htaccess de Laravel
 RUN a2enmod rewrite headers
 
-# Instalar dependencias esenciales de Debian
+# Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y --no-install-recommends \
         bash \
         curl \
@@ -48,7 +46,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV TZ=America/Lima
 RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime && echo ${TZ} > /etc/timezone
 
-# Instalar extensiones de PHP necesarias para Laravel y optimizaciones
+# Instalar y compilar extensiones (Se queda cacheado para siempre)
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j$(nproc) \
         pdo_mysql \
@@ -61,18 +59,27 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
 
 WORKDIR /var/www/html
 
-# Copiar el código de la aplicación y dependencias de Composer
-COPY . /var/www/html
+# Copiar dependencias de Composer primero
 COPY --from=vendor /app/vendor /var/www/html/vendor
 
-# Permisos para que Apache pueda escribir en cache y logs
+# Copiar el código del proyecto
+COPY . /var/www/html
+
+# Permisos iniciales
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Crear el enlace simbólico de almacenamiento y limpiar caches de Laravel en frío
+RUN php artisan storage:link --force \
+    && php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache \
+    && php artisan event:cache \
+    && chown -R www-data:www-data /var/www/html/bootstrap/cache
 
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://127.0.0.1/up || exit 1
 
-# Arranca directamente Apache en primer plano de manera nativa sin entrypoint
 CMD ["apache2-foreground"]
