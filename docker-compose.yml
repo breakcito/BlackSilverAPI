@@ -102,6 +102,11 @@ services:
       php-fpm:
         condition: service_healthy
 
+networks:
+  default:
+    name: coolify
+    external: true
+
 volumes:
   # Volumen persistente para storage de Laravel.
   # Compartido entre php-fpm (escritura), reverb (lectura), queue (escritura)
