@@ -16,13 +16,13 @@ services:
   # Coolify/Traefik gestiona SSL en el host; este contenedor solo hace HTTP.
   # ──────────────────────────────────────────────────────────────────────────
   nginx:
-    image: nginx:alpine
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
     restart: unless-stopped
     ports:
       - "80:80"
     volumes:
-      # Configuración personalizada de Nginx
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       # Volumen de storage (read-only) para servir archivos subidos directamente
       - laravel-storage:/var/www/storage:ro
     networks:
