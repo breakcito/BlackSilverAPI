@@ -1,5 +1,68 @@
+# =============================================================================
+# .dockerignore - Excluye archivos del contexto de build de Docker
+# =============================================================================
+; Esto reduce significativamente el tiempo de build y el tamaño de la imagen,
+; evitando copiar archivos innecesarios al contexto.
+; =============================================================================
+
+# Git
 .git
-vendor
-docker-compose.yml
-.dockerignore
-/bruno
+.gitignore
+.gitattributes
+.github
+
+# Entornos y configs locales
+.env
+.env.local
+.env.*.local
+.env.backup
+.editorconfig
+
+# Dependencias (se instalan en el Dockerfile)
+node_modules
+/vendor
+
+# Archivos de IDE y editores
+.vscode
+.idea
+.cursor
+.kiro
+.trae
+.claude
+.gemini
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs y caches
+*.log
+.cache
+.phpunit.result.cache
+.phpunit.cache
+
+# Build artifacts
+/dist
+/public/storage
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/logs/*
+/bootstrap/cache/*.php
+
+# Documentación
+README.md
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+tipo-bien.md
+prototipos
+
+# Otros
+auth.json
+Homestead.json
+Homestead.yaml
+Thumbs.db
+.mcp.json
+opencode.json
+boost.json
