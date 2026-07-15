@@ -20,8 +20,6 @@ services:
       context: .
       dockerfile: docker/nginx/Dockerfile
     restart: unless-stopped
-    ports:
-      - "80:80"
     volumes:
       # Volumen de storage (read-only) para servir archivos subidos directamente
       - laravel-storage:/var/www/storage:ro
