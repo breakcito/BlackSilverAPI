@@ -8,6 +8,20 @@ set -e
 
 echo "[entrypoint] Iniciando BlackSilverAPI..."
 
+# Esperar a que la base de datos esté disponible si se define DB_HOST
+if [ -n "$DB_HOST" ]; then
+    echo "[entrypoint] Esperando a la base de datos ($DB_HOST:${DB_PORT:-3306})..."
+    until nc -z -w 2 "$DB_HOST" "${DB_PORT:-3306}"; do
+        echo "[entrypoint] Base de datos no disponible, reintentando en 2 segundos..."
+        sleep 2
+    done
+    echo "[entrypoint] Base de datos conectada con éxito."
+fi
+
+# Ejecutar migraciones automáticamente en producción
+echo "[entrypoint] Ejecutando migraciones de base de datos..."
+php artisan migrate --force
+
 # Cachear configuración, rutas y eventos de Laravel para máximo rendimiento.
 php artisan config:cache
 php artisan route:cache
