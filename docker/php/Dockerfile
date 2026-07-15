@@ -67,8 +67,8 @@ WORKDIR /var/www
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Asegurar permisos del storage y de la caché de bootstrap para www-data
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+# Asegurar permisos de todo el directorio /var/www para www-data (necesario para storage:link y cachés)
+RUN chown -R www-data:www-data /var/www
 
 USER www-data
 

@@ -19,7 +19,6 @@ storage/framework/sessions/
 storage/framework/views/
 
 # === Herramientas de desarrollo (no van a producción) ===
-docker/
 docker-compose.yml
 
 # === IDEs y editores ===
