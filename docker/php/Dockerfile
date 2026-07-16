@@ -7,9 +7,9 @@ FROM php:8.4-cli-alpine AS builder
 # Instalar dependencias del sistema indispensables para Composer
 RUN apk add --no-cache curl git unzip
 
-# Descargar e instalar el instalador de extensiones PHP
-ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
-RUN chmod +x /usr/local/bin/install-php-extensions
+# Descargar e instalar el instalador de extensiones PHP (usando curl para evitar invalidar la caché de Docker)
+RUN curl -fsSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions \
+    && chmod +x /usr/local/bin/install-php-extensions
 
 # Instalar extensiones PHP requeridas usando binarios precompilados de Alpine
 RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets opcache
@@ -54,9 +54,9 @@ FROM php:8.4-fpm-alpine AS production
 # Instalar dependencias de runtime y netcat para healthcheck
 RUN apk add --no-cache curl netcat-openbsd
 
-# Descargar e instalar el instalador de extensiones PHP
-ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
-RUN chmod +x /usr/local/bin/install-php-extensions
+# Descargar e instalar el instalador de extensiones PHP (usando curl para evitar invalidar la caché de Docker)
+RUN curl -fsSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions \
+    && chmod +x /usr/local/bin/install-php-extensions
 
 # Instalar extensiones PHP (usa binarios precompilados de Alpine e instala dependencias del sistema automáticamente)
 RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets opcache
