@@ -32,6 +32,7 @@ services:
   # El entrypoint corre migraciones y cachea configs en el primer arranque.
   # ──────────────────────────────────────────────────────────────────────────
   php-fpm:
+    image: blacksilver-api-php:latest
     build:
       context: .
       dockerfile: docker/php/Dockerfile
@@ -59,10 +60,8 @@ services:
   # Nginx lo proxea en las rutas /app/, /apps/, /channels/.
   # ──────────────────────────────────────────────────────────────────────────
   reverb:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
-      target: production
+    image: blacksilver-api-php:latest
+    pull_policy: never
     restart: unless-stopped
     command:
       [
@@ -87,10 +86,8 @@ services:
   # QUEUE_CONNECTION=database (usa la misma MySQL externa).
   # ──────────────────────────────────────────────────────────────────────────
   queue:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
-      target: production
+    image: blacksilver-api-php:latest
+    pull_policy: never
     restart: unless-stopped
     command:
       ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3"]
