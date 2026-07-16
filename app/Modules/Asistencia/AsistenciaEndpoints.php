@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Módulo de Asistencia (Recursos Humanos - Control Personal)
+| Módulo de Asistencia (Recursos Humanos - Control Personal) - :D
 |--------------------------------------------------------------------------
 */
 
