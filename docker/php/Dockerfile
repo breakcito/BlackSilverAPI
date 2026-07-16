@@ -12,7 +12,14 @@ ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/do
 RUN chmod +x /usr/local/bin/install-php-extensions
 
 # Instalar extensiones PHP requeridas usando binarios precompilados de Alpine
-RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets redis opcache
+RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets opcache
+
+# Instalar phpredis manualmente desde GitHub para evitar los fallos de red/REST de PECL
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
+    && mkdir -p /usr/src/php/ext/redis \
+    && curl -fsSL https://github.com/phpredis/phpredis/archive/refs/tags/6.1.0.tar.gz | tar xvz -C /usr/src/php/ext/redis --strip-components=1 \
+    && docker-php-ext-install redis \
+    && apk del .build-deps
 
 WORKDIR /var/www
 
@@ -52,7 +59,14 @@ ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/do
 RUN chmod +x /usr/local/bin/install-php-extensions
 
 # Instalar extensiones PHP (usa binarios precompilados de Alpine e instala dependencias del sistema automáticamente)
-RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets redis opcache
+RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets opcache
+
+# Instalar phpredis manualmente desde GitHub para evitar los fallos de red/REST de PECL
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
+    && mkdir -p /usr/src/php/ext/redis \
+    && curl -fsSL https://github.com/phpredis/phpredis/archive/refs/tags/6.1.0.tar.gz | tar xvz -C /usr/src/php/ext/redis --strip-components=1 \
+    && docker-php-ext-install redis \
+    && apk del .build-deps
 
 # Usar la configuración de producción de PHP para máxima seguridad y rendimiento
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
