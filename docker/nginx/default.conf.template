@@ -12,14 +12,20 @@ server {
     index index.php;
 
     # ─────────────────────────────────────────────────────────────────────
+    # Resolver: usar el DNS interno de Docker (127.0.0.11) para resolver
+    # aliases de red de forma LAZY (solo al recibir el request, no al
+    # arrancar nginx). Esto evita el "host not found" en startup cuando
+    # reverb aún no ha registrado su alias en la red.
+    # ─────────────────────────────────────────────────────────────────────
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
+    # ─────────────────────────────────────────────────────────────────────
     # WebSockets — Laravel Reverb
-    # Pusher-compatible: el cliente se conecta a /app/{key}
-    # Nginx hace upgrade del protocolo HTTP → WS y proxea a Reverb.
-    # La red 'app' aislada del compose garantiza que 'reverb' resuelve
-    # únicamente al container de este environment.
     # ─────────────────────────────────────────────────────────────────────
     location ~* ^/(app|apps|channels)/ {
-        proxy_pass         http://reverb-local:8080;
+        # Variable fuerza resolución lazy via resolver declarado arriba.
+        set $reverb_upstream "reverb-local";
+        proxy_pass         http://$reverb_upstream:8080;
         proxy_http_version 1.1;
 
         # Headers obligatorios para el upgrade WebSocket
