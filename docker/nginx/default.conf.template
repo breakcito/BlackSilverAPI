@@ -1,9 +1,13 @@
 server {
     listen 80;
 
-    # La raíz apunta al public/ del contenedor php-fpm.
-    # Nginx no necesita acceso físico a los archivos .php porque solo
-    # pasa el SCRIPT_FILENAME como parámetro a FPM (FastCGI).
+    # SERVER_NAME es inyectado por Coolify vía env var.
+    # PROD:  SERVER_NAME=api.blacksilver.pe
+    # DEV:   SERVER_NAME=api-dev.blacksilver.pe
+    # Nginx rechazará cualquier request cuyo Host no coincida,
+    # bloqueando el cross-env routing incluso si Traefik enruta mal.
+    server_name ${SERVER_NAME};
+
     root /var/www/public;
     index index.php;
 
@@ -11,12 +15,8 @@ server {
     # WebSockets — Laravel Reverb
     # Pusher-compatible: el cliente se conecta a /app/{key}
     # Nginx hace upgrade del protocolo HTTP → WS y proxea a Reverb.
-    #
-    # Usamos el alias de red "reverb-local" en vez del nombre de servicio
-    # "reverb" porque Docker DNS haría round-robin entre el reverb-prod y
-    # el reverb-dev (ambos están en la red compartida de Coolify). El alias
-    # "reverb-local" es único por compose project, así que resuelve solo al
-    # container de este environment.
+    # La red 'app' aislada del compose garantiza que 'reverb' resuelve
+    # únicamente al container de este environment.
     # ─────────────────────────────────────────────────────────────────────
     location ~* ^/(app|apps|channels)/ {
         proxy_pass         http://reverb-local:8080;
@@ -47,7 +47,8 @@ server {
 
     # ─────────────────────────────────────────────────────────────────────
     # API Laravel — todas las rutas van a través de index.php
-    # Mismo razonamiento: alias "php-fpm-local" para evitar round-robin.
+    # La red 'app' aislada del compose garantiza que 'php-fpm' resuelve
+    # únicamente al container de este environment.
     # ─────────────────────────────────────────────────────────────────────
     location / {
         try_files $uri $uri/ /index.php?$query_string;

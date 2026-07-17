@@ -8,14 +8,17 @@
 # La base de datos MySQL es EXTERNA al compose (ya corre en el VPS).
 # Coolify inyecta el .env con las variables de entorno en el deploy.
 #
-# Anti-round-robin entre environments:
-#   Coolify IGNORA el directive 'container_name' y asigna sus propios nombres
-#   con timestamp (ej. php-fpm-z7c5rebhbb8nxdo0ldduhqcu-131823148078).
-#   Para evitar DNS round-robin entre dev y prod, usamos NETWORK ALIASES
-#   únicos: php-fpm-local y reverb-local. Cada compose project tiene su propia
-#   red default, así que estos aliases son únicos por environment y resuelven
-#   al container local únicamente. Nginx los referencia directamente en
-#   nginx.conf sin envsubst.
+# Variables de entorno requeridas en Coolify:
+#   SERVER_NAME   → FQDN del API. Nginx solo acepta requests para este host.
+#                   PROD: api.blacksilver.pe   DEV: api-dev.blacksilver.pe
+#   DOCKER_TAG    → Tag único de la imagen PHP (generado por Coolify).
+#
+# Aislamiento de red entre environments:
+#   - php-fpm, reverb y queue están SOLO en la red 'default' del compose
+#     project (única y aislada por Coolify). Nginx es el único servicio
+#     expuesto al exterior (red 'coolify').
+#   - Los aliases php-fpm-local y reverb-local son únicos por project.
+#   - server_name en Nginx garantiza rechazo de requests del entorno opuesto.
 # =============================================================================
 
 services:
@@ -35,6 +38,8 @@ services:
     depends_on:
       php-fpm:
         condition: service_healthy
+      reverb:
+        condition: service_started
 
   # ──────────────────────────────────────────────────────────────────────────
   # PHP-FPM — Procesa las peticiones HTTP de la API Laravel.
@@ -106,6 +111,10 @@ services:
     image: blacksilver-api-php:${DOCKER_TAG}
     pull_policy: never
     restart: unless-stopped
+    # queue solo necesita la red default (acceso a php-fpm para dependencias
+    # de la app, acceso a MySQL externo). No necesita ser descubierto por Traefik.
+    networks:
+      - default
     command:
       ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3"]
     volumes:
