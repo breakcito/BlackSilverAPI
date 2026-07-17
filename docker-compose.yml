@@ -8,14 +8,14 @@
 # La base de datos MySQL es EXTERNA al compose (ya corre en el VPS).
 # Coolify inyecta el .env con las variables de entorno en el deploy.
 #
-# Networking: NO definimos 'networks:' para que Coolify use su red default
-# (con el nombre del proyecto). Coolify también conecta automáticamente los
-# containers a su red compartida donde vive Traefik.
-#
-# Anti-round-robin: cada servicio tiene container_name único con sufijo
-# ${DOCKER_TAG} (-prod / -dev). El nginx local usa envsubst para resolver
-# ${PHP_FPM_HOST} y ${REVERB_HOST} al container_name del env local,
-# evitando que Docker DNS devuelva el container del environment equivocado.
+# Anti-round-robin entre environments:
+#   Coolify IGNORA el directive 'container_name' y asigna sus propios nombres
+#   con timestamp (ej. php-fpm-z7c5rebhbb8nxdo0ldduhqcu-131823148078).
+#   Para evitar DNS round-robin entre dev y prod, usamos NETWORK ALIASES
+#   únicos: php-fpm-local y reverb-local. Cada compose project tiene su propia
+#   red default, así que estos aliases son únicos por environment y resuelven
+#   al container local únicamente. Nginx los referencia directamente en
+#   nginx.conf sin envsubst.
 # =============================================================================
 
 services:
@@ -27,14 +27,7 @@ services:
     build:
       context: .
       dockerfile: docker/nginx/Dockerfile
-    container_name: nginx-${DOCKER_TAG}
     restart: unless-stopped
-    environment:
-      # Variables consumidas por envsubst en nginx.conf.template.
-      # Se resuelven al nombre único del container local (con sufijo -prod/-dev)
-      # para evitar que nginx haga round-robin hacia el container del otro env.
-      - PHP_FPM_HOST=php-fpm-${DOCKER_TAG}
-      - REVERB_HOST=reverb-${DOCKER_TAG}
     volumes:
       # Volumen de storage (read-only) para servir archivos subidos directamente
       - laravel-storage:/var/www/storage:ro
@@ -45,6 +38,8 @@ services:
 
   # ──────────────────────────────────────────────────────────────────────────
   # PHP-FPM — Procesa las peticiones HTTP de la API Laravel.
+  # Alias de red: php-fpm-local (resuelve únicamente a este container en
+  # la red default del compose project, no al del environment opuesto).
   # ──────────────────────────────────────────────────────────────────────────
   php-fpm:
     image: blacksilver-api-php:${DOCKER_TAG}
@@ -52,11 +47,14 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
       target: production
-    container_name: php-fpm-${DOCKER_TAG}
     restart: unless-stopped
     # El entrypoint solo lo usa php-fpm para correr migraciones/cache al inicio
     entrypoint: ["/usr/local/bin/entrypoint.sh"]
     command: ["php-fpm"]
+    networks:
+      default:
+        aliases:
+          - php-fpm-local
     volumes:
       # Storage persistente: archivos subidos, caché de framework, sesiones
       - laravel-storage:/var/www/storage
@@ -73,12 +71,16 @@ services:
   # REVERB — Laravel Reverb WebSocket Server.
   # Misma imagen que php-fpm pero con CMD distinto. Sin entrypoint de setup.
   # Nginx lo proxea en las rutas /app/, /apps/, /channels/.
+  # Alias de red: reverb-local (mismo razonamiento que php-fpm-local).
   # ──────────────────────────────────────────────────────────────────────────
   reverb:
     image: blacksilver-api-php:${DOCKER_TAG}
     pull_policy: never
-    container_name: reverb-${DOCKER_TAG}
     restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - reverb-local
     command:
       [
         "php",
@@ -103,7 +105,6 @@ services:
   queue:
     image: blacksilver-api-php:${DOCKER_TAG}
     pull_policy: never
-    container_name: queue-${DOCKER_TAG}
     restart: unless-stopped
     command:
       ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3"]
