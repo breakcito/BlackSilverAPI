@@ -104,4 +104,7 @@ volumes:
   # Volumen persistente para storage de Laravel.
   # Compartido entre php-fpm (escritura), reverb (lectura), queue (escritura)
   # y nginx (lectura para servir archivos públicos).
+  # El nombre explícito evita que dev y prod compartan el mismo volumen
+  # sin importar el project name que Coolify asigne internamente.
   laravel-storage:
+    name: blacksilver-storage-${DOCKER_TAG:-prod}
