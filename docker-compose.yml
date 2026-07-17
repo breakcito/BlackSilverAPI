@@ -35,6 +35,9 @@ services:
       # Volumen de storage (read-only) para servir archivos subidos directamente
       - laravel-storage:/var/www/storage:ro
 
+    networks:
+      - default
+      - coolify
     depends_on:
       php-fpm:
         condition: service_healthy
@@ -130,3 +133,12 @@ volumes:
   # Compartido entre php-fpm (escritura), reverb (lectura), queue (escritura)
   # y nginx (lectura para servir archivos públicos).
   laravel-storage:
+
+networks:
+  # Red por defecto del compose project (aislada por Coolify por project name).
+  # Aquí viven los aliases php-fpm-local y reverb-local.
+  default: {}
+  # Red compartida de Coolify — Traefik la usa para descubrir nginx.
+  # Debe ser externa: ya existe, Coolify la gestiona.
+  coolify:
+    external: true
