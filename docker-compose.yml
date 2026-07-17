@@ -8,18 +8,20 @@
 # La base de datos MySQL es EXTERNA al compose (ya corre en el VPS).
 # Coolify inyecta el .env con las variables de entorno en el deploy.
 #
-# IMPORTANTE: php-fpm, reverb y queue NO están en la red 'coolify' a propósito.
-# Solo nginx la usa (para que Traefik lo alcance). Esto evita que Docker DNS
-# resuelva 'DB_HOST' al MySQL del environment equivocado cuando hay 2 envs
-# en el mismo proyecto de Coolify (round-robin → datos cruzados).
+# Networking: NO definimos 'networks:' para que Coolify use su red default
+# (con el nombre del proyecto). Coolify también conecta automáticamente los
+# containers a su red compartida donde vive Traefik.
+#
+# Anti-round-robin: cada servicio tiene container_name único con sufijo
+# ${DOCKER_TAG} (-prod / -dev). El nginx local usa envsubst para resolver
+# ${PHP_FPM_HOST} y ${REVERB_HOST} al container_name del env local,
+# evitando que Docker DNS devuelva el container del environment equivocado.
 # =============================================================================
 
 services:
   # ──────────────────────────────────────────────────────────────────────────
   # NGINX — Punto de entrada único. Expone el puerto 80.
-  # Único servicio en la red 'coolify' para que Traefik lo descubra.
-  # container_name con sufijo ${DOCKER_TAG} evita colisión con el nginx de
-  # otro environment en la misma red compartida de Coolify.
+  # Único servicio accesible públicamente (Traefik lo descubre).
   # ──────────────────────────────────────────────────────────────────────────
   nginx:
     build:
@@ -27,13 +29,10 @@ services:
       dockerfile: docker/nginx/Dockerfile
     container_name: nginx-${DOCKER_TAG}
     restart: unless-stopped
-    networks:
-      - app       # Red interna del compose (comunicación con php-fpm, reverb)
-      - coolify   # Red compartida de Coolify (Traefik llega aquí)
     environment:
       # Variables consumidas por envsubst en nginx.conf.template.
       # Se resuelven al nombre único del container local (con sufijo -prod/-dev)
-      # para evitar que nginx haga round-robin hacia el servicio del otro env.
+      # para evitar que nginx haga round-robin hacia el container del otro env.
       - PHP_FPM_HOST=php-fpm-${DOCKER_TAG}
       - REVERB_HOST=reverb-${DOCKER_TAG}
     volumes:
@@ -46,8 +45,6 @@ services:
 
   # ──────────────────────────────────────────────────────────────────────────
   # PHP-FPM — Procesa las peticiones HTTP de la API Laravel.
-  # Solo en la red 'app' para que Docker DNS no vea MySQLs de otros envs.
-  # container_name único evita round-robin de DNS entre dev y prod.
   # ──────────────────────────────────────────────────────────────────────────
   php-fpm:
     image: blacksilver-api-php:${DOCKER_TAG}
@@ -60,8 +57,6 @@ services:
     # El entrypoint solo lo usa php-fpm para correr migraciones/cache al inicio
     entrypoint: ["/usr/local/bin/entrypoint.sh"]
     command: ["php-fpm"]
-    networks:
-      - app       # Solo red interna. DB_HOST debe resolverse aquí o usar IP.
     volumes:
       # Storage persistente: archivos subidos, caché de framework, sesiones
       - laravel-storage:/var/www/storage
@@ -84,8 +79,6 @@ services:
     pull_policy: never
     container_name: reverb-${DOCKER_TAG}
     restart: unless-stopped
-    networks:
-      - app
     command:
       [
         "php",
@@ -112,8 +105,6 @@ services:
     pull_policy: never
     container_name: queue-${DOCKER_TAG}
     restart: unless-stopped
-    networks:
-      - app
     command:
       ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3"]
     volumes:
@@ -123,16 +114,6 @@ services:
       php-fpm:
         condition: service_healthy
 
-
-networks:
-  # Red interna del compose: nginx <-> php-fpm, nginx <-> reverb
-  app:
-    driver: bridge
-  # Red compartida de Coolify donde vive Traefik y los servicios DB.
-  # Solo nginx está aquí (para que Traefik lo descubra).
-  # IMPORTANTE: 'external: true' porque Coolify ya la creó.
-  coolify:
-    external: true
 
 volumes:
   # Volumen persistente para storage de Laravel.
