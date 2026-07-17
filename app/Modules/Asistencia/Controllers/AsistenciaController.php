@@ -107,4 +107,17 @@ class AsistenciaController extends Controller
             'id_empleado' => $request->query('id_empleado'),
         ]));
     }
+
+    /**
+     * Obtiene los intentos fallidos anónimos (donde id_empleado es nulo).
+     */
+    public function get_intentos_fallidos_anonimos(Request $request): JsonResponse
+    {
+        $filtros = [
+            'mes' => $request->query('mes'),
+            'year' => $request->query('year'),
+        ];
+
+        return response()->json(AsistenciaService::get_intentos_fallidos_anonimos($filtros));
+    }
 }

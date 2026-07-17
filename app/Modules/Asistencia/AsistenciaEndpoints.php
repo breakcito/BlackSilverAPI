@@ -15,6 +15,7 @@ Route::middleware('auth.jwt.custom')->prefix('asistencia')->group(function () {
     Route::get('/', [AsistenciaController::class, 'get_asistencias']);
     Route::get('calcular-planilla', [AsistenciaController::class, 'calcular_planilla']);
     Route::post('marcaje-manual', [AsistenciaController::class, 'registrar_marcaje_manual']);
+    Route::get('intentos-fallidos-anonimos', [AsistenciaController::class, 'get_intentos_fallidos_anonimos']);
     Route::get('{id_asistencia}', [AsistenciaController::class, 'get_asistencia_by_id'])
         ->whereNumber('id_asistencia');
 });
