@@ -71,17 +71,15 @@ RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
 # Usar la configuración de producción de PHP para máxima seguridad y rendimiento
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
-# Copiar el código fuente optimizado desde el builder
-COPY --from=builder /var/www /var/www
+# Copiar el código fuente optimizado desde el builder, asignando permisos
+# directamente en el COPY (evita el costoso 'chown -R' sobre miles de archivos)
+COPY --from=builder --chown=www-data:www-data /var/www /var/www
 
 WORKDIR /var/www
 
 # Copiar el entrypoint de inicio
-COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY --chown=www-data:www-data docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
-
-# Asegurar permisos de todo el directorio /var/www para www-data (necesario para storage:link y cachés)
-RUN chown -R www-data:www-data /var/www
 
 USER www-data
 

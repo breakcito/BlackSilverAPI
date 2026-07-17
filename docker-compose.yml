@@ -69,8 +69,8 @@ services:
       test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 40s # Tiempo para migraciones en el primer arranque
+      retries: 10
+      start_period: 90s # Tiempo para entrypoint: espera DB + cache artisan + storage:link
 
   # ──────────────────────────────────────────────────────────────────────────
   # REVERB — Laravel Reverb WebSocket Server.
