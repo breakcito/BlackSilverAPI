@@ -7,12 +7,19 @@ FROM php:8.4-cli-alpine AS builder
 # Instalar dependencias del sistema indispensables para Composer
 RUN apk add --no-cache curl git unzip
 
-# Descargar e instalar el instalador de extensiones PHP
-ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
-RUN chmod +x /usr/local/bin/install-php-extensions
+# Descargar e instalar el instalador de extensiones PHP (usando curl para evitar invalidar la caché de Docker)
+RUN curl -fsSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions \
+    && chmod +x /usr/local/bin/install-php-extensions
 
 # Instalar extensiones PHP requeridas usando binarios precompilados de Alpine
-RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets redis opcache
+RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets opcache
+
+# Instalar phpredis manualmente desde GitHub para evitar los fallos de red/REST de PECL
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
+    && mkdir -p /usr/src/php/ext/redis \
+    && curl -fsSL https://github.com/phpredis/phpredis/archive/refs/tags/6.1.0.tar.gz | tar xvz -C /usr/src/php/ext/redis --strip-components=1 \
+    && docker-php-ext-install redis \
+    && apk del .build-deps
 
 WORKDIR /var/www
 
@@ -47,27 +54,32 @@ FROM php:8.4-fpm-alpine AS production
 # Instalar dependencias de runtime y netcat para healthcheck
 RUN apk add --no-cache curl netcat-openbsd
 
-# Descargar e instalar el instalador de extensiones PHP
-ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
-RUN chmod +x /usr/local/bin/install-php-extensions
+# Descargar e instalar el instalador de extensiones PHP (usando curl para evitar invalidar la caché de Docker)
+RUN curl -fsSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions \
+    && chmod +x /usr/local/bin/install-php-extensions
 
 # Instalar extensiones PHP (usa binarios precompilados de Alpine e instala dependencias del sistema automáticamente)
-RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets redis opcache
+RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets opcache
+
+# Instalar phpredis manualmente desde GitHub para evitar los fallos de red/REST de PECL
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
+    && mkdir -p /usr/src/php/ext/redis \
+    && curl -fsSL https://github.com/phpredis/phpredis/archive/refs/tags/6.1.0.tar.gz | tar xvz -C /usr/src/php/ext/redis --strip-components=1 \
+    && docker-php-ext-install redis \
+    && apk del .build-deps
 
 # Usar la configuración de producción de PHP para máxima seguridad y rendimiento
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
-# Copiar el código fuente optimizado desde el builder
-COPY --from=builder /var/www /var/www
+# Copiar el código fuente optimizado desde el builder, asignando permisos
+# directamente en el COPY (evita el costoso 'chown -R' sobre miles de archivos)
+COPY --from=builder --chown=www-data:www-data /var/www /var/www
 
 WORKDIR /var/www
 
 # Copiar el entrypoint de inicio
-COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY --chown=www-data:www-data docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
-
-# Asegurar permisos de todo el directorio /var/www para www-data (necesario para storage:link y cachés)
-RUN chown -R www-data:www-data /var/www
 
 USER www-data
 
