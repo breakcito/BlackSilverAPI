@@ -18,15 +18,24 @@ services:
   # ──────────────────────────────────────────────────────────────────────────
   # NGINX — Punto de entrada único. Expone el puerto 80.
   # Único servicio en la red 'coolify' para que Traefik lo descubra.
+  # container_name con sufijo ${DOCKER_TAG} evita colisión con el nginx de
+  # otro environment en la misma red compartida de Coolify.
   # ──────────────────────────────────────────────────────────────────────────
   nginx:
     build:
       context: .
       dockerfile: docker/nginx/Dockerfile
+    container_name: nginx-${DOCKER_TAG}
     restart: unless-stopped
     networks:
       - app       # Red interna del compose (comunicación con php-fpm, reverb)
       - coolify   # Red compartida de Coolify (Traefik llega aquí)
+    environment:
+      # Variables consumidas por envsubst en nginx.conf.template.
+      # Se resuelven al nombre único del container local (con sufijo -prod/-dev)
+      # para evitar que nginx haga round-robin hacia el servicio del otro env.
+      - PHP_FPM_HOST=php-fpm-${DOCKER_TAG}
+      - REVERB_HOST=reverb-${DOCKER_TAG}
     volumes:
       # Volumen de storage (read-only) para servir archivos subidos directamente
       - laravel-storage:/var/www/storage:ro
@@ -38,6 +47,7 @@ services:
   # ──────────────────────────────────────────────────────────────────────────
   # PHP-FPM — Procesa las peticiones HTTP de la API Laravel.
   # Solo en la red 'app' para que Docker DNS no vea MySQLs de otros envs.
+  # container_name único evita round-robin de DNS entre dev y prod.
   # ──────────────────────────────────────────────────────────────────────────
   php-fpm:
     image: blacksilver-api-php:${DOCKER_TAG}
@@ -45,6 +55,7 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
       target: production
+    container_name: php-fpm-${DOCKER_TAG}
     restart: unless-stopped
     # El entrypoint solo lo usa php-fpm para correr migraciones/cache al inicio
     entrypoint: ["/usr/local/bin/entrypoint.sh"]
@@ -71,6 +82,7 @@ services:
   reverb:
     image: blacksilver-api-php:${DOCKER_TAG}
     pull_policy: never
+    container_name: reverb-${DOCKER_TAG}
     restart: unless-stopped
     networks:
       - app
@@ -98,6 +110,7 @@ services:
   queue:
     image: blacksilver-api-php:${DOCKER_TAG}
     pull_policy: never
+    container_name: queue-${DOCKER_TAG}
     restart: unless-stopped
     networks:
       - app
