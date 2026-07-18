@@ -48,118 +48,12 @@ class AsistenciaService
             $fila['estado'] = 'Exitoso';
         }
 
-        // Obtener intentos fallidos identificados (donde id_empleado NO es nulo y proceso_confirmado = false)
-        $queryFailed = Marcaje::query()
-            ->select([
-                'marcaje.id as id_marcaje_fallido',
-                'marcaje.id_empleado',
-                'marcaje.id_programacion_horario',
-                'marcaje.fecha_hora',
-                'marcaje.tipo_marcaje',
-                'marcaje.evidencias',
-                'marcaje.es_manual as marcaje_es_manual',
-                'emp.nombre',
-                'emp.apellido',
-                'emp.dni',
-                'emp.url_foto',
-                'ct.tipo_contrato',
-                'ct.sueldo_base',
-                'ct.salario_diario',
-                'car.nombre as cargo_nombre',
-                'are.nombre as area_nombre',
-                'tl.tipo_turno',
-                'tl.hora_ingreso',
-                'tl.hora_salida',
-                'tl.minutos_tolerancia',
-                'tl.total_horas as turno_total_horas',
-                DB::raw("COALESCE(alm.nombre, lab.nombre) as lugar_nombre"),
-                DB::raw("DATE(marcaje.fecha_hora) as fecha"),
-            ])
-            ->join('empleado as emp', 'emp.id', '=', 'marcaje.id_empleado')
-            ->leftJoin('contrato_trabajo as ct', function ($join) {
-                $join->on('ct.id_empleado', '=', 'marcaje.id_empleado')
-                    ->whereRaw('DATE(marcaje.fecha_hora) >= ct.fecha_inicio')
-                    ->whereRaw('(ct.fecha_fin IS NULL OR DATE(marcaje.fecha_hora) <= ct.fecha_fin)');
-            })
-            ->leftJoin('cargo as car', 'car.id', '=', 'ct.id_cargo')
-            ->leftJoin('area as are', 'are.id', '=', 'car.id_area')
-            ->leftJoin('programacion_horario as ph', 'ph.id', '=', 'marcaje.id_programacion_horario')
-            ->leftJoin('turno_laboral as tl', 'tl.id', '=', 'ph.id_turno_laboral')
-            ->leftJoin('almacen as alm', 'alm.id', '=', 'ph.id_almacen')
-            ->leftJoin('labor as lab', 'lab.id', '=', 'ph.id_labor')
-            ->where('marcaje.proceso_confirmado', false)
-            ->whereNotNull('marcaje.id_empleado');
-
-        if (!empty($filtros['mes'])) {
-            $queryFailed->whereRaw('MONTH(marcaje.fecha_hora) = ?', [(int)$filtros['mes']]);
-        }
-        if (!empty($filtros['year'])) {
-            $queryFailed->whereRaw('YEAR(marcaje.fecha_hora) = ?', [(int)$filtros['year']]);
-        }
-        if (!empty($filtros['id_empleado'])) {
-            $queryFailed->where('marcaje.id_empleado', $filtros['id_empleado']);
-        }
-        if (!empty($filtros['q'])) {
-            $queryFailed->where(function ($q) use ($filtros) {
-                $q->where('emp.nombre', 'like', '%' . $filtros['q'] . '%')
-                  ->orWhere('emp.apellido', 'like', '%' . $filtros['q'] . '%')
-                  ->orWhere('emp.dni', 'like', '%' . $filtros['q'] . '%');
-            });
-        }
-
-        $failedRows = $queryFailed->get()->toArray();
-        $failedMapped = [];
-        foreach ($failedRows as $fRow) {
-            $failedMapped[] = [
-                'id' => 'failed_' . $fRow['id_marcaje_fallido'],
-                'id_asistencia' => null,
-                'id_empleado' => $fRow['id_empleado'],
-                'id_programacion_horario' => $fRow['id_programacion_horario'],
-                'fecha_hora_ingreso' => $fRow['fecha_hora'],
-                'fecha_hora_salida' => null,
-                'total_horas' => 0.0,
-                'jornada_trabajada' => 0.0,
-                'minutos_tardanza' => 0,
-                'asistencia_es_manual' => (bool)$fRow['marcaje_es_manual'],
-                'nombre' => $fRow['nombre'],
-                'apellido' => $fRow['apellido'],
-                'dni' => $fRow['dni'],
-                'url_foto' => $fRow['url_foto'],
-                'tipo_contrato' => $fRow['tipo_contrato'],
-                'sueldo_base' => $fRow['sueldo_base'] !== null ? (float)$fRow['sueldo_base'] : null,
-                'salario_diario' => $fRow['salario_diario'] !== null ? (float)$fRow['salario_diario'] : null,
-                'cargo_nombre' => $fRow['cargo_nombre'],
-                'area_nombre' => $fRow['area_nombre'],
-                'tipo_turno' => $fRow['tipo_turno'],
-                'hora_ingreso' => $fRow['hora_ingreso'],
-                'hora_salida' => $fRow['hora_salida'],
-                'minutos_tolerancia' => $fRow['minutos_tolerancia'],
-                'turno_total_horas' => $fRow['turno_total_horas'],
-                'lugar_nombre' => $fRow['lugar_nombre'],
-                'fecha' => $fRow['fecha'],
-                'pago_dia' => 0.0,
-                'estado' => 'Incompleto',
-                'marcajes' => [
-                    [
-                        'id' => $fRow['id_marcaje_fallido'],
-                        'id_empleado' => $fRow['id_empleado'],
-                        'id_programacion_horario' => $fRow['id_programacion_horario'],
-                        'fecha_hora' => $fRow['fecha_hora'],
-                        'tipo_marcaje' => $fRow['tipo_marcaje'],
-                        'proceso_confirmado' => false,
-                        'evidencias' => $fRow['evidencias'],
-                    ]
-                ]
-            ];
-        }
-
-        // Combinamos y ordenamos por fecha_hora_ingreso descendente
-        $combined = array_merge($filas, $failedMapped);
-        usort($combined, function ($a, $b) {
+        // Ordenamos por fecha_hora_ingreso descendente
+        usort($filas, function ($a, $b) {
             return strcmp($b['fecha_hora_ingreso'] ?? '', $a['fecha_hora_ingreso'] ?? '');
         });
 
-        return ApiResponse::success($combined);
+        return ApiResponse::success($filas);
     }
 
     /**
@@ -168,8 +62,9 @@ class AsistenciaService
     public static function get_intentos_fallidos_anonimos(array $filtros): array
     {
         $query = Marcaje::query()
-            ->where('proceso_confirmado', false)
-            ->whereNull('id_empleado');
+            ->select('marcaje.*', \DB::raw("TRIM(CONCAT(COALESCE(e.nombre, ''), ' ', COALESCE(e.apellido, ''))) as empleado_nombre"), 'e.qr_token as empleado_qr_token', 'e.url_foto as empleado_url_foto')
+            ->leftJoin('empleado as e', 'e.id', '=', 'marcaje.id_empleado')
+            ->where('marcaje.proceso_confirmado', false);
 
         if (!empty($filtros['mes'])) {
             $query->whereRaw('MONTH(fecha_hora) = ?', [(int)$filtros['mes']]);
