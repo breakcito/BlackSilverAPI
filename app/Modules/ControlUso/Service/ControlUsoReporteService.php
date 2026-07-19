@@ -15,7 +15,7 @@ class ControlUsoReporteService
     public static function get_reporte_mensual(int $mes, int $anio)
     {
         try {
-            $logs = ControlUsoReporteData::get_logs_por_mes($mes, $anio);
+            $registros = ControlUsoReporteData::get_registros_uso($mes, $anio);
             $mantenimientos = ControlUsoReporteData::get_mantenimientos_por_mes($mes, $anio);
 
             $empresa = Empresa::first();
@@ -25,7 +25,7 @@ class ControlUsoReporteService
             }
 
             return ApiResponse::success([
-                'logs' => $logs,
+                'logs' => $registros,
                 'mantenimientos' => $mantenimientos,
                 'empresa_logo' => $empresa_logo
             ], 'Reporte generado');

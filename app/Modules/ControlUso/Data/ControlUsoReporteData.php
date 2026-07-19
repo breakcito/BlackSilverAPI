@@ -7,9 +7,9 @@ use Illuminate\Support\Facades\DB;
 class ControlUsoReporteData
 {
     /**
-     * Obtener TODOS los logs de uso del mes, sin importar el tipo de control ni paginación.
+     * Obtener TODOS los registros de uso del mes.
      */
-    public static function get_logs_por_mes(int $mes, int $anio)
+    public static function get_registros_uso(int $mes, int $anio)
     {
         $sql = '
         SELECT 
@@ -56,8 +56,9 @@ class ControlUsoReporteData
         LEFT JOIN mina act_mi ON act_mi.id = act.id_mina
         LEFT JOIN almacen act_al ON act_al.id = act.id_almacen
         LEFT JOIN tipo_material tm ON tm.id = tar.id_tipo_material
-        WHERE MONTH(log.fecha_hora_inicio_control) = :mes 
-          AND YEAR(log.fecha_hora_inicio_control) = :anio
+        WHERE 
+            MONTH(log.fecha_hora_inicio_control) = :mes AND 
+            YEAR(log.fecha_hora_inicio_control) = :anio
         ORDER BY act.correlativo ASC, log.fecha_hora_inicio_control ASC
         ';
 
@@ -70,16 +71,19 @@ class ControlUsoReporteData
     public static function get_mantenimientos_por_mes(int $mes, int $anio)
     {
         $sql = '
-        SELECT 
+        SELECT
             m.id,
             m.id_activo_fijo,
             m.fecha_hora_mantenimiento,
-            m.tipo_control,
+            m.total_horas,
+            m.total_kilometros,
+            m.total_vueltas,
             m.observacion,
-            act.total_horas as horometro_actual,
-            act.total_kilometros as odometro_actual,
-            act.total_vueltas as vueltas_actuales
-        FROM mantenimiento_activo_log m
+            act.total_horas AS horometro_actual,
+            act.total_kilometros AS odometro_actual,
+            act.total_vueltas AS vueltas_actuales
+        FROM
+            mantenimiento_activo m
         INNER JOIN activo_fijo act ON act.id = m.id_activo_fijo
         WHERE MONTH(m.fecha_hora_mantenimiento) = :mes 
           AND YEAR(m.fecha_hora_mantenimiento) = :anio
