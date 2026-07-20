@@ -44,6 +44,16 @@ services:
       reverb:
         condition: service_started
 
+    healthcheck:
+      # Liveness check: confirma que nginx responde. Es interno (no toca PHP-FPM
+      # ni la DB) para ser instantáneo y no acoplarse al ciclo de vida de Laravel.
+      # Traefik/Coolify enrutan tráfico solo si este check pasa.
+      test: ["CMD-SHELL", "curl -fsS http://localhost/api/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
   # ──────────────────────────────────────────────────────────────────────────
   # PHP-FPM — Procesa las peticiones HTTP de la API Laravel.
   # Alias de red: php-fpm-local (resuelve únicamente a este container en

@@ -1,5 +1,8 @@
 FROM nginx:alpine
 
+# curl es requerido por Docker HEALTHCHECK (Coolify/Traefik).
+RUN apk add --no-cache curl
+
 # nginx.conf (main): worker_processes, events, http block.
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
 
