@@ -17,6 +17,7 @@ use App\Services\LotesMineralService;
 use App\Services\LotesProductosService;
 use App\Services\MarcasService;
 use App\Services\MinasService;
+use App\Services\OficinasService;
 use App\Services\PersonalExternoService;
 use App\Services\ProductosService;
 use App\Services\ProveedoresService;
@@ -655,6 +656,20 @@ class AuxController extends Controller
         $result = AgenciasService::crear_agencia(
             razon_social: $request->input('razon_social'),
             return_object: true
+        );
+
+        return response()->json($result);
+    }
+
+    public function get_oficinas(Request $request): JsonResponse
+    {
+        $id_oficina = $request->input('id_oficina') ? (int) $request->input('id_oficina') : null;
+        $id_empresa = $request->input('id_empresa') ? (int) $request->input('id_empresa') : null;
+        $estado = $request->input('estado') ? EstadoBase::from($request->input('estado')) : EstadoBase::Activo;
+        $result = OficinasService::get_oficinas(
+            id_oficina: $id_oficina,
+            id_empresa: $id_empresa,
+            estado: $estado
         );
 
         return response()->json($result);

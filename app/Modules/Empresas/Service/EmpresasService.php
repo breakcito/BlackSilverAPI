@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Modules\Empresas;
+namespace App\Modules\Empresas\Service;
 
+use App\Data\OficinasData;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\Empresas\Data\EmpresasData;
@@ -16,6 +17,17 @@ class EmpresasService
     public static function get_empresas()
     {
         $empresas = EmpresasDataGlobal::get_empresas();
+
+        // recopilar id's unicos de todas las empresas
+        $ids_empresas = array_unique(array_column($empresas, 'id_empresa'));
+
+        // obtener las oficinas de todas las empresas
+        $oficinas = OficinasData::get_oficinas(id_empresa: $ids_empresas);
+
+        // asociar oficinas a cada empresa
+        foreach ($empresas as $empresa) {
+            $empresa['oficinas'] = $oficinas->where('id_empresa', $empresa['id_empresa']);
+        }
 
         return ApiResponse::success($empresas);
     }

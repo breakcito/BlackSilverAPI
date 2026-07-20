@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Modules\Empresas;
+namespace App\Modules\Empresas\Controller;
 
+use App\Modules\Empresas\Service\EmpresasService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
