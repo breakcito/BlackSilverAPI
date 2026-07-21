@@ -64,7 +64,7 @@ class AuxController extends Controller
         $id_almacen = (int) $request->input('id_almacen');
         $ids_productos = $request->input('ids_productos');
 
-        if (! $id_almacen || empty($ids_productos) || ! is_array($ids_productos)) {
+        if (!$id_almacen || empty($ids_productos) || !is_array($ids_productos)) {
             return response()->json(ApiResponse::error('ID de almacén y arreglo de productos son requeridos'), 400);
         }
 
@@ -120,7 +120,7 @@ class AuxController extends Controller
         $fecha_fin_programacion = $request->input('fecha_fin_programacion');
         $id_lugar = $request->input('id_lugar') ? (int) $request->input('id_lugar') : null;
         $tipo_lugar = $request->input('tipo_lugar');
-        if ($tipo_lugar !== null && ! in_array($tipo_lugar, ['almacen', 'labor', 'oficina'], true)) {
+        if ($tipo_lugar !== null && !in_array($tipo_lugar, ['almacen', 'labor', 'oficina'], true)) {
             $tipo_lugar = null;
         }
 
@@ -188,7 +188,7 @@ class AuxController extends Controller
 
         // Si tiene contrato vigente, el id_cargo se gestiona con el contrato (no se requiere elegirlo en este flujo)
         if ($con_contrato) {
-            $id_cargo = ! empty($id_cargo_input) ? (int) $id_cargo_input : 0;
+            $id_cargo = !empty($id_cargo_input) ? (int) $id_cargo_input : 0;
         } else {
             if (empty($id_cargo_input)) {
                 return response()->json(ApiResponse::error('Debe seleccionar un cargo.'));
@@ -589,7 +589,7 @@ class AuxController extends Controller
     public function get_tipos_contrato(Request $request): JsonResponse
     {
         $tipos = array_map(
-            fn (TipoContrato $c) => [
+            fn(TipoContrato $c) => [
                 'value' => $c->value,
                 'label' => $c->value === TipoContrato::Planilla->value ? 'Planilla' : 'Jornada Diaria',
             ],
@@ -607,11 +607,11 @@ class AuxController extends Controller
         $excluidos = ['semanal', 'ninguno'];
         $periodos = array_values(array_filter(
             Periodo::cases(),
-            fn (Periodo $p) => ! in_array($p->value, $excluidos, true)
+            fn(Periodo $p) => !in_array($p->value, $excluidos, true)
         ));
 
         $data = array_map(
-            fn (Periodo $p) => [
+            fn(Periodo $p) => [
                 'value' => $p->value,
                 'label' => ucfirst($p->value),
             ],
@@ -663,9 +663,16 @@ class AuxController extends Controller
 
     public function get_oficinas(Request $request): JsonResponse
     {
-        $id_oficina = $request->input('id_oficina') ? (int) $request->input('id_oficina') : null;
-        $id_empresa = $request->input('id_empresa') ? (int) $request->input('id_empresa') : null;
-        $estado = $request->input('estado') ? EstadoBase::from($request->input('estado')) : EstadoBase::Activo;
+        $id_oficina = $request->input('id_oficina');
+        $id_oficina = is_array($id_oficina) ? array_map('intval', $id_oficina) : ($id_oficina !== null ? (int) $id_oficina : null);
+
+        $id_empresa = $request->input('id_empresa');
+        $id_empresa = is_array($id_empresa) ? array_map('intval', $id_empresa) : ($id_empresa !== null ? (int) $id_empresa : null);
+
+        $estado = $request->filled('estado')
+            ? EstadoBase::from($request->input('estado'))
+            : EstadoBase::Activo;
+
         $result = OficinasService::get_oficinas(
             id_oficina: $id_oficina,
             id_empresa: $id_empresa,

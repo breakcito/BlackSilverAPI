@@ -9,11 +9,11 @@ use App\Shared\Responses\ApiResponse;
 class OficinasService
 {
     public static function get_oficinas(
-        ?int $id_oficina = null,
-        ?int $id_empresa = null,
+        int|array|null $id_oficina = null,
+        int|array|null $id_empresa = null,
         ?EstadoBase $estado = EstadoBase::Activo,
     ): array {
-        $data = OficinasData::get_oficinas();
+        $data = OficinasData::get_oficinas(id_oficina: $id_oficina, id_empresa: $id_empresa, estado: $estado);
         return ApiResponse::success($data, "Oficinas obtenidas correctamente");
     }
 
