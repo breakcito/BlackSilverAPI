@@ -73,12 +73,14 @@ class OficinasData
     }
 
     /**
-     * Verificar si existe la oficina
+     * Verificar si ya existe una oficina activa con el mismo nombre en la empresa.
+     * Solo valida contra oficinas activas para permitir recrear una que fue dada de baja.
      */
     public static function ya_existe(int $id_empresa, string $nombre): bool
     {
         return Oficina::where('id_empresa', $id_empresa)
             ->where('nombre', $nombre)
+            ->where('estado', EstadoBase::Activo->value)
             ->exists();
     }
 }

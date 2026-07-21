@@ -17,5 +17,8 @@ class Empresa extends Model
         'ruc',
         'razon_social',
         'url_logo',
+        'domicilio_fiscal',
+        'documentos', // JSON[]
+        'estado' // EstadoBase
     ];
 }

@@ -34,11 +34,6 @@ class EmpresasData
             return DB::selectOne($sql, $params);
         }
 
-        if ($estado !== null) {
-            $sql .= ' AND emp.estado = :estado';
-            $params['estado'] = $estado->value;
-        }
-
         $sql .= ' ORDER BY razon_social ASC';
 
         return DB::select($sql, $params);
