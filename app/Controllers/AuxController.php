@@ -309,7 +309,7 @@ class AuxController extends Controller
             'id_categoria' => 'required|integer',
             'id_unidad_medida_base' => 'required|integer',
             'nombre' => 'required|string|max:128',
-            'prefijo' => 'nullable|string|max:4',
+            'prefijo' => 'nullable|string|max:24',
             'es_auditable' => 'required|boolean',
             'para_mantenimiento' => 'required|boolean',
             'es_perecible' => 'required|boolean',
