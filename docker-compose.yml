@@ -42,17 +42,18 @@ services:
       php-fpm:
         condition: service_healthy
       reverb:
-        condition: service_started
+        condition: service_healthy
 
     healthcheck:
-      # Liveness check: confirma que nginx responde. Es interno (no toca PHP-FPM
-      # ni la DB) para ser instantáneo y no acoplarse al ciclo de vida de Laravel.
-      # Traefik/Coolify enrutan tráfico solo si este check pasa.
-      test: ["CMD-SHELL", "curl -fsS http://localhost/api/health/live || exit 1"]
+      # Liveness check: responde en microsegundos desde loopback sin tocar PHP-FPM
+      # ni la DB. Usar 127.0.0.1 es crítico: evita salir al exterior vía DNS/Traefik.
+      # El header Host hace que nginx acepte el request (server_name coincide).
+      # /api/health/live → return 200 directo en nginx (ver default.conf.template).
+      test: ["CMD", "curl", "-sf", "-H", "Host: ${SERVER_NAME}", "http://127.0.0.1/api/health/live"]
       interval: 15s
-      timeout: 5s
+      timeout: 3s
       retries: 3
-      start_period: 15s
+      start_period: 30s
 
   # ──────────────────────────────────────────────────────────────────────────
   # PHP-FPM — Procesa las peticiones HTTP de la API Laravel.
@@ -112,6 +113,14 @@ services:
       # Permisos de lectura/escritura para que Reverb pueda escribir logs
       - laravel-storage:/var/www/storage
 
+    healthcheck:
+      # Verifica que Reverb está escuchando en el puerto 8080
+      test: ["CMD-SHELL", "nc -z localhost 8080 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
     depends_on:
       php-fpm:
         condition: service_healthy
@@ -133,10 +142,17 @@ services:
     volumes:
       - laravel-storage:/var/www/storage
 
+    healthcheck:
+      # Verifica que el proceso queue:work está activo
+      test: ["CMD-SHELL", "pgrep -f 'artisan queue:work' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
     depends_on:
       php-fpm:
         condition: service_healthy
-
 
 volumes:
   # Volumen persistente para storage de Laravel.
