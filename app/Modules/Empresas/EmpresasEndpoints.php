@@ -22,6 +22,10 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
             // Actualizar logo de empresa
             Route::post('{id}/logo', 'actualizar_logo');
+
+            // Documentos de empresa
+            Route::post('{id}/documentos', 'agregar_documentos');
+            Route::delete('{id}/documentos', 'eliminar_documento');
         });
 
         Route::prefix('/oficinas')->controller(OficinasController::class)->group(function () {
