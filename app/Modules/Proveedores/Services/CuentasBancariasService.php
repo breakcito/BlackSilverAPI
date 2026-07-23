@@ -8,7 +8,7 @@ use App\Modules\Proveedores\Data\CuentasBancariasData;
 
 class CuentasBancariasService
 {
-    public static function get_cuentas_bancarias(int $idProveedor): array
+    public static function get_cuentas_bancarias(int $idProveedor)
     {
         $data = CuentasBancariasData::get_cuentas_bancarias($idProveedor);
         return ApiResponse::success($data, "Cuentas bancarias obtenidas correctamente");
