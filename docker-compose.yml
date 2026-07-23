@@ -19,6 +19,11 @@ services:
       timeout: 2s
       retries: 3
       start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.${COOLIFY_RESOURCE_UUID:-nginx}.loadbalancer.healthcheck.path=/api/health/live"
+      - "traefik.http.services.${COOLIFY_RESOURCE_UUID:-nginx}.loadbalancer.healthcheck.interval=5s"
+      - "traefik.http.services.${COOLIFY_RESOURCE_UUID:-nginx}.loadbalancer.healthcheck.timeout=2s"
 
   php-fpm:
     image: blacksilver-api-php:${DOCKER_TAG}
