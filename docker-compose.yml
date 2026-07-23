@@ -5,6 +5,8 @@ services:
       dockerfile: docker/nginx/Dockerfile
     restart: unless-stopped
     stop_grace_period: 2s
+    expose:
+      - "80"
     volumes:
       - laravel-storage:/var/www/storage:ro
     networks:
