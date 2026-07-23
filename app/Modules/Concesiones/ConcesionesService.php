@@ -26,7 +26,7 @@ class ConcesionesService
         string $codigo_reinfo,
         ?string $ubigeo,
         string|TipoMineral $tipo_mineral
-    ): array|object {
+    ) {
         if (ConcesionesData::existe_nombre($nombre)) {
             return ApiResponse::error('El nombre de la concesión ya existe.');
         }
