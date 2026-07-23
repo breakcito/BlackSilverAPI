@@ -15,12 +15,6 @@ services:
     depends_on:
       php-fpm:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://127.0.0.1/api/health/live || exit 1"]
-      interval: 5s
-      timeout: 2s
-      retries: 3
-      start_period: 5s
 
   php-fpm:
     image: blacksilver-api-php:${DOCKER_TAG}
@@ -40,10 +34,10 @@ services:
       - laravel-storage:/var/www/storage
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
-      interval: 3s
-      timeout: 2s
-      retries: 3
-      start_period: 5s
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
 
   reverb:
     image: blacksilver-api-php:${DOCKER_TAG}

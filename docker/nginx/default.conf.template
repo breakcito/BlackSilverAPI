@@ -36,7 +36,6 @@ server {
     }
 
     location ~ \.php$ {
-        # Conexión directa al alias de la red interna de Docker Compose
         fastcgi_pass php-fpm-local:9000;
 
         fastcgi_param SCRIPT_FILENAME /var/www/public$fastcgi_script_name;
@@ -44,7 +43,7 @@ server {
 
         include fastcgi_params;
 
-        fastcgi_connect_timeout 5s;
+        fastcgi_connect_timeout 10s;
         fastcgi_read_timeout 300s;
         fastcgi_send_timeout 60s;
         fastcgi_buffer_size 16k;
