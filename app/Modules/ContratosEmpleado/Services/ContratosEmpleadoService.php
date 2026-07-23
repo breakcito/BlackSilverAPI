@@ -17,7 +17,7 @@ class ContratosEmpleadoService
     public static function get_contratos(
         ?int $id_empleado = null,
         ?EstadoContrato $estado = null,
-    ): array {
+    ) {
         $data = ContratosEmpleadoData::get_contratos(id_empleado: $id_empleado, estado: $estado);
 
         return ApiResponse::success($data);
