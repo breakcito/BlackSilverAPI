@@ -9,8 +9,7 @@ server {
 
     # WebSockets — Laravel Reverb
     location ~* ^/(app|apps|channels)/ {
-        set $reverb_upstream "reverb-local:8080";
-        proxy_pass http://$reverb_upstream;
+        proxy_pass http://reverb-local:8080;
         proxy_http_version 1.1;
 
         proxy_set_header Upgrade $http_upgrade;
@@ -37,8 +36,8 @@ server {
     }
 
     location ~ \.php$ {
-        set $php_fpm_upstream "php-fpm-local:9000";
-        fastcgi_pass $php_fpm_upstream;
+        # Conexión directa al alias de la red interna de Docker Compose
+        fastcgi_pass php-fpm-local:9000;
 
         fastcgi_param SCRIPT_FILENAME /var/www/public$fastcgi_script_name;
         fastcgi_param SCRIPT_NAME $fastcgi_script_name;
