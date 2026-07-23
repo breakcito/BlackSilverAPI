@@ -53,7 +53,7 @@ class AreasService
      *
      * @param array|null $cargos Array de strings con los nombres de los cargos a crear: ['nombre' => string][]
      */
-    public static function crear_area(string $nombre, ?array $cargos = null): array|object
+    public static function crear_area(string $nombre, ?array $cargos = null)
     {
         if (AreasData::verificar_nombre_duplicado($nombre)) {
             return ApiResponse::error('Ya existe un área con este nombre.');
