@@ -1,3 +1,11 @@
+# 1. BLOQUE POR DEFECTO: Rechaza peticiones cuyo Host no coincida exactamente
+server {
+    listen 80 default_server;
+    server_name _;
+    return 421 '{"error":"Misdirected Request","message":"Invalid Host header for this environment"}';
+}
+
+# 2. BLOQUE DE LA APLICACIÓN: Procesa solo peticiones destinadas a este entorno
 server {
     listen 80;
 
@@ -41,7 +49,6 @@ server {
 
         include fastcgi_params;
 
-        # Conexión ultra-rápida y recuperación ante reinicios de red en Docker
         fastcgi_connect_timeout 3s;
         fastcgi_read_timeout 300s;
         fastcgi_send_timeout 60s;
