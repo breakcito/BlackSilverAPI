@@ -14,7 +14,7 @@ services:
       php-fpm:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://127.0.0.1/api/health/live"]
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1/api/health/live || exit 1"]
       interval: 5s
       timeout: 2s
       retries: 3
@@ -47,6 +47,8 @@ services:
     image: blacksilver-api-php:${DOCKER_TAG}
     pull_policy: never
     restart: unless-stopped
+    init: true
+    stop_signal: SIGINT
     stop_grace_period: 2s
     networks:
       default:
@@ -71,6 +73,8 @@ services:
     image: blacksilver-api-php:${DOCKER_TAG}
     pull_policy: never
     restart: unless-stopped
+    init: true
+    stop_signal: SIGINT
     stop_grace_period: 2s
     networks:
       - default
