@@ -81,7 +81,7 @@ class ConcesionesService
     /**
      * Terminar contrato
      */
-    public static function terminar_contrato(int $id_contrato): array|object
+    public static function terminar_contrato(int $id_contrato)
     {
         ContratosData::terminar_contrato($id_contrato);
         return ApiResponse::success(null, 'Contrato finalizado correctamente');
