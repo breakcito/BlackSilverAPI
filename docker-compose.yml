@@ -1,65 +1,18 @@
-# =============================================================================
-# Servicios:
-#   nginx    → Reverse proxy: API (FastCGI) + WebSockets (proxy_pass a Reverb)
-#   php-fpm  → Sirve la API Laravel vía FastCGI en el puerto 9000
-#   reverb   → Laravel Reverb WebSocket server en el puerto 8080
-#   queue    → Worker de cola (QUEUE_CONNECTION=database)
-#
-# La base de datos MySQL es EXTERNA al compose (ya corre en el VPS).
-# Coolify inyecta el .env con las variables de entorno en el deploy.
-#
-# Variables de entorno requeridas en Coolify:
-#   SERVER_NAME   → FQDN del API. Nginx solo acepta requests para este host.
-#                   PROD: api.blacksilver.pe   DEV: api-dev.blacksilver.pe
-#   DOCKER_TAG    → Tag único de la imagen PHP (generado por Coolify).
-#
-# Aislamiento de red entre environments:
-#   - php-fpm, reverb y queue están SOLO en la red 'default' del compose
-#     project (única y aislada por Coolify). Nginx es el único servicio
-#     expuesto al exterior (red 'coolify').
-#   - Los aliases php-fpm-local y reverb-local son únicos por project.
-#   - server_name en Nginx garantiza rechazo de requests del entorno opuesto.
-# =============================================================================
-
 services:
-  # ──────────────────────────────────────────────────────────────────────────
-  # NGINX — Punto de entrada único. Expone el puerto 80.
-  # Único servicio accesible públicamente (Traefik lo descubre).
-  # ──────────────────────────────────────────────────────────────────────────
   nginx:
     build:
       context: .
       dockerfile: docker/nginx/Dockerfile
     restart: unless-stopped
     volumes:
-      # Volumen de storage (read-only) para servir archivos subidos directamente
       - laravel-storage:/var/www/storage:ro
-
     networks:
       - default
       - coolify
     depends_on:
       php-fpm:
         condition: service_healthy
-      reverb:
-        condition: service_healthy
 
-    healthcheck:
-      # Liveness check: responde en microsegundos desde loopback sin tocar PHP-FPM
-      # ni la DB. Usar 127.0.0.1 es crítico: evita salir al exterior vía DNS/Traefik.
-      # El header Host hace que nginx acepte el request (server_name coincide).
-      # /api/health/live → return 200 directo en nginx (ver default.conf.template).
-      test: ["CMD", "curl", "-sf", "-H", "Host: ${SERVER_NAME}", "http://127.0.0.1/api/health/live"]
-      interval: 15s
-      timeout: 3s
-      retries: 3
-      start_period: 30s
-
-  # ──────────────────────────────────────────────────────────────────────────
-  # PHP-FPM — Procesa las peticiones HTTP de la API Laravel.
-  # Alias de red: php-fpm-local (resuelve únicamente a este container en
-  # la red default del compose project, no al del environment opuesto).
-  # ──────────────────────────────────────────────────────────────────────────
   php-fpm:
     image: blacksilver-api-php:${DOCKER_TAG}
     build:
@@ -67,7 +20,6 @@ services:
       dockerfile: docker/php/Dockerfile
       target: production
     restart: unless-stopped
-    # El entrypoint solo lo usa php-fpm para correr migraciones/cache al inicio
     entrypoint: ["/usr/local/bin/entrypoint.sh"]
     command: ["php-fpm"]
     networks:
@@ -75,23 +27,14 @@ services:
         aliases:
           - php-fpm-local
     volumes:
-      # Storage persistente: archivos subidos, caché de framework, sesiones
       - laravel-storage:/var/www/storage
-
     healthcheck:
-      # Verifica que FPM está escuchando en el puerto 9000
       test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 90s # Tiempo para entrypoint: espera DB + cache artisan + storage:link
+      interval: 3s
+      timeout: 2s
+      retries: 3
+      start_period: 5s
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # REVERB — Laravel Reverb WebSocket Server.
-  # Misma imagen que php-fpm pero con CMD distinto. Sin entrypoint de setup.
-  # Nginx lo proxea en las rutas /app/, /apps/, /channels/.
-  # Alias de red: reverb-local (mismo razonamiento que php-fpm-local).
-  # ──────────────────────────────────────────────────────────────────────────
   reverb:
     image: blacksilver-api-php:${DOCKER_TAG}
     pull_policy: never
@@ -110,61 +53,29 @@ services:
         "--no-interaction",
       ]
     volumes:
-      # Permisos de lectura/escritura para que Reverb pueda escribir logs
       - laravel-storage:/var/www/storage
-
-    healthcheck:
-      # Verifica que Reverb está escuchando en el puerto 8080
-      test: ["CMD-SHELL", "nc -z localhost 8080 || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-
     depends_on:
       php-fpm:
-        condition: service_healthy
+        condition: service_started
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # QUEUE — Worker de cola de trabajos en background.
-  # QUEUE_CONNECTION=database (usa la misma MySQL externa).
-  # ──────────────────────────────────────────────────────────────────────────
   queue:
     image: blacksilver-api-php:${DOCKER_TAG}
     pull_policy: never
     restart: unless-stopped
-    # queue solo necesita la red default (acceso a php-fpm para dependencias
-    # de la app, acceso a MySQL externo). No necesita ser descubierto por Traefik.
     networks:
       - default
     command:
-      ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3"]
+      ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3", "--max-jobs=1000", "--max-time=3600"]
     volumes:
       - laravel-storage:/var/www/storage
-
-    healthcheck:
-      # Verifica que el proceso queue:work está activo
-      test: ["CMD-SHELL", "pgrep -f 'artisan queue:work' || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-
     depends_on:
       php-fpm:
-        condition: service_healthy
+        condition: service_started
 
 volumes:
-  # Volumen persistente para storage de Laravel.
-  # Compartido entre php-fpm (escritura), reverb (lectura), queue (escritura)
-  # y nginx (lectura para servir archivos públicos).
   laravel-storage:
 
 networks:
-  # Red por defecto del compose project (aislada por Coolify por project name).
-  # Aquí viven los aliases php-fpm-local y reverb-local.
   default: {}
-  # Red compartida de Coolify — Traefik la usa para descubrir nginx.
-  # Debe ser externa: ya existe, Coolify la gestiona.
   coolify:
     external: true

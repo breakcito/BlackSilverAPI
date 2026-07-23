@@ -1,36 +1,19 @@
 # =============================================================================
-# Stage 1: Builder
-# Instala extensiones PHP, Composer y dependencias de la aplicación.
+# Stage 1: Vendor Builder (Instala dependencias en una capa aisala y congelada)
 # =============================================================================
-FROM php:8.4-cli-alpine AS builder
+FROM php:8.4-cli-alpine AS vendor-builder
 
-# Instalar dependencias del sistema indispensables para Composer
 RUN apk add --no-cache curl git unzip
 
-# Descargar e instalar el instalador de extensiones PHP (usando curl para evitar invalidar la caché de Docker)
-RUN curl -fsSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions \
-    && chmod +x /usr/local/bin/install-php-extensions
-
-# Instalar extensiones PHP requeridas usando binarios precompilados de Alpine
-RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets opcache
-
-# Instalar phpredis manualmente desde GitHub para evitar los fallos de red/REST de PECL
-RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
-    && mkdir -p /usr/src/php/ext/redis \
-    && curl -fsSL https://github.com/phpredis/phpredis/archive/refs/tags/6.1.0.tar.gz | tar xvz -C /usr/src/php/ext/redis --strip-components=1 \
-    && docker-php-ext-install redis \
-    && apk del .build-deps
+COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# Copiar Composer desde la imagen oficial para evitar descargas manuales
-COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
+# Copiar UNICAMENTE manifiestos para congelar la capa de caché
+COPY composer.json composer.lock ./
 
-# Copiar archivos de dependencias de Composer para aprovechar la caché de Docker
-COPY composer.json composer.lock /var/www/
-
-# Instalar dependencias de producción (omite scripts y autoloader temporalmente)
-RUN composer install \
+RUN --mount=type=cache,target=/root/.composer \
+    composer install \
     --no-dev \
     --no-autoloader \
     --no-scripts \
@@ -38,46 +21,40 @@ RUN composer install \
     --no-progress \
     --prefer-dist
 
-# Copiar el resto del código de la aplicación
-COPY . /var/www
-
-# Generar el autoloader optimizado
-RUN composer dump-autoload --optimize --no-dev --classmap-authoritative \
-    && rm -rf /root/.composer
-
 # =============================================================================
-# Stage 2: Producción
-# Imagen final ligera con PHP-FPM para servir la API.
+# Stage 2: Imagen Final de Producción
 # =============================================================================
 FROM php:8.4-fpm-alpine AS production
 
-# Instalar dependencias de runtime y netcat para healthcheck
 RUN apk add --no-cache curl netcat-openbsd
 
-# Descargar e instalar el instalador de extensiones PHP (usando curl para evitar invalidar la caché de Docker)
-RUN curl -fsSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions \
-    && chmod +x /usr/local/bin/install-php-extensions
+# Copiar instalador de extensiones desde imagen oficial (0 descargas externas por curl)
+COPY --from=mlocati/php-extension-installer:2.7 /usr/bin/install-php-extensions /usr/local/bin/
 
-# Instalar extensiones PHP (usa binarios precompilados de Alpine e instala dependencias del sistema automáticamente)
-RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets opcache
+RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets opcache redis
 
-# Instalar phpredis manualmente desde GitHub para evitar los fallos de red/REST de PECL
-RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
-    && mkdir -p /usr/src/php/ext/redis \
-    && curl -fsSL https://github.com/phpredis/phpredis/archive/refs/tags/6.1.0.tar.gz | tar xvz -C /usr/src/php/ext/redis --strip-components=1 \
-    && docker-php-ext-install redis \
-    && apk del .build-deps
-
-# Usar la configuración de producción de PHP para máxima seguridad y rendimiento
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
-# Copiar el código fuente optimizado desde el builder, asignando permisos
-# directamente en el COPY (evita el costoso 'chown -R' sobre miles de archivos)
-COPY --from=builder --chown=www-data:www-data /var/www /var/www
+COPY docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 
 WORKDIR /var/www
 
-# Copiar el entrypoint de inicio
+# 1. Copiar vendor pre-construido de Stage 1 (100% en caché si composer.lock no cambia)
+COPY --from=vendor-builder /var/www/vendor /var/www/vendor
+
+# 2. Copiar el código de la app (Solo esta capa se invalida al cambiar 1 línea)
+COPY . /var/www
+
+# 3. Optimizar el autoloader sobre el código de la app
+COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
+RUN composer dump-autoload --optimize --no-dev --classmap-authoritative && \
+    rm /usr/bin/composer
+
+# 4. Asignar permisos SOLO a carpetas de escritura (evita I/O masivo en vendor/)
+RUN mkdir -p /var/www/storage /var/www/bootstrap/cache && \
+    chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
 COPY --chown=www-data:www-data docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
