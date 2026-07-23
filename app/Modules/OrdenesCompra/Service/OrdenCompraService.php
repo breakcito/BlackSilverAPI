@@ -10,7 +10,7 @@ class OrdenCompraService
     /**
      * Listar todas las órdenes de compra - solo cabeceras
      */
-    public static function get_ordenes(?int $mes = null, ?int $yearcito = null): array
+    public static function get_ordenes(?int $mes = null, ?int $yearcito = null)
     {
         $ordenes = OrdenCompraData::get_ordenes(mes: $mes, yearcito: $yearcito);
         return ApiResponse::success($ordenes);
