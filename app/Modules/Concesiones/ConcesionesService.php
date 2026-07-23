@@ -47,7 +47,7 @@ class ConcesionesService
     /**
      * Obtener historial de contratos de una concesión
      */
-    public static function get_contratos(int $id_concesion): array|object
+    public static function get_contratos(int $id_concesion)
     {
         $contratos = ContratosData::get_contratos($id_concesion);
         return ApiResponse::success($contratos);
