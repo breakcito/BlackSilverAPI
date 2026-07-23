@@ -1,5 +1,5 @@
 # =============================================================================
-# Stage 1: Vendor Builder (Instala dependencias en una capa aisala y congelada)
+# Stage 1: Vendor Builder (Instala dependencias en una capa aislada y congelada)
 # =============================================================================
 FROM php:8.4-cli-alpine AS vendor-builder
 
@@ -9,7 +9,6 @@ COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# Copiar UNICAMENTE manifiestos para congelar la capa de caché
 COPY composer.json composer.lock ./
 
 RUN --mount=type=cache,target=/root/.composer \
@@ -26,12 +25,15 @@ RUN --mount=type=cache,target=/root/.composer \
 # =============================================================================
 FROM php:8.4-fpm-alpine AS production
 
-RUN apk add --no-cache curl netcat-openbsd
+# $PHPIZE_DEPS garantiza que autoconf y los compiladores estén presentes durante todo el proceso
+RUN apk add --no-cache curl netcat-openbsd $PHPIZE_DEPS
 
-# Copiar instalador de extensiones desde imagen oficial (0 descargas externas por curl)
-COPY --from=mlocati/php-extension-installer:2.7 /usr/bin/install-php-extensions /usr/local/bin/
+# Copiar la versión más reciente del instalador
+COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/
 
-RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets opcache redis
+# Instala todas las extensiones (incluyendo redis) y elimina las herramientas de compilación al final
+RUN install-php-extensions pdo_mysql intl zip bcmath pcntl sockets opcache redis && \
+    apk del $PHPIZE_DEPS
 
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
@@ -40,18 +42,14 @@ COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 
 WORKDIR /var/www
 
-# 1. Copiar vendor pre-construido de Stage 1 (100% en caché si composer.lock no cambia)
 COPY --from=vendor-builder /var/www/vendor /var/www/vendor
 
-# 2. Copiar el código de la app (Solo esta capa se invalida al cambiar 1 línea)
 COPY . /var/www
 
-# 3. Optimizar el autoloader sobre el código de la app
 COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
 RUN composer dump-autoload --optimize --no-dev --classmap-authoritative && \
     rm /usr/bin/composer
 
-# 4. Asignar permisos SOLO a carpetas de escritura (evita I/O masivo en vendor/)
 RUN mkdir -p /var/www/storage /var/www/bootstrap/cache && \
     chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
