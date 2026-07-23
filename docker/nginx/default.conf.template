@@ -1,103 +1,81 @@
 server {
-    listen 80;
+    listen 80;
 
-    # SERVER_NAME es inyectado por Coolify vía env var.
-    # PROD:  SERVER_NAME=api.blacksilver.pe
-    # DEV:   SERVER_NAME=api-dev.blacksilver.pe
-    # Nginx rechazará cualquier request cuyo Host no coincida,
-    # bloqueando el cross-env routing incluso si Traefik enruta mal.
-    server_name ${SERVER_NAME};
+    server_name ${SERVER_NAME};
 
-    root /var/www/public;
-    index index.php;
+    root /var/www/public;
+    index index.php;
 
+    # ─────────────────────────────────────────────────────────────────────
+    # WebSockets — Laravel Reverb
+    # ─────────────────────────────────────────────────────────────────────
+    location ~* ^/(app|apps|channels)/ {
+        set $reverb_upstream "reverb-local:8080";
+        proxy_pass http://$reverb_upstream;
+        proxy_http_version 1.1;
 
-    # ─────────────────────────────────────────────────────────────────────
-    # WebSockets — Laravel Reverb
-    # ─────────────────────────────────────────────────────────────────────
-    location ~* ^/(app|apps|channels)/ {
-        # Variable fuerza resolución lazy via resolver declarado arriba.
-        set $reverb_upstream "reverb-local:8080";
-        proxy_pass         http://$reverb_upstream;
-        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
-        # Headers obligatorios para el upgrade WebSocket
-        proxy_set_header Upgrade    $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host       $host;
-        proxy_set_header X-Real-IP  $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
 
-        # Timeout largo: las conexiones WS son persistentes
-        proxy_read_timeout  3600s;
-        proxy_send_timeout  3600s;
-    }
+    # ─────────────────────────────────────────────────────────────────────
+    # Archivos de storage
+    # ─────────────────────────────────────────────────────────────────────
+    location /storage/ {
+        alias /var/www/storage/app/public/;
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+    }
 
-    # ─────────────────────────────────────────────────────────────────────
-    # Archivos de storage (imágenes, adjuntos subidos por el ERP)
-    # El volumen laravel-storage se monta en /var/www/storage en Nginx.
-    # ─────────────────────────────────────────────────────────────────────
-    location /storage/ {
-        alias /var/www/storage/app/public/;
-        expires 7d;
-        add_header Cache-Control "public, immutable";
-        access_log off;
-    }
+    # ─────────────────────────────────────────────────────────────────────
+    # API Laravel
+    # ─────────────────────────────────────────────────────────────────────
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
 
-    # ─────────────────────────────────────────────────────────────────────
-    # API Laravel — todas las rutas van a través de index.php
-    # La red 'app' aislada del compose garantiza que 'php-fpm' resuelve
-    # únicamente al container de este environment.
-    # ─────────────────────────────────────────────────────────────────────
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
+    location ~ \.php$ {
+        set $php_fpm_upstream "php-fpm-local:9000";
+        fastcgi_pass $php_fpm_upstream;
 
-    location ~ \.php$ {
-        # Variable fuerza resolución lazy via resolver declarado arriba.
-        set $php_fpm_upstream "php-fpm-local:9000";
-        fastcgi_pass $php_fpm_upstream;
+        fastcgi_param SCRIPT_FILENAME /var/www/public$fastcgi_script_name;
+        fastcgi_param SCRIPT_NAME $fastcgi_script_name;
 
-        # SCRIPT_FILENAME apunta al path dentro del contenedor php-fpm,
-        # NO en el contenedor Nginx. Nginx solo pasa la cadena a FPM.
-        fastcgi_param SCRIPT_FILENAME /var/www/public$fastcgi_script_name;
-        fastcgi_param SCRIPT_NAME     $fastcgi_script_name;
+        include fastcgi_params;
 
-        include fastcgi_params;
+        fastcgi_read_timeout 300s;
+        fastcgi_buffer_size 16k;
+        fastcgi_buffers 4 16k;
+        fastcgi_connect_timeout 60s;
+    }
 
-        fastcgi_read_timeout    300s;
-        fastcgi_buffer_size     16k;
-        fastcgi_buffers         4 16k;
-        fastcgi_connect_timeout 60s;
-    }
+    # ─────────────────────────────────────────────────────────────────────
+    # Health Checks
+    # ─────────────────────────────────────────────────────────────────────
+    location = /api/health/live {
+        access_log off;
+        add_header Content-Type application/json;
+        return 200 '{"status":"alive"}';
+    }
 
-    # ─────────────────────────────────────────────────────────────────────
-    # Health Checks
-    #   /api/health/live → liveness nginx-only (200 si el contenedor responde).
-    #                       Lo usa Docker HEALTHCHECK del servicio nginx.
-    #   /api/health      → readiness completo. Pasa por Laravel y valida DB.
-    #                       Lo usa Coolify (UI) vía Traefik como check externo.
-    #   /up              → endpoint built-in de Laravel 12 (solo app boot).
-    # Se silencia access_log para evitar ruido: los probes pegan cada 30s.
-    # ─────────────────────────────────────────────────────────────────────
-    location = /api/health/live {
-        access_log off;
-        add_header Content-Type application/json;
-        return 200 '{"status":"alive"}';
-    }
+    location = /api/health {
+        access_log off;
+        try_files $uri /index.php?$query_string;
+    }
 
-    location = /api/health {
-        access_log off;
-        try_files $uri /index.php?$query_string;
-    }
+    location = /up {
+        access_log off;
+        try_files $uri /index.php?$query_string;
+    }
 
-    location = /up {
-        access_log off;
-        try_files $uri /index.php?$query_string;
-    }
-
-    # Bloquear acceso a archivos ocultos (.env, .git, etc.)
-    location ~ /\.(?!well-known).* {
-        deny all;
-    }
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
 }
