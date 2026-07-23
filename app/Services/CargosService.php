@@ -29,7 +29,7 @@ class CargosService
     /**
      * Crear cargo con id_area opcional (null = sin área).
      */
-    public static function crear_cargo(string $nombre, ?int $id_area): array|object
+    public static function crear_cargo(string $nombre, ?int $id_area)
     {
         if (CargosData::verificar_nombre_duplicado(nombre: $nombre, id_area: $id_area)) {
             $contexto = $id_area ? 'en la misma área' : 'en el sistema.';
