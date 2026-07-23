@@ -1,15 +1,7 @@
-# 1. BLOQUE POR DEFECTO: Rechaza peticiones cuyo Host no coincida exactamente
-server {
-    listen 80 default_server;
-    server_name _;
-    return 421 '{"error":"Misdirected Request","message":"Invalid Host header for this environment"}';
-}
-
-# 2. BLOQUE DE LA APLICACIÓN: Procesa solo peticiones destinadas a este entorno
 server {
     listen 80;
 
-    server_name ${SERVER_NAME};
+    server_name ${SERVER_NAME} localhost 127.0.0.1;
 
     root /var/www/public;
     index index.php;
@@ -54,7 +46,6 @@ server {
         fastcgi_send_timeout 60s;
         fastcgi_buffer_size 16k;
         fastcgi_buffers 4 16k;
-        fastcgi_next_upstream error timeout invalid_header http_500 http_503;
     }
 
     location = /api/health/live {
