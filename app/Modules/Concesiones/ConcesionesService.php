@@ -61,7 +61,7 @@ class ConcesionesService
         int $id_empresa,
         string $fecha_inicio,
         ?string $fecha_fin
-    ): array|object {
+    ) {
         if (ContratosData::verificar_contrato_activo($id_concesion, $id_empresa)) {
             return ApiResponse::error('Esta empresa ya tiene un contrato activo en esta concesión.');
         }
