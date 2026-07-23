@@ -10,4 +10,5 @@ enum TipoBien: string
     case EPP = 'EPP';
     // case Material = 'Material';
     case ActivoFijo = 'Activo Fijo';
+    case Otros = 'Otros';
 }
