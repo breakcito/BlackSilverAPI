@@ -12,7 +12,7 @@ class ConcesionesService
     /**
      * Obtener listado de concesiones asociadas a las empresas del usuario
      */
-    public static function get_concesiones(int $id_usuario): array|object
+    public static function get_concesiones(int $id_usuario)
     {
         $concesiones = ConcesionesData::get_concesiones(id_usuario: $id_usuario);
         return ApiResponse::success($concesiones);
