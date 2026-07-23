@@ -45,7 +45,7 @@ class CargosService
     /**
      * Actualizar el área de un cargo (drag & drop). id_area null quita el área.
      */
-    public static function actualizar_area_cargo(int $id_cargo, ?int $id_area): array|object
+    public static function actualizar_area_cargo(int $id_cargo, ?int $id_area)
     {
         CargosData::actualizar_area($id_cargo, $id_area);
 
