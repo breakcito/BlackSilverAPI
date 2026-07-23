@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: docker/nginx/Dockerfile
     restart: unless-stopped
+    stop_grace_period: 2s
     volumes:
       - laravel-storage:/var/www/storage:ro
     networks:
@@ -12,6 +13,12 @@ services:
     depends_on:
       php-fpm:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1/api/health/live"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 5s
 
   php-fpm:
     image: blacksilver-api-php:${DOCKER_TAG}
@@ -20,6 +27,7 @@ services:
       dockerfile: docker/php/Dockerfile
       target: production
     restart: unless-stopped
+    stop_grace_period: 2s
     entrypoint: ["/usr/local/bin/entrypoint.sh"]
     command: ["php-fpm"]
     networks:
@@ -39,6 +47,7 @@ services:
     image: blacksilver-api-php:${DOCKER_TAG}
     pull_policy: never
     restart: unless-stopped
+    stop_grace_period: 2s
     networks:
       default:
         aliases:
@@ -62,6 +71,7 @@ services:
     image: blacksilver-api-php:${DOCKER_TAG}
     pull_policy: never
     restart: unless-stopped
+    stop_grace_period: 2s
     networks:
       - default
     command:

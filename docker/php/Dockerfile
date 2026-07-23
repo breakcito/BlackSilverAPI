@@ -39,15 +39,15 @@ COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 
 WORKDIR /var/www
 
-COPY --from=vendor-builder /var/www/vendor /var/www/vendor
+COPY --from=vendor-builder --chown=www-data:www-data /var/www/vendor /var/www/vendor
 
-COPY . /var/www
+# Se asignan permisos directamente en la copia de archivos de la app
+COPY --chown=www-data:www-data . /var/www
 
 COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
 RUN composer dump-autoload --optimize --no-dev --classmap-authoritative && \
     rm /usr/bin/composer
 
-# Otorgar permisos a storage, bootstrap/cache Y public
 RUN mkdir -p /var/www/storage /var/www/bootstrap/cache /var/www/public && \
     chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/public
 

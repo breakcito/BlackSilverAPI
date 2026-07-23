@@ -6,9 +6,6 @@ server {
     root /var/www/public;
     index index.php;
 
-    # ─────────────────────────────────────────────────────────────────────
-    # WebSockets — Laravel Reverb
-    # ─────────────────────────────────────────────────────────────────────
     location ~* ^/(app|apps|channels)/ {
         set $reverb_upstream "reverb-local:8080";
         proxy_pass http://$reverb_upstream;
@@ -24,9 +21,6 @@ server {
         proxy_send_timeout 3600s;
     }
 
-    # ─────────────────────────────────────────────────────────────────────
-    # Archivos de storage
-    # ─────────────────────────────────────────────────────────────────────
     location /storage/ {
         alias /var/www/storage/app/public/;
         expires 7d;
@@ -34,9 +28,6 @@ server {
         access_log off;
     }
 
-    # ─────────────────────────────────────────────────────────────────────
-    # API Laravel
-    # ─────────────────────────────────────────────────────────────────────
     location / {
         try_files $uri $uri/ /index.php?$query_string;
     }
@@ -56,9 +47,6 @@ server {
         fastcgi_connect_timeout 60s;
     }
 
-    # ─────────────────────────────────────────────────────────────────────
-    # Health Checks
-    # ─────────────────────────────────────────────────────────────────────
     location = /api/health/live {
         access_log off;
         add_header Content-Type application/json;
