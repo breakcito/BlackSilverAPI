@@ -10,8 +10,10 @@ services:
     volumes:
       - laravel-storage:/var/www/storage:ro
     networks:
-      - default
-      - coolify
+      default: {}
+      coolify:
+        aliases:
+          - ${DOCKER_TAG:-dev}-nginx
     depends_on:
       php-fpm:
         condition: service_started
