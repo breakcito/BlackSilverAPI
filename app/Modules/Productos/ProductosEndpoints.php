@@ -17,6 +17,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::controller(ProductosController::class)->group(function () {
             Route::get('/', 'get_productos');
             Route::post('/', 'crear_producto');
+            Route::put('/{id_producto}', 'actualizar_producto');
+            Route::delete('/{id_producto}', 'eliminar_producto');
         });
     });
 });
