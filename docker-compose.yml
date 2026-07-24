@@ -14,7 +14,7 @@ services:
       - coolify
     depends_on:
       php-fpm:
-        condition: service_healthy
+        condition: service_started
 
   php-fpm:
     image: blacksilver-api-php:${DOCKER_TAG}
@@ -33,7 +33,7 @@ services:
     volumes:
       - laravel-storage:/var/www/storage
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 9000 || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 5
