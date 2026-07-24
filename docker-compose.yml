@@ -75,7 +75,7 @@ services:
     networks:
       - default
     command:
-      ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3", "--max-jobs=1000", "--max-time=3600"]
+      ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3"]
     volumes:
       - laravel-storage:/var/www/storage
     depends_on:
