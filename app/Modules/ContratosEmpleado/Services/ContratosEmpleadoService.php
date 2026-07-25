@@ -193,15 +193,15 @@ class ContratosEmpleadoService
     /**
      * Finalizar un contrato anticipadamente.
      */
-    public static function finalizar_anticipado(int $id_contrato, string $fecha_fin_anticipada): array
+    public static function finalizar_anticipado(int $id_contrato, string $fecha_fin_anticipada, ?string $motivo_cierre = null): array
     {
-        return DB::transaction(function () use ($id_contrato, $fecha_fin_anticipada) {
+        return DB::transaction(function () use ($id_contrato, $fecha_fin_anticipada, $motivo_cierre) {
             $contrato = DB::table('contrato_trabajo')->where('id', $id_contrato)->first();
             if (! $contrato) {
                 return ApiResponse::error('Contrato no encontrado.');
             }
 
-            ContratosEmpleadoData::finalizar_anticipado($id_contrato, $fecha_fin_anticipada);
+            ContratosEmpleadoData::finalizar_anticipado($id_contrato, $fecha_fin_anticipada, $motivo_cierre);
 
             $id_empleado = (int) $contrato->id_empleado;
 

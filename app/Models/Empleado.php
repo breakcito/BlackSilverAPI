@@ -14,6 +14,7 @@ class Empleado extends Model
         'id_cargo',
         'id_contrato_vigente',
         'id_mina',
+        'id_empresa',
         'qr_token',
         'nombre',
         'apellido',
@@ -39,5 +40,6 @@ class Empleado extends Model
         'id_contrato_vigente' => 'integer',
         'id_cargo' => 'integer',
         'id_mina' => 'integer',
+        'id_empresa' => 'integer',
     ];
 }

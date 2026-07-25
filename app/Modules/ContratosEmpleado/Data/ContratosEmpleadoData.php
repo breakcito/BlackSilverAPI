@@ -45,6 +45,7 @@ class ContratosEmpleadoData
             ct.periodo_duracion,
             DATEDIFF(ct.fecha_fin, ct.fecha_inicio) AS duracion_dias,
             ct.fecha_fin_anticipada,
+            ct.motivo_cierre,
             ct.created_at,
             ct.estado
         FROM contrato_trabajo ct
@@ -118,13 +119,11 @@ class ContratosEmpleadoData
         return ContratoTrabajo::insertGetId($payload);
     }
 
-    /**
-     * Marcar como finalizado anticipadamente
-     */
-    public static function finalizar_anticipado(int $id_contrato, string $fecha_fin_anticipada): bool
+    public static function finalizar_anticipado(int $id_contrato, string $fecha_fin_anticipada, ?string $motivo_cierre = null): bool
     {
         return (bool) ContratoTrabajo::where('id', $id_contrato)->update([
             'fecha_fin_anticipada' => $fecha_fin_anticipada,
+            'motivo_cierre' => $motivo_cierre,
             'estado' => EstadoContrato::TerminoAnticipado->value,
         ]);
     }
@@ -191,6 +190,7 @@ class ContratosEmpleadoData
             ct.periodo_duracion,
             DATEDIFF(ct.fecha_fin, ct.fecha_inicio) AS duracion_dias,
             ct.fecha_fin_anticipada,
+            ct.motivo_cierre,
             ct.created_at,
             ct.estado
         FROM contrato_trabajo ct

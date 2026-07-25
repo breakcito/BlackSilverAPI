@@ -192,12 +192,14 @@ class EmpleadosData
         ?string $email = null,
         ?string $url_foto = null,
         ?string $qr_token = null,
+        ?int $id_empresa = null,
     ) {
         $qr_token = ! empty($qr_token) ? $qr_token : (string) Str::uuid();
 
         return Empleado::insertGetId([
             'id_cargo' => $id_cargo,
             'id_contrato_vigente' => $id_contrato_vigente,
+            'id_empresa' => $id_empresa,
             'qr_token' => $qr_token,
             'nombre' => $nombre,
             'apellido' => $apellido,

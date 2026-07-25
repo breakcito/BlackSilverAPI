@@ -106,6 +106,7 @@ class ContratosEmpleadoController
     {
         $validator = Validator::make($request->all(), [
             'fecha_fin_anticipada' => 'required|date',
+            'motivo_cierre' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -114,7 +115,8 @@ class ContratosEmpleadoController
 
         return response()->json(ContratosEmpleadoService::finalizar_anticipado(
             $id_contrato,
-            (string) $request->input('fecha_fin_anticipada')
+            (string) $request->input('fecha_fin_anticipada'),
+            $request->input('motivo_cierre') ? (string) $request->input('motivo_cierre') : null
         ));
     }
 }

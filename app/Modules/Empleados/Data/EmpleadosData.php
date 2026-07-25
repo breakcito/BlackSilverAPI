@@ -61,7 +61,9 @@ class EmpleadosData
             IFNULL(car.id_area, car_contrato.id_area) AS id_area,
             IFNULL(a.nombre, a_contrato.nombre) AS area,
             e.id_contrato_vigente,
-            ct_vig.id_empresa,
+            ct_vig.fecha_fin AS contrato_fecha_fin,
+            ct_vig.por_tiempo_indefinido AS contrato_por_tiempo_indefinido,
+            IFNULL(ct_vig.id_empresa, e.id_empresa) AS id_empresa,
             emp_asoc.razon_social AS empresa,
             emp_asoc.url_logo AS empresa_url_logo,
             e.qr_token,
@@ -87,7 +89,7 @@ class EmpleadosData
         LEFT JOIN contrato_trabajo ct_vig ON ct_vig.id = e.id_contrato_vigente
         LEFT JOIN cargo car_contrato ON car_contrato.id = ct_vig.id_cargo
         LEFT JOIN area a_contrato ON a_contrato.id = car_contrato.id_area
-        LEFT JOIN empresa emp_asoc ON emp_asoc.id = ct_vig.id_empresa
+        LEFT JOIN empresa emp_asoc ON emp_asoc.id = IFNULL(ct_vig.id_empresa, e.id_empresa)
         WHERE e.es_contratista = 0
         ';
 
@@ -106,6 +108,9 @@ class EmpleadosData
             ->map(function ($row) {
                 $row = (array) $row;
                 $row['con_contrato'] = (bool) ($row['con_contrato'] ?? 0);
+                $row['contrato_por_tiempo_indefinido'] = isset($row['contrato_por_tiempo_indefinido'])
+                    ? (bool) $row['contrato_por_tiempo_indefinido']
+                    : null;
                 $row['cantidad_cuentas_bancarias'] = (int) ($row['cantidad_cuentas_bancarias'] ?? 0);
                 $row['url_foto'] = ! empty($row['url_foto'])
                     ? self::logo_a_base64($row['url_foto'])

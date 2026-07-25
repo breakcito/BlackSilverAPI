@@ -58,7 +58,8 @@ class EmpleadosService
         ?string $telefono = null,
         ?string $email = null,
         ?UploadedFile $foto = null,
-        ?bool $return_object = false
+        ?bool $return_object = false,
+        ?int $id_empresa = null
     ) {
         if (EmpleadosData::ya_existe(dni: $dni, ruc: $ruc, carnet_extranjeria: $carnet_extranjeria, pasaporte: $pasaporte)) {
             return ApiResponse::error('Ya existe un empleado registrado con uno de los documentos proporcionados.');
@@ -87,7 +88,8 @@ class EmpleadosService
             direccion: $direccion,
             telefono: $telefono,
             email: $email,
-            url_foto: $url_foto_str
+            url_foto: $url_foto_str,
+            id_empresa: $id_empresa
         );
 
         if ($return_object) {

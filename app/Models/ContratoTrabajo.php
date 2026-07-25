@@ -30,6 +30,7 @@ class ContratoTrabajo extends Model
         'periodo_duracion',
         'duracion_dias',
         'fecha_fin_anticipada',
+        'motivo_cierre',
         'created_at',
         'estado',
     ];

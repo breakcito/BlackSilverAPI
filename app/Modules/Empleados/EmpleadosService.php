@@ -37,7 +37,8 @@ class EmpleadosService
         ?string $direccion = null,
         ?string $telefono = null,
         ?string $email = null,
-        ?UploadedFile $foto = null
+        ?UploadedFile $foto = null,
+        ?int $id_empresa = null
     ) {
         $response = EmpleadosServiceGlobal::crear_empleado(
             id_cargo: $id_cargo,
@@ -54,7 +55,8 @@ class EmpleadosService
             direccion: $direccion,
             telefono: $telefono,
             email: $email,
-            foto: $foto
+            foto: $foto,
+            id_empresa: $id_empresa
         );
 
         if ($response['success']) {

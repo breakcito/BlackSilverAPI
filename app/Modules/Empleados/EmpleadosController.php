@@ -30,6 +30,7 @@ class EmpleadosController
         $validator = Validator::make($request->all(), [
             'id_cargo' => 'nullable|integer',
             'id_contrato_vigente' => 'nullable|integer',
+            'id_empresa' => 'nullable|integer',
             'con_contrato' => 'nullable|boolean',
             'nombre' => 'required|string|max:255',
             'apellido' => 'required|string|max:255',
@@ -55,11 +56,16 @@ class EmpleadosController
         // Si tiene contrato vigente, el id_cargo se gestiona con el contrato (no se requiere elegirlo en este flujo)
         if ($con_contrato) {
             $id_cargo = ! empty($id_cargo_input) ? (int) $id_cargo_input : 0;
+            $id_empresa = $request->input('id_empresa') ? (int) $request->input('id_empresa') : null;
         } else {
             if (empty($id_cargo_input)) {
                 return response()->json(ApiResponse::error('Debe seleccionar un cargo.'));
             }
+            if (empty($request->input('id_empresa'))) {
+                return response()->json(ApiResponse::error('Debe seleccionar una empresa.'));
+            }
             $id_cargo = (int) $id_cargo_input;
+            $id_empresa = (int) $request->input('id_empresa');
         }
 
         $result = EmpleadosService::crear_empleado(
@@ -77,7 +83,8 @@ class EmpleadosController
             direccion: $request->input('direccion'),
             telefono: $request->input('telefono'),
             email: $request->input('email'),
-            foto: $request->file('foto')
+            foto: $request->file('foto'),
+            id_empresa: $id_empresa
         );
 
         return response()->json($result);
