@@ -21,17 +21,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
-
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.4"
-          extensions: bcmath, curl, intl, mbstring, mysql, sockets, xml, zip
-          coverage: none
-          tools: composer:v2
-
-      - run: composer install --no-interaction --no-progress --prefer-dist
 
       - name: Configure SSH
         env:
@@ -41,22 +32,32 @@ jobs:
           set -euo pipefail
           mkdir -p "$HOME/.ssh"
           printf '%s' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/deploy_key"
-          printf '%s' "$DEPLOY_SSH_KEY" | head -n1 | grep -q '-----BEGIN' \
-            || { echo 'DEPLOY_SSH_KEY no parece una llave privada'; exit 1; }
           chmod 600 "$HOME/.ssh/deploy_key"
+
+          if ! head -n1 "$HOME/.ssh/deploy_key" | grep -qE '^-----BEGIN'; then
+            body="$(< "$HOME/.ssh/deploy_key")"
+            {
+              printf '%s\n' '-----BEGIN OPENSSH PRIVATE KEY-----'
+              printf '%s\n' "$body"
+              printf '%s\n' '-----END OPENSSH PRIVATE KEY-----'
+            } > "$HOME/.ssh/deploy_key.new"
+            mv "$HOME/.ssh/deploy_key.new" "$HOME/.ssh/deploy_key"
+            chmod 600 "$HOME/.ssh/deploy_key"
+          fi
+
+          if ! ssh-keygen -y -f "$HOME/.ssh/deploy_key" >/dev/null 2>&1; then
+            echo 'DEPLOY_SSH_KEY no es una llave privada válida'
+            exit 1
+          fi
+
           printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 644 "$HOME/.ssh/known_hosts"
-          ssh-keyscan -t ed25519 -H "${{ secrets.DEPLOY_HOST }}" 2>/dev/null \
-            | grep -F "$SSH_KNOWN_HOSTS" \
-            >> "$HOME/.ssh/known_hosts" || true
-          ssh-keygen -y -f "$HOME/.ssh/deploy_key" > "$HOME/.ssh/deploy_key.pub"
 
       - name: Build artifact
         run: |
           mkdir -p artifact
           git archive \
             --format=tar.gz \
-            --prefix=release/ \
             --output="artifact/api-${GITHUB_SHA}.tar.gz" \
             "$GITHUB_SHA"
           (cd artifact && sha256sum "api-${GITHUB_SHA}.tar.gz" > "api-${GITHUB_SHA}.tar.gz.sha256")
@@ -70,9 +71,12 @@ jobs:
           set -euo pipefail
           if [ "$GITHUB_REF_NAME" = "main" ]; then
             target="api"
+            env_arg="prod"
           else
             target="api-dev"
+            env_arg="dev"
           fi
+
           scp \
             -i "$HOME/.ssh/deploy_key" \
             -P "$DEPLOY_PORT" \
@@ -91,4 +95,4 @@ jobs:
             -o IdentitiesOnly=yes \
             -o PubkeyAcceptedAlgorithms=+ssh-ed25519 \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            "sudo /usr/local/sbin/blacksilver-deploy api '$GITHUB_REF_NAME' '$GITHUB_SHA'"
+            "sudo /usr/local/sbin/blacksilver-deploy api '$env_arg' '$GITHUB_SHA'"
