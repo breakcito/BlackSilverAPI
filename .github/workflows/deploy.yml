@@ -33,43 +33,85 @@ jobs:
 
       - run: composer install --no-interaction --no-progress --prefer-dist
 
-      - env:
+      - name: Configure SSH
+        env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         run: |
-          install -m 700 -d "$HOME/.ssh"
-          printf '%s\n' "$DEPLOY_SSH_KEY"  > "$HOME/.ssh/deploy_key"
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+
+          if [ -z "${DEPLOY_SSH_KEY:-}" ]; then
+            echo "::error::DEPLOY_SSH_KEY está vacío en este environment"
+            exit 1
+          fi
+
+          key="$(printf '%s' "$DEPLOY_SSH_KEY" | tr -d '\r')"
+
+          printf '%s\n' "$key" > "$HOME/.ssh/deploy_key"
+
+          if ! head -n1 "$HOME/.ssh/deploy_key" | grep -qE '^-----BEGIN'; then
+            body="$(cat "$HOME/.ssh/deploy_key")"
+            printf '-----BEGIN OPENSSH PRIVATE KEY-----\n%s\n-----END OPENSSH PRIVATE KEY-----\n' \
+              "$body" > "$HOME/.ssh/deploy_key.new"
+            mv "$HOME/.ssh/deploy_key.new" "$HOME/.ssh/deploy_key"
+          fi
+          chmod 600 "$HOME/.ssh/deploy_key"
+
+          if ! ssh-keygen -y -f "$HOME/.ssh/deploy_key" >/dev/null 2>&1; then
+            echo "::error::DEPLOY_SSH_KEY no es una llave privada válida"
+            echo "size: $(wc -c < "$HOME/.ssh/deploy_key") bytes"
+            echo "--- head (200B) ---"
+            head -c 200 "$HOME/.ssh/deploy_key"; echo
+            echo "--- tail (200B) ---"
+            tail -c 200 "$HOME/.ssh/deploy_key"; echo
+            exit 1
+          fi
+
           printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
-          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          chmod 644 "$HOME/.ssh/known_hosts"
 
-      - run: |
-          mkdir -p artifact
-          git archive \
-            --format=tar.gz \
-            --prefix=release/ \
-            --output="artifact/api-${GITHUB_SHA}.tar.gz" \
-            "$GITHUB_SHA"
-          (cd artifact && sha256sum "api-${GITHUB_SHA}.tar.gz" > "api-${GITHUB_SHA}.tar.gz.sha256")
-
-      - env:
+      - name: Package and deploy
+        env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
-          target="api-dev"
+          set -euo pipefail
           if [ "$GITHUB_REF_NAME" = "main" ]; then
             target="api"
+            env_arg="prod"
+          else
+            target="api-dev"
+            env_arg="dev"
           fi
-          scp -i "$HOME/.ssh/deploy_key" \
-              -P "$DEPLOY_PORT" \
-              -o BatchMode=yes \
-              -o StrictHostKeyChecking=yes \
-              "artifact/api-${GITHUB_SHA}.tar.gz" \
-              "artifact/api-${GITHUB_SHA}.tar.gz.sha256" \
-              "$DEPLOY_USER@$DEPLOY_HOST:/srv/blacksilver/incoming/${target}/"
-          ssh -i "$HOME/.ssh/deploy_key" \
-              -p "$DEPLOY_PORT" \
-              -o BatchMode=yes \
-              -o StrictHostKeyChecking=yes \
-              "$DEPLOY_USER@$DEPLOY_HOST" \
-              "sudo /usr/local/sbin/blacksilver-deploy api '$GITHUB_REF_NAME' '$GITHUB_SHA'"
+
+          tmpdir="$(mktemp -d)"
+          git archive \
+            --format=tar.gz \
+            --output="$tmpdir/api-${GITHUB_SHA}.tar.gz" \
+            "$GITHUB_SHA"
+          (cd "$tmpdir" && sha256sum "api-${GITHUB_SHA}.tar.gz" > "api-${GITHUB_SHA}.tar.gz.sha256")
+
+          scp \
+            -i "$HOME/.ssh/deploy_key" \
+            -P "$DEPLOY_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o IdentitiesOnly=yes \
+            -o PubkeyAcceptedAlgorithms=+ssh-ed25519 \
+            "$tmpdir/api-${GITHUB_SHA}.tar.gz" \
+            "$tmpdir/api-${GITHUB_SHA}.tar.gz.sha256" \
+            "$DEPLOY_USER@$DEPLOY_HOST:/srv/blacksilver/incoming/${target}/"
+
+          ssh \
+            -i "$HOME/.ssh/deploy_key" \
+            -p "$DEPLOY_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o IdentitiesOnly=yes \
+            -o PubkeyAcceptedAlgorithms=+ssh-ed25519 \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "sudo /usr/local/sbin/blacksilver-deploy api '$env_arg' '$GITHUB_SHA'"
+
+          rm -rf "$tmpdir"
