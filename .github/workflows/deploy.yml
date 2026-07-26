@@ -1,0 +1,75 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+
+concurrency:
+  group: blacksilver-api-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: bcmath, curl, intl, mbstring, mysql, sockets, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - run: composer install --no-interaction --no-progress --prefer-dist
+
+      - env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY"  > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+
+      - run: |
+          mkdir -p artifact
+          git archive \
+            --format=tar.gz \
+            --prefix=release/ \
+            --output="artifact/api-${GITHUB_SHA}.tar.gz" \
+            "$GITHUB_SHA"
+          (cd artifact && sha256sum "api-${GITHUB_SHA}.tar.gz" > "api-${GITHUB_SHA}.tar.gz.sha256")
+
+      - env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          target="api-dev"
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            target="api"
+          fi
+          scp -i "$HOME/.ssh/deploy_key" \
+              -P "$DEPLOY_PORT" \
+              -o BatchMode=yes \
+              -o StrictHostKeyChecking=yes \
+              "artifact/api-${GITHUB_SHA}.tar.gz" \
+              "artifact/api-${GITHUB_SHA}.tar.gz.sha256" \
+              "$DEPLOY_USER@$DEPLOY_HOST:/srv/blacksilver/incoming/${target}/"
+          ssh -i "$HOME/.ssh/deploy_key" \
+              -p "$DEPLOY_PORT" \
+              -o BatchMode=yes \
+              -o StrictHostKeyChecking=yes \
+              "$DEPLOY_USER@$DEPLOY_HOST" \
+              "sudo /usr/local/sbin/blacksilver-deploy api '$GITHUB_REF_NAME' '$GITHUB_SHA'"
