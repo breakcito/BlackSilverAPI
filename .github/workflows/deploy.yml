@@ -33,16 +33,26 @@ jobs:
 
       - run: composer install --no-interaction --no-progress --prefer-dist
 
-      - env:
+      - name: Configure SSH
+        env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         run: |
-          install -m 700 -d "$HOME/.ssh"
-          printf '%s\n' "$DEPLOY_SSH_KEY"  > "$HOME/.ssh/deploy_key"
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          printf '%s' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/deploy_key"
+          printf '%s' "$DEPLOY_SSH_KEY" | head -n1 | grep -q '-----BEGIN' \
+            || { echo 'DEPLOY_SSH_KEY no parece una llave privada'; exit 1; }
+          chmod 600 "$HOME/.ssh/deploy_key"
           printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
-          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          chmod 644 "$HOME/.ssh/known_hosts"
+          ssh-keyscan -t ed25519 -H "${{ secrets.DEPLOY_HOST }}" 2>/dev/null \
+            | grep -F "$SSH_KNOWN_HOSTS" \
+            >> "$HOME/.ssh/known_hosts" || true
+          ssh-keygen -y -f "$HOME/.ssh/deploy_key" > "$HOME/.ssh/deploy_key.pub"
 
-      - run: |
+      - name: Build artifact
+        run: |
           mkdir -p artifact
           git archive \
             --format=tar.gz \
@@ -51,25 +61,34 @@ jobs:
             "$GITHUB_SHA"
           (cd artifact && sha256sum "api-${GITHUB_SHA}.tar.gz" > "api-${GITHUB_SHA}.tar.gz.sha256")
 
-      - env:
+      - name: Deploy
+        env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
-          target="api-dev"
+          set -euo pipefail
           if [ "$GITHUB_REF_NAME" = "main" ]; then
             target="api"
+          else
+            target="api-dev"
           fi
-          scp -i "$HOME/.ssh/deploy_key" \
-              -P "$DEPLOY_PORT" \
-              -o BatchMode=yes \
-              -o StrictHostKeyChecking=yes \
-              "artifact/api-${GITHUB_SHA}.tar.gz" \
-              "artifact/api-${GITHUB_SHA}.tar.gz.sha256" \
-              "$DEPLOY_USER@$DEPLOY_HOST:/srv/blacksilver/incoming/${target}/"
-          ssh -i "$HOME/.ssh/deploy_key" \
-              -p "$DEPLOY_PORT" \
-              -o BatchMode=yes \
-              -o StrictHostKeyChecking=yes \
-              "$DEPLOY_USER@$DEPLOY_HOST" \
-              "sudo /usr/local/sbin/blacksilver-deploy api '$GITHUB_REF_NAME' '$GITHUB_SHA'"
+          scp \
+            -i "$HOME/.ssh/deploy_key" \
+            -P "$DEPLOY_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o IdentitiesOnly=yes \
+            -o PubkeyAcceptedAlgorithms=+ssh-ed25519 \
+            "artifact/api-${GITHUB_SHA}.tar.gz" \
+            "artifact/api-${GITHUB_SHA}.tar.gz.sha256" \
+            "$DEPLOY_USER@$DEPLOY_HOST:/srv/blacksilver/incoming/${target}/"
+          ssh \
+            -i "$HOME/.ssh/deploy_key" \
+            -p "$DEPLOY_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o IdentitiesOnly=yes \
+            -o PubkeyAcceptedAlgorithms=+ssh-ed25519 \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "sudo /usr/local/sbin/blacksilver-deploy api '$GITHUB_REF_NAME' '$GITHUB_SHA'"
