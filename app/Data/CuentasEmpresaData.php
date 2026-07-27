@@ -16,9 +16,9 @@ class CuentasEmpresaData
     ) {
         $query = DB::table('cuenta_bancaria_empresa as cn')
             ->select([
-                'cn.id_empresa as id_empresa',
                 'cn.id as id_cuenta_bancaria',
-                'bc.id_banco as id_banco',
+                'cn.id_empresa',
+                'cn.id_banco',
                 'bc.nombre as banco',
                 'bc.abreviatura as banco_abv',
                 'cn.moneda',

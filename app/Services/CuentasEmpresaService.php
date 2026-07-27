@@ -90,18 +90,4 @@ class CuentasEmpresaService
         $cuentaActualizada = CuentasEmpresaData::get_cuentas(id_cuenta_bancaria: $id_cuenta_bancaria);
         return ApiResponse::success($cuentaActualizada, "Cuenta bancaria actualizada correctamente");
     }
-
-    public static function cambiar_estado(
-        int $id_cuenta_bancaria,
-        EstadoBase $estado
-    ): array {
-        $cuenta = CuentasEmpresaData::get_by_id($id_cuenta_bancaria);
-        if (!$cuenta) {
-            return ApiResponse::error("La cuenta bancaria no existe.");
-        }
-
-        CuentasEmpresaData::cambiar_estado($id_cuenta_bancaria, $estado);
-
-        return ApiResponse::success(null, "Estado de la cuenta bancaria actualizado correctamente");
-    }
 }
