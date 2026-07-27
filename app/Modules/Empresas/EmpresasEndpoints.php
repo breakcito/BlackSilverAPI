@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Empresas\Controller\CuentasController;
 use App\Modules\Empresas\Controller\EmpresasController;
 use App\Modules\Empresas\Controller\OficinasController;
 use Illuminate\Support\Facades\Route;
@@ -32,6 +33,12 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
             // Crear una nueva oficina
             Route::post('/', 'crear_oficina');
+        });
+
+
+        Route::prefix('/cuentas-empresa')->controller(CuentasController::class)->group(function () {
+            Route::put('/{id}', 'actualizar_cuenta');
+            Route::patch('/{id}/estado', 'cambiar_estado_cuenta');
         });
     });
 });

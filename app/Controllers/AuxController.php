@@ -402,7 +402,7 @@ class AuxController extends Controller
 
         $id_cuenta_bancaria = $request->input('id_cuenta_bancaria');
         $id_cuenta_bancaria = is_array($id_cuenta_bancaria) ? array_map('intval', $id_cuenta_bancaria) : ($id_cuenta_bancaria !== null ? (int) $id_cuenta_bancaria : null);
-        
+
         $estado_val = $request->input('estado');
         $estado = $estado_val ? EstadoBase::from($estado_val) : null;
 

@@ -2,7 +2,7 @@
 
 namespace App\Modules\Empresas\Service;
 
-use App\Data\CuentasEmpresaData;
+use App\Data\CuentasEmpresaData as CuentasEmpresaDataGlobal;
 use App\Data\OficinasData;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
@@ -24,7 +24,7 @@ class EmpresasService
 
         // obtener las oficinas y cuentas bancarias de todas las empresas
         $oficinas = OficinasData::get_oficinas(id_empresa: $ids_empresas);
-        $cuentas = CuentasEmpresaData::get_cuentas(id_empresa: $ids_empresas);
+        $cuentas = CuentasEmpresaDataGlobal::get_cuentas(id_empresa: $ids_empresas);
 
         // asociar oficinas y decodificar documentos a cada empresa
         foreach ($empresas as $empresa) {

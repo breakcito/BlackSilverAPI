@@ -3,11 +3,14 @@
 namespace App\Modules\Empresas\Controller;
 
 use App\Modules\Empresas\Service\EmpresasService;
+use App\Shared\Enums\_Generic\EstadoBase;
+use App\Shared\Enums\_Generic\Moneda;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Enum;
 
 class EmpresasController extends Controller
 {
@@ -27,14 +30,14 @@ class EmpresasController extends Controller
     public function crear_empresa(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'ruc'              => 'required|string|size:11',
-            'razon_social'     => 'required|string|max:128',
+            'ruc' => 'required|string|size:11',
+            'razon_social' => 'required|string|max:128',
             'domicilio_fiscal' => 'nullable|string|max:256',
-            'logo'             => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
-            'documentos'       => 'nullable|array',
+            'logo' => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
+            'documentos' => 'nullable|array',
         ], [
-            'ruc.required'         => 'El RUC es obligatorio',
-            'ruc.size'             => 'El RUC debe tener 11 dígitos',
+            'ruc.required' => 'El RUC es obligatorio',
+            'ruc.size' => 'El RUC debe tener 11 dígitos',
             'razon_social.required' => 'La razón social es obligatoria',
         ]);
 
@@ -77,7 +80,7 @@ class EmpresasController extends Controller
     public function agregar_documentos(Request $request, int $id): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'documentos'   => 'required|array|min:1',
+            'documentos' => 'required|array|min:1',
             'documentos.*' => 'file|max:10240',
         ], [
             'documentos.required' => 'Debes enviar al menos un documento.',
