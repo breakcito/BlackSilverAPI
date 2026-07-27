@@ -2,6 +2,7 @@
 
 namespace App\Modules\Empresas\Service;
 
+use App\Data\CuentasEmpresaData;
 use App\Data\OficinasData;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
@@ -21,12 +22,14 @@ class EmpresasService
         // recopilar id's unicos de todas las empresas
         $ids_empresas = array_unique(array_column($empresas, 'id_empresa'));
 
-        // obtener las oficinas de todas las empresas
+        // obtener las oficinas y cuentas bancarias de todas las empresas
         $oficinas = OficinasData::get_oficinas(id_empresa: $ids_empresas);
+        $cuentas = CuentasEmpresaData::get_cuentas(id_empresa: $ids_empresas);
 
         // asociar oficinas y decodificar documentos a cada empresa
         foreach ($empresas as $empresa) {
             $empresa->oficinas = $oficinas->where('id_empresa', $empresa->id_empresa)->values();
+            $empresa->cuentas_bancarias = $cuentas->where('id_empresa', $empresa->id_empresa)->values();
             $empresa->documentos = !empty($empresa->documentos) && is_string($empresa->documentos)
                 ? json_decode($empresa->documentos, true)
                 : (is_array($empresa->documentos) ? $empresa->documentos : []);

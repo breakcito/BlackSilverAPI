@@ -53,6 +53,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
             // empresas
             Route::get('/empresas', 'get_empresas');
             Route::get('/oficinas', 'get_oficinas');
+            Route::get('/cuentas-empresa', 'get_cuentas_empresa');
+            Route::post('/cuentas-empresa', 'crear_cuenta_empresa');
 
             // productos
             Route::get('/productos', 'get_productos');
