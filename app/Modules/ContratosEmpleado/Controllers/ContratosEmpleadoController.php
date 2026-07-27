@@ -119,4 +119,76 @@ class ContratosEmpleadoController
             $request->input('motivo_cierre') ? (string) $request->input('motivo_cierre') : null
         ));
     }
+
+    /**
+     * Registrar una adenda (modificación) a un contrato existente.
+     */
+    public function registrar_adenda(Request $request, int $id_contrato): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'motivo' => 'nullable|string',
+            'id_cargo' => 'nullable|integer',
+            'id_empresa' => 'nullable|integer',
+            'id_almacen' => 'nullable|integer',
+            'id_labor' => 'nullable|integer',
+            'id_oficina' => 'nullable|integer',
+            'tipo_contrato' => 'nullable|in:Planilla,JornadaDiaria',
+            'sueldo_base' => 'nullable|numeric',
+            'salario_diario' => 'nullable|numeric',
+            'fecha_inicio' => 'nullable|date',
+            'por_tiempo_indefinido' => 'nullable|boolean',
+            'duracion' => 'nullable|integer|min:1',
+            'periodo_duracion' => 'nullable|in:diario,semanal,mensual,anual',
+            'evidencias' => 'nullable|array',
+            'evidencias.*' => 'file|max:10240',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $authUser = $request->attributes->get('auth_user');
+        $id_empleado_sistema = $authUser ? (int) $authUser->id_empleado : 0;
+
+        $datos = $request->only([
+            'id_cargo',
+            'id_empresa',
+            'id_almacen',
+            'id_labor',
+            'id_oficina',
+            'tipo_contrato',
+            'sueldo_base',
+            'salario_diario',
+            'fecha_inicio',
+            'por_tiempo_indefinido',
+            'duracion',
+            'periodo_duracion',
+        ]);
+
+        // Asegurar que si id_empresa, id_almacen, id_labor, id_oficina vienen como vacíos o ceros, los pasemos como null
+        foreach (['id_empresa', 'id_almacen', 'id_labor', 'id_oficina'] as $id_field) {
+            if (array_key_exists($id_field, $datos)) {
+                $datos[$id_field] = ($datos[$id_field] && (int)$datos[$id_field] > 0) ? (int)$datos[$id_field] : null;
+            }
+        }
+
+        // Si tipo_contrato cambia, limpiar el otro sueldo
+        if (isset($datos['tipo_contrato'])) {
+            if ($datos['tipo_contrato'] === 'Planilla') {
+                $datos['salario_diario'] = null;
+            } else if ($datos['tipo_contrato'] === 'JornadaDiaria') {
+                $datos['sueldo_base'] = null;
+            }
+        }
+
+        $result = ContratosEmpleadoService::registrar_adenda(
+            id_contrato: $id_contrato,
+            id_empleado_sistema: $id_empleado_sistema,
+            motivo: $request->input('motivo') ? (string) $request->input('motivo') : null,
+            datos_nuevos: $datos,
+            evidencias: $request->file('evidencias') ?? []
+        );
+
+        return response()->json($result);
+    }
 }

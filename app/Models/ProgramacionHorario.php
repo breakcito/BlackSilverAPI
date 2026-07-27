@@ -24,6 +24,11 @@ class ProgramacionHorario extends Model
         'fecha_fin',
         'dias_laborables',
         'estado',
+        // Snapshots del contrato al momento del INSERT.
+        // Se copian desde contrato_trabajo y NO se actualizan cuando cambia el contrato.
+        'tipo_contrato',
+        'sueldo_base',
+        'sueldo_diario',
     ];
 
     protected $casts = [
@@ -33,5 +38,7 @@ class ProgramacionHorario extends Model
         'por_tiempo_indefinido' => 'boolean',
         'fecha_inicio' => 'date',
         'fecha_fin' => 'date',
+        'sueldo_base' => 'decimal:2',
+        'sueldo_diario' => 'decimal:2',
     ];
 }

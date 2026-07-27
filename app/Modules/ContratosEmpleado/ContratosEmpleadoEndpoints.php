@@ -17,5 +17,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
         // Finalizar anticipadamente
         Route::post('/{id_contrato}/finalizar-anticipado', 'finalizar_anticipado');
+
+        // Registrar adenda
+        Route::post('/{id_contrato}/adenda', 'registrar_adenda');
     });
 });

@@ -43,9 +43,10 @@ class ContratosEmpleadoData
             ct.fecha_fin,
             ct.duracion,
             ct.periodo_duracion,
-            DATEDIFF(ct.fecha_fin, ct.fecha_inicio) AS duracion_dias,
+            ABS(DATEDIFF(ct.fecha_fin, ct.fecha_inicio)) AS duracion_dias,
             ct.fecha_fin_anticipada,
             ct.motivo_cierre,
+            ct.cambios_log,
             ct.created_at,
             ct.estado
         FROM contrato_trabajo ct
@@ -64,7 +65,19 @@ class ContratosEmpleadoData
             $sql .= ' AND ct.id = :id_contrato';
             $params['id_contrato'] = $id_contrato;
 
-            return DB::selectOne($sql, $params) ?: (object) [];
+            $row = DB::selectOne($sql, $params);
+            if (!$row) return (object) [];
+            $row = (array) $row;
+            if (array_key_exists('duracion_dias', $row) && $row['duracion_dias'] !== null) {
+                $row['duracion_dias'] = (int) $row['duracion_dias'];
+            }
+            if (array_key_exists('cambios_log', $row) && is_string($row['cambios_log'])) {
+                $row['cambios_log'] = json_decode($row['cambios_log'], true) ?? [];
+            }
+            if (array_key_exists('evidencias', $row) && is_string($row['evidencias'])) {
+                $row['evidencias'] = json_decode($row['evidencias'], true) ?? [];
+            }
+            return (object) $row;
         }
 
         if ($id_empleado !== null) {
@@ -87,6 +100,13 @@ class ContratosEmpleadoData
             $row = (array) $row;
             if (array_key_exists('duracion_dias', $row) && $row['duracion_dias'] !== null) {
                 $row['duracion_dias'] = (int) $row['duracion_dias'];
+            }
+            // Parsear campos JSON que DB::select() devuelve como strings
+            if (array_key_exists('cambios_log', $row) && is_string($row['cambios_log'])) {
+                $row['cambios_log'] = json_decode($row['cambios_log'], true) ?? [];
+            }
+            if (array_key_exists('evidencias', $row) && is_string($row['evidencias'])) {
+                $row['evidencias'] = json_decode($row['evidencias'], true) ?? [];
             }
 
             return $row;
@@ -179,6 +199,7 @@ class ContratosEmpleadoData
             lab.nombre AS labor,
             lab.id_mina AS id_mina_labor,
             mina_lab.nombre AS mina_nombre,
+            ct.id_oficina,
             ct.tipo_contrato,
             ct.sueldo_base,
             ct.salario_diario,
@@ -188,9 +209,10 @@ class ContratosEmpleadoData
             ct.fecha_fin,
             ct.duracion,
             ct.periodo_duracion,
-            DATEDIFF(ct.fecha_fin, ct.fecha_inicio) AS duracion_dias,
+            ABS(DATEDIFF(ct.fecha_fin, ct.fecha_inicio)) AS duracion_dias,
             ct.fecha_fin_anticipada,
             ct.motivo_cierre,
+            ct.cambios_log,
             ct.created_at,
             ct.estado
         FROM contrato_trabajo ct
@@ -209,6 +231,13 @@ class ContratosEmpleadoData
             $row = (array) $row;
             if (array_key_exists('duracion_dias', $row) && $row['duracion_dias'] !== null) {
                 $row['duracion_dias'] = (int) $row['duracion_dias'];
+            }
+            // Parsear campos JSON que DB::select() devuelve como strings
+            if (array_key_exists('cambios_log', $row) && is_string($row['cambios_log'])) {
+                $row['cambios_log'] = json_decode($row['cambios_log'], true) ?? [];
+            }
+            if (array_key_exists('evidencias', $row) && is_string($row['evidencias'])) {
+                $row['evidencias'] = json_decode($row['evidencias'], true) ?? [];
             }
 
             return $row;

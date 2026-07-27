@@ -3,7 +3,9 @@
 namespace App\Modules\ContratosEmpleado\Services;
 
 use App\Modules\ContratosEmpleado\Data\ContratosEmpleadoData;
+use App\Modules\ProgramacionHorarios\Services\ProgramacionHorarioService;
 use App\Shared\Enums\Contrato\EstadoContrato;
+use App\Shared\Enums\Contrato\TipoContrato;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\UploadedFile;
@@ -98,7 +100,7 @@ class ContratosEmpleadoService
                 periodo_duracion: $periodo_duracion
             );
 
-            $duracion_dias = (int) \Carbon\Carbon::parse($fecha_inicio)->diffInDays(\Carbon\Carbon::parse($fecha_fin));
+            $duracion_dias = (int) abs(\Carbon\Carbon::parse($fecha_inicio)->diffInDays(\Carbon\Carbon::parse($fecha_fin)));
         }
 
         // Validar que el empleado no tenga ya un contrato Vigente.
@@ -212,12 +214,24 @@ class ContratosEmpleadoService
                     'id_contrato_vigente' => null,
                 ]);
 
+            // CASCADA: cerrar programaciones de horario activas del contrato.
+            // El contrato ya no está vigente, no deben seguir contando hacia asistencia/planilla.
+            $programaciones_finalizadas = ProgramacionHorarioService::finalizar_programaciones_por_contrato(
+                id_contrato: $id_contrato,
+                fecha_fin: $fecha_fin_anticipada,
+            );
+
             $empleadoActualizado = \App\Modules\Empleados\Data\EmpleadosData::get_empleados(
                 id_empleado: $id_empleado
             );
 
             return ApiResponse::success([
                 'empleado' => $empleadoActualizado,
+                'programaciones_finalizadas' => $programaciones_finalizadas,
+                'cambios_detectados' => [
+                    'afecta_snapshot' => true,
+                    'afecta_lugar' => false,
+                ],
             ], 'Contrato finalizado anticipadamente');
         });
     }
@@ -296,5 +310,293 @@ class ContratosEmpleadoService
             : ContratosEmpleadoData::activar_contratos_pendientes($ids_pendientes);
 
         return $resultado;
+    }
+
+    private static function resolverValorAmigable(string $campo_bd, $valor): ?string
+    {
+        if ($valor === null || $valor === '') {
+            return 'Ninguno';
+        }
+
+        switch ($campo_bd) {
+            case 'id_cargo':
+                return DB::table('cargo')->where('id', $valor)->value('nombre') ?? $valor;
+            case 'id_empresa':
+                return DB::table('empresa')->where('id', $valor)->value('razon_social') ?? $valor;
+            case 'id_almacen':
+                return DB::table('almacen')->where('id', $valor)->value('nombre') ?? $valor;
+            case 'id_labor':
+                return DB::table('labor')->where('id', $valor)->value('nombre') ?? $valor;
+            case 'id_oficina':
+                return DB::table('oficina')->where('id', $valor)->value('nombre') ?? $valor;
+            case 'por_tiempo_indefinido':
+                return $valor ? 'Sí' : 'No';
+            default:
+                return (string) $valor;
+        }
+    }
+
+    public static function registrar_adenda(
+        int $id_contrato,
+        int $id_empleado_sistema,
+        ?string $motivo = null,
+        array $datos_nuevos = [],
+        array $evidencias = []
+    ): array {
+        return DB::transaction(function () use ($id_contrato, $id_empleado_sistema, $motivo, $datos_nuevos, $evidencias) {
+            $contrato = \App\Models\ContratoTrabajo::find($id_contrato);
+            if (!$contrato) {
+                return ApiResponse::error('Contrato no encontrado.');
+            }
+
+            // Campos susceptibles de cambio
+            $camposComparar = [
+                'id_cargo',
+                'id_empresa',
+                'id_almacen',
+                'id_labor',
+                'id_oficina',
+                'tipo_contrato',
+                'sueldo_base',
+                'salario_diario',
+                'fecha_inicio',
+                'por_tiempo_indefinido',
+                'duracion',
+                'periodo_duracion',
+            ];
+
+            $mapaNombres = [
+                'id_cargo' => 'Cargo',
+                'id_empresa' => 'Empresa',
+                'id_almacen' => 'Almacén',
+                'id_labor' => 'Labor',
+                'id_oficina' => 'Oficina',
+                'tipo_contrato' => 'Tipo de Contrato',
+                'sueldo_base' => 'Sueldo Base',
+                'salario_diario' => 'Salario Diario',
+                'fecha_inicio' => 'Fecha de Inicio',
+                'por_tiempo_indefinido' => 'Por Tiempo Indefinido',
+                'duracion' => 'Duración',
+                'periodo_duracion' => 'Periodo de Duración',
+            ];
+
+            $cambios = [];
+
+            // Pre-procesamiento de datos nuevos
+            if (isset($datos_nuevos['por_tiempo_indefinido'])) {
+                $datos_nuevos['por_tiempo_indefinido'] = (bool)$datos_nuevos['por_tiempo_indefinido'];
+            }
+
+            // Calcular fecha_fin y duracion_dias si aplica
+            $por_tiempo_indefinido_nuevo = isset($datos_nuevos['por_tiempo_indefinido'])
+                ? (bool)$datos_nuevos['por_tiempo_indefinido']
+                : (bool)$contrato->por_tiempo_indefinido;
+
+            if (!$por_tiempo_indefinido_nuevo) {
+                $fecha_inicio_nueva = isset($datos_nuevos['fecha_inicio']) ? $datos_nuevos['fecha_inicio'] : $contrato->fecha_inicio->toDateString();
+                $duracion_nueva = isset($datos_nuevos['duracion']) ? (int)$datos_nuevos['duracion'] : (int)$contrato->duracion;
+                $periodo_duracion_nuevo = isset($datos_nuevos['periodo_duracion']) ? $datos_nuevos['periodo_duracion'] : $contrato->periodo_duracion;
+
+                if ($duracion_nueva > 0 && $periodo_duracion_nuevo) {
+                    $fecha_fin_nueva = ContratosEmpleadoData::calcular_fecha_fin($fecha_inicio_nueva, $duracion_nueva, $periodo_duracion_nuevo);
+                    $datos_nuevos['fecha_fin'] = $fecha_fin_nueva;
+
+                    $inicio = \Carbon\Carbon::parse($fecha_inicio_nueva);
+                    $fin = \Carbon\Carbon::parse($fecha_fin_nueva);
+                    // diffInDays en Carbon 3 devuelve valor con signo.
+                    $datos_nuevos['duracion_dias'] = (int) abs($inicio->diffInDays($fin));
+                }
+            } else {
+                $datos_nuevos['fecha_fin'] = null;
+                $datos_nuevos['duracion'] = null;
+                $datos_nuevos['periodo_duracion'] = null;
+                $datos_nuevos['duracion_dias'] = null;
+            }
+
+            // Adicionalmente comparar fecha_fin y duracion_dias
+            $camposComparar[] = 'fecha_fin';
+            $camposComparar[] = 'duracion_dias';
+            $mapaNombres['fecha_fin'] = 'Fecha de Fin';
+            $mapaNombres['duracion_dias'] = 'Duración en Días';
+
+            foreach ($camposComparar as $campo) {
+                if (!array_key_exists($campo, $datos_nuevos)) {
+                    continue;
+                }
+
+                $valorAnterior = $contrato->{$campo};
+                $valorNuevo = $datos_nuevos[$campo];
+
+                // Normalización para la comparación
+                $normAnterior = $valorAnterior;
+                $normNuevo = $valorNuevo;
+
+                if ($valorAnterior instanceof \Carbon\Carbon) {
+                    $normAnterior = $valorAnterior->toDateString();
+                }
+                if ($normAnterior instanceof \DateTimeInterface) {
+                    $normAnterior = $normAnterior->format('Y-m-d');
+                }
+
+                // Casteo preciso de tipos según el campo
+                if (in_array($campo, ['sueldo_base', 'salario_diario'], true)) {
+                    $normAnterior = ($normAnterior !== null && $normAnterior !== '') ? (float) $normAnterior : null;
+                    $normNuevo = ($normNuevo !== null && $normNuevo !== '') ? (float) $normNuevo : null;
+                } elseif (in_array($campo, ['duracion', 'duracion_dias'], true) || (str_starts_with($campo, 'id_') && $campo !== 'id_empleado')) {
+                    $normAnterior = ($normAnterior !== null && $normAnterior !== '') ? (int) $normAnterior : null;
+                    $normNuevo = ($normNuevo !== null && $normNuevo !== '') ? (int) $normNuevo : null;
+                } elseif ($campo === 'por_tiempo_indefinido') {
+                    $normAnterior = $normAnterior !== null ? (bool) $normAnterior : null;
+                    $normNuevo = $normNuevo !== null ? (bool) $normNuevo : null;
+                } elseif (is_string($normAnterior) || is_string($normNuevo)) {
+                    $normAnterior = $normAnterior !== null ? trim((string) $normAnterior) : null;
+                    $normNuevo = $normNuevo !== null ? trim((string) $normNuevo) : null;
+                }
+
+                if ($normAnterior !== $normNuevo) {
+                    // Resolver nombres amigables para campos específicos
+                    $valorAnteriorAmigable = self::resolverValorAmigable($campo, $normAnterior);
+                    $valorNuevoAmigable = self::resolverValorAmigable($campo, $normNuevo);
+
+                    $cambios[] = [
+                        'campo_bd' => $campo,
+                        'campo' => $mapaNombres[$campo] ?? $campo,
+                        'valor_anterior' => $valorAnteriorAmigable,
+                        'valor_nuevo' => $valorNuevoAmigable,
+                    ];
+                }
+            }
+
+            if (empty($cambios)) {
+                return ApiResponse::error('No se detectaron cambios en el contrato.');
+            }
+
+            // =====================================================================
+            // Detección de cambios para cascada con Programación de Horarios
+            // =====================================================================
+            // Se dispara cuando cambia cualquier campo que afecte al horario del
+            // trabajador: snapshot salarial (sueldo/tipo), lugar de trabajo
+            // (almacén/labor/oficina) o la vigencia del contrato (fechas).
+            // El backend hace todo el trabajo automáticamente: split del tramo
+            // previo, nuevo tramo continuo con los nuevos valores y clip de
+            // fecha_fin cuando el contrato se reduce.
+            // =====================================================================
+            $campos_cambiados = array_column($cambios, 'campo_bd');
+
+            $cambios_afectan_programacion = in_array('tipo_contrato', $campos_cambiados, true)
+                || in_array('sueldo_base', $campos_cambiados, true)
+                || in_array('salario_diario', $campos_cambiados, true)
+                || in_array('id_almacen', $campos_cambiados, true)
+                || in_array('id_labor', $campos_cambiados, true)
+                || in_array('id_oficina', $campos_cambiados, true)
+                || in_array('fecha_inicio', $campos_cambiados, true)
+                || in_array('fecha_fin', $campos_cambiados, true)
+                || in_array('por_tiempo_indefinido', $campos_cambiados, true);
+
+            // Obtener el nombre del empleado que hace el cambio para guardarlo en la trazabilidad
+            $nombre_empleado_sistema = DB::table('empleado')
+                ->where('id', $id_empleado_sistema)
+                ->select(DB::raw('CONCAT(nombre, " ", apellido) AS nombre_completo'))
+                ->value('nombre_completo') ?? 'Sistema';
+
+            // Construir la adenda log
+            $nuevoLog = [
+                'id_empleado' => $id_empleado_sistema,
+                'nombre_empleado' => $nombre_empleado_sistema,
+                'motivo' => $motivo,
+                'update_at' => \Carbon\Carbon::now()->toIso8601String(),
+                'cambios' => $cambios,
+            ];
+
+            $historialLog = $contrato->cambios_log ?? [];
+            array_unshift($historialLog, $nuevoLog); // Colocar el cambio más reciente al inicio
+
+            // Actualizar contrato con los campos nuevos
+            foreach ($datos_nuevos as $key => $val) {
+                $contrato->{$key} = $val;
+            }
+            $contrato->cambios_log = $historialLog;
+
+            // Recalcular estado del contrato si fecha_inicio o por_tiempo_indefinido
+            // cambiaron. La adenda puede mover el inicio al futuro (→ Pendiente)
+            // o traerlo al presente (→ Vigente).
+            //
+            // Solo se recalcula si el estado actual es Pendiente o Vigente: nunca
+            // reactivamos un contrato Finalizado o con Término Anticipado.
+            //
+            // No tocamos empleado.id_contrato_vigente aquí: la adenda es una
+            // modificación, no un desvinculamiento. El sistema ya tiene la
+            // maquinaria (procesar_vencimientos_y_pendientes) que activa el
+            // contrato Pendiente cuando llega su fecha_inicio y actualiza
+            // id_contrato_vigente en ese momento.
+            if (in_array($contrato->estado, [EstadoContrato::Pendiente->value, EstadoContrato::Vigente->value], true)) {
+                $fecha_inicio_efectiva = $contrato->fecha_inicio
+                    ? $contrato->fecha_inicio->toDateString()
+                    : \Carbon\Carbon::now()->toDateString();
+                $estado_recalculado = $fecha_inicio_efectiva <= \Carbon\Carbon::now()->toDateString()
+                    ? EstadoContrato::Vigente->value
+                    : EstadoContrato::Pendiente->value;
+
+                if ($contrato->estado !== $estado_recalculado) {
+                    $contrato->estado = $estado_recalculado;
+                }
+            }
+
+            // Guardar archivos de evidencia y obtener JSON serializado si se suben
+            if (!empty($evidencias)) {
+                $archivosGuardados = ArchivoHelper::guardarArchivos('evidencias-contratos', $evidencias);
+                if (!empty($archivosGuardados)) {
+                    $existentes = is_array($contrato->evidencias) ? $contrato->evidencias : json_decode($contrato->evidencias ?? '[]', true) ?? [];
+                    $contrato->evidencias = array_merge($existentes, $archivosGuardados);
+                }
+            }
+
+            $contrato->save();
+
+            // =====================================================================
+            // CASCADA hacia Programación de Horarios (transparente para el usuario)
+            // =====================================================================
+            $programaciones_ajustadas = ['actualizadas' => 0, 'divididas' => 0, 'creadas' => 0];
+
+            if ($cambios_afectan_programacion) {
+                $fecha_efectiva = isset($datos_nuevos['fecha_inicio'])
+                    ? $datos_nuevos['fecha_inicio']
+                    : ($contrato->fecha_inicio ? $contrato->fecha_inicio->toDateString() : \Carbon\Carbon::now()->toDateString());
+
+                $programaciones_ajustadas = ProgramacionHorarioService::actualizar_programaciones_por_adenda(
+                    id_contrato: $id_contrato,
+                    fecha_efectiva: $fecha_efectiva,
+                    tipo_contrato: (string) $contrato->tipo_contrato,
+                    sueldo_base: $contrato->sueldo_base !== null ? (float) $contrato->sueldo_base : null,
+                    salario_diario: $contrato->salario_diario !== null ? (float) $contrato->salario_diario : null,
+                    id_almacen: $contrato->id_almacen !== null ? (int) $contrato->id_almacen : null,
+                    id_labor: $contrato->id_labor !== null ? (int) $contrato->id_labor : null,
+                    id_oficina: $contrato->id_oficina !== null ? (int) $contrato->id_oficina : null,
+                    contrato_fecha_fin: $contrato->fecha_fin ? $contrato->fecha_fin->toDateString() : null,
+                    contrato_indefinido: (bool) $contrato->por_tiempo_indefinido,
+                );
+            }
+
+            // Si el contrato modificado es el vigente, actualizar el cargo del empleado
+            $empleado = DB::table('empleado')->where('id', $contrato->id_empleado)->first();
+            if ($empleado && (int)$empleado->id_contrato_vigente === $contrato->id) {
+                if (isset($datos_nuevos['id_cargo'])) {
+                    DB::table('empleado')
+                        ->where('id', $contrato->id_empleado)
+                        ->update(['id_cargo' => $datos_nuevos['id_cargo']]);
+                }
+            }
+
+            // Retornar empleado actualizado para refrescar UI
+            $empleadoActualizado = \App\Modules\Empleados\Data\EmpleadosData::get_empleados(
+                id_empleado: $contrato->id_empleado
+            );
+
+            return ApiResponse::success([
+                'contrato' => ContratosEmpleadoData::get_contratos(id_contrato: $contrato->id),
+                'empleado' => $empleadoActualizado,
+                'programaciones_ajustadas' => $programaciones_ajustadas,
+            ], 'Adenda registrada correctamente.');
+        });
     }
 }

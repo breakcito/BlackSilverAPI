@@ -31,6 +31,7 @@ class ContratoTrabajo extends Model
         'duracion_dias',
         'fecha_fin_anticipada',
         'motivo_cierre',
+        'cambios_log',
         'created_at',
         'estado',
     ];
@@ -43,6 +44,7 @@ class ContratoTrabajo extends Model
         'fecha_fin' => 'date',
         'fecha_fin_anticipada' => 'date',
         'evidencias' => 'array',
+        'cambios_log' => 'array',
         'created_at' => 'datetime',
         'duracion' => 'integer',
         'duracion_dias' => 'integer',

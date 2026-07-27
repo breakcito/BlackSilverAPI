@@ -32,10 +32,19 @@ class ProgramacionHorarioData
             CONCAT(emp.nombre, " ", emp.apellido) AS empleado,
             emp.url_foto AS empleado_url_foto,
             ph.id_contrato_trabajo,
-            ct.tipo_contrato,
+            ph.tipo_contrato AS programacion_tipo_contrato,
+            ph.sueldo_base AS programacion_sueldo_base,
+            ph.sueldo_diario AS programacion_sueldo_diario,
+            ct.tipo_contrato AS contrato_tipo_contrato,
+            ct.sueldo_base AS contrato_sueldo_base,
+            ct.salario_diario AS contrato_sueldo_diario,
             ct.fecha_inicio AS contrato_fecha_inicio,
             ct.fecha_fin AS contrato_fecha_fin,
             ct.por_tiempo_indefinido AS contrato_indefinido,
+            ct.id_almacen AS contrato_id_almacen,
+            ct.id_labor AS contrato_id_labor,
+            ct.id_oficina AS contrato_id_oficina,
+            ct.id_cargo AS contrato_id_cargo,
             ph.id_turno_laboral,
             tl.tipo_turno,
             tl.hora_ingreso,
@@ -190,6 +199,44 @@ class ProgramacionHorarioData
     }
 
     /**
+     * IDs de programaciones Activas vinculadas a un contrato.
+     * Usado por la cascada de ContratosEmpleadoService.
+     *
+     * @return array<int, int>
+     */
+    public static function get_ids_programaciones_activas_por_contrato(int $id_contrato): array
+    {
+        return ProgramacionHorario::query()
+            ->where('id_contrato_trabajo', $id_contrato)
+            ->where('estado', EstadoBase::Activo->value)
+            ->pluck('id')
+            ->map(fn ($v) => (int) $v)
+            ->all();
+    }
+
+    /**
+     * Finalizar (Inactivar) un conjunto de programaciones en una sola operación.
+     * Usado por la cascada cuando el contrato se finaliza o cambia snapshots.
+     *
+     * @param  array<int, int>  $ids_programaciones
+     * @return int  Número de filas afectadas
+     */
+    public static function finalizar_programaciones_masivo(array $ids_programaciones, string $fecha_fin): int
+    {
+        if (empty($ids_programaciones)) {
+            return 0;
+        }
+
+        return ProgramacionHorario::query()
+            ->whereIn('id', $ids_programaciones)
+            ->where('estado', EstadoBase::Activo->value)
+            ->update([
+                'estado' => EstadoBase::Inactivo->value,
+                'fecha_fin' => $fecha_fin,
+            ]);
+    }
+
+    /**
      * Verificar si ya existe una programación Activa para el mismo empleado + contrato + turno + fecha_inicio.
      * Sirve para evitar duplicados al asignar.
      */
@@ -241,7 +288,13 @@ class ProgramacionHorarioData
             emp.id_contrato_vigente,
             ct.estado AS contrato_estado,
             ct.por_tiempo_indefinido AS contrato_indefinido,
-            ct.fecha_fin AS contrato_fecha_fin
+            ct.fecha_fin AS contrato_fecha_fin,
+            ct.tipo_contrato AS contrato_tipo,
+            ct.sueldo_base AS contrato_sueldo_base,
+            ct.salario_diario AS contrato_sueldo_diario,
+            ct.id_almacen AS contrato_id_almacen,
+            ct.id_labor AS contrato_id_labor,
+            ct.id_oficina AS contrato_id_oficina
         FROM empleado emp
         INNER JOIN contrato_trabajo ct ON ct.id = emp.id_contrato_vigente
         WHERE emp.es_contratista = 0

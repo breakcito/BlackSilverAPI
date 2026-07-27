@@ -111,11 +111,12 @@ class EmpleadosData
                 ->where('ct.estado', EstadoContrato::Vigente->value);
         }
 
-        // Si se pide filtrar por lugar, filtrar por el lugar del contrato y ordenar.
+        // Si se indica lugar, calcular matchea_lugar_calculado (1 si coincide, 0 si no)
+        // y ordenar primero los que pertenecen a ese lugar, sin excluir a los de otros lugares.
         if ($id_lugar !== null && $campo_lugar !== null) {
-            $query->where("ct.{$campo_lugar}", $id_lugar);
-            $query->addSelect(DB::raw('1 AS matchea_lugar_calculado'));
-            $query->orderByRaw('emp.nombre ASC, emp.apellido ASC');
+            $idLugarSafe = (int) $id_lugar;
+            $query->addSelect(DB::raw("CASE WHEN ct.{$campo_lugar} = {$idLugarSafe} THEN 1 ELSE 0 END AS matchea_lugar_calculado"));
+            $query->orderByRaw('matchea_lugar_calculado DESC, emp.nombre ASC, emp.apellido ASC');
         } else {
             $query->orderByRaw('CONCAT(emp.nombre, " ", emp.apellido) ASC');
         }
