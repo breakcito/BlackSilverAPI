@@ -10,6 +10,7 @@ use App\Services\BancosService;
 use App\Services\CargosService;
 use App\Services\CategoriasService;
 use App\Services\ContratistasService;
+use App\Services\CuentasEmpresaService;
 use App\Services\EmpleadosService;
 use App\Services\EmpresasService;
 use App\Services\LaboresService;
@@ -24,6 +25,7 @@ use App\Services\ProveedoresService;
 use App\Services\RolesService;
 use App\Services\UnidadesMedidaService;
 use App\Shared\Enums\_Generic\EstadoBase;
+use App\Shared\Enums\_Generic\Moneda;
 use App\Shared\Enums\_Generic\Periodo;
 use App\Shared\Enums\_Generic\TipoBien;
 use App\Shared\Enums\_Generic\TipoEntidad;
@@ -354,6 +356,59 @@ class AuxController extends Controller
 
         return response()->json(EmpresasService::get_empresas(
             id_empresa: $id_empresa,
+            estado: $estado
+        ));
+    }
+
+    /**
+     * Crear una nueva cuenta bancaria para una empresa
+     */
+    public function crear_cuenta_empresa(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_empresa' => 'required|integer',
+            'id_banco' => 'required|integer',
+            'moneda' => ['required', new Enum(Moneda::class)],
+            'numero_cuenta' => 'required|string',
+            'cci' => 'nullable|string',
+            'es_para_detraccion' => 'nullable|boolean',
+        ], [
+            'id_empresa.required' => 'El id_empresa es obligatorio',
+            'id_banco.required' => 'El id_banco es obligatorio',
+            'moneda.required' => 'La moneda es obligatoria',
+            'numero_cuenta.required' => 'El número de cuenta es obligatorio',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $result = CuentasEmpresaService::crear_cuenta(
+            id_empresa: $request->input('id_empresa'),
+            id_banco: $request->input('id_banco'),
+            moneda: Moneda::from($request->input('moneda')),
+            numero_cuenta: $request->input('numero_cuenta'),
+            cci: $request->input('cci'),
+            es_para_detraccion: $request->input('es_para_detraccion') ?? false
+        );
+
+        return response()->json($result);
+    }
+
+    public function get_cuentas_empresa(Request $request): JsonResponse
+    {
+        $id_empresa = $request->input('id_empresa');
+        $id_empresa = is_array($id_empresa) ? array_map('intval', $id_empresa) : ($id_empresa !== null ? (int) $id_empresa : null);
+
+        $id_cuenta_bancaria = $request->input('id_cuenta_bancaria');
+        $id_cuenta_bancaria = is_array($id_cuenta_bancaria) ? array_map('intval', $id_cuenta_bancaria) : ($id_cuenta_bancaria !== null ? (int) $id_cuenta_bancaria : null);
+        
+        $estado_val = $request->input('estado');
+        $estado = $estado_val ? EstadoBase::from($estado_val) : null;
+
+        return response()->json(CuentasEmpresaService::get_cuentas(
+            id_empresa: $id_empresa,
+            id_cuenta_bancaria: $id_cuenta_bancaria,
             estado: $estado
         ));
     }
