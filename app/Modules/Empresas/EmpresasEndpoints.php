@@ -33,5 +33,11 @@ Route::middleware('auth.jwt.custom')->group(function () {
             // Crear una nueva oficina
             Route::post('/', 'crear_oficina');
         });
+
+
+        Route::prefix('/cuentas-empresa')->controller(EmpresasController::class)->group(function () {
+            Route::put('/{id}', 'actualizar_cuenta_empresa');
+            Route::patch('/{id}/estado', 'cambiar_estado_cuenta_empresa');
+        });
     });
 });
