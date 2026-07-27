@@ -11,9 +11,14 @@ use Illuminate\Support\Facades\DB;
  * empleado tiene múltiples turnos en el mismo día, la columna
  * `jornada_trabajada` se va SUMANDO vía UPSERT (ver `upsert_asistencia_diaria`).
  *
- * NOTA: la tabla `oficina` no existe en el esquema actual; las programaciones
- * solo usan almacén o labor como lugar de trabajo. Si en el futuro se añade,
- * reintroducir el LEFT JOIN correspondiente.
+ * Los campos de SUELDO y TIPO_CONTRATO usados para cálculo de pago se leen
+ * desde los SNAPSHOTS almacenados en `programacion_horario` (tipo_contrato,
+ * sueldo_base, sueldo_diario), NO del contrato vigente. Esto permite que
+ * un cambio de sueldo a mitad de mes (vía adenda) se refleje correctamente:
+ * cada tramo histórico conserva su propio snapshot.
+ *
+ * El `contrato_trabajo` se mantiene solo para datos referenciales
+ * (cargo, área, fechas de vigencia del contrato, id_contrato_vigente).
  */
 class AsistenciaData
 {
@@ -21,10 +26,10 @@ class AsistenciaData
      * Listado agrupado por empleado para una ventana de fechas (modo "Empleados").
      *
      * Devuelve una fila por empleado que tenga al menos una asistencia en el rango,
-     * junto con todas sus marcaciones del período y un resumen del contrato
-     * vigente en la primera fecha del rango (para mostrar sueldo/salario).
+     * junto con todas sus marcaciones del período y los snapshots de la
+     * programación correspondiente a cada día.
      *
-     * @param  array<string, mixed>  $filtros  mes, year, id_almacen, id_labor, id_empleado, q
+     * @param  array<string, mixed>  $filtros  mes, year, id_almacen, id_labor, id_oficina, id_empleado, q
      * @return array<int, array<string, mixed>>
      */
     public static function get_asistencias_agrupadas(array $filtros): array
@@ -34,10 +39,14 @@ class AsistenciaData
         $filtro_lugar_contrato = self::construir_filtro_lugar_contrato($filtros, $bindings);
 
         // Cabecera: una fila por (empleado, fecha). Se agrupa en PHP.
-        // El INNER JOIN a contrato_trabajo es OBLIGATORIO: las columnas ct.*
-        // se referencian en el SELECT, y sin un contrato vigente no podemos
-        // calcular la planilla. Los empleados con id_contrato_vigente = NULL
-        // (huérfanos por falta de contrato Vigente) quedan excluidos.
+        // El INNER JOIN a contrato_trabajo es OBLIGATORIO: las columnas ct.* se
+        // referencian en el SELECT (cargo, area, fechas). Los empleados sin
+        // contrato vigente al día de la asistencia quedan excluidos.
+        //
+        // Los snapshots de SUELDO y TIPO_CONTRATO se leen de `programacion_horario`
+        // (ph), NO de `contrato_trabajo` (ct). Si la programación no tiene
+        // snapshot (caso legacy), hacemos COALESCE al contrato vigente como
+        // fallback para no romper cálculos históricos.
         $sql = "
         SELECT
             a.id AS id_asistencia,
@@ -56,9 +65,13 @@ class AsistenciaData
             emp.url_foto,
             emp.es_contratista,
             emp.id_contrato_vigente,
-            ct.tipo_contrato,
-            ct.sueldo_base,
-            ct.salario_diario,
+            -- Snapshots desde programacion_horario (con fallback al contrato).
+            ph.tipo_contrato AS programacion_tipo_contrato,
+            ph.sueldo_base AS programacion_sueldo_base,
+            ph.sueldo_diario AS programacion_sueldo_diario,
+            COALESCE(ph.tipo_contrato, ct.tipo_contrato) AS tipo_contrato,
+            COALESCE(ph.sueldo_base, ct.sueldo_base) AS sueldo_base,
+            COALESCE(ph.sueldo_diario, ct.salario_diario) AS salario_diario,
             ct.por_tiempo_indefinido AS contrato_indefinido,
             ct.fecha_inicio AS contrato_fecha_inicio,
             ct.fecha_fin AS contrato_fecha_fin,
@@ -69,11 +82,12 @@ class AsistenciaData
             tl.hora_salida,
             tl.minutos_tolerancia,
             tl.total_horas AS turno_total_horas,
-            COALESCE(alm.nombre, lab.nombre) AS lugar_nombre,
-            COALESCE(alm.id, lab.id) AS lugar_id,
+            COALESCE(alm.nombre, lab.nombre, ofi.nombre) AS lugar_nombre,
+            COALESCE(alm.id, lab.id, ofi.id) AS lugar_id,
             CASE
                 WHEN alm.id IS NOT NULL THEN 'almacen'
                 WHEN lab.id IS NOT NULL THEN 'labor'
+                WHEN ofi.id IS NOT NULL THEN 'oficina'
                 ELSE NULL
             END AS lugar_tipo,
             DATE(a.fecha_hora_ingreso) AS fecha,
@@ -92,6 +106,7 @@ class AsistenciaData
         LEFT JOIN turno_laboral tl ON tl.id = ph.id_turno_laboral
         LEFT JOIN almacen alm ON alm.id = ph.id_almacen
         LEFT JOIN labor lab ON lab.id = ph.id_labor
+        LEFT JOIN oficina ofi ON ofi.id = ph.id_oficina
         WHERE {$where} {$filtro_lugar_contrato}
         ORDER BY emp.nombre ASC, emp.apellido ASC, a.fecha_hora_ingreso ASC
         ";
@@ -107,6 +122,8 @@ class AsistenciaData
             $row['turno_total_horas'] = $row['turno_total_horas'] !== null ? (float) $row['turno_total_horas'] : null;
             $row['sueldo_base'] = $row['sueldo_base'] !== null ? (float) $row['sueldo_base'] : null;
             $row['salario_diario'] = $row['salario_diario'] !== null ? (float) $row['salario_diario'] : null;
+            $row['programacion_sueldo_base'] = $row['programacion_sueldo_base'] !== null ? (float) $row['programacion_sueldo_base'] : null;
+            $row['programacion_sueldo_diario'] = $row['programacion_sueldo_diario'] !== null ? (float) $row['programacion_sueldo_diario'] : null;
             $row['asistencia_es_manual'] = (bool) $row['asistencia_es_manual'];
             $row['contrato_indefinido'] = (bool) $row['contrato_indefinido'];
 
@@ -212,11 +229,12 @@ class AsistenciaData
     }
 
     /**
-     * Si se filtra por lugar (almacén/labor), agrega un WHERE adicional sobre
-     * la columna de lugar del contrato vigente del empleado.
+     * Si se filtra por lugar (almacén/labor/oficina), agrega un WHERE adicional
+     * sobre la columna de lugar de la programación (`programacion_horario.ph`).
      *
-     * El INNER JOIN a contrato_trabajo ya está en la query principal; este
-     * helper solo agrega el filtro condicional.
+     * Filtramos por el lugar REAL del trabajo (la programación), no por el del
+     * contrato, porque una programación puede estar en un lugar distinto del
+     * contrato (cambio temporal autorizado).
      *
      * @param  array<string, mixed>  $filtros
      * @param  array<string, mixed>  $bindings
@@ -230,10 +248,12 @@ class AsistenciaData
             return '';
         }
 
-        // Solo soportamos almacén y labor. 'oficina' no existe en el esquema.
+        // Filtramos por el lugar de la programación (ph), que es donde realmente
+        // se ejecuta el trabajo. 'oficina' ahora está habilitada.
         $col = match ($tipo) {
             'almacen' => 'id_almacen',
             'labor' => 'id_labor',
+            'oficina' => 'id_oficina',
             default => null,
         };
 
@@ -243,6 +263,6 @@ class AsistenciaData
 
         $bindings['lugar_id'] = (int) $lugar;
 
-        return "AND ct.{$col} = :lugar_id";
+        return "AND ph.{$col} = :lugar_id";
     }
 }

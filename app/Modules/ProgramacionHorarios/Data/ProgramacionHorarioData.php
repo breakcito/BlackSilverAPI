@@ -55,7 +55,7 @@ class ProgramacionHorarioData
             ph.id_labor,
             alm.nombre AS almacen_nombre,
             lab.nombre AS labor_nombre,
-            NULL AS oficina_nombre,
+            ofi.nombre AS oficina_nombre,
             ph.fecha_inicio,
             ph.por_tiempo_indefinido,
             ph.fecha_fin,
@@ -65,10 +65,11 @@ class ProgramacionHorarioData
         INNER JOIN empleado emp ON emp.id = ph.id_empleado
         INNER JOIN contrato_trabajo ct ON ct.id = ph.id_contrato_trabajo
         INNER JOIN turno_laboral tl ON tl.id = ph.id_turno_laboral
-        LEFT JOIN almacen alm ON alm.id = ph.id_almacen
-        LEFT JOIN labor lab ON lab.id = ph.id_labor
-        WHERE 1 = 1
-        ';
+LEFT JOIN almacen alm ON alm.id = ph.id_almacen
+            LEFT JOIN labor lab ON lab.id = ph.id_labor
+            LEFT JOIN oficina ofi ON ofi.id = ph.id_oficina
+            WHERE 1 = 1
+            ';
 
         $params = [];
 

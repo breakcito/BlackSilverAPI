@@ -34,6 +34,7 @@ class ContratosEmpleadoData
             lab.id_mina AS id_mina_labor,
             mina_lab.nombre AS mina_nombre,
             ct.id_oficina,
+            ofi.nombre AS oficina,
             ct.tipo_contrato,
             ct.sueldo_base,
             ct.salario_diario,
@@ -56,6 +57,7 @@ class ContratosEmpleadoData
         LEFT JOIN almacen alm ON alm.id = ct.id_almacen
         LEFT JOIN labor lab ON lab.id = ct.id_labor
         LEFT JOIN mina mina_lab ON mina_lab.id = lab.id_mina
+        LEFT JOIN oficina ofi ON ofi.id = ct.id_oficina
         WHERE 1 = 1
         ';
 
@@ -200,6 +202,7 @@ class ContratosEmpleadoData
             lab.id_mina AS id_mina_labor,
             mina_lab.nombre AS mina_nombre,
             ct.id_oficina,
+            ofi.nombre AS oficina,
             ct.tipo_contrato,
             ct.sueldo_base,
             ct.salario_diario,
@@ -221,6 +224,7 @@ class ContratosEmpleadoData
         LEFT JOIN almacen alm ON alm.id = ct.id_almacen
         LEFT JOIN labor lab ON lab.id = ct.id_labor
         LEFT JOIN mina mina_lab ON mina_lab.id = lab.id_mina
+        LEFT JOIN oficina ofi ON ofi.id = ct.id_oficina
         WHERE ct.id_empleado = :id_empleado
         ORDER BY ct.fecha_inicio DESC, ct.id DESC
         ';
