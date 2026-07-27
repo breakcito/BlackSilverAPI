@@ -52,12 +52,21 @@ class CuentasEmpresaData
             : $query->get();
     }
 
-    public static function get_by_id(int $id_cuenta_bancaria): ?object
+    public static function get_by_id(int|array $id_cuenta, array $columnas)
     {
-        return DB::table('cuenta_bancaria_empresa')
-            ->where('id', $id_cuenta_bancaria)
-            ->first();
+        $esArray = is_array($id_cuenta);
+        $ids = $esArray ? $id_cuenta : [$id_cuenta];
+        // Forzamos la inclusión del ID con su alias
+        if (!in_array('id as id_cuenta', $columnas)) {
+            $columnas[] = 'id as id_cuenta';
+        }
+        $query = CuentaBancariaEmpresa::whereIn('id', $ids)->get($columnas);
+        if ($esArray) {
+            return $query->toArray();
+        }
+        return $query->first()?->toArray();
     }
+
 
     public static function crear_cuenta(
         int $id_empresa,
@@ -76,42 +85,6 @@ class CuentasEmpresaData
             'es_para_detraccion' => $es_para_detraccion ? 1 : 0,
             'estado' => EstadoBase::Activo->value
         ]);
-    }
-
-    public static function actualizar_cuenta(
-        int $id_cuenta_bancaria,
-        int $id_banco,
-        Moneda $moneda,
-        string $numero_cuenta,
-        ?string $cci,
-        bool $es_para_detraccion
-    ): bool {
-        return (bool) DB::table('cuenta_bancaria_empresa')
-            ->where('id', $id_cuenta_bancaria)
-            ->update([
-                'id_banco' => $id_banco,
-                'moneda' => $moneda->value,
-                'numero_cuenta' => $numero_cuenta,
-                'cci' => $cci,
-                'es_para_detraccion' => $es_para_detraccion ? 1 : 0,
-            ]);
-    }
-
-    public static function cambiar_estado(
-        int $id_cuenta_bancaria,
-        EstadoBase $estado
-    ): bool {
-        return (bool) DB::table('cuenta_bancaria_empresa')
-            ->where('id', $id_cuenta_bancaria)
-            ->update(['estado' => $estado->value]);
-    }
-
-    public static function banco_es_nacional(int $id_banco): bool
-    {
-        return (bool) DB::table('banco')
-            ->where('id', $id_banco)
-            ->where('es_nacional', 1)
-            ->exists();
     }
 
     public static function ya_existe(
