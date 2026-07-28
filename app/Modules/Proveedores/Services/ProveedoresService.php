@@ -15,6 +15,18 @@ class ProveedoresService
     public static function get_proveedores(): array
     {
         $data = ProveedoresData::get_proveedores();
+
+        if (!is_array($data) || empty($data)) {
+            return ApiResponse::success($data, "Proveedores obtenidos correctamente");
+        }
+
+        $ids = array_map(fn($p) => (int) $p->id_proveedor, $data);
+        $cuentas = collect(CuentasBancariasData::get_cuentas_bancarias(ids_proveedor: $ids));
+
+        foreach ($data as $proveedor) {
+            $proveedor->cuentas_bancarias = $cuentas->where('id_proveedor', $proveedor->id_proveedor)->values();
+        }
+
         return ApiResponse::success($data, "Proveedores obtenidos correctamente");
     }
 

@@ -15,6 +15,7 @@ class ContratoConcesion extends Model
         'id_concesion',
         'fecha_inicio',
         'fecha_fin',
+        'evidencias', // JSON - guardar evidencias del contrato entre la empresa y la concesión
         'estado',
     ];
 }

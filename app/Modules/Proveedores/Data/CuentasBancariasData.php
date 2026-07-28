@@ -10,13 +10,18 @@ class CuentasBancariasData
 {
     public static function get_cuentas_bancarias(
         ?int $id_proveedor = null,
-        ?int $id_cuenta_bancaria = null
+        ?int $id_cuenta_bancaria = null,
+        ?array $ids_proveedor = null,
+        ?bool $solo_activas = null
     ): array {
         $sql = '
         SELECT
+            cn.id_proveedor AS id_proveedor,
             cn.id AS id_cuenta_bancaria,
+            cn.id_banco,
             bc.nombre as banco,
             bc.abreviatura as banco_abv,
+            bc.es_nacional,
             cn.moneda,
             cn.numero_cuenta,
             cn.cci,
@@ -25,18 +30,32 @@ class CuentasBancariasData
         FROM
             cuenta_bancaria_proveedor cn
         INNER JOIN banco bc ON bc.id = cn.id_banco
+        WHERE 1 = 1
         ';
 
         $params = [];
         if ($id_proveedor !== null) {
             $sql .= ' AND cn.id_proveedor = :id_proveedor';
             $params['id_proveedor'] = $id_proveedor;
+        } elseif ($ids_proveedor !== null && count($ids_proveedor) > 0) {
+            $placeholders = [];
+            foreach ($ids_proveedor as $i => $id) {
+                $key = "id_proveedor_$i";
+                $placeholders[] = ":$key";
+                $params[$key] = $id;
+            }
+            $sql .= ' AND cn.id_proveedor IN (' . implode(',', $placeholders) . ')';
         }
 
         if ($id_cuenta_bancaria !== null) {
             $sql .= ' AND cn.id = :id_cuenta_bancaria';
             $params['id_cuenta_bancaria'] = $id_cuenta_bancaria;
             return (array) DB::selectOne($sql, $params);
+        }
+
+        if ($solo_activas === true) {
+            $sql .= ' AND cn.estado = :estado_activo';
+            $params['estado_activo'] = EstadoBase::Activo->value;
         }
 
         $sql .= ' ORDER BY cn.es_para_detraccion DESC, cn.moneda, cn.numero_cuenta;';
@@ -67,11 +86,42 @@ class CuentasBancariasData
         ]);
     }
 
-    public static function existe_cuenta_bancaria(int $id_proveedor, int $id_banco, string $numero_cuenta): bool
-    {
+    public static function actualizar_cuenta_bancaria(
+        int $id_cuenta_bancaria,
+        int $id_banco,
+        string $moneda,
+        string $numeroCuenta,
+        ?string $cci,
+        int $esParaDetraccion
+    ): bool {
+        return (bool) CuentaBancariaProveedor::where('id', $id_cuenta_bancaria)
+            ->update([
+                'id_banco' => $id_banco,
+                'moneda' => $moneda,
+                'numero_cuenta' => $numeroCuenta,
+                'cci' => $cci,
+                'es_para_detraccion' => $esParaDetraccion,
+            ]);
+    }
+
+    public static function existe_cuenta_bancaria(
+        int $id_proveedor,
+        int $id_banco,
+        string $numero_cuenta,
+        ?int $excluir_id = null
+    ): bool {
         return CuentaBancariaProveedor::where('id_proveedor', $id_proveedor)
             ->where('id_banco', $id_banco)
             ->where('numero_cuenta', $numero_cuenta)
+            ->when($excluir_id !== null, fn($q) => $q->where('id', '!=', $excluir_id))
             ->exists();
+    }
+
+    public static function get_proveedor_id_by_cuenta(int $id_cuenta_bancaria): ?int
+    {
+        $row = DB::table('cuenta_bancaria_proveedor')
+            ->where('id', $id_cuenta_bancaria)
+            ->first(['id_proveedor']);
+        return $row ? (int) $row->id_proveedor : null;
     }
 }

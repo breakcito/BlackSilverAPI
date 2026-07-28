@@ -3,15 +3,30 @@
 namespace App\Modules\Clientes\Services;
 
 use App\Modules\Clientes\Data\ClientesData;
+use App\Modules\Clientes\Data\CuentasBancariasData;
 use App\Shared\Responses\ApiResponse;
 
 class ClientesService
 {
-    /** Obtiene y retorna todos los clientes registrados. */
+    /** Obtiene y retorna todos los clientes registrados con sus cuentas bancarias. */
     public static function get_clientes(): array
     {
-        $data = ClientesData::get_clientes();
-        return ApiResponse::success($data, 'Clientes obtenidos correctamente');
+        $clientes = ClientesData::get_clientes();
+
+        if (!is_array($clientes) || empty($clientes)) {
+            return ApiResponse::success($clientes, 'Clientes obtenidos correctamente');
+        }
+
+        $ids = array_map(fn($c) => (int) $c->id_cliente, $clientes);
+
+        // Convertimos el array en una Colección de Laravel
+        $cuentas = collect(CuentasBancariasData::get_cuentas_bancarias(ids_cliente: $ids));
+
+        foreach ($clientes as $cliente) {
+            $cliente->cuentas_bancarias = $cuentas->where('id_cliente', $cliente->id_cliente)->values();
+        }
+
+        return ApiResponse::success($clientes, 'Clientes obtenidos correctamente');
     }
 
     /** Crea un nuevo cliente y retorna el registro recién creado. */
