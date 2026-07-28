@@ -57,6 +57,7 @@ class ContratosEmpleadoService
         ?int $id_empresa = null,
         ?int $id_almacen = null,
         ?int $id_labor = null,
+        ?int $id_oficina = null,
         string $tipo_contrato = 'Planilla',
         ?float $sueldo_base = null,
         ?float $salario_diario = null,
@@ -84,6 +85,18 @@ class ContratosEmpleadoService
         }
         if ($tipo_contrato === 'JornadaDiaria' && $sueldo_base !== null) {
             return ApiResponse::error('Para JornadaDiaria, sueldo_base debe ser NULL.');
+        }
+
+        // Validar exclusividad de lugar: EXACTAMENTE uno de los tres (almacén, labor u oficina).
+        $lugaresIndicados = array_filter(
+            [$id_almacen, $id_labor, $id_oficina],
+            fn ($v) => $v !== null && $v > 0
+        );
+        if (count($lugaresIndicados) === 0) {
+            return ApiResponse::error('Debe indicar exactamente un lugar de trabajo (almacén, labor u oficina).');
+        }
+        if (count($lugaresIndicados) > 1) {
+            return ApiResponse::error('Solo puede indicar un lugar de trabajo (almacén, labor u oficina), no varios.');
         }
 
         // Validar duracion cuando NO es indefinido
@@ -136,7 +149,7 @@ class ContratosEmpleadoService
             'id_empresa' => $id_empresa,
             'id_almacen' => $id_almacen,
             'id_labor' => $id_labor,
-            'id_oficina' => null,
+            'id_oficina' => $id_oficina,
             'tipo_contrato' => $tipo_contrato,
             'sueldo_base' => $tipo_contrato === 'Planilla' ? $sueldo_base : null,
             'salario_diario' => $tipo_contrato === 'JornadaDiaria' ? $salario_diario : null,
