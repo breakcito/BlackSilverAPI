@@ -23,11 +23,11 @@ use Illuminate\Support\Facades\DB;
 class AsistenciaData
 {
     /**
-     * Listado agrupado por empleado para una ventana de fechas (modo "Empleados").
+     * Listado de asistencias para una ventana de fechas (modo "Empleados").
      *
-     * Devuelve una fila por empleado que tenga al menos una asistencia en el rango,
-     * junto con todas sus marcaciones del período y los snapshots de la
-     * programación correspondiente a cada día.
+     * Devuelve 1 fila por (empleado, fecha, id_programacion_horario). Cada
+     * asistencia es de un solo turno; si el empleado tuvo 2 turnos el mismo
+     * día, se devuelven 2 filas con sus marcajes y snapshots respectivos.
      *
      * @param  array<string, mixed>  $filtros  mes, year, id_almacen, id_labor, id_oficina, id_empleado, q
      * @return array<int, array<string, mixed>>
@@ -38,10 +38,10 @@ class AsistenciaData
         $where = self::construir_where($filtros, $bindings);
         $filtro_lugar_contrato = self::construir_filtro_lugar_contrato($filtros, $bindings);
 
-        // Cabecera: una fila por (empleado, fecha). Se agrupa en PHP.
-        // El INNER JOIN a contrato_trabajo es OBLIGATORIO: las columnas ct.* se
-        // referencian en el SELECT (cargo, area, fechas). Los empleados sin
-        // contrato vigente al día de la asistencia quedan excluidos.
+        // 1 fila por (empleado, fecha, id_programacion_horario). El INNER JOIN
+        // a contrato_trabajo es OBLIGATORIO: las columnas ct.* se referencian
+        // en el SELECT (cargo, area, fechas). Los empleados sin contrato
+        // vigente al día de la asistencia quedan excluidos.
         //
         // Los snapshots de SUELDO y TIPO_CONTRATO se leen de `programacion_horario`
         // (ph), NO de `contrato_trabajo` (ct). Si la programación no tiene
@@ -132,27 +132,37 @@ class AsistenciaData
     }
 
     /**
-     * Devuelve la asistencia del día para un empleado, si existe.
+     * Devuelve la asistencia del día y turno (id_programacion_horario) para un
+     * empleado, si existe. Si no se pasa id_programacion_horario, devuelve
+     * cualquier asistencia del día (compatibilidad hacia atrás).
      */
-    public static function get_asistencia_del_dia(int $id_empleado, string $fecha): ?object
+    public static function get_asistencia_del_dia(int $id_empleado, string $fecha, ?int $id_programacion_horario = null): ?object
     {
-        return DB::table('asistencia as a')
+        $query = DB::table('asistencia as a')
             ->where('a.id_empleado', $id_empleado)
-            ->whereDate('a.fecha_hora_ingreso', $fecha)
-            ->orderByDesc('a.created_at')
-            ->first();
+            ->whereDate('a.fecha_hora_ingreso', $fecha);
+
+        if ($id_programacion_horario !== null && $id_programacion_horario > 0) {
+            $query->where('a.id_programacion_horario', $id_programacion_horario);
+        }
+
+        return $query->orderByDesc('a.created_at')->first();
     }
 
     /**
-     * UPSERT: actualiza la fila del día si existe, o la inserta si no.
-     * La jornada_trabajada se SUMA si la fila ya existe.
+     * UPSERT: actualiza la fila del (día, turno) si existe, o la inserta si no.
+     * Una asistencia es 1 fila por (empleado, día, id_programacion_horario).
      *
      * @param  array<string, mixed>  $payload
      */
     public static function upsert_asistencia_diaria(int $id_empleado, string $fecha, array $payload, bool $sobreescribir_jornada = false): int
     {
-        return DB::transaction(function () use ($id_empleado, $fecha, $payload, $sobreescribir_jornada) {
-            $existente = self::get_asistencia_del_dia($id_empleado, $fecha);
+        $id_programacion_horario = isset($payload['id_programacion_horario'])
+            ? (int) $payload['id_programacion_horario']
+            : 0;
+
+        return DB::transaction(function () use ($id_empleado, $fecha, $payload, $id_programacion_horario) {
+            $existente = self::get_asistencia_del_dia($id_empleado, $fecha, $id_programacion_horario);
 
             if ($existente === null) {
                 $payload['id_empleado'] = $id_empleado;
@@ -169,15 +179,8 @@ class AsistenciaData
                 }
             }
 
-            // jornada_trabajada se SUMA o SOBREESCRIBE.
-            if ($sobreescribir_jornada) {
-                if (array_key_exists('jornada_trabajada', $payload)) {
-                    $update['jornada_trabajada'] = (float) $payload['jornada_trabajada'];
-                }
-            } else {
-                $jornada_nueva = (float) ($payload['jornada_trabajada'] ?? 0);
-                $jornada_existente = (float) $existente->jornada_trabajada;
-                $update['jornada_trabajada'] = $jornada_existente + $jornada_nueva;
+            if (array_key_exists('jornada_trabajada', $payload)) {
+                $update['jornada_trabajada'] = (float) $payload['jornada_trabajada'];
             }
 
             DB::table('asistencia')

@@ -41,6 +41,24 @@ class AsistenciaService
                 $fila['salario_diario'] !== null ? (float) $fila['salario_diario'] : null,
                 $dias_mes,
             );
+
+            // Recalculamos el desglose por turno/programación consultando
+            // directamente el helper (la fila del listado ya trae jornada
+            // agregada; aquí obtenemos los tramos con su propio snapshot salarial).
+            $fila['tramos_pago'] = self::obtener_tramos_pago(
+                (int) $fila['id_empleado'],
+                (string) $fila['fecha'],
+                (float) ($fila['jornada_trabajada'] ?? 0),
+                (string) ($fila['programacion_tipo_contrato'] ?? $fila['tipo_contrato'] ?? null),
+                isset($fila['programacion_sueldo_base']) && $fila['programacion_sueldo_base'] !== null
+                    ? (float) $fila['programacion_sueldo_base']
+                    : ($fila['sueldo_base'] !== null ? (float) $fila['sueldo_base'] : null),
+                isset($fila['programacion_sueldo_diario']) && $fila['programacion_sueldo_diario'] !== null
+                    ? (float) $fila['programacion_sueldo_diario']
+                    : ($fila['salario_diario'] !== null ? (float) $fila['salario_diario'] : null),
+                $dias_mes,
+            );
+
             $fila['marcajes'] = MarcajeData::get_marcajes_del_dia(
                 (int) $fila['id_empleado'],
                 (string) $fila['fecha'],
@@ -103,33 +121,70 @@ class AsistenciaService
                     'sueldo_base' => $fila['sueldo_base'] !== null ? (float) $fila['sueldo_base'] : null,
                     'salario_diario' => $fila['salario_diario'] !== null ? (float) $fila['salario_diario'] : null,
                     'dias_trabajados' => 0,
+                    'horas_trabajadas_total' => 0.0,
+                    'horas_programadas_total' => 0.0,
                     'jornada_total' => 0.0,
                     'pago_total' => 0.0,
                 ];
             }
 
-            $jornada = (float) ($fila['jornada_trabajada'] ?? 0);
-            $pago = self::calcular_pago_dia(
-                $jornada,
-                $fila['tipo_contrato'] ?? null,
-                $fila['sueldo_base'] !== null ? (float) $fila['sueldo_base'] : null,
-                $fila['salario_diario'] !== null ? (float) $fila['salario_diario'] : null,
+            // Cada fila es 1 asistencia por turno. La jornada_trabajada ya
+            // viene calculada por el backend (horas_tramo / horas_programadas_tramo).
+            $jornada_tramo = (float) ($fila['jornada_trabajada'] ?? 0);
+            $horas_trabajadas_tramo = (float) ($fila['total_horas'] ?? 0);
+            $horas_programadas_tramo = (float) ($fila['turno_total_horas'] ?? 0);
+
+            // Calculamos pago_dia a partir de los tramos del día si están
+            // disponibles (multiples sueldos) o del agregado si solo hay uno.
+            $pago_tramos = self::obtener_tramos_pago(
+                (int) $fila['id_empleado'],
+                (string) $fila['fecha'],
+                $jornada_tramo,
+                (string) ($fila['programacion_tipo_contrato'] ?? $fila['tipo_contrato'] ?? null),
+                isset($fila['programacion_sueldo_base']) && $fila['programacion_sueldo_base'] !== null
+                    ? (float) $fila['programacion_sueldo_base']
+                    : ($fila['sueldo_base'] !== null ? (float) $fila['sueldo_base'] : null),
+                isset($fila['programacion_sueldo_diario']) && $fila['programacion_sueldo_diario'] !== null
+                    ? (float) $fila['programacion_sueldo_diario']
+                    : ($fila['salario_diario'] !== null ? (float) $fila['salario_diario'] : null),
                 $dias_mes,
             );
 
-            // Sumamos la jornada del día (puede ser < 1, = 1, o > 1).
-            $por_empleado[$id]['jornada_total'] += $jornada;
+            $pago = 0.0;
+            if (! empty($pago_tramos)) {
+                foreach ($pago_tramos as $tramo) {
+                    $pago += (float) ($tramo['pago'] ?? 0);
+                }
+            } else {
+                $pago = self::calcular_pago_dia(
+                    $jornada_tramo,
+                    $fila['tipo_contrato'] ?? null,
+                    $fila['sueldo_base'] !== null ? (float) $fila['sueldo_base'] : null,
+                    $fila['salario_diario'] !== null ? (float) $fila['salario_diario'] : null,
+                    $dias_mes,
+                );
+            }
+
+            $por_empleado[$id]['horas_trabajadas_total'] += $horas_trabajadas_tramo;
+            $por_empleado[$id]['horas_programadas_total'] += $horas_programadas_tramo;
             $por_empleado[$id]['pago_total'] += $pago;
-            if ($jornada > 0) {
+            if ($jornada_tramo > 0) {
                 $por_empleado[$id]['dias_trabajados'] += 1;
             }
         }
 
-        // Redondeos finales.
+        // jornada_total del d\u00eda = \u03a3 horas_trabajadas / \u03a3 horas_programadas.
+        // (Sumar las jornadas por fila duplicar\u00eda la base de horas_programadas.)
         foreach ($por_empleado as &$row) {
-            $row['jornada_total'] = round($row['jornada_total'], 4);
+            $trabajadas = (float) $row['horas_trabajadas_total'];
+            $programadas = (float) $row['horas_programadas_total'];
+            $row['jornada_total'] = $programadas > 0
+                ? round($trabajadas / $programadas, 4)
+                : 0.0;
             $row['pago_total'] = round($row['pago_total'], 2);
+            unset($row['horas_trabajadas_total'], $row['horas_programadas_total']);
         }
+        unset($row);
 
         return ApiResponse::success(array_values($por_empleado));
     }
@@ -181,7 +236,8 @@ class AsistenciaService
         [$programacion, $fuera_de_tolerancia] = self::encontrar_programacion_del_marcaje(
             $programaciones_hoy,
             Carbon::now(),
-            $siguiente
+            $siguiente,
+            isset($ultimo->id_programacion_horario) ? (int) $ultimo->id_programacion_horario : null
         );
 
         // NOTA: Ya NO rechazamos por horario. El empleado siempre puede registrar
@@ -246,7 +302,8 @@ class AsistenciaService
         [$programacion, $fuera_de_tolerancia] = self::encontrar_programacion_del_marcaje(
             $programaciones_dia,
             $fecha_hora_marcaje,
-            $tipo
+            $tipo,
+            isset($ultimo_previo->id_programacion_horario) ? (int) $ultimo_previo->id_programacion_horario : null
         );
         $turno = $programacion['turno'] ?? null;
 
@@ -271,15 +328,36 @@ class AsistenciaService
         $nuevo_marcaje = [
             'tipo_marcaje' => $tipo->value,
             'fecha_hora' => $fecha_hora_marcaje->toDateTimeString(),
+            'id_programacion_horario' => $programacion['id_programacion_horario'] ?? null,
         ];
 
         $consolidado = self::consolidar_asistencia_diaria($id_empleado, $fecha, $nuevo_marcaje);
 
+        // 1 fila de asistencia por (empleado, d\u00eda, id_programacion_horario).
+        // Usamos el id del turno del marcaje, no el primero del d\u00eda.
+        $id_programacion_asistencia = (int) ($programacion['id_programacion_horario'] ?? 0);
+        $jornada_tramo = 0.0;
+        $total_horas_tramo = 0.0;
+        if (! empty($consolidado['tramos_pago'])) {
+            foreach ($consolidado['tramos_pago'] as $tramo) {
+                if ((int) $tramo['id_programacion_horario'] === $id_programacion_asistencia) {
+                    $jornada_tramo = (float) ($tramo['jornada_trabajada'] ?? 0);
+                    $total_horas_tramo = (float) ($tramo['horas_trabajadas'] ?? 0);
+                    break;
+                }
+            }
+        }
+        // Si no se encontr\u00f3 en tramos (caso hu\u00e9rfano o sin programaci\u00f3n), caer al agregado.
+        if ($jornada_tramo === 0.0 && ! empty($consolidado['tramos_pago'])) {
+            $jornada_tramo = (float) ($consolidado['tramos_pago'][0]['jornada_trabajada'] ?? 0);
+            $total_horas_tramo = (float) ($consolidado['tramos_pago'][0]['horas_trabajadas'] ?? 0);
+        }
+
         $payload = [
-            'id_programacion_horario' => $consolidado['id_programacion_horario'],
+            'id_programacion_horario' => $id_programacion_asistencia > 0 ? $id_programacion_asistencia : null,
             'es_manual' => false,
-            'total_horas' => $consolidado['total_horas'],
-            'jornada_trabajada' => $consolidado['jornada_trabajada'],
+            'total_horas' => $total_horas_tramo,
+            'jornada_trabajada' => $jornada_tramo,
             'minutos_tardanza' => $minutos_tardanza,
         ];
 
@@ -457,12 +535,17 @@ class AsistenciaService
                 'id_programacion_horario' => $programacion['id_programacion_horario'] ?? null,
                 'es_manual' => true,
                 'jornada_trabajada' => 0.0,
+                'total_horas' => 0.0,
             ]);
 
             MarcajeData::actualizar_marcaje($id_marcaje, ['id_asistencia' => $id_asistencia]);
         } else {
-            // Salida: actualizar asistencia con salida + total + jornada.
-            $asistencia_hoy = AsistenciaData::get_asistencia_del_dia($id_empleado, $fecha);
+            // Salida: actualizar asistencia del turno con salida + total + jornada.
+            $turno = $programacion['turno'] ?? null;
+            $id_prog_horario = (int) ($programacion['id_programacion_horario'] ?? 0);
+            $asistencia_hoy = $id_prog_horario > 0
+                ? AsistenciaData::get_asistencia_del_dia($id_empleado, $fecha, $id_prog_horario)
+                : null;
             $total_horas = null;
             $jornada_trabajada = 0.0;
 
@@ -472,7 +555,6 @@ class AsistenciaService
                     $fecha_hora,
                 );
 
-                $turno = $programacion['turno'] ?? null;
                 $turno_total_horas = isset($turno['total_horas']) && $turno['total_horas'] !== null
                     ? (float) $turno['total_horas']
                     : 8.0;
@@ -485,7 +567,7 @@ class AsistenciaService
             $id_asistencia = AsistenciaData::upsert_asistencia_diaria($id_empleado, $fecha, [
                 'fecha_hora_salida' => $fecha_hora,
                 'total_horas' => $total_horas,
-                'id_programacion_horario' => $programacion['id_programacion_horario'] ?? null,
+                'id_programacion_horario' => $id_prog_horario > 0 ? $id_prog_horario : null,
                 'es_manual' => true,
                 'jornada_trabajada' => $jornada_trabajada,
             ]);
@@ -548,10 +630,31 @@ class AsistenciaService
      * @param  array<int, array<string, mixed>>  $programaciones_dia
      * @return array{0: ?array<string, mixed>, 1: bool}  [programacion, fuera_de_tolerancia]
      */
+    /**
+     * Resuelve a qué programación del día pertenece el marcaje actual.
+     *
+     * Cuatro reglas, en orden de prioridad:
+     *  1. COHERENCIA: si el último marcaje confirmado del día está vinculado a
+     *     una programación vigente, el nuevo marcaje hereda ese mismo turno
+     *     (mantiene el par Ingreso/Salida del mismo turno).
+     *  2. FILTRO: se descartan programaciones cuya ventana extendida completa
+     *     ya haya pasado (el turno cerró). Las que aún cubren el momento o
+     *     están por venir son candidatas.
+     *  3. PUNTUACIÓN: si tipo_marcaje es Salida, se puntúa por distancia al
+     *     cierre teórico (hora_salida sin tolerancia); si es Ingreso, por
+     *     distancia a la apertura teórica (hora_ingreso sin tolerancia). Gana
+     *     la menor distancia.
+     *  4. EMPATE: desempata por id_programacion_horario más reciente
+     *     (fecha_inicio DESC).
+     *
+     * @param  array<int, array<string, mixed>>  $programaciones_dia
+     * @return array{0: ?array<string, mixed>, 1: bool}  [programacion, fuera_de_tolerancia]
+     */
     private static function encontrar_programacion_del_marcaje(
         array $programaciones_dia,
         Carbon $fecha_hora_marcaje,
         TipoMarcaje $tipo_marcaje,
+        ?int $id_programacion_ultimo_marcaje = null,
     ): array {
         if (empty($programaciones_dia)) {
             return [null, true]; // Sin programación: registramos pero marcamos fuera.
@@ -564,68 +667,126 @@ class AsistenciaService
             return [$prog, !$dentro];
         }
 
-        // Múltiples programaciones: calculamos distancias.
-        $candidatas = [];
-        $ahora_minutos = self::to_minutos_del_dia($fecha_hora_marcaje);
+        // Regla 1: COHERENCIA con el último marcaje del día.
+        // Solo aplica si la programación del último marcaje SIGUE VIGENTE
+        // (su ventana extendida no ha cerrado). Si ya cerró, dejamos que las
+        // Reglas 2-5 seleccionen libremente.
+        if ($id_programacion_ultimo_marcaje !== null) {
+            foreach ($programaciones_dia as $prog) {
+                if ((int) $prog['id_programacion_horario'] === $id_programacion_ultimo_marcaje) {
+                    if (self::marcaje_dentro_de_ventana($fecha_hora_marcaje, $prog)) {
+                        $dentro = true;
+                        return [$prog, !$dentro];
+                    }
+                    break;
+                }
+            }
+        }
 
+        $ahora_minutos = self::to_minutos_del_dia($fecha_hora_marcaje);
+        $marcaje_fecha = $fecha_hora_marcaje->toDateString();
+
+        // Regla 2 + 3: filtrar turnos ya cerrados y puntuar por tipo de marcaje.
+        $candidatas = [];
         foreach ($programaciones_dia as $prog) {
             $turno = $prog['turno'] ?? null;
             if ($turno === null || empty($turno['hora_ingreso']) || empty($turno['hora_salida'])) {
                 continue;
             }
-            $tolerancia = (int) ($turno['minutos_tolerancia'] ?? 0);
 
+            // Anclamos las horas del turno a la fecha lógica (puede ser el día
+            // anterior si el turno viene de la madrugada del día siguiente).
+            $ancla = (string) ($prog['ancla_fecha'] ?? $marcaje_fecha);
             $h_ingreso = self::to_minutos_del_dia(Carbon::parse(
-                $fecha_hora_marcaje->toDateString().' '.$turno['hora_ingreso']
+                $ancla.' '.$turno['hora_ingreso']
             ));
             $h_salida_raw = self::to_minutos_del_dia(Carbon::parse(
-                $fecha_hora_marcaje->toDateString().' '.$turno['hora_salida']
+                $ancla.' '.$turno['hora_salida']
             ));
 
             // Turno que cruza medianoche: salida se considera al día siguiente (+1440).
             if ($h_salida_raw <= $h_ingreso) {
                 $h_salida = $h_salida_raw + 1440;
-                // Si el marcaje es "antes" del ingreso (temprano en la madrugada),
-                // lo tratamos como si fuera del día anterior.
-                if ($ahora_minutos < $h_ingreso) {
-                    $ahora_efectivo = $ahora_minutos + 1440;
-                } else {
-                    $ahora_efectivo = $ahora_minutos;
-                }
             } else {
                 $h_salida = $h_salida_raw;
-                $ahora_efectivo = $ahora_minutos;
             }
 
+            $diff_dias = (int) Carbon::parse($marcaje_fecha)->diffInDays(Carbon::parse($ancla), false);
+            $ahora_efectivo = $ahora_minutos + ($diff_dias * 1440);
+
+            $tolerancia = (int) ($turno['minutos_tolerancia'] ?? 0);
             $ventana_inicio = $h_ingreso - $tolerancia;
             $ventana_fin = $h_salida + $tolerancia;
 
-            $dentro = $ahora_efectivo >= $ventana_inicio && $ahora_efectivo <= $ventana_fin;
-            // Distancia al borde más cercano de la ventana (0 si está dentro).
-            $distancia = $dentro
-                ? 0
-                : min(abs($ahora_efectivo - $ventana_inicio), abs($ahora_efectivo - $ventana_fin));
+            // Regla 2: descartar turnos cuya ventana extendida completa ya pasó.
+            if ($ahora_efectivo > $ventana_fin) {
+                continue;
+            }
+
+            // Regla 5: descartar turnos cuya apertura extendida aún no ha llegado.
+            // Si todos los turnos del día están en este estado (caso típico:
+            // marcaje muy temprano), el fallback inferior asignará el próximo
+            // a abrir.
+            if ($ahora_efectivo < $ventana_inicio) {
+                continue;
+            }
+
+            // Regla 3: puntuar por distancia al extremo teórico (sin tolerancia).
+            $extremo_referencia = $tipo_marcaje === TipoMarcaje::Salida
+                ? $h_salida
+                : $h_ingreso;
+            $distancia_extremo = abs($ahora_efectivo - $extremo_referencia);
 
             $candidatas[] = [
                 'prog' => $prog,
-                'dentro' => $dentro,
-                'distancia' => $distancia,
+                'dentro' => self::marcaje_dentro_de_ventana($fecha_hora_marcaje, $prog),
+                'distancia' => $distancia_extremo,
+                'h_ingreso' => $h_ingreso,
+                'ventana_inicio' => $ventana_inicio,
             ];
         }
 
         if (empty($candidatas)) {
+            // Fallback: buscar el próximo turno por abrir (apertura extendida
+            // aún no alcanzada). Ordenado por menor h_ingreso.
+            $proximo = null;
+            foreach ($programaciones_dia as $prog) {
+                $turno = $prog['turno'] ?? null;
+                if ($turno === null || empty($turno['hora_ingreso']) || empty($turno['hora_salida'])) {
+                    continue;
+                }
+                $ancla_fb = (string) ($prog['ancla_fecha'] ?? $marcaje_fecha);
+                $h_ing = self::to_minutos_del_dia(Carbon::parse($ancla_fb.' '.$turno['hora_ingreso']));
+                $h_sal_raw = self::to_minutos_del_dia(Carbon::parse($ancla_fb.' '.$turno['hora_salida']));
+                $h_sal = $h_sal_raw <= $h_ing ? $h_sal_raw + 1440 : $h_sal_raw;
+                $diff_fb = (int) Carbon::parse($marcaje_fecha)->diffInDays(Carbon::parse($ancla_fb), false);
+                $ahora_fb = $ahora_minutos + ($diff_fb * 1440);
+                $tol_fb = (int) ($turno['minutos_tolerancia'] ?? 0);
+                $ven_inicio = $h_ing - $tol_fb;
+                if ($ahora_fb < $ven_inicio) {
+                    if ($proximo === null || $h_ing < $proximo['h_ing']) {
+                        $proximo = ['prog' => $prog, 'h_ing' => $h_ing];
+                    }
+                }
+            }
+            if ($proximo !== null) {
+                return [$proximo['prog'], true];
+            }
+            // Último fallback: ninguno por abrir. Devolvemos el primero del día
+            // por orden SQL (más temprano) con fuera_de_tolerancia = true.
             return [$programaciones_dia[0], true];
         }
 
-        // Preferir las que están DENTRO de la ventana.
-        $dentro_list = array_filter($candidatas, fn ($c) => $c['dentro']);
-        $pool = ! empty($dentro_list) ? array_values($dentro_list) : $candidatas;
+        // Regla 4: ordenar por distancia al extremo y, en empate, por fecha_inicio DESC.
+        usort($candidatas, function ($a, $b) {
+            if ($a['distancia'] !== $b['distancia']) {
+                return $a['distancia'] <=> $b['distancia'];
+            }
+            return strcmp((string) $b['fecha_inicio'], (string) $a['fecha_inicio']);
+        });
 
-        // Ordenar por distancia ascendente.
-        usort($pool, fn ($a, $b) => $a['distancia'] <=> $b['distancia']);
-
-        $ganadora = $pool[0]['prog'];
-        $fuera = empty($dentro_list); // Si ninguna quedó dentro de la ventana.
+        $ganadora = $candidatas[0]['prog'];
+        $fuera = ! $candidatas[0]['dentro'];
 
         return [$ganadora, $fuera];
     }
@@ -641,21 +802,25 @@ class AsistenciaService
         }
         $tolerancia = (int) ($turno['minutos_tolerancia'] ?? 0);
 
+        $marcaje_fecha = $fecha_hora_marcaje->toDateString();
+        $ancla = (string) ($programacion['ancla_fecha'] ?? $marcaje_fecha);
+
         $h_ingreso = self::to_minutos_del_dia(Carbon::parse(
-            $fecha_hora_marcaje->toDateString().' '.$turno['hora_ingreso']
+            $ancla.' '.$turno['hora_ingreso']
         ));
         $h_salida_raw = self::to_minutos_del_dia(Carbon::parse(
-            $fecha_hora_marcaje->toDateString().' '.$turno['hora_salida']
+            $ancla.' '.$turno['hora_salida']
         ));
         $ahora = self::to_minutos_del_dia($fecha_hora_marcaje);
 
         if ($h_salida_raw <= $h_ingreso) {
             $h_salida = $h_salida_raw + 1440;
-            $ahora_efectivo = $ahora < $h_ingreso ? $ahora + 1440 : $ahora;
         } else {
             $h_salida = $h_salida_raw;
-            $ahora_efectivo = $ahora;
         }
+
+        $diff_dias = (int) Carbon::parse($marcaje_fecha)->diffInDays(Carbon::parse($ancla), false);
+        $ahora_efectivo = $ahora + ($diff_dias * 1440);
 
         return $ahora_efectivo >= ($h_ingreso - $tolerancia) && $ahora_efectivo <= ($h_salida + $tolerancia);
     }
@@ -706,6 +871,100 @@ class AsistenciaService
     }
 
     /**
+     * Devuelve el desglose de pago por turno/programación para un día.
+     *
+     * Si el día tiene una sola programación, devuelve un único tramo
+     * calculado con los parámetros del snapshot recibido. Si hay varias
+     * programaciones vigentes, las procesa contra los marcajes confirmados
+     * y calcula el pago por tramo con el snapshot correspondiente a cada
+     * programación.
+     *
+     * @return array<int, array{id_programacion_horario: int, turno_id: int, horas_trabajadas: float, horas_programadas: float, jornada_trabajada: float, pago: float, tipo_contrato: ?string, sueldo_base: ?float, sueldo_diario: ?float}>
+     */
+    private static function obtener_tramos_pago(
+        int $id_empleado,
+        string $fecha,
+        float $jornada_trabajada,
+        ?string $tipo_contrato_fallback,
+        ?float $sueldo_base_fallback,
+        ?float $salario_diario_fallback,
+        int $dias_mes,
+    ): array {
+        $programaciones_dia = self::get_programaciones_vigentes_en_fecha($id_empleado, $fecha);
+
+        // Sin programaciones del día: devolvemos un único tramo con los
+        // valores recibidos como fallback (típicamente el snapshot del contrato).
+        if (empty($programaciones_dia)) {
+            return [[
+                'id_programacion_horario' => 0,
+                'turno_id' => 0,
+                'horas_trabajadas' => $jornada_trabajada,
+                'horas_programadas' => 0.0,
+                'jornada_trabajada' => $jornada_trabajada,
+                'pago' => self::calcular_pago_dia(
+                    $jornada_trabajada,
+                    $tipo_contrato_fallback,
+                    $sueldo_base_fallback,
+                    $salario_diario_fallback,
+                    $dias_mes,
+                ),
+                'tipo_contrato' => $tipo_contrato_fallback,
+                'sueldo_base' => $sueldo_base_fallback,
+                'sueldo_diario' => $salario_diario_fallback,
+            ]];
+        }
+
+        $tramos = [];
+        $n_tramos = count($programaciones_dia);
+        $cantidad_tramos_con_sueldo_distinto = 0;
+        foreach ($programaciones_dia as $prog) {
+            $snap = $prog['snapshot'] ?? [];
+            $t = $snap['tipo_contrato'] ?? null;
+            $sb = $snap['sueldo_base'] ?? null;
+            $sd = $snap['sueldo_diario'] ?? null;
+            if ($sb !== $sueldo_base_fallback || $sd !== $salario_diario_fallback) {
+                $cantidad_tramos_con_sueldo_distinto++;
+            }
+            $tramos[] = [
+                'id_programacion_horario' => (int) $prog['id_programacion_horario'],
+                'turno_id' => (int) ($prog['turno']['id'] ?? 0),
+                'lugar_nombre' => $prog['lugar_nombre'] ?? null,
+                'ancla_fecha' => (string) ($prog['ancla_fecha'] ?? ''),
+                'horas_trabajadas' => $jornada_trabajada,
+                'horas_programadas' => (float) ($prog['turno']['total_horas'] ?? 0),
+                'jornada_trabajada' => $jornada_trabajada,
+                'pago' => self::calcular_pago_dia($jornada_trabajada, $t, $sb, $sd, $dias_mes),
+                'tipo_contrato' => $t,
+                'sueldo_base' => $sb,
+                'sueldo_diario' => $sd,
+            ];
+        }
+
+        // Para mantener el comportamiento actual cuando todos los tramos
+        // comparten el mismo sueldo, devolvemos un único tramo agregado
+        // (el frontend no necesita desglose si no hay variación salarial).
+        if ($cantidad_tramos_con_sueldo_distinto === 0) {
+            $pago_total = 0.0;
+            foreach ($tramos as $t) {
+                $pago_total += $t['pago'];
+            }
+            return [[
+                'id_programacion_horario' => (int) $programaciones_dia[0]['id_programacion_horario'],
+                'turno_id' => (int) ($programaciones_dia[0]['turno']['id'] ?? 0),
+                'horas_trabajadas' => $jornada_trabajada,
+                'horas_programadas' => (float) ($programaciones_dia[0]['turno']['total_horas'] ?? 0),
+                'jornada_trabajada' => $jornada_trabajada,
+                'pago' => $pago_total,
+                'tipo_contrato' => $tipo_contrato_fallback,
+                'sueldo_base' => $sueldo_base_fallback,
+                'sueldo_diario' => $salario_diario_fallback,
+            ]];
+        }
+
+        return $tramos;
+    }
+
+    /**
      * Calcula el pago diario de una asistencia individual.
      *
      * Planilla: (sueldo_base / dias_mes) * jornada_trabajada
@@ -749,13 +1008,22 @@ class AsistenciaService
      * fecha indicada (puede haber varias en el mismo día). Usado por el cálculo
      * de `jornada_trabajada` cuando un empleado tiene múltiples turnos.
      *
-     * Ordenadas por `hora_ingreso` ASC para mantener el orden cronológico.
-     * Si el `dias_laborables` indica que NO labora hoy, devuelve [].
+     * También incluye programaciones del día anterior cuyo turno cruza la
+     * medianoche y que aún estén vigentes para esa fecha_anterior (caso típico:
+     * turno noche 22:00-06:00, fecha_inicio=fecha_fin=Sábado → el marcaje de
+     * Salida a las 05:30 del Domingo debe asignarse a ese turno del Sábado).
      *
-     * @return array<int, array{id_programacion_horario: int, lugar_nombre: ?string, turno: array<string, mixed>}>
+     * Cada resultado lleva un `ancla_fecha` (la fecha lógica del turno) que los
+     * helpers de ventana usan para anclar el parseo de `hora_ingreso/hora_salida`.
+     *
+     * Ordenadas por `hora_ingreso` ASC para mantener el orden cronológico.
+     *
+     * @return array<int, array{id_programacion_horario: int, lugar_nombre: ?string, ancla_fecha: string, turno: array<string, mixed>, snapshot: array<string, mixed>}>
      */
     private static function get_programaciones_vigentes_en_fecha(int $id_empleado, string $fecha): array
     {
+        $fecha_anterior = Carbon::parse($fecha)->subDay()->toDateString();
+
         $rows = \Illuminate\Support\Facades\DB::select(
             '
             SELECT
@@ -770,7 +1038,10 @@ class AsistenciaService
                 ph.dias_laborables,
                 ph.por_tiempo_indefinido,
                 ph.fecha_inicio,
-                ph.fecha_fin
+                ph.fecha_fin,
+                ph.tipo_contrato AS programacion_tipo_contrato,
+                ph.sueldo_base AS programacion_sueldo_base,
+                ph.sueldo_diario AS programacion_sueldo_diario
             FROM programacion_horario ph
             INNER JOIN turno_laboral tl ON tl.id = ph.id_turno_laboral
             LEFT JOIN almacen alm ON alm.id = ph.id_almacen
@@ -778,8 +1049,11 @@ class AsistenciaService
             LEFT JOIN oficina ofi ON ofi.id = ph.id_oficina
             WHERE ph.id_empleado = ?
               AND ph.estado = ?
-              AND ph.fecha_inicio <= ?
-              AND (ph.por_tiempo_indefinido = 1 OR ph.fecha_fin IS NULL OR ph.fecha_fin >= ?)
+              AND (
+                  (ph.fecha_inicio <= ? AND (ph.por_tiempo_indefinido = 1 OR ph.fecha_fin IS NULL OR ph.fecha_fin >= ?))
+                  OR
+                  (ph.fecha_inicio = ? AND (ph.por_tiempo_indefinido = 1 OR ph.fecha_fin IS NULL OR ph.fecha_fin >= ?) AND tl.hora_salida <= tl.hora_ingreso)
+              )
             ORDER BY tl.hora_ingreso ASC, ph.fecha_inicio DESC
             ',
             [
@@ -787,6 +1061,8 @@ class AsistenciaService
                 'Activo',
                 $fecha,
                 $fecha,
+                $fecha_anterior,
+                $fecha_anterior,
             ]
         );
 
@@ -796,10 +1072,19 @@ class AsistenciaService
 
         $resultado = [];
         foreach ($rows as $row) {
-            // Si el patrón dias_laborables indica que NO labora hoy, saltar.
+            // Determinar la fecha lógica del turno:
+            //  - Si fecha_inicio == fecha_fin: es una instancia única. El turno
+            //    está anclado a su fecha de inicio (caso típico: turno del día
+            //    anterior que cruza la medianoche y termina en la madrugada de hoy).
+            //  - Si fecha_inicio < fecha_fin: es un patrón diario. Cada día se
+            //    evalúa contra sí mismo, anclamos a la fecha consultada.
+            $es_instancia_unica = ((string) $row->fecha_inicio === (string) $row->fecha_fin);
+            $ancla_fecha = $es_instancia_unica ? (string) $row->fecha_inicio : $fecha;
+
+            // Si el patrón dias_laborables indica que NO labora en su fecha lógica, saltar.
             $dias_laborables = (string) ($row->dias_laborables ?? '1111111');
             if (strlen($dias_laborables) === 7) {
-                $indice_dia = (int) Carbon::parse($fecha)->dayOfWeek; // 0=Dom ... 6=Sáb
+                $indice_dia = (int) Carbon::parse($ancla_fecha)->dayOfWeek; // 0=Dom ... 6=Sáb
                 if ($dias_laborables[$indice_dia] === '0') {
                     continue;
                 }
@@ -808,6 +1093,7 @@ class AsistenciaService
             $resultado[] = [
                 'id_programacion_horario' => (int) $row->id_programacion_horario,
                 'lugar_nombre' => $row->lugar_nombre,
+                'ancla_fecha' => $ancla_fecha,
                 'turno' => [
                     'id' => (int) $row->turno_id,
                     'tipo_turno' => $row->tipo_turno,
@@ -815,6 +1101,11 @@ class AsistenciaService
                     'hora_salida' => $row->hora_salida,
                     'minutos_tolerancia' => (int) $row->minutos_tolerancia,
                     'total_horas' => $row->total_horas !== null ? (float) $row->total_horas : null,
+                ],
+                'snapshot' => [
+                    'tipo_contrato' => $row->programacion_tipo_contrato,
+                    'sueldo_base' => $row->programacion_sueldo_base !== null ? (float) $row->programacion_sueldo_base : null,
+                    'sueldo_diario' => $row->programacion_sueldo_diario !== null ? (float) $row->programacion_sueldo_diario : null,
                 ],
             ];
         }
@@ -881,6 +1172,7 @@ class AsistenciaService
     }
 
     /**
+/**
      * Consolida las horas y la jornada diaria basándose en todos los marcajes confirmados
      * del día para el empleado, más el nuevo marcaje actual simulado.
      *
@@ -890,8 +1182,14 @@ class AsistenciaService
      * intermedios): las horas trabajadas se dividen entre la suma de las
      * horas programadas del día, no solo del primer turno.
      *
+     * Devuelve además `tramos_pago[]`: un desglose por turno/programación con
+     * horas, jornada y snapshot salarial individual, útil cuando los turnos
+     * del día tienen sueldos distintos (jornada mixta). El frontend puede
+     * usar este array para mostrar "S/. X (Turno Y)" cuando hay varios
+     * sueldos en el mismo día.
+     *
      * @param  array<string, mixed>|null  $nuevo_marcaje
-     * @return array{fecha_hora_ingreso: Carbon|null, fecha_hora_salida: Carbon|null, total_horas: float, jornada_trabajada: float, id_programacion_horario: int|null, cantidad_turnos_dia: int, suma_horas_programadas: float}
+     * @return array{fecha_hora_ingreso: Carbon|null, fecha_hora_salida: Carbon|null, total_horas: float, jornada_trabajada: float, id_programacion_horario: int|null, cantidad_turnos_dia: int, suma_horas_programadas: float, tramos_pago: array<int, array<string, mixed>>}
      */
     private static function consolidar_asistencia_diaria(int $id_empleado, string $fecha, ?array $nuevo_marcaje = null): array
     {
@@ -918,7 +1216,9 @@ class AsistenciaService
             return strcmp((string) $a->fecha_hora, (string) $b->fecha_hora);
         });
 
-        // 3. Calcular total_horas por tramos (Ingreso/Salida emparejados).
+        // 3. Calcular total_horas y agrupar emparejamientos por id_programacion_horario.
+        //    Cada marcaje guarda su id_programacion_horario (asignado al crearse);
+        //    un marcaje manual sin programación queda bajo la clave 0 (huérfano).
         $total_segundos = 0;
         /** @var Carbon|null $ultimo_ingreso */
         $ultimo_ingreso = null;
@@ -926,20 +1226,25 @@ class AsistenciaService
         $fecha_hora_ingreso = null;
         /** @var Carbon|null $fecha_hora_salida */
         $fecha_hora_salida = null;
+        $segundos_por_turno = [];
 
         foreach ($marcajes as $m) {
             $tipo_m = (string) ($m->tipo_marcaje ?? '');
             $fh = Carbon::parse((string) $m->fecha_hora);
+            $turno_id_raw = isset($m->id_programacion_horario) ? (int) $m->id_programacion_horario : 0;
+            $turno_id = $turno_id_raw > 0 ? $turno_id_raw : 0;
 
             if ($tipo_m === 'Ingreso') {
-                $ultimo_ingreso = $fh;
                 if ($fecha_hora_ingreso === null) {
                     $fecha_hora_ingreso = $fh;
                 }
+                $ultimo_ingreso = $fh;
             } elseif ($tipo_m === 'Salida') {
                 $fecha_hora_salida = $fh;
                 if ($ultimo_ingreso !== null) {
-                    $total_segundos += abs($fh->diffInSeconds($ultimo_ingreso));
+                    $segundos = abs($fh->diffInSeconds($ultimo_ingreso));
+                    $total_segundos += $segundos;
+                    $segundos_por_turno[$turno_id] = ($segundos_por_turno[$turno_id] ?? 0) + $segundos;
                     $ultimo_ingreso = null;
                 }
             }
@@ -969,6 +1274,47 @@ class AsistenciaService
         // Los marcajes individuales ya llevan su propio id_programacion_horario.
         $id_programacion_horario = $programaciones_dia[0]['id_programacion_horario'] ?? null;
 
+        // 5. Desglose por turno: horas trabajadas vs horas programadas + snapshot salarial.
+        //    Los marcajes huérfanos (sin id_programacion, clave 0) se atribuyen al
+        //    primer turno del día para no perder su pago.
+        $tramos_pago = [];
+        $huerfanos_segundos = (float) ($segundos_por_turno[0] ?? 0);
+        $primer_turno_id = (int) ($programaciones_dia[0]['id_programacion_horario'] ?? 0);
+
+        foreach ($programaciones_dia as $prog) {
+            $turno_id = (int) $prog['id_programacion_horario'];
+            $horas_programadas_turno = (float) ($prog['turno']['total_horas'] ?? 0);
+            $segundos_tramo = (float) ($segundos_por_turno[$turno_id] ?? 0);
+
+            if ($turno_id === $primer_turno_id && $huerfanos_segundos > 0) {
+                $segundos_tramo += $huerfanos_segundos;
+            }
+
+            if ($segundos_tramo <= 0 && $horas_programadas_turno <= 0) {
+                continue;
+            }
+
+            $horas_tramo = round($segundos_tramo / 3600.0, 4);
+            $jornada_tramo = $horas_tramo > 0 && $horas_programadas_turno > 0
+                ? round($horas_tramo / $horas_programadas_turno, 4)
+                : 0.0;
+
+            $snapshot = $prog['snapshot'] ?? [];
+            $tramos_pago[] = [
+                'id_programacion_horario' => $turno_id,
+                'turno_id' => (int) ($prog['turno']['id'] ?? 0),
+                'lugar_nombre' => $prog['lugar_nombre'] ?? null,
+                'lugar_tipo' => null, // Se completa en el SELECT principal (ver get_asistencias_agrupadas).
+                'ancla_fecha' => (string) ($prog['ancla_fecha'] ?? $fecha),
+                'horas_trabajadas' => $horas_tramo,
+                'horas_programadas' => $horas_programadas_turno,
+                'jornada_trabajada' => $jornada_tramo,
+                'tipo_contrato' => $snapshot['tipo_contrato'] ?? null,
+                'sueldo_base' => $snapshot['sueldo_base'] ?? null,
+                'sueldo_diario' => $snapshot['sueldo_diario'] ?? null,
+            ];
+        }
+
         return [
             'fecha_hora_ingreso' => $fecha_hora_ingreso,
             'fecha_hora_salida' => $fecha_hora_salida,
@@ -977,6 +1323,8 @@ class AsistenciaService
             'id_programacion_horario' => $id_programacion_horario,
             'cantidad_turnos_dia' => $cantidad_turnos_dia,
             'suma_horas_programadas' => $suma_horas_programadas,
+            'tramos_pago' => $tramos_pago,
         ];
     }
 }
+
