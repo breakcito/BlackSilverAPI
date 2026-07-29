@@ -127,10 +127,16 @@ class ContratistasData
             c.telefono,
             c.email,
             c.fecha_nacimiento,
-            c.url_foto
+            c.url_foto,
+
+            c.con_contrato,
+            c.id_contrato_vigente,
+            ct.fecha_fin AS contrato_fecha_fin,
+            ct.por_tiempo_indefinido AS contrato_por_tiempo_indefinido
 
         FROM empleado c
         LEFT JOIN mina mn ON mn.id = c.id_mina
+        LEFT JOIN contrato_trabajo ct ON ct.id = c.id_contrato_vigente
         WHERE c.es_contratista = 1
         ';
 

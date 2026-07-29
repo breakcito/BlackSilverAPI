@@ -54,7 +54,7 @@ class ContratosEmpleadoController
             'id_almacen' => 'nullable|integer',
             'id_labor' => 'nullable|integer',
             'id_oficina' => 'nullable|integer',
-            'tipo_contrato' => 'required|in:Planilla,JornadaDiaria',
+            'tipo_contrato' => 'required|in:Planilla,JornadaDiaria,PeriodoPrueba',
             'sueldo_base' => 'nullable|numeric',
             'salario_diario' => 'nullable|numeric',
             'fecha_inicio' => 'required|date',
@@ -71,7 +71,7 @@ class ContratosEmpleadoController
 
         $tipo = (string) $request->input('tipo_contrato');
 
-        $sueldo_base = $tipo === 'Planilla'
+        $sueldo_base = in_array($tipo, ['Planilla', 'PeriodoPrueba'], true)
             ? ($request->input('sueldo_base') !== null ? (float) $request->input('sueldo_base') : null)
             : null;
 
@@ -134,7 +134,7 @@ class ContratosEmpleadoController
             'id_almacen' => 'nullable|integer',
             'id_labor' => 'nullable|integer',
             'id_oficina' => 'nullable|integer',
-            'tipo_contrato' => 'nullable|in:Planilla,JornadaDiaria',
+            'tipo_contrato' => 'nullable|in:Planilla,JornadaDiaria,PeriodoPrueba',
             'sueldo_base' => 'nullable|numeric',
             'salario_diario' => 'nullable|numeric',
             'fecha_inicio' => 'nullable|date',
@@ -176,9 +176,9 @@ class ContratosEmpleadoController
 
         // Si tipo_contrato cambia, limpiar el otro sueldo
         if (isset($datos['tipo_contrato'])) {
-            if ($datos['tipo_contrato'] === 'Planilla') {
+            if (in_array($datos['tipo_contrato'], ['Planilla', 'PeriodoPrueba'], true)) {
                 $datos['salario_diario'] = null;
-            } else if ($datos['tipo_contrato'] === 'JornadaDiaria') {
+            } elseif ($datos['tipo_contrato'] === 'JornadaDiaria') {
                 $datos['sueldo_base'] = null;
             }
         }

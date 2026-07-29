@@ -77,6 +77,7 @@ class AsistenciaData
             ct.fecha_fin AS contrato_fecha_fin,
             car.nombre AS cargo_nombre,
             are.nombre AS area_nombre,
+            mn.nombre AS mina_nombre,
             tl.tipo_turno,
             tl.hora_ingreso,
             tl.hora_salida,
@@ -102,6 +103,7 @@ class AsistenciaData
             )
         LEFT JOIN cargo car ON car.id = ct.id_cargo
         LEFT JOIN area are ON are.id = car.id_area
+        LEFT JOIN mina mn ON mn.id = emp.id_mina
         LEFT JOIN programacion_horario ph ON ph.id = a.id_programacion_horario
         LEFT JOIN turno_laboral tl ON tl.id = ph.id_turno_laboral
         LEFT JOIN almacen alm ON alm.id = ph.id_almacen

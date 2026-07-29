@@ -118,7 +118,7 @@ class EmpleadosController
             'contrato.id_empresa' => 'nullable|integer',
             'contrato.id_almacen' => 'nullable|integer|min:1',
             'contrato.id_labor' => 'nullable|integer|min:1',
-            'contrato.tipo_contrato' => 'required|in:Planilla,JornadaDiaria',
+            'contrato.tipo_contrato' => 'required|in:Planilla,JornadaDiaria,PeriodoPrueba',
             'contrato.sueldo_base' => 'nullable|numeric',
             'contrato.salario_diario' => 'nullable|numeric',
             'contrato.fecha_inicio' => 'required|date',
@@ -212,5 +212,30 @@ class EmpleadosController
         $result = EmpleadosServiceGlobal::actualizar_foto($id_empleado, $request->file('foto'));
 
         return response()->json($result);
+    }
+
+    /**
+     * Habilitar/Deshabilitar con_contrato (individual o masivo)
+     */
+    public function toggle_con_contrato(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer',
+            'con_contrato' => 'required|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $ids = array_map('intval', $request->input('ids'));
+        $conContrato = $request->boolean('con_contrato');
+
+        DB::table('empleado')
+            ->whereIn('id', $ids)
+            ->update(['con_contrato' => $conContrato ? 1 : 0]);
+
+        return response()->json(ApiResponse::success(null, 'Estado de contrato actualizado correctamente'));
     }
 }

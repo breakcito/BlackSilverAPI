@@ -74,14 +74,14 @@ class ContratosEmpleadoService
         }
 
         // Validar tipo
-        $tiposValidos = ['Planilla', 'JornadaDiaria'];
+        $tiposValidos = ['Planilla', 'JornadaDiaria', 'PeriodoPrueba'];
         if (! in_array($tipo_contrato, $tiposValidos, true)) {
             return ApiResponse::error('Tipo de contrato inválido.');
         }
 
         // Validar exclusividad sueldo_base vs salario_diario
-        if ($tipo_contrato === 'Planilla' && $salario_diario !== null) {
-            return ApiResponse::error('Para Planilla, salario_diario debe ser NULL.');
+        if (in_array($tipo_contrato, ['Planilla', 'PeriodoPrueba'], true) && $salario_diario !== null) {
+            return ApiResponse::error('Para Planilla y PeriodoPrueba, salario_diario debe ser NULL.');
         }
         if ($tipo_contrato === 'JornadaDiaria' && $sueldo_base !== null) {
             return ApiResponse::error('Para JornadaDiaria, sueldo_base debe ser NULL.');
@@ -151,7 +151,7 @@ class ContratosEmpleadoService
             'id_labor' => $id_labor,
             'id_oficina' => $id_oficina,
             'tipo_contrato' => $tipo_contrato,
-            'sueldo_base' => $tipo_contrato === 'Planilla' ? $sueldo_base : null,
+            'sueldo_base' => in_array($tipo_contrato, ['Planilla', 'PeriodoPrueba'], true) ? $sueldo_base : null,
             'salario_diario' => $tipo_contrato === 'JornadaDiaria' ? $salario_diario : null,
             'fecha_inicio' => $fecha_inicio,
             'por_tiempo_indefinido' => $por_tiempo_indefinido,
