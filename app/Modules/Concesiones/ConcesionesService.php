@@ -2,6 +2,7 @@
 
 namespace App\Modules\Concesiones;
 
+use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use App\Shared\Enums\_Generic\TipoMineral;
 use App\Modules\Concesiones\Data\ConcesionesData;
@@ -10,11 +11,26 @@ use App\Modules\Concesiones\Data\ContratosData;
 class ConcesionesService
 {
     /**
-     * Obtener listado de concesiones asociadas a las empresas del usuario
+     * Obtener listado de concesiones.
+     * Adicionalmente, adjunta el historial de contratos (con sus evidencias decodificadas)
+     * a cada concesión, replicando el patrón de EmpresasService.
      */
-    public static function get_concesiones(int $id_usuario)
+    public static function get_concesiones()
     {
-        $concesiones = ConcesionesData::get_concesiones(id_usuario: $id_usuario);
+        $concesiones = ConcesionesData::get_concesiones();
+
+        if (empty($concesiones)) {
+            return ApiResponse::success([]);
+        }
+
+        // Recopilar ids únicos para una sola consulta batch de contratos
+        $ids_concesiones = array_map(fn($c) => (int) $c->id_concesion, $concesiones);
+        $contratos = collect(ContratosData::get_contratos(id_concesion: $ids_concesiones));
+
+        foreach ($concesiones as $concesion) {
+            $concesion->contratos = $contratos->where('id_concesion', $concesion->id_concesion)->values();
+        }
+
         return ApiResponse::success($concesiones);
     }
 
@@ -54,13 +70,16 @@ class ConcesionesService
     }
 
     /**
-     * Crear contrato con empresa
+     * Crear contrato con empresa, opcionalmente con evidencias adjuntas.
+     *
+     * @param  array|null  $evidencias  Archivos UploadedFile[].
      */
     public static function crear_contrato(
         int $id_concesion,
         int $id_empresa,
         string $fecha_inicio,
-        ?string $fecha_fin
+        ?string $fecha_fin,
+        ?array $evidencias = null
     ) {
         if (ContratosData::verificar_contrato_activo($id_concesion, $id_empresa)) {
             return ApiResponse::error('Esta empresa ya tiene un contrato activo en esta concesión.');
@@ -70,7 +89,8 @@ class ConcesionesService
             id_concesion: $id_concesion,
             id_empresa: $id_empresa,
             fecha_inicio: $fecha_inicio,
-            fecha_fin: $fecha_fin
+            fecha_fin: $fecha_fin,
+            evidencias: $evidencias
         );
 
         $nuevo = ContratosData::get_contrato_by_id($id);
@@ -85,5 +105,57 @@ class ConcesionesService
     {
         ContratosData::terminar_contrato($id_contrato);
         return ApiResponse::success(null, 'Contrato finalizado correctamente');
+    }
+
+    /**
+     * Sube y acumula nuevas evidencias a un contrato existente.
+     *
+     * @param  array  $evidencias  Archivos UploadedFile[] a subir.
+     */
+    public static function subir_evidencias(int $id_contrato, array $evidencias)
+    {
+        $contrato = ContratosData::get_contrato_by_id($id_contrato);
+        if (empty((array) $contrato)) {
+            return ApiResponse::error('Contrato no encontrado.');
+        }
+
+        $existentes = is_array($contrato->evidencias ?? null) ? $contrato->evidencias : [];
+        $nuevas = ContratosData::guardar_evidencias($evidencias);
+        $todas = array_merge($existentes, $nuevas);
+
+        $evidenciasJson = json_encode($todas, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        ContratosData::actualizar_evidencias($id_contrato, $evidenciasJson);
+
+        return ApiResponse::success($todas, 'Evidencias agregadas correctamente');
+    }
+
+    /**
+     * Elimina una evidencia específica de un contrato por su path_relativo,
+     * removiendo también el archivo físico del disco.
+     */
+    public static function eliminar_evidencia(int $id_contrato, string $path_relativo)
+    {
+        $contrato = ContratosData::get_contrato_by_id($id_contrato);
+        if (empty((array) $contrato)) {
+            return ApiResponse::error('Contrato no encontrado.');
+        }
+
+        $existentes = is_array($contrato->evidencias ?? null) ? $contrato->evidencias : [];
+
+        // Eliminar archivo físico
+        ArchivoHelper::eliminarArchivo($path_relativo);
+
+        $actualizadas = array_values(array_filter(
+            $existentes,
+            fn($e) => ($e['path_relativo'] ?? '') !== $path_relativo
+        ));
+
+        $evidenciasJson = !empty($actualizadas)
+            ? json_encode($actualizadas, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+            : null;
+
+        ContratosData::actualizar_evidencias($id_contrato, $evidenciasJson);
+
+        return ApiResponse::success($actualizadas, 'Evidencia eliminada correctamente');
     }
 }

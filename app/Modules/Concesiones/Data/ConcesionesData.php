@@ -11,7 +11,7 @@ class ConcesionesData
     /**
      * Listar concesiones con conteo de contratos activos, filtrado por usuario si se provee
      */
-    public static function get_concesiones(?int $id_usuario = null, ?int $id_concesion = null): array|object
+    public static function get_concesiones(?int $id_concesion = null): array|object
     {
         $sql = '
         SELECT DISTINCT

@@ -15,6 +15,10 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::get('/{id_concesion}', 'get_contratos');
             Route::post('/', 'crear_contrato');
             Route::delete('/{id_contrato}', 'terminar_contrato');
+
+            // Gestión de evidencias de contratos existentes
+            Route::post('/evidencias', 'subir_evidencias');
+            Route::delete('/evidencias', 'eliminar_evidencia');
         });
     });
 });

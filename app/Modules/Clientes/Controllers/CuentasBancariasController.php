@@ -33,4 +33,24 @@ class CuentasBancariasController
             (int) $request->es_para_detraccion
         ));
     }
+
+    public function actualizar_cuenta_bancaria(Request $request, int $id_cuenta_bancaria): JsonResponse
+    {
+        $request->validate([
+            'id_banco' => 'required|integer',
+            'moneda' => 'required|string',
+            'numero_cuenta' => 'required|string|max:50',
+            'cci' => 'nullable|string|max:50',
+            'es_para_detraccion' => 'required|boolean',
+        ]);
+
+        return response()->json(CuentasBancariasService::actualizar_cuenta_bancaria(
+            $id_cuenta_bancaria,
+            (int) $request->id_banco,
+            $request->moneda,
+            $request->numero_cuenta,
+            $request->cci,
+            (int) $request->es_para_detraccion
+        ));
+    }
 }

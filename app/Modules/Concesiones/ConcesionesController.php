@@ -13,9 +13,7 @@ class ConcesionesController
 {
     public function get_concesiones(Request $request): JsonResponse
     {
-        $authUser = $request->attributes->get('auth_user');
-        $id_usuario = $authUser->id_usuario;
-        $result = ConcesionesService::get_concesiones($id_usuario);
+        $result = ConcesionesService::get_concesiones();
 
         return response()->json($result);
     }
@@ -59,6 +57,8 @@ class ConcesionesController
             'id_empresa' => 'required|integer',
             'fecha_inicio' => 'required|date',
             'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+            'evidencias' => 'nullable|array',
+            'evidencias.*' => 'file|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -72,6 +72,7 @@ class ConcesionesController
             id_empresa: (int) $v['id_empresa'],
             fecha_inicio: (string) $v['fecha_inicio'],
             fecha_fin: isset($v['fecha_fin']) ? (string) $v['fecha_fin'] : null,
+            evidencias: $request->file('evidencias') ?? []
         );
 
         return response()->json($result);
@@ -82,5 +83,52 @@ class ConcesionesController
         $result = ConcesionesService::terminar_contrato($id_contrato);
 
         return response()->json($result);
+    }
+
+    /**
+     * Sube y acumula nuevas evidencias a un contrato existente.
+     */
+    public function subir_evidencias(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_contrato' => 'required|integer',
+            'evidencias' => 'required|array|min:1',
+            'evidencias.*' => 'file|max:10240',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $id_contrato = (int) $request->input('id_contrato');
+        $evidencias = $request->file('evidencias', []);
+
+        try {
+            $resultado = ConcesionesService::subir_evidencias($id_contrato, $evidencias);
+            return response()->json($resultado);
+        } catch (\Exception $e) {
+            return response()->json(ApiResponse::error('Error al subir evidencias: ' . $e->getMessage()), 500);
+        }
+    }
+
+    /**
+     * Elimina una evidencia específica de un contrato por su path_relativo.
+     */
+    public function eliminar_evidencia(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_contrato' => 'required|integer',
+            'path_relativo' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $id_contrato = (int) $request->input('id_contrato');
+        $path_relativo = (string) $request->input('path_relativo');
+
+        $resultado = ConcesionesService::eliminar_evidencia($id_contrato, $path_relativo);
+        return response()->json($resultado);
     }
 }
