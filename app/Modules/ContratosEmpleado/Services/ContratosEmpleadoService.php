@@ -208,12 +208,27 @@ class ContratosEmpleadoService
     /**
      * Finalizar un contrato anticipadamente.
      */
-    public static function finalizar_anticipado(int $id_contrato, string $fecha_fin_anticipada, ?string $motivo_cierre = null): array
+    public static function finalizar_anticipado(int $id_contrato, string $fecha_fin_anticipada, ?string $motivo_cierre = null, array $archivosEvidencias = []): array
     {
-        return DB::transaction(function () use ($id_contrato, $fecha_fin_anticipada, $motivo_cierre) {
+        return DB::transaction(function () use ($id_contrato, $fecha_fin_anticipada, $motivo_cierre, $archivosEvidencias) {
             $contrato = DB::table('contrato_trabajo')->where('id', $id_contrato)->first();
             if (! $contrato) {
                 return ApiResponse::error('Contrato no encontrado.');
+            }
+
+            // Procesar evidencias subidas al finalizar y agregarlas acumulativamente
+            if (! empty($archivosEvidencias)) {
+                $nuevasEvidencias = ArchivoHelper::guardarArchivos('evidencias-contratos', $archivosEvidencias);
+                if (! empty($nuevasEvidencias)) {
+                    $evidenciasExistentes = json_decode((string) ($contrato->evidencias ?? '[]'), true);
+                    if (! is_array($evidenciasExistentes)) {
+                        $evidenciasExistentes = [];
+                    }
+                    $evidenciasCombinadas = array_merge($evidenciasExistentes, $nuevasEvidencias);
+                    DB::table('contrato_trabajo')->where('id', $id_contrato)->update([
+                        'evidencias' => json_encode($evidenciasCombinadas, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                    ]);
+                }
             }
 
             ContratosEmpleadoData::finalizar_anticipado($id_contrato, $fecha_fin_anticipada, $motivo_cierre);

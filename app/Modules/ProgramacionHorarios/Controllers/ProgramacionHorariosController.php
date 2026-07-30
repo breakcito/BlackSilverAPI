@@ -145,4 +145,26 @@ class ProgramacionHorariosController
             (string) $request->input('estado')
         ));
     }
+
+    /**
+     * Finalizar anticipadamente una programación acotando su fecha_fin.
+     */
+    public function finalizar_programacion(Request $request, int $id_programacion): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'fecha_fin' => 'required|date_format:Y-m-d',
+        ], [
+            'fecha_fin.required' => 'Debe indicar la fecha de finalización.',
+            'fecha_fin.date_format' => 'El formato de fecha debe ser YYYY-MM-DD.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        return response()->json(ProgramacionHorarioService::finalizar_programacion_individual(
+            $id_programacion,
+            (string) $request->input('fecha_fin')
+        ));
+    }
 }

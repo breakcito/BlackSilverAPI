@@ -22,5 +22,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::get('/{id_programacion}', 'get_programacion_by_id');
         Route::post('/asignar', 'asignar_horario');
         Route::post('/{id_programacion}/cambiar-estado', 'cambiar_estado');
+        Route::post('/{id_programacion}/finalizar', 'finalizar_programacion');
     });
 });

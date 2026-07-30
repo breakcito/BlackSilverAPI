@@ -284,6 +284,29 @@ class ProgramacionHorarioService
     }
 
     /**
+     * Finalizar anticipadamente una programación acotando su fecha_fin.
+     */
+    public static function finalizar_programacion_individual(int $id_programacion, string $fecha_fin): array
+    {
+        $prog = \App\Models\ProgramacionHorario::find($id_programacion);
+        if (!$prog) {
+            return ApiResponse::error('La programación no existe.');
+        }
+
+        if ($fecha_fin < $prog->fecha_inicio->toDateString()) {
+            return ApiResponse::error('La fecha de finalización no puede ser anterior a la fecha de inicio.');
+        }
+
+        $prog->fecha_fin = $fecha_fin;
+        $prog->por_tiempo_indefinido = false;
+        $prog->save();
+
+        $actualizado = ProgramacionHorarioData::get_programaciones(id_programacion: $id_programacion);
+
+        return ApiResponse::success($actualizado, 'Programación finalizada correctamente');
+    }
+
+    /**
      * Cerrar (Inactivar) todas las programaciones Activas vinculadas a un contrato.
      *
      * Se usa cuando:

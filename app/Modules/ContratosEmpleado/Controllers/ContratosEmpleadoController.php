@@ -109,16 +109,21 @@ class ContratosEmpleadoController
         $validator = Validator::make($request->all(), [
             'fecha_fin_anticipada' => 'required|date',
             'motivo_cierre' => 'nullable|string',
+            'evidencias' => 'nullable|array',
+            'evidencias.*' => 'file|max:10240',
         ]);
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
+        $archivosEvidencias = $request->file('evidencias') ?? [];
+
         return response()->json(ContratosEmpleadoService::finalizar_anticipado(
             $id_contrato,
             (string) $request->input('fecha_fin_anticipada'),
-            $request->input('motivo_cierre') ? (string) $request->input('motivo_cierre') : null
+            $request->input('motivo_cierre') ? (string) $request->input('motivo_cierre') : null,
+            $archivosEvidencias
         ));
     }
 
