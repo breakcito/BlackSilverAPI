@@ -3,6 +3,7 @@ namespace App\Services;
 
 use App\Data\ProductosData;
 use App\Shared\Enums\_Generic\EstadoBase;
+use App\Shared\Enums\_Generic\Moneda;
 use App\Shared\Enums\_Generic\TipoBien;
 use App\Shared\Responses\ApiResponse;
 
@@ -43,6 +44,7 @@ class ProductosService
         ?string $prefijo = null,
         ?int $tiempo_espera_vencimiento = null,
         ?string $periodo_espera_vencimiento = null,
+        Moneda $moneda = Moneda::PEN,
         ?bool $return_object = false
     ) {
         // 1. Validar nombre único
@@ -81,7 +83,8 @@ class ProductosService
             costo_promedio_base: $costo_promedio_base,
             tiempo_espera_vencimiento: $tiempo_espera_vencimiento,
             periodo_espera_vencimiento: $periodo_espera_vencimiento,
-            dias_espera_vencimiento: $dias_espera_vencimiento
+            dias_espera_vencimiento: $dias_espera_vencimiento,
+            moneda: $moneda
         );
 
         if ($return_object) {

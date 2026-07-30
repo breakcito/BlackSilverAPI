@@ -24,7 +24,8 @@ class Producto extends Model
         'para_mantenimiento',
         //
         'stock_minimo_base',
-        // es el costo promedio en soles que tiene el producto, este se 
+        'moneda', // soles o dolares, se aplica enum
+        // es el costo promedio en soles o dolares que tiene el producto, este se 
         // va actualizando en base a los registros que se van 
         // teniendo en las ordenes de compra
         'costo_promedio_base',

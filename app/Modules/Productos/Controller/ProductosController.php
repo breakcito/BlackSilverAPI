@@ -3,6 +3,7 @@
 namespace App\Modules\Productos\Controller;
 
 use App\Modules\Productos\Service\ProductosService;
+use App\Shared\Enums\_Generic\Moneda;
 use App\Shared\Enums\_Generic\Periodo;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -36,6 +37,7 @@ class ProductosController
             'es_perecible' => 'required|boolean',
             'para_mantenimiento' => 'required|boolean',
             'stock_minimo_base' => 'nullable|numeric|min:0',
+            'moneda' => ['required', new Enum(Moneda::class)],
             'costo_promedio_base' => 'nullable|numeric|min:0',
             'tiempo_espera_vencimiento' => 'nullable|integer|min:0',
             'periodo_espera_vencimiento' => ['nullable', new Enum(Periodo::class)],
@@ -45,6 +47,7 @@ class ProductosController
             'nombre.required' => 'El nombre es requerido',
             'es_auditable.required' => 'Debe indicar si es auditable',
             'es_perecible.required' => 'Debe indicar si es perecible',
+            'moneda.required' => 'Debe indicar la moneda del costo promedio',
         ]);
 
         if ($validator->fails()) {
@@ -62,7 +65,8 @@ class ProductosController
             stock_minimo_base: (float) ($request->input('stock_minimo_base') ?? 0),
             costo_promedio_base: (float) ($request->input('costo_promedio_base') ?? 0),
             tiempo_espera_vencimiento: $request->input('tiempo_espera_vencimiento') ? (int) $request->input('tiempo_espera_vencimiento') : null,
-            periodo_espera_vencimiento: $request->input('periodo_espera_vencimiento')
+            periodo_espera_vencimiento: $request->input('periodo_espera_vencimiento'),
+            moneda: Moneda::from($request->string('moneda')->toString())
         );
 
         return response()->json($result);
@@ -82,6 +86,7 @@ class ProductosController
             'es_perecible' => 'required|boolean',
             'para_mantenimiento' => 'required|boolean',
             'stock_minimo_base' => 'nullable|numeric|min:0',
+            'moneda' => ['required', new Enum(Moneda::class)],
             'costo_promedio_base' => 'nullable|numeric|min:0',
             'tiempo_espera_vencimiento' => 'nullable|integer|min:0',
             'periodo_espera_vencimiento' => ['nullable', new Enum(Periodo::class)],
@@ -91,6 +96,7 @@ class ProductosController
             'nombre.required' => 'El nombre es requerido',
             'es_auditable.required' => 'Debe indicar si es auditable',
             'es_perecible.required' => 'Debe indicar si es perecible',
+            'moneda.required' => 'Debe indicar la moneda del costo promedio',
         ]);
 
         if ($validator->fails()) {
@@ -109,7 +115,8 @@ class ProductosController
             stock_minimo_base: (float) ($request->input('stock_minimo_base') ?? 0),
             costo_promedio_base: (float) ($request->input('costo_promedio_base') ?? 0),
             tiempo_espera_vencimiento: $request->input('tiempo_espera_vencimiento') ? (int) $request->input('tiempo_espera_vencimiento') : null,
-            periodo_espera_vencimiento: $request->input('periodo_espera_vencimiento')
+            periodo_espera_vencimiento: $request->input('periodo_espera_vencimiento'),
+            moneda: Moneda::from($request->string('moneda')->toString())
         );
 
         return response()->json($result);

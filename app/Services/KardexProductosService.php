@@ -40,8 +40,8 @@ class KardexProductosService
         $id_almacen = 0;
         // Consultar el costo promedio del producto del lote
         $costo_promedio_base = $costo_promedio_base ?? LotesProductosData::get_costo_promedio_producto($id_lote);
-        $costo_por_presentacion = $costo_promedio_base;
-        $subtotal = $costo_promedio_base;
+        $costo_promedio_por_presentacion = $costo_promedio_base;
+        $subtotal_promedio = $costo_promedio_base;
 
         // si el registro es por un lote, obtenemos su almacen
         if ($id_lote != null) {
@@ -50,8 +50,8 @@ class KardexProductosService
                 columnas: ['id_almacen', 'contenido_por_presentacion']
             );
             $id_almacen = $lote['id_almacen'];
-            $costo_por_presentacion = $lote['contenido_por_presentacion'] * $costo_promedio_base;
-            $subtotal = $costo_promedio_base * $cantidad_movimiento_base;
+            $costo_promedio_por_presentacion = $lote['contenido_por_presentacion'] * $costo_promedio_base;
+            $subtotal_promedio = $costo_promedio_base * $cantidad_movimiento_base;
         }
         // si es por un activo fijo, obtenemos su almacen
         else if ($id_activo_fijo != null) {
@@ -83,8 +83,8 @@ class KardexProductosService
             stock_anterior_base: $stock_anterior_base,
             //
             costo_promedio_base: $costo_promedio_base,
-            costo_por_presentacion: $costo_por_presentacion,
-            subtotal: $subtotal,
+            costo_promedio_por_presentacion: $costo_promedio_por_presentacion,
+            subtotal_promedio: $subtotal_promedio,
             //
             created_at: $created_at
         ));

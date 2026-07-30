@@ -3,6 +3,7 @@
 namespace App\Modules\Productos\Data;
 
 use App\Shared\Enums\_Generic\EstadoBase;
+use App\Shared\Enums\_Generic\Moneda;
 use Illuminate\Support\Facades\DB;
 
 class ProductosData
@@ -32,6 +33,7 @@ class ProductosData
                 p.para_mantenimiento,
                 -- 
                 p.stock_minimo_base,
+                p.moneda,
                 p.costo_promedio_base,
                 p.costo_promedio_base_log,
                 -- 
@@ -78,7 +80,8 @@ class ProductosData
         ?string $prefijo = null,
         ?int $tiempo_espera_vencimiento = null,
         ?string $periodo_espera_vencimiento = null,
-        ?int $dias_espera_vencimiento = null
+        ?int $dias_espera_vencimiento = null,
+        Moneda $moneda = Moneda::PEN
     ): int {
         $affected = DB::table('producto')
             ->where('id', $id_producto)
@@ -91,6 +94,7 @@ class ProductosData
                 'es_perecible' => $es_perecible,
                 'para_mantenimiento' => $para_mantenimiento,
                 'stock_minimo_base' => $stock_minimo_base,
+                'moneda' => $moneda->value,
                 'costo_promedio_base' => $costo_promedio_base,
                 'tiempo_espera_vencimiento' => $tiempo_espera_vencimiento,
                 'periodo_espera_vencimiento' => $periodo_espera_vencimiento,

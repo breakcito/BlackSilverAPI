@@ -24,32 +24,40 @@ class LotesProductosData
         SELECT
             lp.id AS id_lote,
             lp.correlativo,
-            -- 
+            
             lp.id_almacen,
-            --
+            
             lp.id_producto,
             pr.es_auditable,
-            --
-            lp.stock_actual,
-            lp.contenido_por_presentacion,
-            lp.stock_actual_base,
-            --
+            
+            -- unidad base del producto
             unib.id as id_unidad_medida_base,
             unib.nombre AS unidad_medida_base,
             unib.abreviatura AS unidad_medida_base_abv,
-            --
+            
+            -- unidad de medida del lote
             uni.id as id_unidad_medida_lote,
             uni.nombre AS unidad_medida_lote,
             uni.abreviatura AS unidad_medida_lote_abv,
-            --
+            
+            -- stocks
+            lp.stock_actual_base, -- en base a la unidad base del producto
+            lp.contenido_por_presentacion, -- cuantas unidades base hay en una unidad del lote
+            lp.stock_actual,  -- en base a la unidad de medida del lote
+            
+            -- fechas
             lp.fecha_hora_ingreso,
             lp.fecha_vencimiento,
-            COALESCE(occ.serie, lp.serie_factura_compra) AS serie_factura_compra,
-            COALESCE(occ.numero, lp.numero_factura_compra) AS numero_factura_compra,
-            lp.costo_por_unidad,
-            lp.id_orden_compra_detalle,
+            
+            -- info de la compra del lote
             ocd.id_orden_compra,
             occr.id_orden_compra_comprobante,
+            lp.id_orden_compra_detalle,
+            oc.moneda,
+            COALESCE(occ.serie, lp.serie_factura_compra) AS serie_factura_compra,
+            COALESCE(occ.numero, lp.numero_factura_compra) AS numero_factura_compra,
+            lp.costo_por_unidad, -- costo por unidad de medida del lote
+            
             DATEDIFF(lp.fecha_vencimiento, NOW()) AS dias_para_vencer,
             CASE 
                 WHEN pr.es_perecible != 1 THEN 'N/A' 
@@ -64,6 +72,7 @@ class LotesProductosData
         INNER JOIN producto pr ON pr.id = lp.id_producto
         INNER JOIN unidad_medida unib ON unib.id = pr.id_unidad_medida_base
         LEFT JOIN orden_compra_detalle ocd ON ocd.id = lp.id_orden_compra_detalle
+        LEFT JOIN orden_compra oc on oc.id = ocd.id_orden_compra
         LEFT JOIN orden_compra_recepcion_detalle ocrd ON ocrd.id = lp.id_orden_compra_recepcion_detalle
         LEFT JOIN orden_compra_comprobante_recepcion occr ON occr.id_orden_compra_recepcion = ocrd.id_orden_compra_recepcion
         LEFT JOIN orden_compra_comprobante occ ON occ.id = occr.id_orden_compra_comprobante
@@ -187,7 +196,6 @@ class LotesProductosData
         ?int $id_orden_compra_detalle = null
     ) {
         $stock_actual_base = $stock_inicial * $contenido_por_presentacion;
-        $costo_promedio_por_unidad = $costo_promedio_base * $contenido_por_presentacion;
         return LoteProducto::insertGetId([
             'id_producto' => $id_producto,
             'id_unidad_medida' => $id_unidad_medida,
@@ -201,7 +209,6 @@ class LotesProductosData
             'contenido_por_presentacion' => $contenido_por_presentacion,
             'stock_actual_base' => $stock_actual_base,
             'costo_promedio_base' => $costo_promedio_base,
-            'costo_promedio_por_unidad' => $costo_promedio_por_unidad,
             'fecha_hora_ingreso' => $fecha_hora_ingreso,
             'fecha_vencimiento' => $fecha_vencimiento,
             'created_at' => now(),

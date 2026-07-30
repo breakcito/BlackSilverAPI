@@ -12,7 +12,7 @@ class KardexData
     public static function get_resumen_kardex(int $id_almacen, int $mes, int $yearcito)
     {
         $sql = '
-        SELECT DISTINCT
+        SELECT 
             k.id AS id_kardex,
             
             -- producto
@@ -47,20 +47,29 @@ class KardexData
             k.tipo_movimiento,
             k.tipo_origen,
             k.descripcion,
+            
             -- stocks
             k.stock_anterior,
             k.stock_anterior_base,
+            
             -- lo que se movio
             k.cantidad_movimiento,
             k.cantidad_movimiento_base,
+            
             -- el resultado
             k.stock_resultante,
             k.stock_resultante_base,
             
-            -- costos
+            -- costos promedio
+            p.moneda,
             k.costo_promedio_base, 
-            k.costo_por_presentacion, 
-            k.subtotal, 
+            k.costo_promedio_por_presentacion, 
+            k.subtotal_promedio, 
+            
+            -- costos reales - todo en soles
+            (lp.costo_por_unidad / lp.contenido_por_presentacion) as costo_por_unidad_base, -- un par
+            lp.costo_por_unidad, -- una docenta
+            lp.costo_por_unidad * k.cantidad_movimiento as subtotal, -- 
             
             k.created_at
         FROM

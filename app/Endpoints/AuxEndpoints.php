@@ -37,6 +37,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
             // unidades de medida
             Route::get('/unidades-medida', 'get_unidades_medida');
+            Route::post('/unidades-medida', 'crear_unidad_medida');
 
             // categorias
             Route::get('/categorias', 'get_categorias');

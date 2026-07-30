@@ -2,6 +2,7 @@
 
 namespace App\Modules\Productos\Service;
 
+use App\Shared\Enums\_Generic\Moneda;
 use App\Shared\Responses\ApiResponse;
 use App\Services\ProductosService as ProductosServiceGlobal;
 use App\Modules\Productos\Data\ProductosData;
@@ -32,7 +33,8 @@ class ProductosService
         float $costo_promedio_base = 0,
         ?string $prefijo = null,
         ?int $tiempo_espera_vencimiento = null,
-        ?string $periodo_espera_vencimiento = null
+        ?string $periodo_espera_vencimiento = null,
+        Moneda $moneda = Moneda::PEN
     ) {
         $response = ProductosServiceGlobal::crear_producto(
             id_categoria: $id_categoria,
@@ -46,6 +48,7 @@ class ProductosService
             prefijo: $prefijo,
             tiempo_espera_vencimiento: $tiempo_espera_vencimiento,
             periodo_espera_vencimiento: $periodo_espera_vencimiento,
+            moneda: $moneda,
             return_object: false
         );
 
@@ -76,7 +79,8 @@ class ProductosService
         float $costo_promedio_base = 0,
         ?string $prefijo = null,
         ?int $tiempo_espera_vencimiento = null,
-        ?string $periodo_espera_vencimiento = null
+        ?string $periodo_espera_vencimiento = null,
+        Moneda $moneda = Moneda::PEN
     ) {
         // 1. Validar que el producto exista
         $existe = ProductosData::get_productos(id_producto: $id_producto);
@@ -122,7 +126,8 @@ class ProductosService
             prefijo: $prefijo,
             tiempo_espera_vencimiento: $tiempo_espera_vencimiento,
             periodo_espera_vencimiento: $periodo_espera_vencimiento,
-            dias_espera_vencimiento: $dias_espera_vencimiento
+            dias_espera_vencimiento: $dias_espera_vencimiento,
+            moneda: $moneda
         );
 
         // 5. Devolver el producto ya refrescado (mismo shape que listar)

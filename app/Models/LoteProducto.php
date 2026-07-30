@@ -34,7 +34,6 @@ class LoteProducto extends Model
         'stock_actual_base', // segun la unidad base del producto
         //
         'costo_promedio_base', // el costo promedio del producto al momento del registro
-        'costo_promedio_por_unidad', //  Cuanto cuesta una unidad del lote en base al costo promedio
         'costo_por_unidad', // Cuanto costó realmente una unidad del lote en la orden de compra de donde provino
         //
         'fecha_hora_ingreso',

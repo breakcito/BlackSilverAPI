@@ -4,6 +4,7 @@ namespace App\Data;
 
 use App\Models\Producto;
 use App\Shared\Enums\_Generic\EstadoBase;
+use App\Shared\Enums\_Generic\Moneda;
 use App\Shared\Enums\_Generic\TipoBien;
 use Illuminate\Support\Facades\DB;
 
@@ -45,6 +46,7 @@ class ProductosData
             p.para_mantenimiento,
             
             -- costos
+            p.moneda,
             p.costo_promedio_base,
 
             -- cuantos dias antes debemos alertar el vencimiento de productos
@@ -258,7 +260,8 @@ class ProductosData
         ?string $prefijo = null,
         ?int $tiempo_espera_vencimiento = null,
         ?string $periodo_espera_vencimiento = null,
-        ?int $dias_espera_vencimiento = null
+        ?int $dias_espera_vencimiento = null,
+        Moneda $moneda = Moneda::PEN
     ) {
         return Producto::insertGetId([
             'id_categoria' => $id_categoria,
@@ -269,6 +272,7 @@ class ProductosData
             'es_perecible' => $es_perecible,
             'para_mantenimiento' => $para_mantenimiento,
             'stock_minimo_base' => $stock_minimo_base,
+            'moneda' => $moneda->value,
             'costo_promedio_base' => $costo_promedio_base,
             'costo_promedio_base_log' => null,
             'tiempo_espera_vencimiento' => $tiempo_espera_vencimiento,

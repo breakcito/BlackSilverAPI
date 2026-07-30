@@ -234,6 +234,34 @@ class AuxController extends Controller
     }
 
     /**
+     * Crear una nueva unidad de medida en el catálogo.
+     */
+    public function crear_unidad_medida(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'nombre' => 'required|string|min:2|max:64',
+            'abreviatura' => 'required|string|min:1|max:8',
+        ], [
+            'nombre.required' => 'El nombre es requerido',
+            'nombre.min' => 'El nombre debe tener al menos 2 caracteres',
+            'nombre.max' => 'El nombre no puede tener más de 64 caracteres',
+            'abreviatura.required' => 'La abreviatura es requerida',
+            'abreviatura.max' => 'La abreviatura no puede tener más de 8 caracteres',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $result = UnidadesMedidaService::crear_unidad_medida(
+            nombre: $request->input('nombre'),
+            abreviatura: $request->input('abreviatura'),
+        );
+
+        return response()->json($result);
+    }
+
+    /**
      * Obtener proveedores habilitados
      */
     public function get_proveedores(Request $request): JsonResponse

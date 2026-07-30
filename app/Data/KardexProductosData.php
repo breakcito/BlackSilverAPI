@@ -33,8 +33,8 @@ class KardexProductosData
         ?float $stock_anterior_base = null,
         //
         ?float $costo_promedio_base = null,
-        ?float $costo_por_presentacion = null,
-        ?float $subtotal = null,
+        ?float $costo_promedio_por_presentacion = null,
+        ?float $subtotal_promedio = null,
         //
         ?string $created_at = null
     ) {
@@ -61,8 +61,8 @@ class KardexProductosData
             'stock_resultante_base' => $nuevo_stock_base,
             //
             'costo_promedio_base' => $costo_promedio_base,
-            'costo_por_presentacion' => $costo_por_presentacion,
-            'subtotal' => $subtotal,
+            'costo_promedio_por_presentacion' => $costo_promedio_por_presentacion,
+            'subtotal_promedio' => $subtotal_promedio,
             //
             'created_at' => $created_at ?? now(),
         ]);
