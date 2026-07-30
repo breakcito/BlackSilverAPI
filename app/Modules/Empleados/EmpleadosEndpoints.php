@@ -13,6 +13,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::post('/', 'crear_empleado');
             // Endpoint orquestador: crear empleado + contrato en una sola transacción
             Route::post('/con-contrato', 'crear_empleado_con_contrato');
+            Route::patch('/toggle-con-contrato', 'toggle_con_contrato');
             Route::post('/foto/{id_empleado}', 'actualizar_foto');
         });
 

@@ -6,4 +6,5 @@ enum TipoContrato: string
 {
     case Planilla = 'Planilla';
     case JornadaDiaria = 'JornadaDiaria';
+    case PeriodoPrueba = 'PeriodoPrueba';
 }
