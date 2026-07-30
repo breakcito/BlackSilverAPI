@@ -24,6 +24,7 @@ class ContratistasService
 
     /**
      * Registrar un nuevo contratista
+     * @param array $ids_labor IDs de las labores a asignar como activas desde hoy
      */
     public static function crear_contratista(
         int $id_mina,
@@ -49,7 +50,7 @@ class ContratistasService
         $url_foto = null;
         if ($foto && $foto->isValid()) {
             $archivo = ArchivoHelper::guardarArchivos('fotos-contratistas', [$foto])[0];
-            if (! empty($archivo)) {
+            if (!empty($archivo)) {
                 $url_foto = $archivo['url'];
             }
         }

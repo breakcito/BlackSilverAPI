@@ -3,6 +3,8 @@
 namespace App\Modules\Contratistas\Service;
 
 use App\Data\ContratistasData as ContratistasDataGlobal;
+use App\Models\Empleado;
+use App\Models\LaborContratista;
 use App\Modules\Contratistas\Data\ContratistasData;
 use App\Services\ContratistasService as ContratistasServiceGlobal;
 use App\Shared\Helpers\ArchivoHelper;
@@ -24,6 +26,7 @@ class ContratistasService
 
     /**
      * Registrar un nuevo contratista
+     * @param array $ids_labor IDs de las labores a asignar como activas desde hoy
      */
     public static function crear_contratista(
         string $nombre,
@@ -112,23 +115,58 @@ class ContratistasService
     }
 
     /**
-     * Asignar labores a un contratista
+     * Sincroniza las labores activas de un contratista con la selección enviada.
+     * - Si la mina cambió, se inactivan todas las asignaciones previas.
+     * - Las IDs presentes en la selección y no activas se crean como nuevas.
+     * - Las IDs activas que ya no están en la selección se inactivan con fecha_fin = hoy.
+     * @param array $ids_labor Selección final de IDs de labores activas deseadas
      */
-    public static function asignar_labores(int $id_contratista, ?int $id_mina, array $ids_labor)
+    public static function asignar_labores(int $id_contratista, int $id_mina, array $ids_labor)
     {
         return DB::transaction(function () use ($id_contratista, $id_mina, $ids_labor) {
-            // 1. Eliminar labores anteriores
-            ContratistasData::eliminar_labores_asignadas($id_contratista);
 
-            // 2. Actualizar mina del contratista
-            ContratistasData::update_mina($id_contratista, $id_mina);
+            // 1. Obtener la mina actual asignada al contratista
+            $contratistaActual = Empleado::find($id_contratista);
+            $esCambioDeMina = $contratistaActual->id_mina !== $id_mina;
 
-            // 3. Asignar nuevas labores (si hay mina)
-            ContratistasDataGlobal::asignar_labor(id_contratista: $id_contratista, id_labores: $ids_labor);
+            // 2. IDs de las labores que están activas AHORA
+            $laboresActivasIds = LaborContratista::where('id_contratista', $id_contratista)
+                ->whereNull('fecha_fin')
+                ->pluck('id_labor')
+                ->map(fn($id) => (int) $id)
+                ->toArray();
+
+            // 3. Si cambió la mina, inactivamos TODAS las asignaciones previas
+            //    y vaciamos la lista de activas (serán tratadas como nuevas después)
+            if ($esCambioDeMina) {
+                ContratistasData::inactivar_labores_asignadas($id_contratista);
+                ContratistasData::update_mina($id_contratista, $id_mina);
+                $laboresActivasIds = [];
+            }
+
+            // 4. Normalizar la selección del usuario
+            $idsSolicitados = array_values(array_unique(array_map('intval', $ids_labor)));
+
+            // 5. Diff: qué crear y qué desactivar
+            $paraCrear = array_values(array_diff($idsSolicitados, $laboresActivasIds));
+            $paraDesactivar = array_values(array_diff($laboresActivasIds, $idsSolicitados));
+
+            // 6. Desactivar las que ya no se quieren (de la misma mina)
+            if (!empty($paraDesactivar)) {
+                ContratistasData::desactivar_labores($id_contratista, $paraDesactivar);
+            }
+
+            // 7. Crear las nuevas asignaciones (con fecha_inicio = hoy)
+            if (!empty($paraCrear)) {
+                ContratistasDataGlobal::asignar_labor(
+                    id_contratista: $id_contratista,
+                    ids_labor: $paraCrear
+                );
+            }
 
             $editado = ContratistasData::get_contratistas(id_contratista: $id_contratista);
 
-            return ApiResponse::success($editado, 'Labores asignadas correctamente');
+            return ApiResponse::success($editado, 'Labores actualizadas correctamente');
         });
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Contratistas;
+namespace App\Modules\Contratistas\Controller;
 
 use App\Modules\Contratistas\Service\ContratistasService;
 use App\Shared\Responses\ApiResponse;
@@ -34,6 +34,8 @@ class ContratistasController
             'telefono' => 'nullable|string|max:32',
             'email' => 'nullable|email|max:128',
             'foto' => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
+            'ids_labor' => 'nullable|array',
+            'ids_labor.*' => 'integer',
         ]);
 
         if ($validator->fails()) {
@@ -90,7 +92,7 @@ class ContratistasController
         $result = ContratistasService::asignar_labores(
             id_contratista: $id,
             id_mina: $request->input('id_mina') ? (int) $request->input('id_mina') : null,
-            ids_labor: (array) $request->input('ids_labor')
+            ids_labor: (array) $request->input('ids_labor', [])
         );
 
         return response()->json($result);

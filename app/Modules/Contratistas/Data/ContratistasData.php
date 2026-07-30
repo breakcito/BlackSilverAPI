@@ -4,6 +4,7 @@ namespace App\Modules\Contratistas\Data;
 
 use App\Models\Empleado;
 use App\Models\LaborContratista;
+use App\Shared\Enums\_Generic\EstadoBase;
 use Illuminate\Support\Facades\DB;
 
 class ContratistasData
@@ -43,7 +44,10 @@ class ContratistasData
                     JSON_OBJECT(
                         "id_labor_contratista", lc.id,
                         "id_labor", lab.id,
-                        "nombre", lab.nombre
+                        "nombre", lab.nombre,
+                        "fecha_inicio", lc.fecha_inicio,
+                        "fecha_fin", lc.fecha_fin,
+                        "estado", lc.estado
                     )
                 )
                 FROM labor_contratista lc
@@ -117,11 +121,35 @@ class ContratistasData
     }
 
     /**
-     * Eliminar todas las labores asignadas a un contratista
+     * Inactiva las labores activas actuales asignando fecha_fin
      */
-    public static function eliminar_labores_asignadas(int $id_contratista): void
+    public static function inactivar_labores_asignadas(int $id_contratista): void
     {
-        LaborContratista::where('id_contratista', $id_contratista)->delete();
+        LaborContratista::where('id_contratista', $id_contratista)
+            ->whereNull('fecha_fin')
+            ->update([
+                'estado' => EstadoBase::Inactivo->value,
+                'fecha_fin' => now()->toDateString(),
+            ]);
+    }
+
+    /**
+     * Inactiva un subconjunto específico de las labores activas del contratista.
+     * @param array $ids_labor IDs de las labores activas que se desean cerrar
+     */
+    public static function desactivar_labores(int $id_contratista, array $ids_labor): void
+    {
+        if (empty($ids_labor)) {
+            return;
+        }
+
+        LaborContratista::where('id_contratista', $id_contratista)
+            ->whereNull('fecha_fin')
+            ->whereIn('id_labor', $ids_labor)
+            ->update([
+                'estado' => EstadoBase::Inactivo->value,
+                'fecha_fin' => now()->toDateString(),
+            ]);
     }
 
     /**
@@ -131,4 +159,6 @@ class ContratistasData
     {
         return Empleado::where('id', $id_contratista)->update(['id_mina' => $id_mina]);
     }
+
+
 }

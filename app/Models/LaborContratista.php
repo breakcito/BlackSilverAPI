@@ -20,5 +20,8 @@ class LaborContratista extends Model
         'id_contratista',
         // id de la labor asignada
         'id_labor',
+        // Fechas de inicio y fin de la responsabilidad
+        'fecha_inicio',
+        'fecha_fin',
     ];
 }

@@ -29,7 +29,7 @@ class ContratistasData
         ?string $email = null,
         ?string $qr_token = null,
     ) {
-        $qr_token = ! empty($qr_token) ? $qr_token : (string) Str::uuid();
+        $qr_token = !empty($qr_token) ? $qr_token : (string) Str::uuid();
 
         return Empleado::insertGetId([
             'id_mina' => $id_mina,
@@ -70,31 +70,35 @@ class ContratistasData
         return Empleado::query()
             ->where('es_contratista', 1)
             ->where(function ($q) use ($dni, $ruc, $carnet_extranjeria, $pasaporte) {
-                $q->when($dni !== '', fn ($q) => $q->orWhere('dni', $dni))
-                    ->when($ruc !== '', fn ($q) => $q->orWhere('ruc', $ruc))
-                    ->when($carnet_extranjeria !== '', fn ($q) => $q->orWhere('carnet_extranjeria', $carnet_extranjeria))
-                    ->when($pasaporte !== '', fn ($q) => $q->orWhere('pasaporte', $pasaporte));
+                $q->when($dni !== '', fn($q) => $q->orWhere('dni', $dni))
+                    ->when($ruc !== '', fn($q) => $q->orWhere('ruc', $ruc))
+                    ->when($carnet_extranjeria !== '', fn($q) => $q->orWhere('carnet_extranjeria', $carnet_extranjeria))
+                    ->when($pasaporte !== '', fn($q) => $q->orWhere('pasaporte', $pasaporte));
             })
             ->exists();
     }
 
     /**
      * Asignar una o varias labores a un contratista
+     * @param array $ids_labor Lista de id_labor a asignar como activas desde hoy
      */
-    public static function asignar_labor(int $id_contratista, int|array $id_labores): void
+    public static function asignar_labor(int $id_contratista, array $ids_labor): void
     {
-        $id_labores = is_array($id_labores)
-            ? $id_labores
-            : [$id_labores];
+        if (empty($ids_labor)) {
+            return;
+        }
 
-        $id_labores = array_values(array_unique($id_labores));
+        $ids_labor = array_values(array_unique(array_map('intval', $ids_labor)));
 
         $data = array_map(
-            fn ($id_labor) => [
+            fn(int $id_labor) => [
                 'id_contratista' => $id_contratista,
                 'id_labor' => $id_labor,
+                'fecha_inicio' => now()->toDateString(),
+                'fecha_fin' => null,
+                'estado' => 'Activo',
             ],
-            $id_labores
+            $ids_labor
         );
 
         LaborContratista::insert($data);
