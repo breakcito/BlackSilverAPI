@@ -52,6 +52,7 @@ class AtencionController extends Controller
             'es_auditable' => 'required|boolean',
             'premura' => 'required|string',
             'fecha_entrega_requerida' => 'required|date',
+            'created_at' => 'nullable|date',
             'observacion' => 'nullable|string',
             'detalles' => 'required|array|min:1',
             'detalles.*.id_producto' => 'required|integer',
@@ -87,6 +88,7 @@ class AtencionController extends Controller
                 premura: $premura,
                 observacion: $request->observacion,
                 fecha_entrega_requerida: $request->fecha_entrega_requerida,
+                created_at: $request->created_at,
                 detalles: $request->detalles,
                 evidencias: $evidencias
             );

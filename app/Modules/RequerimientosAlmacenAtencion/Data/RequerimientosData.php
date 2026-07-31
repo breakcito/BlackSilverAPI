@@ -102,7 +102,8 @@ class RequerimientosData
         Premura $premura,
         ?string $observacion,
         ?string $fecha_entrega_requerida,
-        ?array $evidencias
+        ?string $created_at = null,
+        ?array $evidencias = null
     ) {
         return RequerimientoAlmacen::insertGetId([
             'id_empleado_solicitante' => $id_empleado_solicitante,
@@ -117,7 +118,7 @@ class RequerimientosData
             'observacion' => $observacion,
             'evidencias' => $evidencias ? json_encode($evidencias) : null,
             'fecha_entrega_requerida' => $fecha_entrega_requerida,
-            'created_at' => now(),
+            'created_at' => $created_at ?: now(),
             'estado' => EstadoRequerimiento::Generado->value,
         ]);
     }

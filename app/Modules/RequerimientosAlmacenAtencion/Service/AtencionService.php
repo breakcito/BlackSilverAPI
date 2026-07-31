@@ -58,10 +58,11 @@ class AtencionService
         Premura $premura,
         array $detalles,
         ?string $fecha_entrega_requerida = null,
+        ?string $created_at = null,
         ?string $observacion = null,
         ?array $evidencias = null
     ) {
-        return DB::transaction(function () use ($id_empleado_solicitante, $id_contratista_solicitante, $id_empleado_registro, $id_labor, $id_almacen_destino, $es_auditable, $premura, $observacion, $fecha_entrega_requerida, $detalles, $evidencias) {
+        return DB::transaction(function () use ($id_empleado_solicitante, $id_contratista_solicitante, $id_empleado_registro, $id_labor, $id_almacen_destino, $es_auditable, $premura, $observacion, $fecha_entrega_requerida, $created_at, $detalles, $evidencias) {
             // 1. Generar correlativo
             $correlativo = RequerimientosData::get_nuevo_correlativo();
 
@@ -84,6 +85,7 @@ class AtencionService
                 premura: $premura,
                 observacion: $observacion,
                 fecha_entrega_requerida: $fecha_entrega_requerida,
+                created_at: $created_at,
                 evidencias: $evidenciasFinal
             );
 
