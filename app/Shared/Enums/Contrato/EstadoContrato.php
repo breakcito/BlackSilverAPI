@@ -3,7 +3,7 @@
 namespace App\Shared\Enums\Contrato;
 
 /**
- * Estados del ciclo de vida de un contrato de trabajo.
+ * Estados del ciclo de vida de un contrato de trabajo
  *
  * - Vigente: contrato actual del empleado (dentro de su periodo activo).
  * - Pendiente: registrado con fecha_inicio futura; aún no inicia.
