@@ -63,6 +63,7 @@ class EmpleadosData
             e.id_contrato_vigente,
             ct_vig.fecha_fin AS contrato_fecha_fin,
             ct_vig.por_tiempo_indefinido AS contrato_por_tiempo_indefinido,
+            ct_vig.tipo_contrato AS tipo_contrato_vigente,
             IFNULL(ct_vig.id_empresa, e.id_empresa) AS id_empresa,
             emp_asoc.razon_social AS empresa,
             emp_asoc.url_logo AS empresa_url_logo,

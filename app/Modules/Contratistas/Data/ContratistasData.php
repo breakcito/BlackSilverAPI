@@ -38,6 +38,7 @@ class ContratistasData
             c.id_contrato_vigente,
             ct.fecha_fin AS contrato_fecha_fin,
             ct.por_tiempo_indefinido AS contrato_por_tiempo_indefinido,
+            ct.tipo_contrato AS tipo_contrato_vigente,
 
             (
                 SELECT JSON_ARRAYAGG(
