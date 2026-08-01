@@ -28,6 +28,7 @@ class ProgramacionHorario extends Model
         // Se copian desde contrato_trabajo y NO se actualizan cuando cambia el contrato.
         'tipo_contrato',
         'sueldo_base',
+        'sueldo_real',
         'sueldo_diario',
     ];
 
@@ -39,6 +40,7 @@ class ProgramacionHorario extends Model
         'fecha_inicio' => 'date',
         'fecha_fin' => 'date',
         'sueldo_base' => 'decimal:2',
+        'sueldo_real' => 'decimal:2',
         'sueldo_diario' => 'decimal:2',
     ];
 }

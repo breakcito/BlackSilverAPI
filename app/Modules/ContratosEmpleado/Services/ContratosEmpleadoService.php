@@ -60,6 +60,7 @@ class ContratosEmpleadoService
         ?int $id_oficina = null,
         string $tipo_contrato = 'Planilla',
         ?float $sueldo_base = null,
+        ?float $sueldo_real = null,
         ?float $salario_diario = null,
         string $fecha_inicio = '',
         bool $por_tiempo_indefinido = false,
@@ -152,6 +153,9 @@ class ContratosEmpleadoService
             'id_oficina' => $id_oficina,
             'tipo_contrato' => $tipo_contrato,
             'sueldo_base' => in_array($tipo_contrato, ['Planilla', 'PeriodoPrueba'], true) ? $sueldo_base : null,
+            'sueldo_real' => in_array($tipo_contrato, ['Planilla', 'PeriodoPrueba'], true)
+                ? ($sueldo_real !== null ? $sueldo_real : $sueldo_base)
+                : null,
             'salario_diario' => $tipo_contrato === 'JornadaDiaria' ? $salario_diario : null,
             'fecha_inicio' => $fecha_inicio,
             'por_tiempo_indefinido' => $por_tiempo_indefinido,
@@ -386,6 +390,7 @@ class ContratosEmpleadoService
                 'id_oficina',
                 'tipo_contrato',
                 'sueldo_base',
+                'sueldo_real',
                 'salario_diario',
                 'fecha_inicio',
                 'por_tiempo_indefinido',
@@ -401,6 +406,7 @@ class ContratosEmpleadoService
                 'id_oficina' => 'Oficina',
                 'tipo_contrato' => 'Tipo de Contrato',
                 'sueldo_base' => 'Sueldo Base',
+                'sueldo_real' => 'Sueldo Real',
                 'salario_diario' => 'Salario Diario',
                 'fecha_inicio' => 'Fecha de Inicio',
                 'por_tiempo_indefinido' => 'Por Tiempo Indefinido',

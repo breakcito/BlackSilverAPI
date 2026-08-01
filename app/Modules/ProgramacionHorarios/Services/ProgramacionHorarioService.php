@@ -161,6 +161,7 @@ class ProgramacionHorarioService
             // Estas 3 columnas NO se actualizan después; son trazabilidad histórica.
             $contrato_tipo = $contrato['contrato_tipo'] ?? null;
             $contrato_sueldo_base = $contrato['contrato_sueldo_base'] ?? null;
+            $contrato_sueldo_real = $contrato['contrato_sueldo_real'] ?? null;
             $contrato_sueldo_diario = $contrato['contrato_sueldo_diario'] ?? null;
 
             // Validar que la programación esté dentro de la vigencia del contrato
@@ -245,6 +246,7 @@ class ProgramacionHorarioService
                 // Snapshots del contrato
                 'tipo_contrato' => $contrato_tipo,
                 'sueldo_base' => $contrato_sueldo_base,
+                'sueldo_real' => $contrato_sueldo_real,
                 'sueldo_diario' => $contrato_sueldo_diario,
             ];
         }

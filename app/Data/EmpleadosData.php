@@ -46,6 +46,7 @@ class EmpleadosData
             emp.id_contrato_vigente,
             emp.id_cargo,
             ct.estado AS contrato_estado,
+            ct.tipo_contrato AS tipo_contrato_vigente,
             ct.por_tiempo_indefinido AS contrato_indefinido,
             ct.fecha_fin AS contrato_fecha_fin,
             0 AS matchea_lugar

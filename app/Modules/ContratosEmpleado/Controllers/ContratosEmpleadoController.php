@@ -56,6 +56,7 @@ class ContratosEmpleadoController
             'id_oficina' => 'nullable|integer',
             'tipo_contrato' => 'required|in:Planilla,JornadaDiaria,PeriodoPrueba',
             'sueldo_base' => 'nullable|numeric',
+            'sueldo_real' => 'nullable|numeric',
             'salario_diario' => 'nullable|numeric',
             'fecha_inicio' => 'required|date',
             'por_tiempo_indefinido' => 'nullable|boolean',
@@ -75,6 +76,11 @@ class ContratosEmpleadoController
             ? ($request->input('sueldo_base') !== null ? (float) $request->input('sueldo_base') : null)
             : null;
 
+        $sueldo_real_input = $request->input('sueldo_real');
+        $sueldo_real = in_array($tipo, ['Planilla', 'PeriodoPrueba'], true)
+            ? ($sueldo_real_input !== null && $sueldo_real_input !== '' ? (float) $sueldo_real_input : $sueldo_base)
+            : null;
+
         $salario_diario = $tipo === 'JornadaDiaria'
             ? ($request->input('salario_diario') !== null ? (float) $request->input('salario_diario') : null)
             : null;
@@ -90,6 +96,7 @@ class ContratosEmpleadoController
             id_oficina: $request->input('id_oficina') ? (int) $request->input('id_oficina') : null,
             tipo_contrato: $tipo,
             sueldo_base: $sueldo_base,
+            sueldo_real: $sueldo_real,
             salario_diario: $salario_diario,
             fecha_inicio: (string) $request->input('fecha_inicio'),
             por_tiempo_indefinido: $indefinido,
@@ -141,6 +148,7 @@ class ContratosEmpleadoController
             'id_oficina' => 'nullable|integer',
             'tipo_contrato' => 'nullable|in:Planilla,JornadaDiaria,PeriodoPrueba',
             'sueldo_base' => 'nullable|numeric',
+            'sueldo_real' => 'nullable|numeric',
             'salario_diario' => 'nullable|numeric',
             'fecha_inicio' => 'nullable|date',
             'por_tiempo_indefinido' => 'nullable|boolean',
@@ -165,6 +173,7 @@ class ContratosEmpleadoController
             'id_oficina',
             'tipo_contrato',
             'sueldo_base',
+            'sueldo_real',
             'salario_diario',
             'fecha_inicio',
             'por_tiempo_indefinido',
