@@ -68,9 +68,11 @@ class AsistenciaData
             -- Snapshots desde programacion_horario (con fallback al contrato).
             ph.tipo_contrato AS programacion_tipo_contrato,
             ph.sueldo_base AS programacion_sueldo_base,
+            ph.sueldo_real AS programacion_sueldo_real,
             ph.sueldo_diario AS programacion_sueldo_diario,
             COALESCE(ph.tipo_contrato, ct.tipo_contrato) AS tipo_contrato,
             COALESCE(ph.sueldo_base, ct.sueldo_base) AS sueldo_base,
+            COALESCE(ph.sueldo_real, ct.sueldo_real) AS sueldo_real,
             COALESCE(ph.sueldo_diario, ct.salario_diario) AS salario_diario,
             ct.por_tiempo_indefinido AS contrato_indefinido,
             ct.fecha_inicio AS contrato_fecha_inicio,
@@ -123,8 +125,10 @@ class AsistenciaData
             $row['jornada_trabajada'] = $row['jornada_trabajada'] !== null ? (float) $row['jornada_trabajada'] : null;
             $row['turno_total_horas'] = $row['turno_total_horas'] !== null ? (float) $row['turno_total_horas'] : null;
             $row['sueldo_base'] = $row['sueldo_base'] !== null ? (float) $row['sueldo_base'] : null;
+            $row['sueldo_real'] = $row['sueldo_real'] !== null ? (float) $row['sueldo_real'] : null;
             $row['salario_diario'] = $row['salario_diario'] !== null ? (float) $row['salario_diario'] : null;
             $row['programacion_sueldo_base'] = $row['programacion_sueldo_base'] !== null ? (float) $row['programacion_sueldo_base'] : null;
+            $row['programacion_sueldo_real'] = $row['programacion_sueldo_real'] !== null ? (float) $row['programacion_sueldo_real'] : null;
             $row['programacion_sueldo_diario'] = $row['programacion_sueldo_diario'] !== null ? (float) $row['programacion_sueldo_diario'] : null;
             $row['asistencia_es_manual'] = (bool) $row['asistencia_es_manual'];
             $row['contrato_indefinido'] = (bool) $row['contrato_indefinido'];
