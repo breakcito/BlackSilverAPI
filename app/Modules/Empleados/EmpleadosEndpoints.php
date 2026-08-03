@@ -20,6 +20,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::prefix('cuentas-bancarias')->controller(CuentasBancariasController::class)->group(function () {
             Route::get('/{id_empleado}', 'get_cuentas_bancarias');
             Route::post('/', 'crear_cuenta_bancaria');
+            Route::put('/{id_cuenta_bancaria}', 'actualizar_cuenta_bancaria');
         });
     });
 });

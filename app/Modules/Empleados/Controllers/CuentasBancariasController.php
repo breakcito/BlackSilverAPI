@@ -24,6 +24,7 @@ class CuentasBancariasController
         $request->validate([
             'id_empleado' => 'required|integer',
             'id_banco' => 'required|integer',
+            'tipo_cuenta_bancaria' => 'nullable|string|max:64',
             'moneda' => 'required|string',
             'numero_cuenta' => 'required|string|max:50',
             'cci' => 'nullable|string|max:50',
@@ -32,6 +33,27 @@ class CuentasBancariasController
         return response()->json(CuentasBancariasService::crear_cuenta_bancaria(
             (int) $request->id_empleado,
             (int) $request->id_banco,
+            $request->tipo_cuenta_bancaria,
+            $request->moneda,
+            $request->numero_cuenta,
+            $request->cci
+        ));
+    }
+
+    public function actualizar_cuenta_bancaria(Request $request, int $id_cuenta_bancaria): JsonResponse
+    {
+        $request->validate([
+            'id_banco' => 'required|integer',
+            'tipo_cuenta_bancaria' => 'nullable|string|max:64',
+            'moneda' => 'required|string',
+            'numero_cuenta' => 'required|string|max:50',
+            'cci' => 'nullable|string|max:50',
+        ]);
+
+        return response()->json(CuentasBancariasService::actualizar_cuenta_bancaria(
+            $id_cuenta_bancaria,
+            (int) $request->id_banco,
+            $request->tipo_cuenta_bancaria,
             $request->moneda,
             $request->numero_cuenta,
             $request->cci

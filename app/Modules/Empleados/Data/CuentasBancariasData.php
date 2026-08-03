@@ -18,8 +18,10 @@ class CuentasBancariasData
         $sql = '
         SELECT
             cn.id AS id_cuenta_bancaria,
+            cn.id_banco,
             bc.nombre as banco,
             bc.abreviatura as banco_abv,
+            cn.tipo_cuenta_bancaria,
             cn.moneda,
             cn.numero_cuenta,
             cn.cci,
@@ -55,11 +57,21 @@ class CuentasBancariasData
     }
 
     /**
+     * Obtener el id del empleado de una cuenta bancaria.
+     */
+    public static function get_empleado_id_by_cuenta(int $id_cuenta_bancaria): ?int
+    {
+        $cuenta = CuentaBancariaEmpleado::find($id_cuenta_bancaria);
+        return $cuenta ? (int) $cuenta->id_empleado : null;
+    }
+
+    /**
      * Registrar una cuenta bancaria en base de datos.
      */
     public static function crear_cuenta_bancaria(
         int $id_empleado,
         int $id_banco,
+        ?string $tipoCuentaBancaria,
         string $moneda,
         string $numeroCuenta,
         ?string $cci
@@ -67,6 +79,7 @@ class CuentasBancariasData
         return CuentaBancariaEmpleado::insertGetId([
             'id_empleado' => $id_empleado,
             'id_banco' => $id_banco,
+            'tipo_cuenta_bancaria' => $tipoCuentaBancaria,
             'moneda' => $moneda,
             'numero_cuenta' => $numeroCuenta,
             'cci' => $cci,
@@ -75,13 +88,42 @@ class CuentasBancariasData
     }
 
     /**
+     * Actualizar una cuenta bancaria.
+     */
+    public static function actualizar_cuenta_bancaria(
+        int $id_cuenta_bancaria,
+        int $id_banco,
+        ?string $tipoCuentaBancaria,
+        string $moneda,
+        string $numeroCuenta,
+        ?string $cci
+    ): bool {
+        return CuentaBancariaEmpleado::where('id', $id_cuenta_bancaria)->update([
+            'id_banco' => $id_banco,
+            'tipo_cuenta_bancaria' => $tipoCuentaBancaria,
+            'moneda' => $moneda,
+            'numero_cuenta' => $numeroCuenta,
+            'cci' => $cci,
+        ]) > 0;
+    }
+
+    /**
      * Verificar si una cuenta bancaria ya existe para el empleado.
      */
-    public static function existe_cuenta_bancaria(int $id_empleado, int $id_banco, string $numero_cuenta): bool
-    {
-        return CuentaBancariaEmpleado::where('id_empleado', $id_empleado)
+    public static function existe_cuenta_bancaria(
+        int $id_empleado,
+        int $id_banco,
+        string $numero_cuenta,
+        ?int $excluir_id = null
+    ): bool {
+        $query = CuentaBancariaEmpleado::where('id_empleado', $id_empleado)
             ->where('id_banco', $id_banco)
-            ->where('numero_cuenta', $numero_cuenta)
-            ->exists();
+            ->where('numero_cuenta', $numero_cuenta);
+
+        if ($excluir_id !== null) {
+            $query->where('id', '!=', $excluir_id);
+        }
+
+        return $query->exists();
     }
 }
