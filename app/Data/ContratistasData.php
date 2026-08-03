@@ -136,11 +136,20 @@ class ContratistasData
             c.con_contrato,
             c.id_contrato_vigente,
             ct.fecha_fin AS contrato_fecha_fin,
-            ct.por_tiempo_indefinido AS contrato_por_tiempo_indefinido
+            ct.por_tiempo_indefinido AS contrato_por_tiempo_indefinido,
+
+            GROUP_CONCAT(
+                DISTINCT lc.id_labor
+                ORDER BY lc.id_labor ASC
+                SEPARATOR ","
+            ) AS ids_labores_activas
 
         FROM empleado c
         LEFT JOIN mina mn ON mn.id = c.id_mina
         LEFT JOIN contrato_trabajo ct ON ct.id = c.id_contrato_vigente
+        LEFT JOIN labor_contratista lc ON lc.id_contratista = c.id
+            AND lc.estado = "Activo"
+            AND lc.fecha_fin IS NULL
         WHERE c.es_contratista = 1
         ';
 
@@ -150,6 +159,7 @@ class ContratistasData
             $sql .= ' AND c.id = :id_contratista';
             $params['id_contratista'] = $id_contratista;
 
+            $sql .= ' GROUP BY c.id';
             return DB::selectOne($sql, $params);
         }
 
@@ -158,7 +168,7 @@ class ContratistasData
             $params['id_mina'] = $id_mina;
         }
 
-        $sql .= ' ORDER BY nombre_completo ASC';
+        $sql .= ' GROUP BY c.id ORDER BY nombre_completo ASC';
 
         return DB::select($sql, $params);
     }
