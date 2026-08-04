@@ -61,7 +61,7 @@ En el mundo logístico real, los camiones de los proveedores no siempre llegan a
 
 - **Almacenes Puente**: En lugar de obligar al usuario a anular la Orden de Compra porque el proveedor la dejó en el lugar equivocado, el sistema permite recepcionar la mercadería en el Almacén Central y usar el módulo de **Transferencias de OC** para enviar la carga en un vehículo interno hacia su destino final. Esto mantiene el rastro de que la mercadería ya es propiedad de la empresa, pero está en "tránsito interno", salvaguardando la integridad del pago al proveedor y del inventario.
 
-## 📦 Módulos del Sistema
+## Módulos del Sistema
 
 ### Configuración y Operaciones
 
@@ -102,7 +102,7 @@ En el mundo logístico real, los camiones de los proveedores no siempre llegan a
 
 ---
 
-## 🏗 Arquitectura de la API: "Hybrid Modular Architecture"
+## Arquitectura de la API: "Hybrid Modular Architecture"
 
 El proyecto no sigue la estructura monolítica estándar de Laravel. Implementa un patrón de **Módulos Independientes** que conviven con una **Capa Global de Datos y Servicios** para evitar duplicidad de código.
 
@@ -156,7 +156,7 @@ El sistema hace un uso intensivo de _Backed Enums_ de PHP para evitar "magic str
 - **Regla de Ordenamiento Estricta**: Cada tabla o proceso operativo físico (Ej. `Entrega`, `Recepcion`, `Solicitud`, `OrdenCompra`) **debe tener su propio Enum dedicado** en su respectiva subcarpeta dentro de `Shared/Enums`.
 - **Ejemplo**: Las recepciones usan `EstadoOCTransRecepcion`, y las transferencias usan `EstadoOCTransferencia`. No se reciclan Enums genéricos entre procesos distintos para evitar choques lógicos.
 
-## 🏛️ Reglas Críticas de Desarrollo
+## Reglas Críticas de Desarrollo
 
 1.  **Consistencia de Respuestas**: Toda respuesta debe retornar a través de los helpers globales `ApiResponse::success()` o `ApiResponse::error()`.
 2.  **Prohibición de Rutas Redundantes**: Usar `AuxController` para listados recurrentes.
@@ -178,21 +178,88 @@ El sistema hace un uso intensivo de _Backed Enums_ de PHP para evitar "magic str
 
 
 
-## ⚙️ Ejecución
+## Ejecución
+
+> **NO usar `php artisan serve`.** La API corre con **Laravel Octane + FrankenPHP**, que es 10-50× más rápido porque mantiene la app en memoria y procesa peticiones en paralelo (igual que en QA/Producción con PHP-FPM + Nginx). Esto elimina la lentitud de `artisan serve` (single-threaded, re-boot por request).
+
+### Setup Inicial (solo la primera vez en cada máquina)
 
 1. Configurar el archivo `.env`
 2. `composer install`
 3. `php artisan key:generate`
 4. `php artisan storage:link` (Crítico para que los archivos multimedia y adjuntos sean públicos).
-5. `php artisan serve`
-6. `php artisan reverb:start` (En una terminal separada, para que funcionen los eventos en tiempo real)
+5. `php artisan octane:install --server=frankenphp` — Descarga el binario de FrankenPHP y publica la configuración de Octane. **Solo se ejecuta una vez por máquina**; no es necesario repetirlo en cada `composer install`.
+
+### Desarrollo Diario
+
+Abrir **dos terminales** en paralelo:
+
+```bash
+# Terminal 1 — API con Octane
+php artisan octane:start --watch
+
+# Terminal 2 — WebSockets (Reverb)
+php artisan reverb:start
+```
+
+> Para que Octane recargue automáticamente al editar archivos PHP, agregá `--watch`:
+> ```bash
+> php artisan octane:start --watch
+> ```
+> Requerimientos: Node instalado y `npm install --save-dev chokidar` (opcional, recomendado para una mejor experiencia de desarrollo).
+
+### Comandos útiles de Octane
+
+| Comando | Uso |
+|---|---|
+| `php artisan octane:start --watch` | Inicia el servidor con recarga automática al editar PHP |
+---
+
+## Convenciones de Base de Datos
+
+Estas reglas aplican a **todas** las tablas que se creen o modifiquen en el proyecto.
+
+### 1. No se manejan FOREIGN KEYS, solo INDEX
+
+Las relaciones se garantizan por aplicación, no por el motor. Esto nos da mayor
+flexibilidad y velocidad al crear/modificar tablas durante el desarrollo. Toda
+nueva tabla debe declarar explícitamente sus índices de búsqueda:
+
+```sql
+CREATE TABLE ejemplo_tabla (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    id_referencia INT NOT NULL,
+    nombre VARCHAR(128) NOT NULL,
+    INDEX (id_referencia),
+    INDEX (nombre)
+);
+```
+
+### 2. No trabajamos con migrations ni con seeders de Laravel
+
+Las tablas y los datos iniciales se crean con SQL plano ejecutado directamente
+sobre el motor (`CREATE TABLE`, `INSERT INTO ...`). Esto evita el overhead de
+mantener archivos de migración sincronizados y nos da control directo sobre el esquema
+durante todas las fases del desarrollo. En el repositorio no existirá la carpeta
+`database/migrations` ni archivos `*Seeder.php` para datos iniciales.
+
+### 3. Auditoría de tablas nuevas
+
+Cualquier tabla nueva debe:
+
+- Llevar `id INT PRIMARY KEY AUTO_INCREMENT`.
+- Declarar `INDEX` por cada columna usada en `WHERE` / `JOIN`.
+- Usar `INT` para IDs y FKs, `VARCHAR` con largo definido para textos, `DECIMAL`
+  para montos y factores numéricos, `DATE`/`DATETIME` para fechas.
+- Si requiere borrado lógico, incluir `estado` (char/varchar) en lugar de `DELETE`.
 
 ---
 
-## 🤖 Comandos Obligatorios para IA
+## Comandos Obligatorios para IA
 > [!IMPORTANT]
 > Después de realizar cualquier cambio en el código de la API, es **OBLIGATORIO** ejecutar el siguiente comando de análisis estático:
 > ```bash
 > ./vendor/bin/phpstan
 > ```
 > Esto garantiza que la lógica, los tipos de PHP y las convenciones del sistema se mantengan íntegras.
+>
