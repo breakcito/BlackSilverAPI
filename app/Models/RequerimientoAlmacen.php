@@ -25,6 +25,7 @@ class RequerimientoAlmacen extends Model
         'observacion',
         'evidencias',
         'fecha_entrega_requerida',
+        'fecha_solicitud',
         'es_auditable', // bool que ayuda a saber si es auditable para ocultarlo
         //
         'created_at',
@@ -66,6 +67,7 @@ class RequerimientoAlmacen extends Model
             ra.observacion,
             ra.premura,
             ra.fecha_entrega_requerida,
+            ra.fecha_solicitud,
             ra.estado,
             ra.created_at
         FROM
