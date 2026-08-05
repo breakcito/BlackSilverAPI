@@ -12,7 +12,13 @@ class Submenu extends Model
         'id_menu',
         'nombre',
         'path',
-        'numero_orden', // va de 10 en 10, y ayuda a order los registro segun su flujo/importancia
+        'numero_orden',
+        'es_desplegable',
         'estado',
+    ];
+
+    protected $casts = [
+        'es_desplegable' => 'boolean',
+        'numero_orden'   => 'integer',
     ];
 }

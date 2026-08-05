@@ -93,7 +93,14 @@ app/Modules/Cotizaciones/
 
 ## Ejecución local
 
-NO usar `php artisan serve` (single-threaded, re-boot por request). Usar Octane con **al menos `--workers=N`** igual al número de núcleos para evitar que las requests se encolen.
+**Nunca usar `php artisan serve`** (es single-threaded y re-bootea Laravel en cada request). Eso vuelve inutilizable el desarrollo paralelo del frontend.
+
+El server de desarrollo depende del sistema operativo:
+
+- **macOS / Linux** → Laravel Octane con FrankenPHP (workers persistentes).
+- **Windows** → Laravel Herd, que usa nginx + PHP-FPM (mismo stack que producción). Laravel Octane **no se soporta oficialmente en Windows** (requiere extensiones PHP `pcntl`/`posix` que no existen ahí); Herd es la solución oficial del equipo Laravel para ese entorno.
+
+### macOS / Linux — Octane + FrankenPHP
 
 Setup inicial (una vez por máquina):
 
@@ -119,13 +126,118 @@ cd ../blacksilver && npm run dev
 
 Con hot-reload (solo mientras se codea, no mientras se testea): `php artisan octane:start --watch`.
 
-### Comandos Octane
+#### Comandos Octane
 
 | Comando                     | Uso                                    |
 | --------------------------- | -------------------------------------- |
 | `php artisan octane:reload` | Aplica cambios sin reiniciar el server |
 | `php artisan octane:stop`   | Detiene el server                      |
 | `php artisan octane:status` | Estado del server                      |
+
+### Windows — Laravel Herd
+
+Laravel Herd es la solución oficial para Windows del equipo Laravel. Trae PHP 8.4+, nginx, php-fpm, Composer, Laravel installer y nvm.
+
+Setup inicial (una vez por máquina):
+
+1. Descargar e instalar Herd desde **https://herd.laravel.com/download/windows** (doble-click al `.exe`, siguiente → siguiente → instalar; pide admin una vez para registrar nginx como servicio).
+2. Abrir PowerShell, ir a la API y vincular el sitio con el hostname compartido del equipo:
+
+```powershell
+cd C:\ruta\al\proyecto\BlackSilverAPI
+herd link api-local-blacksilver
+```
+
+Si Herd pregunta por la versión de PHP, elegir **8.4** (cumple el `^8.2` del `composer.json`).
+
+3. Instalar dependencias PHP y preparar Laravel (igual que en Mac):
+
+```powershell
+composer install
+php artisan key:generate
+php artisan storage:link
+```
+
+4. (Opcional) Visitar `https://api-local-blacksilver.test` en el navegador para verificar que Herd sirve el sitio.
+
+Diario (3 terminales):
+
+```powershell
+# T1 — Sitio Laravel (nginx + php-fpm vía Herd)
+herd start
+
+# T2 — WebSockets (Reverb corre como proceso PHP normal)
+php artisan reverb:start
+
+# T3 — Frontend
+cd ..\blacksilver && npm run dev
+```
+
+La API queda expuesta en `https://api-local-blacksilver.test` (HTTPS auto-firmado; Herd lo configura solo). El puerto lo sirve nginx en `:80`/`:443`; el PHP-FPM corre interno con workers concurrentes.
+
+#### Comandos Herd
+
+| Comando                          | Uso                                              |
+| -------------------------------- | ------------------------------------------------ |
+| `herd link <hostname>`           | Vincula el directorio actual como sitio Laravel   |
+| `herd link --unlink`             | Desvincula el sitio del directorio actual        |
+| `herd start`                     | Arranca nginx + php-fpm (el sitio Laravel)       |
+| `herd stop`                      | Detiene nginx + php-fpm                          |
+| `herd restart`                   | Reinicia el sitio                                |
+| `herd logs`                      | Ver logs de nginx y php-fpm                      |
+| `herd php --version`             | Ver la versión de PHP activa                     |
+| `herd isolate <version>`         | Fijar versión de PHP para este sitio             |
+
+#### Cambiar de versión de PHP en Herd
+
+Herd trae PHP 7.4 a 8.5 preinstaladas. Si el equipo necesita fijar la versión por proyecto:
+
+```powershell
+herd isolate 8.4
+```
+
+#### Desactivar Herd temporalmente
+
+Si un dev necesita volver a `php artisan serve` o usar otro stack:
+
+```powershell
+herd stop
+```
+
+Herd no modifica otros servicios del sistema; basta con detenerlo.
+
+#### Cache de Laravel en desarrollo (cuando un cambio "no se aplica")
+
+Herd detecta cambios en archivos PHP automáticamente (PHP-FPM usa mtime). El único motivo por el que un cambio puede no verse reflejado en el siguiente request es que Laravel tenga caches compilados activos.
+
+En desarrollo, **no ejecutar** estos comandos (invalida el hot-reload):
+
+```bash
+php artisan config:cache     # congela la config en bootstrap/cache/
+php artisan route:cache      # congela las rutas en bootstrap/cache/
+php artisan view:cache       # congela vistas Blade compiladas
+```
+
+Si algo no se refleja después de editar, limpiar todos los caches con un solo comando:
+
+```bash
+php artisan optimize:clear
+```
+
+Eso limpia config, rutas, vistas y eventos. Repetir y refrescar el navegador.
+
+Para cambios en `composer.json` (instalar/actualizar un paquete), también ejecutar:
+
+```bash
+composer install
+php artisan optimize:clear
+```
+
+### ¿Por qué no Docker / WSL en Windows?
+
+- **Docker Desktop**: descarga de 1+ GB, licencia sospechosa en empresas, consume RAM. Innecesario para dev local.
+- **WSL2**: funciona, pero requiere instalación adicional y curva de aprendizaje para Windows-puros.
+- **Herd**: instalador nativo de Windows, mismo stack que el VPS de producción (PHP-FPM bajo nginx), comportamiento idéntico local ↔ prod.
 
 ## Reglas para IA
 
