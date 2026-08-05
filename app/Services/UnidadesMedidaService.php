@@ -6,13 +6,17 @@ use App\Shared\Responses\ApiResponse;
 class UnidadesMedidaService
 {
     /**
-     * Listar unidades de meddida
+     * Listar unidades de medida (incluye conversiones por defecto).
      */
     public static function get_unidades(
         ?int $id_unidad_medida = null,
+        ?bool $incluir_conversiones = null,
     ) {
+        $incluir = $incluir_conversiones ?? true;
+
         $unidades = UnidadesMedidaData::get_unidades(
             id_unidad_medida: $id_unidad_medida,
+            incluir_conversiones: $incluir,
         );
 
         return ApiResponse::success($unidades);

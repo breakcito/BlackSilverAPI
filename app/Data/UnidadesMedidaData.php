@@ -8,10 +8,13 @@ use Illuminate\Support\Facades\DB;
 class UnidadesMedidaData
 {
     /**
-     * Metodo generico para obtener unidades de medida
+     * Metodo generico para obtener unidades de medida.
+     * Si $incluir_conversiones es true, cada unidad trae el array `conversiones`
+     * con [{ id_unidad_destino, factor_conversion }].
      */
     public static function get_unidades(
         ?int $id_unidad_medida = null,
+        bool $incluir_conversiones = false,
     ) {
         $sql = '
         SELECT
@@ -27,11 +30,84 @@ class UnidadesMedidaData
         if ($id_unidad_medida) {
             $sql .= " AND id = :id_unidad_medida";
             $params['id_unidad_medida'] = $id_unidad_medida;
-            return DB::selectOne($sql, $params);
+            $row = DB::selectOne($sql, $params);
+
+            if ($row && $incluir_conversiones) {
+                $conversiones = self::get_conversiones_por_unidades([(int) $row->id_unidad_medida]);
+                $row->conversiones = $conversiones[$row->id_unidad_medida] ?? [];
+            }
+
+            return $row;
         }
 
         $sql .= " ORDER BY nombre ASC";
-        return DB::select($sql, $params);
+        $rows = DB::select($sql, $params);
+
+        if ($incluir_conversiones && !empty($rows)) {
+            // 1. Recopilar todos los IDs de unidades
+            $ids = array_map(fn($r) => (int) $r->id_unidad_medida, $rows);
+
+            // 2. Traer TODAS las conversiones relacionadas en 1 sola consulta
+            $conversionesAgrupadas = self::get_conversiones_por_unidades($ids);
+
+            // 3. Asignar las conversiones a cada unidad desde memoria
+            foreach ($rows as $r) {
+                $r->conversiones = $conversionesAgrupadas[$r->id_unidad_medida] ?? [];
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Obtiene en UNA SOLA CONSULTA las conversiones de múltiples unidades
+     * y las devuelve agrupadas por id_unidad_origen.
+     * 
+     * @param array<int> $ids
+     * @return array<int, array>
+     */
+    private static function get_conversiones_por_unidades(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        // Se pasan los IDs dos veces para cubrir la columna A y la B en el WHERE IN
+        $bindings = array_merge($ids, $ids);
+
+        $sql = "
+        SELECT
+            id_unidad_medida_a AS origen,
+            id_unidad_medida_b AS id_unidad_destino,
+            factor_conversion
+        FROM conversion_unidad_medida
+        WHERE id_unidad_medida_a IN ($placeholders)
+
+        UNION ALL
+
+        SELECT
+            id_unidad_medida_b AS origen,
+            id_unidad_medida_a AS id_unidad_destino,
+            factor_conversion
+        FROM conversion_unidad_medida
+        WHERE id_unidad_medida_b IN ($placeholders)
+        ";
+
+        $rows = DB::select($sql, $bindings);
+
+        // Agrupar los resultados por el ID de origen
+        $conversionesAgrupadas = [];
+        foreach ($rows as $r) {
+            $origen = (int) $r->origen;
+            $conversionesAgrupadas[$origen][] = [
+                'id_unidad_destino' => (int) $r->id_unidad_destino,
+                'factor_conversion' => $r->factor_conversion,
+            ];
+        }
+
+        return $conversionesAgrupadas;
     }
 
     /**
@@ -49,13 +125,6 @@ class UnidadesMedidaData
 
     /**
      * Verificar si ya existe una unidad de medida con ese nombre o abreviatura.
-     * La comparación es case-insensitive para evitar duplicados visuales.
-     *
-     * @param array{
-     *     nombre: ?string,
-     *     abreviatura: ?string,
-     *     excluir_id: ?int
-     * } $criterios
      */
     public static function ya_existe(array $criterios): bool
     {
