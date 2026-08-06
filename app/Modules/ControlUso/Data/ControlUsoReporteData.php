@@ -36,6 +36,8 @@ class ControlUsoReporteData
             log.es_para_mina,
             mi.nombre as mina,
             la.nombre as labor,
+            log.id_lote_mineral,
+            lm.codigo as lote_mineral,
             cli.razon_social as cliente,
             log.tipo_carga,
             tar.descripcion as tarifa_desc,
@@ -51,6 +53,7 @@ class ControlUsoReporteData
         INNER JOIN categoria cat ON cat.id = pr.id_categoria
         LEFT JOIN mina mi ON mi.id = log.id_mina
         LEFT JOIN labor la ON la.id = log.id_labor
+        LEFT JOIN lote_mineral lm ON lm.id = log.id_lote_mineral
         LEFT JOIN cliente cli ON cli.id = log.id_cliente
         LEFT JOIN tarifa_uso_activo tar ON tar.id = log.id_tarifa
         LEFT JOIN mina act_mi ON act_mi.id = act.id_mina
