@@ -72,6 +72,7 @@ class ControlUsoController extends Controller
             'es_para_mina' => 'nullable|boolean',
             'id_mina' => 'nullable|integer',
             'id_labor' => 'nullable|integer',
+            'id_lote_mineral' => 'nullable|integer',
             'id_cliente' => 'nullable|integer',
             'tipo_carga' => 'nullable|string',
 
@@ -99,6 +100,7 @@ class ControlUsoController extends Controller
             es_para_mina: isset($v['es_para_mina']) ? (bool) $v['es_para_mina'] : null,
             id_mina: isset($v['id_mina']) ? (int) $v['id_mina'] : null,
             id_labor: isset($v['id_labor']) ? (int) $v['id_labor'] : null,
+            id_lote_mineral: isset($v['id_lote_mineral']) ? (int) $v['id_lote_mineral'] : null,
             id_cliente: isset($v['id_cliente']) ? (int) $v['id_cliente'] : null,
             tipo_carga: isset($v['tipo_carga']) ? (string) $v['tipo_carga'] : null,
             observacion: isset($v['observacion']) ? (string) $v['observacion'] : null

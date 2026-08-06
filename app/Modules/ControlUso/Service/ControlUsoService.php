@@ -59,11 +59,12 @@ class ControlUsoService
         ?bool $es_para_mina = null,
         ?int $id_mina = null,
         ?int $id_labor = null,
+        ?int $id_lote_mineral = null,
         ?int $id_cliente = null,
         ?string $tipo_carga = null,
         ?string $observacion = null
     ) {
-        return DB::transaction(function () use ($id_activo_fijo, $fecha_hora_inicio_control, $fecha_hora_fin_control, $horometro_inicio, $horometro_fin, $odometro_inicio, $odometro_fin, $cantidad_vueltas, $cantidad_sacos, $id_tarifa, $precio_unitario, $es_para_mina, $id_mina, $id_labor, $id_cliente, $tipo_carga, $observacion) {
+        return DB::transaction(function () use ($id_activo_fijo, $fecha_hora_inicio_control, $fecha_hora_fin_control, $horometro_inicio, $horometro_fin, $odometro_inicio, $odometro_fin, $cantidad_vueltas, $cantidad_sacos, $id_tarifa, $precio_unitario, $es_para_mina, $id_mina, $id_labor, $id_lote_mineral, $id_cliente, $tipo_carga, $observacion) {
             // Parses dates with Carbon
             $fecha_inicio = Carbon::parse($fecha_hora_inicio_control)->toDateTimeString();
             $fecha_fin = $fecha_hora_fin_control ? Carbon::parse($fecha_hora_fin_control)->toDateTimeString() : null;
@@ -72,7 +73,15 @@ class ControlUsoService
             $total_horas = 0.0;
             $costo_total = 0.0;
 
-            if ($horometro_fin !== null && $horometro_inicio !== null) {
+            if ($fecha_inicio && $fecha_fin) {
+                $inicioCarbon = Carbon::parse($fecha_inicio);
+                $finCarbon = Carbon::parse($fecha_fin);
+                if ($finCarbon->greaterThan($inicioCarbon)) {
+                    $diffInMinutes = $inicioCarbon->diffInMinutes($finCarbon);
+                    $total_horas = round($diffInMinutes / 60.0, 2);
+                    $costo_total = round($total_horas * ($precio_unitario ?? 0.0), 2);
+                }
+            } elseif ($horometro_fin !== null && $horometro_inicio !== null) {
                 $total_horas = max(0.0, $horometro_fin - $horometro_inicio);
                 $costo_total = $total_horas * ($precio_unitario ?? 0.0);
             } elseif ($odometro_fin !== null && $odometro_inicio !== null) {
@@ -99,6 +108,7 @@ class ControlUsoService
                 'es_para_mina' => $es_para_mina,
                 'id_mina' => $id_mina,
                 'id_labor' => $id_labor,
+                'id_lote_mineral' => $id_lote_mineral,
                 'id_cliente' => $id_cliente,
                 'tipo_carga' => $tipo_carga,
                 'id_tarifa' => $id_tarifa,
@@ -122,8 +132,9 @@ class ControlUsoService
 
             if ($activoInfo) {
                 $updates = [];
-                if ($activoInfo->control_por_horometro && $horometro_fin !== null) {
-                    $updates['total_horas'] = $horometro_fin;
+                if ($activoInfo->control_por_horometro && $total_horas > 0) {
+                    $currHoras = DB::table('activo_fijo')->where('id', $id_activo_fijo)->value('total_horas') ?? 0;
+                    $updates['total_horas'] = $currHoras + $total_horas;
                 }
                 if ($activoInfo->control_por_odometro && $odometro_fin !== null) {
                     $updates['total_kilometros'] = $odometro_fin;

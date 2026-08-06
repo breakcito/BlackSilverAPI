@@ -46,6 +46,8 @@ class ControlUsoData
             mi.nombre as mina,
             log.id_labor,
             la.nombre as labor,
+            log.id_lote_mineral,
+            lm.codigo as lote_mineral,
             log.id_cliente,
             cli.razon_social as cliente,
             log.tipo_carga,
@@ -64,6 +66,7 @@ class ControlUsoData
         INNER JOIN categoria cat ON cat.id = pr.id_categoria
         LEFT JOIN mina mi ON mi.id = log.id_mina
         LEFT JOIN labor la ON la.id = log.id_labor
+        LEFT JOIN lote_mineral lm ON lm.id = log.id_lote_mineral
         LEFT JOIN cliente cli ON cli.id = log.id_cliente
         LEFT JOIN tarifa_uso_activo tar ON tar.id = log.id_tarifa
         LEFT JOIN tipo_material mat ON mat.id = tar.id_tipo_material
@@ -72,12 +75,12 @@ class ControlUsoData
 
         $params = [];
 
-        if ($tipo_control === 'horometro') {
-            $sql .= ' AND (log.horometro_inicio IS NOT NULL OR log.horometro_fin IS NOT NULL)';
+        if ($tipo_control === 'vueltas') {
+            $sql .= ' AND log.cantidad_vueltas IS NOT NULL';
         } elseif ($tipo_control === 'odometro') {
             $sql .= ' AND (log.odometro_inicio IS NOT NULL OR log.odometro_fin IS NOT NULL)';
-        } elseif ($tipo_control === 'vueltas') {
-            $sql .= ' AND log.cantidad_vueltas IS NOT NULL';
+        } elseif ($tipo_control === 'horometro') {
+            $sql .= ' AND log.cantidad_vueltas IS NULL AND log.odometro_inicio IS NULL AND log.odometro_fin IS NULL';
         }
 
         if ($mes !== null) {

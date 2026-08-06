@@ -26,6 +26,7 @@ class ControlUsoActivo extends Model
         'es_para_mina',
         'id_mina',
         'id_labor',
+        'id_lote_mineral',
         'id_cliente',
         'tipo_carga',
         'id_tarifa',
