@@ -452,6 +452,50 @@ class AuxController extends Controller
         return response()->json(ContratistasService::get_contratistas(id_mina: $id_mina, id_contratista: $id_contratista));
     }
 
+    public function crear_contratista(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_mina' => 'required|integer',
+            'nombre' => 'required|string|max:255',
+            'apellido' => 'required|string|max:255',
+            'genero' => 'nullable|string|max:16',
+            'dni' => 'nullable|string|max:20',
+            'ruc' => 'nullable|string|max:20',
+            'carnet_extranjeria' => 'nullable|string|max:20',
+            'pasaporte' => 'nullable|string|max:20',
+            'fecha_nacimiento' => 'nullable|date',
+            'direccion' => 'nullable|string|max:255',
+            'telefono' => 'nullable|string|max:32',
+            'email' => 'nullable|email|max:128',
+            'foto' => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
+            'ids_labor' => 'nullable|array',
+            'ids_labor.*' => 'integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $result = ContratistasService::crear_contratista(
+            nombre: (string) $request->input('nombre'),
+            apellido: (string) $request->input('apellido'),
+            id_mina: $request->input('id_mina') ? (int) $request->input('id_mina') : null,
+            genero: $request->input('genero'),
+            dni: $request->input('dni'),
+            ruc: $request->input('ruc'),
+            carnet_extranjeria: $request->input('carnet_extranjeria'),
+            pasaporte: $request->input('pasaporte'),
+            fecha_nacimiento: $request->input('fecha_nacimiento'),
+            direccion: $request->input('direccion'),
+            telefono: $request->input('telefono'),
+            email: $request->input('email'),
+            foto: $request->file('foto'),
+            ids_labor: (array) $request->input('ids_labor', [])
+        );
+
+        return response()->json($result);
+    }
+
     public function get_minas(Request $request): JsonResponse
     {
         $id_mina = $request->input('id_mina') ? (int) $request->input('id_mina') : null;

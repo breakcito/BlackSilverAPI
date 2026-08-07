@@ -76,6 +76,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
             // contratistas
             Route::get('/contratistas', 'get_contratistas');
+            Route::post('/contratistas', 'crear_contratista');
 
             // lotes de mineral
             Route::get('/lotes-mineral', 'get_lotes_mineral');
