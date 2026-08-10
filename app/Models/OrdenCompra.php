@@ -123,6 +123,7 @@ class OrdenCompra extends Model
             emp.razon_social AS empresa,
             emp.ruc	AS empresa_ruc,
             emp.url_logo AS empresa_logo,
+            emp.color_predominante AS color_predominante_empresa,
             -- 
             oc.id_proveedor,
             prov.razon_social AS proveedor,

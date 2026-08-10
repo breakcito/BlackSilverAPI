@@ -35,10 +35,12 @@ class EmpresasController extends Controller
             'domicilio_fiscal' => 'nullable|string|max:256',
             'logo' => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
             'documentos' => 'nullable|array',
+            'color_predominante' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
         ], [
             'ruc.required' => 'El RUC es obligatorio',
             'ruc.size' => 'El RUC debe tener 11 dígitos',
             'razon_social.required' => 'La razón social es obligatoria',
+            'color_predominante.regex' => 'El color debe tener formato hexadecimal #RRGGBB',
         ]);
 
         if ($validator->fails()) {
@@ -51,6 +53,7 @@ class EmpresasController extends Controller
             domicilio_fiscal: $request->input('domicilio_fiscal'),
             logo: $request->file('logo'),
             documentos: $request->file('documentos') ?? [],
+            color_predominante: $request->input('color_predominante'),
         );
 
         return response()->json($result);
@@ -109,6 +112,30 @@ class EmpresasController extends Controller
         }
 
         $result = EmpresasService::eliminar_documento($id, $request->input('path_relativo'));
+
+        return response()->json($result);
+    }
+
+    /**
+     * Actualizar el color predominante (hex #RRGGBB) de una empresa.
+     * Enviar null o cadena vacía para limpiarlo.
+     */
+    public function actualizar_color_predominante(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'color_predominante' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+        ], [
+            'color_predominante.regex' => 'El color debe tener formato hexadecimal #RRGGBB',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $color = $request->input('color_predominante');
+        $color = ($color === null || $color === '') ? null : $color;
+
+        $result = EmpresasService::actualizar_color_predominante($id, $color);
 
         return response()->json($result);
     }

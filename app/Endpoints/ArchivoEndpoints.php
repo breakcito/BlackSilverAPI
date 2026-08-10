@@ -10,4 +10,5 @@ Route::get('/imagen-publica/{path}', [ArchivoController::class, 'serve_imagen'])
 Route::middleware('auth.jwt.custom')->group(function () {
     Route::post('/archivos/upload', [ArchivoController::class, 'upload_archivo']);
     Route::get('/download-archivo', [ArchivoController::class, 'download_archivo']);
+    Route::get('/descargar-externo', [ArchivoController::class, 'descargar_externo']);
 });

@@ -67,6 +67,7 @@ class EmpleadosData
             IFNULL(ct_vig.id_empresa, e.id_empresa) AS id_empresa,
             emp_asoc.razon_social AS empresa,
             emp_asoc.url_logo AS empresa_url_logo,
+            emp_asoc.color_predominante AS color_predominante_empresa,
             e.qr_token,
             e.nombre,
             e.apellido,

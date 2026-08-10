@@ -19,6 +19,7 @@ class Empresa extends Model
         'url_logo',
         'domicilio_fiscal',
         'documentos', // JSON[]
+        'color_predominante', // hex #RRGGBB para acentos de PDF
         'estado' // EstadoBase
     ];
 }

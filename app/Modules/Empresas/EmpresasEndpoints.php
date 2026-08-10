@@ -24,6 +24,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
             // Actualizar logo de empresa
             Route::post('{id}/logo', 'actualizar_logo');
 
+            // Actualizar color predominante (hex #RRGGBB) de empresa
+            Route::patch('{id}/color-predominante', 'actualizar_color_predominante');
+
             // Documentos de empresa
             Route::post('{id}/documentos', 'agregar_documentos');
             Route::delete('{id}/documentos', 'eliminar_documento');

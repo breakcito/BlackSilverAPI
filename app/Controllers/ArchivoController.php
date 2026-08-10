@@ -7,6 +7,7 @@ use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpFoundation\Response;
 
 class ArchivoController extends Controller
@@ -88,5 +89,68 @@ class ArchivoController extends Controller
             'Access-Control-Allow-Origin' => '*',
             'Cache-Control' => 'public, max-age=3600',
         ]);
+    }
+
+    /**
+     * Proxy de imágenes externas (CDN, S3, etc.).
+     * El backend descarga la URL remota con Http y devuelve el blob con CORS
+     * abierto, evitando que el navegador sufra preflight CORS al pedirla
+     * desde el frontend.
+     *
+     * Pensado para fotochecks de contratistas cuya foto vive fuera del
+     * storage de Laravel.
+     */
+    public function descargar_externo(Request $request): Response
+    {
+        $url = $request->input('url');
+
+        if (! $url || ! is_string($url) || ! filter_var($url, FILTER_VALIDATE_URL)) {
+            return response()->json(
+                ApiResponse::error('Se requiere una URL válida en el parámetro "url".'),
+                422,
+            );
+        }
+
+        // Solo permitir http(s). Bloquear file://, data://, etc.
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        if (! in_array($scheme, ['http', 'https'], true)) {
+            return response()->json(
+                ApiResponse::error('Solo se permiten URLs http(s).'),
+                422,
+            );
+        }
+
+        try {
+            $response = Http::timeout(15)
+                ->withHeaders(['Accept' => 'image/*'])
+                ->get($url);
+
+            if (! $response->successful()) {
+                return response()->json(
+                    ApiResponse::error("No se pudo descargar la imagen externa (HTTP {$response->status()})."),
+                    502,
+                );
+            }
+
+            $contenido = $response->body();
+            $contentType = $response->header('Content-Type') ?: 'image/jpeg';
+
+            // Si el servidor externo no envía un MIME reconocible, forzar image/jpeg.
+            if (! str_starts_with(strtolower($contentType), 'image/')) {
+                $contentType = 'image/jpeg';
+            }
+
+            return response($contenido, 200, [
+                'Content-Type' => $contentType,
+                'Content-Length' => strlen($contenido),
+                'Access-Control-Allow-Origin' => '*',
+                'Cache-Control' => 'public, max-age=300',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(
+                ApiResponse::error('Error al descargar la imagen externa: ' . $e->getMessage()),
+                502,
+            );
+        }
     }
 }

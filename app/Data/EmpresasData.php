@@ -20,7 +20,8 @@ class EmpresasData
             emp.id AS id_empresa,
             emp.ruc,
             emp.razon_social,
-            emp.url_logo
+            emp.url_logo,
+            emp.color_predominante
         FROM
             empresa emp
         WHERE 1=1

@@ -22,6 +22,7 @@ class EmpresasData
             emp.razon_social,
             emp.domicilio_fiscal,
             emp.url_logo,
+            emp.color_predominante,
             emp.documentos
         FROM
             empresa emp
@@ -54,7 +55,8 @@ class EmpresasData
         string $razon_social,
         ?string $domicilio_fiscal = null,
         ?string $url_logo = null,
-        ?string $documentos = null
+        ?string $documentos = null,
+        ?string $color_predominante = null,
     ) {
         return Empresa::insertGetId([
             'ruc' => $ruc,
@@ -62,6 +64,7 @@ class EmpresasData
             'domicilio_fiscal' => $domicilio_fiscal,
             'url_logo' => $url_logo,
             'documentos' => $documentos,
+            'color_predominante' => $color_predominante,
             'estado' => EstadoBase::Activo->value,
         ]);
     }
@@ -88,5 +91,13 @@ class EmpresasData
     public static function actualizar_documentos(int $id_empresa, ?string $documentos): bool
     {
         return (bool) Empresa::where('id', $id_empresa)->update(['documentos' => $documentos]);
+    }
+
+    /**
+     * Actualizar el color predominante (hex #RRGGBB) de una empresa
+     */
+    public static function actualizar_color_predominante(int $id_empresa, ?string $color): bool
+    {
+        return (bool) Empresa::where('id', $id_empresa)->update(['color_predominante' => $color]);
     }
 }

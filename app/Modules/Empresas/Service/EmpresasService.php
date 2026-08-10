@@ -46,7 +46,8 @@ class EmpresasService
         string $razon_social,
         ?string $domicilio_fiscal = null,
         ?UploadedFile $logo = null,
-        array $documentos = []
+        array $documentos = [],
+        ?string $color_predominante = null,
     ) {
         if (EmpresasData::verificar_ruc_duplicado($ruc)) {
             return ApiResponse::error('Ya existe una empresa registrada con este RUC.');
@@ -68,7 +69,14 @@ class EmpresasService
             }
         }
 
-        $id_empresa = EmpresasData::crear_empresa($ruc, $razon_social, $domicilio_fiscal, $url_logo_str, $documentosJson);
+        $id_empresa = EmpresasData::crear_empresa(
+            $ruc,
+            $razon_social,
+            $domicilio_fiscal,
+            $url_logo_str,
+            $documentosJson,
+            $color_predominante,
+        );
         $nuevaEmpresa = EmpresasData::get_empresas(id_empresa: $id_empresa);
 
         if ($nuevaEmpresa) {
@@ -114,6 +122,20 @@ class EmpresasService
         EmpresasData::actualizar_documentos($id_empresa, $documentosJson);
 
         return ApiResponse::success($actualizados, 'Documento eliminado correctamente');
+    }
+
+    /**
+     * Actualizar el color predominante (hex) de una empresa.
+     * Devuelve el hex guardado (o null si se limpió).
+     */
+    public static function actualizar_color_predominante(int $id_empresa, ?string $color)
+    {
+        $colorNormalizado = $color !== null && $color !== '' ? strtolower($color) : null;
+        $ok = EmpresasData::actualizar_color_predominante($id_empresa, $colorNormalizado);
+        if (!$ok) {
+            return ApiResponse::error('No se pudo actualizar el color de la empresa.');
+        }
+        return ApiResponse::success($colorNormalizado, 'Color predominante actualizado.');
     }
 
     /**
