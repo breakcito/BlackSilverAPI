@@ -73,7 +73,9 @@ class ControlUsoService
             $total_horas = 0.0;
             $costo_total = 0.0;
 
-            if ($fecha_inicio && $fecha_fin) {
+            if ($cantidad_vueltas !== null) {
+                $costo_total = $cantidad_vueltas * ($precio_unitario ?? 0.0);
+            } elseif ($fecha_inicio && $fecha_fin) {
                 $inicioCarbon = Carbon::parse($fecha_inicio);
                 $finCarbon = Carbon::parse($fecha_fin);
                 if ($finCarbon->greaterThan($inicioCarbon)) {
@@ -87,8 +89,6 @@ class ControlUsoService
             } elseif ($odometro_fin !== null && $odometro_inicio !== null) {
                 $total_km = max(0.0, $odometro_fin - $odometro_inicio);
                 $costo_total = $total_km * ($precio_unitario ?? 0.0);
-            } elseif ($cantidad_vueltas !== null) {
-                $costo_total = $cantidad_vueltas * ($precio_unitario ?? 0.0);
             }
 
             // Inserts standard usage log
