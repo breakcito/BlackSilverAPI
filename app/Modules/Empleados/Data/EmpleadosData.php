@@ -2,6 +2,7 @@
 
 namespace App\Modules\Empleados\Data;
 
+use App\Shared\Helpers\ArchivoBase64Helper;
 use Illuminate\Support\Facades\DB;
 
 class EmpleadosData
@@ -11,33 +12,9 @@ class EmpleadosData
      * Si ya es un data URL, lo retorna tal cual. Si el archivo no existe,
      * retorna null.
      */
-    private static function logo_a_base64(string $logo): ?string
+    private static function logo_a_base64(?string $logo): ?string
     {
-        if (str_starts_with($logo, 'data:')) {
-            return $logo; // ya es data URL
-        }
-        if (str_starts_with($logo, 'http')) {
-            $parsed = parse_url($logo, PHP_URL_PATH);
-            $relativePath = ltrim(str_replace('/storage/', '', $parsed ?? ''), '/');
-        } else {
-            $relativePath = ltrim($logo, '/');
-        }
-
-        $fullPath = storage_path('app/public/'.$relativePath);
-        if (! file_exists($fullPath)) {
-            return null;
-        }
-
-        $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
-        $mime = match ($ext) {
-            'png' => 'image/png',
-            'gif' => 'image/gif',
-            'webp' => 'image/webp',
-            'svg' => 'image/svg+xml',
-            default => 'image/jpeg',
-        };
-
-        return 'data:'.$mime.';base64,'.base64_encode(file_get_contents($fullPath));
+        return ArchivoBase64Helper::toBase64($logo);
     }
 
     /**

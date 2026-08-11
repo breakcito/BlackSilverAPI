@@ -5,6 +5,7 @@ namespace App\Modules\Contratistas\Data;
 use App\Models\Empleado;
 use App\Models\LaborContratista;
 use App\Shared\Enums\_Generic\EstadoBase;
+use App\Shared\Helpers\ArchivoBase64Helper;
 use Illuminate\Support\Facades\DB;
 
 class ContratistasData
@@ -70,14 +71,15 @@ class ContratistasData
             $sql .= ' AND c.id = :id_contratista';
             $params['id_contratista'] = $id_contratista;
 
-            $contratista = DB::selectOne($sql, $params);
-            if (! $contratista) {
-                return null;
-            }
-            $contratista->labores_asignadas = json_decode($contratista->labores_asignadas, true);
-
-            return $contratista;
+        $contratista = DB::selectOne($sql, $params);
+        if (! $contratista) {
+            return null;
         }
+        $contratista->labores_asignadas = json_decode($contratista->labores_asignadas, true);
+        $contratista->url_foto = ArchivoBase64Helper::toBase64($contratista->url_foto);
+
+        return $contratista;
+    }
 
         if ($id_mina !== null) {
             $sql .= ' AND c.id_mina = :id_mina';
@@ -89,6 +91,7 @@ class ContratistasData
         $contratistas = DB::select($sql, $params);
         foreach ($contratistas as $contratista) {
             $contratista->labores_asignadas = json_decode($contratista->labores_asignadas, true);
+            $contratista->url_foto = ArchivoBase64Helper::toBase64($contratista->url_foto);
         }
 
         return $contratistas;
