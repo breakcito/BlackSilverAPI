@@ -169,6 +169,21 @@ class LotesProductosData
         );
     }
 
+    /**
+     * Correlativo paralelo para modo auditoría. Solo numera los lotes de
+     * productos no auditables (los auditables dejan el campo en NULL).
+     */
+    public static function get_nuevo_correlativo_auditoria()
+    {
+        return CorrelativoHelper::generar(
+            tabla: 'lote_producto',
+            prefijo: 'LOT',
+            filtros: [],
+            columnaFecha: 'fecha_hora_ingreso',
+            columnaNumeroCorrelativo: 'numero_correlativo_auditoria'
+        );
+    }
+
     public static function crear_lote(
         int $id_producto,
         int $id_unidad_medida,
@@ -193,7 +208,9 @@ class LotesProductosData
         ?string $numero_factura_compra = null,
         ?float $costo_por_unidad = null,
         ?int $id_orden_compra_recepcion_detalle = null,
-        ?int $id_orden_compra_detalle = null
+        ?int $id_orden_compra_detalle = null,
+        ?string $correlativo_auditoria = null,
+        ?int $numero_correlativo_auditoria = null
     ) {
         $stock_actual_base = $stock_inicial * $contenido_por_presentacion;
         return LoteProducto::insertGetId([
@@ -205,6 +222,8 @@ class LotesProductosData
             'descripcion' => $descripcion,
             'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
+            'correlativo_auditoria' => $correlativo_auditoria,
+            'numero_correlativo_auditoria' => $numero_correlativo_auditoria,
             'stock_actual' => $stock_inicial,
             'contenido_por_presentacion' => $contenido_por_presentacion,
             'stock_actual_base' => $stock_actual_base,

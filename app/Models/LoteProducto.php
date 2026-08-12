@@ -23,6 +23,8 @@ class LoteProducto extends Model
         //
         'correlativo', // LOT-
         'numero_correlativo',
+        'correlativo_auditoria',
+        'numero_correlativo_auditoria',
         'descripcion',
         //
         // Para saber de que compra provino en caso no haya venido desde el modulo de ordenes de compra

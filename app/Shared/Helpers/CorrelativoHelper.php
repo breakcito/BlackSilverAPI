@@ -16,7 +16,8 @@ class CorrelativoHelper
         Periodo $reseteo = Periodo::Anual,
         string $columnaFecha = 'created_at',
         ?Closure $queryModifier = null,
-        ?string $alias = null 
+        ?string $alias = null,
+        ?string $columnaNumeroCorrelativo = null
     ): array {
         // Configuramos la tabla principal con su alias en el constructor de la consulta
         $tablaQuery = $alias ? "{$tabla} as {$alias}" : $tabla;
@@ -24,6 +25,13 @@ class CorrelativoHelper
 
         // Definimos qué prefijo usar para las columnas
         $prefijoTabla = $alias ?? $tabla;
+
+        // Columna a usar para el cálculo del siguiente correlativo. Por defecto
+        // es "numero_correlativo" (compatibilidad hacia atrás); permite usar
+        // "numero_correlativo_auditoria" u otra.
+        $columnaNumeroCompleta = str_contains($columnaNumeroCorrelativo ?? '', '.')
+            ? $columnaNumeroCorrelativo
+            : "{$prefijoTabla}." . ($columnaNumeroCorrelativo ?? 'numero_correlativo');
 
         // 1. Aplicamos los JOINs si el closure fue proporcionado
         if ($queryModifier) {
@@ -55,7 +63,7 @@ class CorrelativoHelper
         }
 
         // 4. Obtenemos el máximo usando el prefijo correcto
-        $siguienteNumero = ($query->max("{$prefijoTabla}.numero_correlativo") ?? 0) + 1;
+        $siguienteNumero = ($query->max($columnaNumeroCompleta) ?? 0) + 1;
 
         $numeroFormateado = str_pad($siguienteNumero, $longitudCeros, '0', STR_PAD_LEFT);
 

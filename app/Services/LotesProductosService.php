@@ -52,6 +52,20 @@ class LotesProductosService
         ?int $id_orden_compra_recepcion_detalle = null,
         ?int $id_orden_compra_detalle = null
     ) {
+        $producto = ProductosData::get_producto_by_id(
+            id_producto: $id_producto,
+            columnas: ['es_auditable']
+        );
+        $esAuditable = (bool) ($producto['es_auditable'] ?? false);
+
+        $correlativoAuditoria = null;
+        $numeroCorrelativoAuditoria = null;
+        if (! $esAuditable) {
+            $correlativoAuditoria = LotesProductosData::get_nuevo_correlativo_auditoria();
+            $numeroCorrelativoAuditoria = (int) $correlativoAuditoria['numero_correlativo'];
+            $correlativoAuditoria = $correlativoAuditoria['correlativo'];
+        }
+
         $correlativoData = LotesProductosData::get_nuevo_correlativo();
         $costo_promedio_base = ProductosData::get_costo_promedio_producto($id_producto);
 
@@ -79,7 +93,9 @@ class LotesProductosService
             numero_factura_compra: $numero_factura_compra,
             costo_por_unidad: $costo_por_unidad,
             id_orden_compra_recepcion_detalle: $id_orden_compra_recepcion_detalle,
-            id_orden_compra_detalle: $id_orden_compra_detalle
+            id_orden_compra_detalle: $id_orden_compra_detalle,
+            correlativo_auditoria: $correlativoAuditoria,
+            numero_correlativo_auditoria: $numeroCorrelativoAuditoria
         );
 
         if ($stock_inicial > 0) {
