@@ -13,17 +13,22 @@ class RequerimientoAlmacenDetalle extends Model
 
     protected $fillable = [
         'id_requerimiento_almacen',
-        'id_producto', // manzana - kilos
-        'id_unidad_medida', // caja
+        'id_producto', // Cable - Centimetros
+        'id_unidad_medida', // Metros
         'id_empleado_atencion', // quien decide aprobar/rechazar el producto del requerimiento
         'id_activo_fijo_destino', // si lo que pide es para mantenimiento, debera especificar para que activo/maquina es
+        // campos para hacer un calculo mas intuitivo para el usuario cuando quiera aplicar conversiones como: Quiero N productos de X magnitud
+        'con_magnitud', // FALSE|0 por default - disponible solo cuando ambas unidades de medida son universales
+        'cantidad_items', // 0 por default: 4 cables
+        'valor_magnitud', // (segun la unidad de medida del requerimiento)de 2 metros por cada cable
+        'valor_magnitud_base', // 200cm por cada cable
         //
         'para_mantenimiento', // cuando lo que pide dice que es para dar mantenimiento
-        'contenido_por_presentacion', // 10kg por caja
-        'cantidad_solicitada', // 3 cajas
-        'cantidad_solicitada_base', // 30kg
-        'cantidad_entregada', // 2 cajas
-        'cantidad_entregada_base', // 20kg
+        'contenido_por_presentacion', // 100cm en 1 metro
+        'cantidad_solicitada', // cantidad de items * valor de magnitud: 8 metros
+        'cantidad_solicitada_base', // cantidad solicitada segun la unidad de medida base: 800cm
+        'cantidad_entregada', // 1 metro
+        'cantidad_entregada_base', // 100cm
         'comentario',
         'comentario_decision', // luego de aprobar/rechazar, podran brindar algun comentario adicional
         //
@@ -103,7 +108,13 @@ class RequerimientoAlmacenDetalle extends Model
             pr.para_mantenimiento AS producto_para_mantenimiento,
             act.correlativo AS activo_fijo_destino_correlativo,
             act.codigo AS activo_fijo_destino_codigo,
-            
+
+            -- campos de magnitud por ítem (smart calc con magnitud)
+            rad.con_magnitud,
+            rad.cantidad_items,
+            rad.valor_magnitud,
+            rad.valor_magnitud_base,
+
             rad.estado
         FROM
             requerimiento_almacen_detalle rad

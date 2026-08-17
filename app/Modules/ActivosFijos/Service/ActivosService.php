@@ -42,7 +42,10 @@ class ActivosService
         ?int $id_empleado_responsable = null,
         ?string $serie_factura_compra = null,
         ?string $numero_factura_compra = null,
-        ?float $costo_compra = null
+        ?float $costo_compra = null,
+        ?int $id_labor = null,
+        ?array $ids_labores_abastecidas = null,
+        ?array $evidencias = null
     ) {
         $res = GlobalActivosService::crear_activo(
             id_producto: $id_producto,
@@ -64,7 +67,10 @@ class ActivosService
             id_empleado_responsable: $id_empleado_responsable,
             serie_factura_compra: $serie_factura_compra,
             numero_factura_compra: $numero_factura_compra,
-            costo_compra: $costo_compra
+            costo_compra: $costo_compra,
+            id_labor: $id_labor,
+            ids_labores_abastecidas: $ids_labores_abastecidas,
+            evidencias: $evidencias
         );
 
         $id_activo = $res['data'];

@@ -62,6 +62,13 @@ class AtencionController extends Controller
             'detalles.*.comentario' => 'nullable|string',
             'detalles.*.para_mantenimiento' => 'nullable|boolean',
             'detalles.*.id_activo_fijo_destino' => 'nullable|integer',
+            // Campos de cálculo inteligente con magnitud (opcional; cuando
+            // `con_magnitud=1` el sistema usa `cantidad_items` y
+            // `valor_magnitud_base` para reconstruir el total en base).
+            'detalles.*.con_magnitud' => 'nullable|boolean',
+            'detalles.*.cantidad_items' => 'nullable|numeric|min:0',
+            'detalles.*.valor_magnitud' => 'nullable|numeric|min:0',
+            'detalles.*.valor_magnitud_base' => 'nullable|numeric|min:0',
             'evidencias' => 'nullable|array',
             'evidencias.*' => 'file',
         ];
