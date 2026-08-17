@@ -3,6 +3,7 @@
 namespace App\Modules\Cotizaciones\Service;
 
 use App\Data\ProductosData;
+use App\Models\Producto;
 use App\Modules\Cotizaciones\Data\OrdenesCompraData;
 use App\Modules\Cotizaciones\Data\ComparativoData;
 use App\Modules\Cotizaciones\Data\CotizacionesData;
@@ -68,8 +69,7 @@ class CotizacionesService
 
                 // Determinar si alguna cotización del comparativo es auditable basado en los productos
                 $ids_productos_comparativo = array_column($productos, 'id_producto');
-                $es_auditable_general = \Illuminate\Support\Facades\DB::table('producto')
-                    ->whereIn('id', $ids_productos_comparativo)
+                $es_auditable_general = Producto::whereIn('id', $ids_productos_comparativo)
                     ->where('es_auditable', 1)
                     ->exists();
 
@@ -258,7 +258,18 @@ class CotizacionesService
                                 $precio_base = round($precio_oc / $contenido, 4);
                                 $costos_por_producto[(int) $det->id_producto][] = $precio_base;
                             }
+
+                            // Cargar monedas de los productos en una sola consulta
+                            $monedas_producto = Producto::whereIn('id', array_keys($costos_por_producto))
+                                ->pluck('moneda', 'id');
+
                             foreach ($costos_por_producto as $id_prod => $costos) {
+                                // Skip defensivo: si la moneda del producto difiere de la de la cotización,
+                                // no actualizamos su costo_promedio_base (queda intacto en su moneda).
+                                $moneda_producto = $monedas_producto[$id_prod] ?? null;
+                                if ($moneda_producto === null || $moneda_producto !== (string) $c['moneda']) {
+                                    continue;
+                                }
                                 ProductosData::actualizar_costo_promedio($id_prod, $costos);
                             }
                         }
@@ -487,7 +498,18 @@ class CotizacionesService
                     $precio_base = round($precio_oc / $contenido, 4);
                     $costos_por_producto[(int) $det->id_producto][] = $precio_base;
                 }
+
+                // Cargar monedas de los productos en una sola consulta
+                $monedas_producto = Producto::whereIn('id', array_keys($costos_por_producto))
+                    ->pluck('moneda', 'id');
+
                 foreach ($costos_por_producto as $id_prod => $costos) {
+                    // Skip defensivo: si la moneda del producto difiere de la de la cotización,
+                    // no actualizamos su costo_promedio_base (queda intacto en su moneda).
+                    $moneda_producto = $monedas_producto[$id_prod] ?? null;
+                    if ($moneda_producto === null || $moneda_producto !== (string) $cotizacion->moneda) {
+                        continue;
+                    }
                     ProductosData::actualizar_costo_promedio($id_prod, $costos);
                 }
 
