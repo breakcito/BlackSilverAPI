@@ -59,21 +59,6 @@ class ControlConsumoData
             lm.id_labor as id_labor_lote_mineral,
             lb_lm.nombre as labor_lote_mineral,
 
-            -- multi-labores destino (concatenado como string CSV)
-            (
-                SELECT GROUP_CONCAT(lb2.nombre SEPARATOR ", ")
-                FROM requerimiento_almacen_entrega_detalle_consumo_labor cl
-                INNER JOIN labor lb2 ON lb2.id = cl.id_labor
-                WHERE cl.id_requerimiento_almacen_entrega_detalle_consumo = c.id
-            ) as labores_destinos,
-
-            -- IDs de las labores destino (CSV) por si el front quiere agrupar
-            (
-                SELECT GROUP_CONCAT(cl.id_labor SEPARATOR ",")
-                FROM requerimiento_almacen_entrega_detalle_consumo_labor cl
-                WHERE cl.id_requerimiento_almacen_entrega_detalle_consumo = c.id
-            ) as id_labores,
-
             -- costo unitario resuelto (snapshot del detalle con fallback a lote / OC) por cada consumo
             COALESCE(
                 NULLIF(entd.costo_promedio_base, 0),
