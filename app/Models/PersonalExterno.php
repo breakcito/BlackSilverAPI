@@ -20,6 +20,7 @@ class PersonalExterno extends Model
     public $timestamps = false;
     protected $fillable = [
         'id_proveedor', // opcional - en caso sea el personal/trabajador de un proveedor externo
+        'es_representante', // 1 cuando es el representante o persona involucrada de un proveedor (modulo carbon)
         //
         'nombre',
         'apellido',

@@ -20,6 +20,10 @@ class Proveedor extends Model
         'correo',
         'para_mantenimiento', // true/false | util para listar en el modulo de mantenimiento
         'para_transporte',    // true/false | util para listar en las entregas
+        'para_carbon',        // true/false | util para listar en el modulo de carbon (compra de carbon)
+        'id_departamento',    // ubicacion geografica - solo aplica si para_carbon = true
+        'id_provincia',
+        'id_distrito',
         'estado', // Estado Basico
     ];
 }
