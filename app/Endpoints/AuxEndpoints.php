@@ -84,6 +84,11 @@ Route::middleware('auth.jwt.custom')->group(function () {
             // contratos de empleado (catálogos)
             Route::get('/tipos-contrato', 'get_tipos_contrato');
             Route::get('/periodos-duracion', 'get_periodos_duracion');
+
+            // ubicación geográfica del Perú (catálogos de solo lectura)
+            Route::get('/departamentos', 'get_departamentos');
+            Route::get('/provincias', 'get_provincias');
+            Route::get('/distritos', 'get_distritos');
         });
     });
 });

@@ -27,12 +27,14 @@ class PersonalExternoService
      */
     public static function crear_personal(
         ?int $id_proveedor = null,
+        bool $es_representante = false,
         ?string $nombre = null,
         ?string $apellido = null,
         ?string $dni = null
     ) {
         $id_personal = PersonalExternoData::crear_personal(
             id_proveedor: $id_proveedor,
+            es_representante: $es_representante,
             nombre: $nombre,
             apellido: $apellido,
             dni: $dni

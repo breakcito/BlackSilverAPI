@@ -23,6 +23,7 @@ use App\Services\PersonalExternoService;
 use App\Services\ProductosService;
 use App\Services\ProveedoresService;
 use App\Services\RolesService;
+use App\Services\UbicacionService;
 use App\Services\UnidadesMedidaService;
 use App\Shared\Enums\_Generic\EstadoBase;
 use App\Shared\Enums\_Generic\Moneda;
@@ -93,6 +94,7 @@ class AuxController extends Controller
     {
         $request->validate([
             'id_proveedor' => 'nullable|int',
+            'es_representante' => 'nullable|boolean',
             'nombre' => 'required|string',
             'apellido' => 'nullable|string',
             'dni' => 'nullable|string',
@@ -100,6 +102,7 @@ class AuxController extends Controller
 
         $result = PersonalExternoService::crear_personal(
             id_proveedor: $request->input('id_proveedor') ? (int) $request->input('id_proveedor') : null,
+            es_representante: (bool) $request->input('es_representante', false),
             nombre: $request->input('nombre'),
             apellido: $request->input('apellido'),
             dni: $request->input('dni')
@@ -807,5 +810,47 @@ class AuxController extends Controller
         );
 
         return response()->json($result);
+    }
+
+    /**
+     * Departamentos del Perú. Filtro opcional ?id_departamento.
+     */
+    public function get_departamentos(Request $request): JsonResponse
+    {
+        $id_departamento = $request->input('id_departamento') ? (int) $request->input('id_departamento') : null;
+
+        return response()->json(UbicacionService::get_departamentos(
+            id_departamento: $id_departamento
+        ));
+    }
+
+    /**
+     * Provincias del Perú. Filtros opcionales ?id_provincia y ?id_departamento.
+     */
+    public function get_provincias(Request $request): JsonResponse
+    {
+        $id_provincia = $request->input('id_provincia') ? (int) $request->input('id_provincia') : null;
+        $id_departamento = $request->input('id_departamento') ? (int) $request->input('id_departamento') : null;
+
+        return response()->json(UbicacionService::get_provincias(
+            id_provincia: $id_provincia,
+            id_departamento: $id_departamento
+        ));
+    }
+
+    /**
+     * Distritos del Perú. Filtros opcionales ?id_distrito, ?id_provincia, ?id_departamento.
+     */
+    public function get_distritos(Request $request): JsonResponse
+    {
+        $id_distrito = $request->input('id_distrito') ? (int) $request->input('id_distrito') : null;
+        $id_provincia = $request->input('id_provincia') ? (int) $request->input('id_provincia') : null;
+        $id_departamento = $request->input('id_departamento') ? (int) $request->input('id_departamento') : null;
+
+        return response()->json(UbicacionService::get_distritos(
+            id_distrito: $id_distrito,
+            id_provincia: $id_provincia,
+            id_departamento: $id_departamento
+        ));
     }
 }

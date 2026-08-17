@@ -16,14 +16,16 @@ class ProveedoresService
         ?EstadoBase $estado = null,
         ?TipoEntidad $tipoEntidad = null,
         ?bool $paraMantenimiento = null,
-        ?bool $paraTransporte = null
+        ?bool $paraTransporte = null,
+        ?bool $paraCarbon = null
     ) {
         $empleados = ProveedoresData::get_proveedores(
             id_proveedor: $id_proveedor,
             estado: $estado,
             tipoEntidad: $tipoEntidad,
             paraMantenimiento: $paraMantenimiento,
-            paraTransporte: $paraTransporte
+            paraTransporte: $paraTransporte,
+            paraCarbon: $paraCarbon
         );
 
         return ApiResponse::success($empleados);
@@ -42,6 +44,10 @@ class ProveedoresService
         ?string $direccion = null,
         ?string $telefono = null,
         ?string $correo = null,
+        bool $paraCarbon = false,
+        ?int $id_departamento = null,
+        ?int $id_provincia = null,
+        ?int $id_distrito = null,
         ?bool $return_object = false
     ): array {
         // verificamos que no exista
@@ -59,7 +65,11 @@ class ProveedoresService
             ruc: $ruc,
             direccion: $direccion,
             telefono: $telefono,
-            correo: $correo
+            correo: $correo,
+            paraCarbon: $paraCarbon,
+            id_departamento: $id_departamento,
+            id_provincia: $id_provincia,
+            id_distrito: $id_distrito
         );
 
         if ($return_object) {

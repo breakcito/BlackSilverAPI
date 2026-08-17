@@ -12,9 +12,9 @@ use Illuminate\Support\Facades\DB;
 class ProveedoresService
 {
 
-    public static function get_proveedores(): array
+    public static function get_proveedores(?bool $paraCarbon = null): array
     {
-        $data = ProveedoresData::get_proveedores();
+        $data = ProveedoresData::get_proveedores(paraCarbon: $paraCarbon);
 
         if (!is_array($data) || empty($data)) {
             return ApiResponse::success($data, "Proveedores obtenidos correctamente");
@@ -48,9 +48,13 @@ class ProveedoresService
         ?string $direccion = null,
         ?string $telefono = null,
         ?string $correo = null,
+        bool $paraCarbon = false,
+        ?int $id_departamento = null,
+        ?int $id_provincia = null,
+        ?int $id_distrito = null,
         array $cuentas = []
     ): array {
-        return DB::transaction(function () use ($tipoEntidad, $dni, $ruc, $razonSocial, $paraMantenimiento, $paraTransporte, $direccion, $telefono, $correo, $cuentas) {
+        return DB::transaction(function () use ($tipoEntidad, $dni, $ruc, $razonSocial, $paraMantenimiento, $paraTransporte, $direccion, $telefono, $correo, $paraCarbon, $id_departamento, $id_provincia, $id_distrito, $cuentas) {
             $response = ProveedoresServiceGlobal::crear_proveedor(
                 tipoEntidad: $tipoEntidad,
                 dni: $dni,
@@ -60,7 +64,11 @@ class ProveedoresService
                 paraTransporte: $paraTransporte,
                 direccion: $direccion,
                 telefono: $telefono,
-                correo: $correo
+                correo: $correo,
+                paraCarbon: $paraCarbon,
+                id_departamento: $id_departamento,
+                id_provincia: $id_provincia,
+                id_distrito: $id_distrito
             );
 
             // Si hubo un error, lo devolvemos

@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 
 class ProveedoresData
 {
-    public static function get_proveedores(?int $id_proveedor = null)
+    public static function get_proveedores(?int $id_proveedor = null, ?bool $paraCarbon = null)
     {
         $sql = '
         SELECT
@@ -14,6 +14,13 @@ class ProveedoresData
             pr.tipo_entidad,
             pr.para_mantenimiento,
             pr.para_transporte,
+            pr.para_carbon,
+            pr.id_departamento,
+            pr.id_provincia,
+            pr.id_distrito,
+            d.nombre AS departamento_nombre,
+            p.nombre AS provincia_nombre,
+            di.nombre AS distrito_nombre,
             pr.dni,
             pr.ruc,
             pr.razon_social,
@@ -27,11 +34,14 @@ class ProveedoresData
                 FROM
                     cuenta_bancaria_proveedor cn
                 WHERE
-                    cn.id_proveedor = pr.id AND 
+                    cn.id_proveedor = pr.id AND
                     cn.estado = "Activo"
             ) as cantidad_cuentas_bancarias
         FROM
             proveedor pr
+        LEFT JOIN departamento d ON d.id = pr.id_departamento
+        LEFT JOIN provincia p ON p.id = pr.id_provincia
+        LEFT JOIN distrito di ON di.id = pr.id_distrito
         WHERE 1 = 1
         ';
 
@@ -40,6 +50,11 @@ class ProveedoresData
             $sql .= ' AND pr.id = :id_proveedor';
             $params['id_proveedor'] = $id_proveedor;
             return DB::selectOne($sql, $params);
+        }
+
+        if ($paraCarbon !== null) {
+            $sql .= ' AND pr.para_carbon = :paraCarbon';
+            $params['paraCarbon'] = $paraCarbon ? 1 : 0;
         }
 
         $sql .= ' ORDER BY pr.razon_social ASC;';
