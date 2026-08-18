@@ -31,7 +31,8 @@ class ActivoFijo extends Model
         'id_producto', // que producto es este activo
         // En que lugar se encuentra, solo una de ellas debe de tener valor
         'id_almacen', // opcional - en que almacen se encuentra almacenado este activo
-        'id_mina', // opcional - en que mina se encuentra siendo usado este activo
+        'id_mina', // opcional - en que mina se encuentra siendo usado este activo - si esta en una mina se puede indicar para que labores abastece
+        'id_labor', // opcional - en que labor se encuentra o esta siendo usado este activo
         'id_marca', // de que marca - opcional
         'id_empleado_responsable', // opcional - es el empleado/operador encargado/responsable del activo
         // referencias para saber de que compra proviene
@@ -71,7 +72,7 @@ class ActivoFijo extends Model
         'intervalo_mantenimiento_horas',
         'intervalo_mantenimiento_kilometros',
         'intervalo_mantenimiento_vueltas',
-        
+        'evidencias', // JSON - archivos de compra, documentacion, etc
         'created_at', // fecha en la que se registro en el sistema
         'estado' // EstadoActivoFijo - En Uso, En Mantenimiento, En Almacen, Dado de Baja
     ];

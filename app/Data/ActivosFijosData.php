@@ -199,7 +199,9 @@ class ActivosFijosData
         ?float $costo_compra = null,
         ?int $id_orden_compra_recepcion_detalle = null,
         ?int $id_orden_compra_detalle = null,
-        ?float $costo_promedio_base = null
+        ?float $costo_promedio_base = null,
+        ?int $id_labor = null,
+        ?array $evidencias = null
     ) {
         return ActivoFijo::insertGetId([
             'id_producto' => $id_producto,
@@ -229,6 +231,8 @@ class ActivosFijosData
             'id_orden_compra_recepcion_detalle' => $id_orden_compra_recepcion_detalle,
             'id_orden_compra_detalle' => $id_orden_compra_detalle,
             'costo_promedio_base' => $costo_promedio_base,
+            'id_labor' => $id_labor,
+            'evidencias' => $evidencias ? json_encode($evidencias) : null,
         ]);
     }
 

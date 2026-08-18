@@ -6,6 +6,7 @@ use App\Modules\ActivosFijos\Service\ActivosService;
 use App\Services\ActivosFijosService as GlobalActivosService;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
 use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
+use App\Shared\Helpers\ArchivoHelper;
 use Carbon\Carbon;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
@@ -28,6 +29,16 @@ class ActivosController extends Controller
         $id_producto = $request->integer('id_producto');
         $id_almacen = $request->input('id_almacen');
         $id_mina = $request->input('id_mina');
+        $id_labor = $request->has('id_labor') ? $request->integer('id_labor') : null;
+        $ids_labores_abastecidas = $request->input('ids_labores_abastecidas');
+        if (is_string($ids_labores_abastecidas)) {
+            // Permitir JSON como string por si el cliente lo manda serializado
+            $decoded = json_decode($ids_labores_abastecidas, true);
+            $ids_labores_abastecidas = is_array($decoded) ? $decoded : [];
+        }
+        if (!is_array($ids_labores_abastecidas)) {
+            $ids_labores_abastecidas = [];
+        }
         $id_marca = $request->input('id_marca');
         $codigo = $request->input('codigo');
         $numero_serie = $request->input('numero_serie');
@@ -48,6 +59,25 @@ class ActivosController extends Controller
         $numero_factura_compra = $request->input('numero_factura_compra');
         $costo_compra = $request->has('costo_compra') ? $request->float('costo_compra') : null;
 
+        // Procesar evidencias: si vienen como archivos, los guardamos en storage;
+        // si ya vienen como JSON (IArchivo[]), las pasamos tal cual al servicio.
+        $evidencias = null;
+        if ($request->hasFile('evidencias')) {
+            $archivos = $request->file('evidencias');
+            if (!is_array($archivos)) {
+                $archivos = [$archivos];
+            }
+            $evidencias = ArchivoHelper::guardarArchivos('activos_fijos', $archivos);
+        } else {
+            $evidenciasInput = $request->input('evidencias');
+            if (is_string($evidenciasInput)) {
+                $decoded = json_decode($evidenciasInput, true);
+                $evidencias = is_array($decoded) ? $decoded : null;
+            } elseif (is_array($evidenciasInput)) {
+                $evidencias = $evidenciasInput;
+            }
+        }
+
         return ActivosService::crear_activo(
             id_producto: $id_producto,
             id_almacen: $id_almacen,
@@ -66,7 +96,10 @@ class ActivosController extends Controller
             id_empleado_responsable: $id_empleado_responsable,
             serie_factura_compra: $serie_factura_compra,
             numero_factura_compra: $numero_factura_compra,
-            costo_compra: $costo_compra
+            costo_compra: $costo_compra,
+            id_labor: $id_labor,
+            ids_labores_abastecidas: $ids_labores_abastecidas,
+            evidencias: $evidencias
         );
     }
 

@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Data\ProductosData;
 use App\Models\ActivoFijoUbicacionLog;
 use App\Data\ActivosFijosData;
+use App\Data\LaboresData;
+use App\Models\LaborAbastecidaActivo;
 use App\Services\KardexProductosService;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
 use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
@@ -73,9 +75,12 @@ class ActivosFijosService
         ?string $numero_factura_compra = null,
         ?float $costo_compra = null,
         ?int $id_orden_compra_recepcion_detalle = null,
-        ?int $id_orden_compra_detalle = null
+        ?int $id_orden_compra_detalle = null,
+        ?int $id_labor = null,
+        ?array $ids_labores_abastecidas = null,
+        ?array $evidencias = null
     ) {
-        return DB::transaction(function () use ($id_producto, $id_almacen, $id_mina, $id_marca, $codigo, $numero_serie, $modelo, $yearcito_modelo, $descripcion, $serie_placa, $numero_placa, $especificaciones, $fecha_hora_ingreso, $return_objecto, $estado, $id_empleado_responsable, $serie_factura_compra, $numero_factura_compra, $costo_compra, $id_orden_compra_recepcion_detalle, $id_orden_compra_detalle) {
+        return DB::transaction(function () use ($id_producto, $id_almacen, $id_mina, $id_marca, $codigo, $numero_serie, $modelo, $yearcito_modelo, $descripcion, $serie_placa, $numero_placa, $especificaciones, $fecha_hora_ingreso, $return_objecto, $estado, $id_empleado_responsable, $serie_factura_compra, $numero_factura_compra, $costo_compra, $id_orden_compra_recepcion_detalle, $id_orden_compra_detalle, $id_labor, $ids_labores_abastecidas, $evidencias) {
             $producto = ProductosData::get_producto_by_id(id_producto: $id_producto, columnas: ['prefijo']);
             $prefijo = $producto['prefijo'];
 
@@ -85,6 +90,11 @@ class ActivosFijosService
 
             // Obtener el costo promedio del producto
             $costo_promedio_base = ProductosData::get_costo_promedio_producto($id_producto);
+
+            // Si el usuario no proporcionó costo_compra, autocompletar con el costo promedio del producto
+            if ($costo_compra === null && $costo_promedio_base > 0) {
+                $costo_compra = $costo_promedio_base;
+            }
 
             $id_nuevo_activo = ActivosFijosData::crear_activo(
                 id_producto: $id_producto,
@@ -110,7 +120,9 @@ class ActivosFijosService
                 costo_compra: $costo_compra,
                 id_orden_compra_recepcion_detalle: $id_orden_compra_recepcion_detalle,
                 id_orden_compra_detalle: $id_orden_compra_detalle,
-                costo_promedio_base: $costo_promedio_base
+                costo_promedio_base: $costo_promedio_base,
+                id_labor: $id_labor,
+                evidencias: $evidencias
             );
 
             // registrar su ubicacion
@@ -122,6 +134,28 @@ class ActivosFijosService
                 descripcion: $descripcion,
                 fecha_hora_movimiento: $fecha_hora_ingreso
             );
+
+            // Poblar labor_abastecida_activo si está en una mina.
+            // Si no se especificaron ids_labores_abastecidas pero hay mina, autocompletar
+            // con TODAS las labores activas de esa mina (caso típico: generador que
+            // abastece a múltiples labores).
+            $ids_a_poblar = $ids_labores_abastecidas;
+            if ($id_mina !== null) {
+                if (empty($ids_a_poblar)) {
+                    $laboresMina = LaboresData::get_labores(id_mina: $id_mina);
+                    $ids_a_poblar = array_map(fn($l) => (int) $l->id_labor, $laboresMina);
+                }
+                if (!empty($ids_a_poblar)) {
+                    $filas = [];
+                    foreach (array_unique($ids_a_poblar) as $idLab) {
+                        $filas[] = [
+                            'id_activo_fijo' => $id_nuevo_activo,
+                            'id_labor' => (int) $idLab,
+                        ];
+                    }
+                    LaborAbastecidaActivo::insert($filas);
+                }
+            }
 
             if ($return_objecto) {
                 $nuevo_activo = ActivosFijosData::get_activos_disponibles(id_activo: $id_nuevo_activo);

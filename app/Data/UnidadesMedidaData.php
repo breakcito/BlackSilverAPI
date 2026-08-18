@@ -20,7 +20,8 @@ class UnidadesMedidaData
         SELECT
             id AS id_unidad_medida,
             nombre,
-            abreviatura
+            abreviatura,
+            es_universal
         FROM unidad_medida
         WHERE 1 = 1
         ';
@@ -74,25 +75,16 @@ class UnidadesMedidaData
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
-        // Se pasan los IDs dos veces para cubrir la columna A y la B en el WHERE IN
-        $bindings = array_merge($ids, $ids);
+        // Se pasan exactamente los IDs que corresponden a los placeholders del WHERE IN
+        $bindings = $ids;
 
         $sql = "
         SELECT
-            id_unidad_medida_a AS origen,
+            id_unidad_medida_a AS id_unidad_origen,
             id_unidad_medida_b AS id_unidad_destino,
             factor_conversion
         FROM conversion_unidad_medida
         WHERE id_unidad_medida_a IN ($placeholders)
-
-        UNION ALL
-
-        SELECT
-            id_unidad_medida_b AS origen,
-            id_unidad_medida_a AS id_unidad_destino,
-            factor_conversion
-        FROM conversion_unidad_medida
-        WHERE id_unidad_medida_b IN ($placeholders)
         ";
 
         $rows = DB::select($sql, $bindings);
@@ -100,8 +92,8 @@ class UnidadesMedidaData
         // Agrupar los resultados por el ID de origen
         $conversionesAgrupadas = [];
         foreach ($rows as $r) {
-            $origen = (int) $r->origen;
-            $conversionesAgrupadas[$origen][] = [
+            $id_unidad_origen = (int) $r->id_unidad_origen;
+            $conversionesAgrupadas[$id_unidad_origen][] = [
                 'id_unidad_destino' => (int) $r->id_unidad_destino,
                 'factor_conversion' => $r->factor_conversion,
             ];

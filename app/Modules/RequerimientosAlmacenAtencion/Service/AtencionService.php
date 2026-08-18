@@ -93,7 +93,22 @@ class AtencionService
             foreach ($detalles as $detalle) {
                 $contenido = (float) $detalle['contenido_por_presentacion'];
                 $cantidad = (float) $detalle['cantidad_solicitada'];
-                $cantidad_base = $cantidad * $contenido;
+
+                // Cuando el detalle trae "magnitud por ítem" (con_magnitud=1),
+                // el contenido_por_presentacion que envía el front puede venir
+                // como 1 (porque la conversión va implícita en
+                // `valor_magnitud_base`). En ese caso reconstruimos el total en
+                // unidad base con `cantidad_items × valor_magnitud_base`, que
+                // es la fuente de verdad. Si no hay magnitud, usamos la
+                // fórmula clásica `cantidad × contenido`.
+                $conMagnitud = (bool) ($detalle['con_magnitud'] ?? false);
+                $cantidadItems = (float) ($detalle['cantidad_items'] ?? 0);
+                $valorMagnitudBase = (float) ($detalle['valor_magnitud_base'] ?? 0);
+                if ($conMagnitud && $cantidadItems > 0 && $valorMagnitudBase > 0) {
+                    $cantidad_base = $cantidadItems * $valorMagnitudBase;
+                } else {
+                    $cantidad_base = $cantidad * $contenido;
+                }
 
                 $id_detalle = RequerimientosDetalleData::crear_detalle(
                     $id_requerimiento,
@@ -104,7 +119,11 @@ class AtencionService
                     $cantidad_base,
                     $detalle['comentario'] ?? null,
                     (bool) ($detalle['para_mantenimiento'] ?? false),
-                    $detalle['id_activo_fijo_destino'] ?? null
+                    $detalle['id_activo_fijo_destino'] ?? null,
+                    con_magnitud: $conMagnitud,
+                    cantidad_items: $cantidadItems > 0 ? $cantidadItems : null,
+                    valor_magnitud: isset($detalle['valor_magnitud']) ? (float) $detalle['valor_magnitud'] : null,
+                    valor_magnitud_base: $valorMagnitudBase > 0 ? $valorMagnitudBase : null,
                 );
 
                 RequerimientosDetalleData::registrar_trazabilidad($id_detalle, $id_empleado_registro);

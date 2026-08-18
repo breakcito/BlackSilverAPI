@@ -228,9 +228,11 @@ class AuxController extends Controller
     public function get_unidades_medida(Request $request): JsonResponse
     {
         $id_unidad_medida = $request->input('id_unidad_medida') ? (int) $request->input('id_unidad_medida') : null;
+        $incluir_conversiones = $request->input('incluir_conversiones') ? (bool) $request->input('incluir_conversiones') : null;
 
         $result = UnidadesMedidaService::get_unidades(
             id_unidad_medida: $id_unidad_medida,
+            incluir_conversiones: $incluir_conversiones
         );
 
         return response()->json($result);
