@@ -36,7 +36,15 @@ class ProveedoresData
                 WHERE
                     cn.id_proveedor = pr.id AND
                     cn.estado = "Activo"
-            ) as cantidad_cuentas_bancarias
+            ) as cantidad_cuentas_bancarias,
+            (
+                SELECT
+                    COUNT(*)
+                FROM
+                    proveedor_carbon pc
+                WHERE
+                    pc.id_proveedor = pr.id
+            ) as cantidad_tipos_carbon
         FROM
             proveedor pr
         LEFT JOIN departamento d ON d.id = pr.id_departamento

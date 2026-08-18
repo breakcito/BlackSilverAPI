@@ -42,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Modules/PrestamosAlmacenAtencion/PrestamosAtencionEndpoints.php');
                 require base_path('app/Modules/PrestamosAlmacen/PrestamosAlmacenEndpoints.php');
                 require base_path('app/Modules/Proveedores/ProveedoresEndpoints.php');
+                require base_path('app/Modules/ProveedorCarbon/ProveedorCarbonEndpoints.php');
                 require base_path('app/Modules/Clientes/ClientesEndpoints.php');
                 require base_path('app/Modules/Cotizaciones/CotizacionesEndpoints.php');
                 require base_path('app/Modules/OrdenesCompra/OrdenCompraEndpoints.php');
@@ -54,6 +55,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Modules/Asistencia/AsistenciaEndpoints.php');
                 require base_path('app/Modules/System/SystemEndpoints.php');
             require base_path('app/Modules/TipoCarbon/TipoCarbonEndpoints.php');
+                require base_path('app/Modules/CompraCarbon/CompraCarbonEndpoints.php');
             });
         },
     )
