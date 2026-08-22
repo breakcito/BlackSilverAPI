@@ -169,4 +169,32 @@ class ContratistasService
             return ApiResponse::success($editado, 'Labores actualizadas correctamente');
         });
     }
+
+    /**
+     * Actualizar datos personales + contacto de un contratista.
+     * Foto y mina/labores NO se editan aquí (van por sus endpoints propios).
+     */
+    public static function actualizar_contratista(
+        int $id_contratista,
+        string $nombre,
+        string $apellido,
+        ?string $dni = null,
+        ?string $fecha_nacimiento = null,
+        ?string $genero = null,
+        ?string $direccion = null,
+        ?string $telefono = null,
+        ?string $email = null,
+    ) {
+        return ContratistasServiceGlobal::actualizar_contratista(
+            id_contratista: $id_contratista,
+            nombre: $nombre,
+            apellido: $apellido,
+            dni: $dni,
+            fecha_nacimiento: $fecha_nacimiento,
+            genero: $genero,
+            direccion: $direccion,
+            telefono: $telefono,
+            email: $email,
+        );
+    }
 }

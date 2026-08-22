@@ -97,4 +97,39 @@ class ContratistasController
 
         return response()->json($result);
     }
+
+    /**
+     * Actualizar un contratista (datos personales + contacto).
+     * NO se editan mina ni labores aquí (van por sus endpoints propios).
+     * La foto va por `POST /contratistas/{id}/foto`.
+     */
+    public function actualizar_contratista(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'nombre' => 'required|string|max:255',
+            'apellido' => 'required|string|max:255',
+            'genero' => 'nullable|string|max:16',
+            'dni' => 'nullable|string|max:20',
+            'fecha_nacimiento' => 'nullable|date',
+            'direccion' => 'nullable|string|max:255',
+            'telefono' => 'nullable|string|max:32',
+            'email' => 'nullable|email|max:128',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        return response()->json(ContratistasService::actualizar_contratista(
+            id_contratista: $id,
+            nombre: (string) $request->input('nombre'),
+            apellido: (string) $request->input('apellido'),
+            dni: $request->input('dni'),
+            fecha_nacimiento: $request->input('fecha_nacimiento'),
+            genero: $request->input('genero'),
+            direccion: $request->input('direccion'),
+            telefono: $request->input('telefono'),
+            email: $request->input('email'),
+        ));
+    }
 }

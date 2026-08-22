@@ -4,6 +4,7 @@ namespace App\Modules\Empleados;
 
 use App\Modules\ContratosEmpleado\Services\ContratosEmpleadoService;
 use App\Services\EmpleadosService as EmpleadosServiceGlobal;
+use App\Data\EmpleadosData as EmpleadosDataGlobal;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -237,5 +238,64 @@ class EmpleadosController
             ->update(['con_contrato' => $conContrato ? 1 : 0]);
 
         return response()->json(ApiResponse::success(null, 'Estado de contrato actualizado correctamente'));
+    }
+
+    /**
+     * Actualizar un empleado (no contratista).
+     *
+     * - Si tiene contrato vigente: solo se actualizan datos personales
+     *   y de contacto. cargo/empresa NO se aceptan (se gestionan desde
+     *   el módulo ContratosEmpleado).
+     * - Si NO tiene contrato: se exige id_cargo + id_empresa (la edición
+     *   de esos campos sustituye al "crear_empleado" del flujo inicial).
+     */
+    public function actualizar_empleado(Request $request, int $id_empleado): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'nombre' => 'required|string|max:255',
+            'apellido' => 'required|string|max:255',
+            'genero' => 'nullable|string|max:16',
+            'dni' => 'nullable|string|max:20',
+            'fecha_nacimiento' => 'nullable|date',
+            'direccion' => 'nullable|string|max:255',
+            'telefono' => 'nullable|string|max:32',
+            'email' => 'nullable|email|max:128',
+            'id_cargo' => 'nullable|integer',
+            'id_empresa' => 'nullable|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $actual = EmpleadosDataGlobal::get_empleado_dinamico_by_id($id_empleado, ['id_contrato_vigente']);
+        if (! $actual) {
+            return response()->json(ApiResponse::error('Empleado no encontrado.'));
+        }
+
+        $tieneContratoVigente = ! empty($actual['id_contrato_vigente']);
+
+        if (! $tieneContratoVigente) {
+            if (empty($request->input('id_cargo'))) {
+                return response()->json(ApiResponse::error('Debe seleccionar un cargo.'));
+            }
+            if (empty($request->input('id_empresa'))) {
+                return response()->json(ApiResponse::error('Debe seleccionar una empresa.'));
+            }
+        }
+
+        return response()->json(EmpleadosServiceGlobal::actualizar_empleado(
+            id_empleado: $id_empleado,
+            nombre: (string) $request->input('nombre'),
+            apellido: (string) $request->input('apellido'),
+            genero: $request->input('genero'),
+            dni: $request->input('dni'),
+            fecha_nacimiento: $request->input('fecha_nacimiento'),
+            direccion: $request->input('direccion'),
+            telefono: $request->input('telefono'),
+            email: $request->input('email'),
+            id_cargo: $request->input('id_cargo') ? (int) $request->input('id_cargo') : null,
+            id_empresa: $request->input('id_empresa') ? (int) $request->input('id_empresa') : null,
+        ));
     }
 }

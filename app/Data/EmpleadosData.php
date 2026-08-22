@@ -251,4 +251,46 @@ class EmpleadosData
             'url_foto' => $url_foto,
         ]);
     }
+
+    /**
+     * Actualizar campos editables de un empleado (no contratista).
+     * La foto NO se persiste aquí — va por el endpoint dedicado `/foto/{id}`.
+     *
+     * `id_cargo` e `id_empresa` son opcionales con sentido: si vienen
+     * `null`, se omiten del UPDATE (preservan la referencia que pueda
+     * tener el contrato vigente).
+     */
+    public static function actualizar_empleado(
+        int $id_empleado,
+        string $nombre,
+        string $apellido,
+        ?string $genero = null,
+        ?string $dni = null,
+        ?string $fecha_nacimiento = null,
+        ?string $direccion = null,
+        ?string $telefono = null,
+        ?string $email = null,
+        ?int $id_cargo = null,
+        ?int $id_empresa = null,
+    ): bool {
+        $data = [
+            'nombre' => $nombre,
+            'apellido' => $apellido,
+            'genero' => $genero,
+            'dni' => $dni,
+            'fecha_nacimiento' => $fecha_nacimiento,
+            'direccion' => $direccion,
+            'telefono' => $telefono,
+            'email' => $email,
+        ];
+
+        if ($id_cargo !== null) {
+            $data['id_cargo'] = $id_cargo;
+        }
+        if ($id_empresa !== null) {
+            $data['id_empresa'] = $id_empresa;
+        }
+
+        return Empleado::where('id', $id_empleado)->update($data) >= 0;
+    }
 }

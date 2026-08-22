@@ -140,4 +140,70 @@ class EmpleadosService
 
         return ApiResponse::success($url_foto, 'Foto actualizada correctamente.');
     }
+
+    /**
+     * Actualizar un empleado (no contratista).
+     *
+     * Si el empleado tiene contrato vigente, se omiten `id_cargo` e
+     * `id_empresa` (se pasan `null`) para preservar la referencia que
+     * mantiene el contrato. La edición de esos campos se hace desde
+     * el módulo ContratosEmpleado.
+     *
+     * IMPORTANTE: para el SELECT de retorno usamos el módulo de
+     * Empleados (`App\Modules\Empleados\Data\EmpleadosData`) porque
+     * la versión global (`App\Data\EmpleadosData::get_empleados`)
+     * NO incluye `nombre` ni `apellido` como columnas separadas, y
+     * el frontend las espera para re-renderizar la fila del listado.
+     */
+    public static function actualizar_empleado(
+        int $id_empleado,
+        string $nombre,
+        string $apellido,
+        ?string $genero = null,
+        ?string $dni = null,
+        ?string $fecha_nacimiento = null,
+        ?string $direccion = null,
+        ?string $telefono = null,
+        ?string $email = null,
+        ?int $id_cargo = null,
+        ?int $id_empresa = null,
+    ) {
+        $moduloData = \App\Modules\Empleados\Data\EmpleadosData::class;
+
+        $actual = $moduloData::get_empleados(id_empleado: $id_empleado);
+
+        if (! $actual) {
+            return ApiResponse::error('Empleado no encontrado.');
+        }
+
+        $tieneContratoVigente = ! empty($actual->id_contrato_vigente);
+
+        if ($tieneContratoVigente) {
+            // El cargo y la empresa viven en el contrato. Pasar null
+            // para que el Model NO los toque (preserva la referencia).
+            $id_cargo = null;
+            $id_empresa = null;
+        }
+
+        EmpleadosData::actualizar_empleado(
+            id_empleado: $id_empleado,
+            nombre: $nombre,
+            apellido: $apellido,
+            genero: $genero,
+            dni: $dni,
+            fecha_nacimiento: $fecha_nacimiento,
+            direccion: $direccion,
+            telefono: $telefono,
+            email: $email,
+            id_cargo: $id_cargo,
+            id_empresa: $id_empresa,
+        );
+
+        // Usamos el SELECT del módulo para que la respuesta incluya
+        // todos los campos que el frontend espera (nombre, apellido,
+        // area, cargo, empresa, etc.).
+        $actualizado = $moduloData::get_empleados(id_empleado: $id_empleado);
+
+        return ApiResponse::success($actualizado, 'Empleado actualizado correctamente.');
+    }
 }

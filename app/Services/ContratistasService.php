@@ -86,4 +86,41 @@ class ContratistasService
             return ApiResponse::success($id, 'Contratista registrado correctamente');
         });
     }
+
+    /**
+     * Actualizar un contratista (datos personales + contacto).
+     * La foto va por el endpoint dedicado `/contratistas/{id}/foto`.
+     */
+    public static function actualizar_contratista(
+        int $id_contratista,
+        string $nombre,
+        string $apellido,
+        ?string $dni = null,
+        ?string $fecha_nacimiento = null,
+        ?string $genero = null,
+        ?string $direccion = null,
+        ?string $telefono = null,
+        ?string $email = null,
+    ) {
+        $actual = ContratistasData::get_contratistas(id_contratista: $id_contratista);
+        if (! $actual) {
+            return ApiResponse::error('Contratista no encontrado.');
+        }
+
+        ContratistasData::actualizar_contratista(
+            id_contratista: $id_contratista,
+            nombre: $nombre,
+            apellido: $apellido,
+            dni: $dni,
+            fecha_nacimiento: $fecha_nacimiento,
+            genero: $genero,
+            direccion: $direccion,
+            telefono: $telefono,
+            email: $email,
+        );
+
+        $actualizado = ContratistasData::get_contratistas(id_contratista: $id_contratista);
+
+        return ApiResponse::success($actualizado, 'Contratista actualizado correctamente.');
+    }
 }

@@ -172,4 +172,33 @@ class ContratistasData
 
         return DB::select($sql, $params);
     }
+
+    /**
+     * Actualizar datos personales + contacto de un contratista.
+     * La foto NO se persiste aquí — va por el endpoint dedicado
+     * `/contratistas/{id}/foto`. Tampoco se tocan `id_mina`,
+     * `id_contrato_vigente`, `con_contrato`, `qr_token`, `estado`.
+     */
+    public static function actualizar_contratista(
+        int $id_contratista,
+        string $nombre,
+        string $apellido,
+        ?string $genero = null,
+        ?string $dni = null,
+        ?string $fecha_nacimiento = null,
+        ?string $direccion = null,
+        ?string $telefono = null,
+        ?string $email = null,
+    ): bool {
+        return Empleado::where('id', $id_contratista)->update([
+            'nombre' => $nombre,
+            'apellido' => $apellido,
+            'genero' => $genero,
+            'dni' => $dni,
+            'fecha_nacimiento' => $fecha_nacimiento,
+            'direccion' => $direccion,
+            'telefono' => $telefono,
+            'email' => $email,
+        ]) >= 0;
+    }
 }
