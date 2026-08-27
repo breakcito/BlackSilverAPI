@@ -4,6 +4,7 @@ namespace App\Modules\Proveedores\Controllers;
 
 use App\Modules\Proveedores\Services\ProveedoresService;
 use App\Shared\Enums\_Generic\TipoEntidad;
+use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\Request;
 
 class ProveedoresController
@@ -27,20 +28,32 @@ class ProveedoresController
             'paraMantenimiento' => 'nullable|boolean',
             'paraTransporte' => 'nullable|boolean',
             'paraCarbon' => 'nullable|boolean',
+            // RUC obligatorio (11 digitos, prefijo segun tipo_entidad — se valida abajo).
+            'ruc' => 'required|string|size:11',
+            // DNI opcional; si llega, debe tener 8 digitos.
             'dni' => 'nullable|string|size:8',
-            'ruc' => 'nullable|string|size:11',
             'razon_social' => 'required|string|max:255',
             'direccion' => 'nullable|string|max:255',
             'telefono' => 'nullable|string|max:20',
             'correo' => 'nullable|email|max:100',
-            // geografia (opcional siempre — el switch Logistica/Carbon del front
-            // decide si el usuario los completa o no)
-            'id_departamento' => 'nullable|integer',
-            'id_provincia' => 'nullable|integer',
-            'id_distrito' => 'nullable|integer',
         ]);
 
         $tipo_entidad = TipoEntidad::from($request->input('tipo_entidad'));
+        $ruc = (string) $request->input('ruc');
+
+        // Validacion de prefijo de RUC segun tipo de entidad.
+        if ($tipo_entidad === TipoEntidad::Juridica && !str_starts_with($ruc, '20')) {
+            return response()->json(
+                ApiResponse::error('El RUC de una persona juridica debe comenzar con 20'),
+                422,
+            );
+        }
+        if ($tipo_entidad === TipoEntidad::Natural && !str_starts_with($ruc, '10')) {
+            return response()->json(
+                ApiResponse::error('El RUC de una persona natural debe comenzar con 10'),
+                422,
+            );
+        }
 
         return response()->json(ProveedoresService::crear_proveedor(
             tipoEntidad: $tipo_entidad,
@@ -48,14 +61,11 @@ class ProveedoresController
             paraMantenimiento: (bool) $request->paraMantenimiento,
             paraTransporte: (bool) $request->paraTransporte,
             dni: $request->dni,
-            ruc: $request->ruc,
+            ruc: $ruc,
             direccion: $request->direccion,
             telefono: $request->telefono,
             correo: $request->correo,
             paraCarbon: (bool) $request->paraCarbon,
-            id_departamento: $request->id_departamento ? (int) $request->id_departamento : null,
-            id_provincia: $request->id_provincia ? (int) $request->id_provincia : null,
-            id_distrito: $request->id_distrito ? (int) $request->id_distrito : null,
             cuentas: $request->cuentas ?? []
         ));
     }

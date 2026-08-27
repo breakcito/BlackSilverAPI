@@ -45,9 +45,6 @@ class ProveedoresService
         ?string $telefono = null,
         ?string $correo = null,
         bool $paraCarbon = false,
-        ?int $id_departamento = null,
-        ?int $id_provincia = null,
-        ?int $id_distrito = null,
         ?bool $return_object = false
     ): array {
         // verificamos que no exista
@@ -67,9 +64,6 @@ class ProveedoresService
             telefono: $telefono,
             correo: $correo,
             paraCarbon: $paraCarbon,
-            id_departamento: $id_departamento,
-            id_provincia: $id_provincia,
-            id_distrito: $id_distrito
         );
 
         if ($return_object) {

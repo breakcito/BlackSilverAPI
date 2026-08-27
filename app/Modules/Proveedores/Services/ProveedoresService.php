@@ -7,6 +7,7 @@ use App\Shared\Responses\ApiResponse;
 use App\Modules\Proveedores\Data\CuentasBancariasData;
 use App\Modules\Proveedores\Data\ProveedoresData;
 use App\Modules\ProveedorCarbon\Data\ProveedorCarbonData;
+use App\Modules\LugarExtraccionCarbon\Data\LugarExtraccionCarbonData;
 use App\Services\ProveedoresService as ProveedoresServiceGlobal;
 use Illuminate\Support\Facades\DB;
 
@@ -24,10 +25,12 @@ class ProveedoresService
         $ids = array_map(fn($p) => (int) $p->id_proveedor, $data);
         $cuentas = collect(CuentasBancariasData::get_cuentas_bancarias(ids_proveedor: $ids));
         $tiposCarbon = collect(ProveedorCarbonData::get_tipos_por_proveedores($ids));
+        $lugaresExtraccion = collect(LugarExtraccionCarbonData::get_por_proveedores($ids));
 
         foreach ($data as $proveedor) {
             $proveedor->cuentas_bancarias = $cuentas->where('id_proveedor', $proveedor->id_proveedor)->values();
             $proveedor->tipos_carbon = $tiposCarbon->where('id_proveedor', $proveedor->id_proveedor)->values();
+            $proveedor->lugares_extraccion = $lugaresExtraccion->where('id_proveedor', $proveedor->id_proveedor)->values();
         }
 
         return ApiResponse::success($data, "Proveedores obtenidos correctamente");
@@ -52,12 +55,9 @@ class ProveedoresService
         ?string $telefono = null,
         ?string $correo = null,
         bool $paraCarbon = false,
-        ?int $id_departamento = null,
-        ?int $id_provincia = null,
-        ?int $id_distrito = null,
         array $cuentas = []
     ): array {
-        return DB::transaction(function () use ($tipoEntidad, $dni, $ruc, $razonSocial, $paraMantenimiento, $paraTransporte, $direccion, $telefono, $correo, $paraCarbon, $id_departamento, $id_provincia, $id_distrito, $cuentas) {
+        return DB::transaction(function () use ($tipoEntidad, $dni, $ruc, $razonSocial, $paraMantenimiento, $paraTransporte, $direccion, $telefono, $correo, $paraCarbon, $cuentas) {
             $response = ProveedoresServiceGlobal::crear_proveedor(
                 tipoEntidad: $tipoEntidad,
                 dni: $dni,
@@ -69,9 +69,6 @@ class ProveedoresService
                 telefono: $telefono,
                 correo: $correo,
                 paraCarbon: $paraCarbon,
-                id_departamento: $id_departamento,
-                id_provincia: $id_provincia,
-                id_distrito: $id_distrito
             );
 
             // Si hubo un error, lo devolvemos

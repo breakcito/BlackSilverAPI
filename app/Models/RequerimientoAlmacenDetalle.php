@@ -15,7 +15,6 @@ class RequerimientoAlmacenDetalle extends Model
         'id_requerimiento_almacen',
         'id_producto', // Cable - Centimetros
         'id_unidad_medida', // Metros
-        'id_empleado_atencion', // quien decide aprobar/rechazar el producto del requerimiento
         'id_activo_fijo_destino', // si lo que pide es para mantenimiento, debera especificar para que activo/maquina es
         // campos para hacer un calculo mas intuitivo para el usuario cuando quiera aplicar conversiones como: Quiero N productos de X magnitud
         'con_magnitud', // FALSE|0 por default - disponible solo cuando ambas unidades de medida son universales
@@ -30,9 +29,6 @@ class RequerimientoAlmacenDetalle extends Model
         'cantidad_entregada', // 1 metro
         'cantidad_entregada_base', // 100cm
         'comentario',
-        'comentario_decision', // luego de aprobar/rechazar, podran brindar algun comentario adicional
-        //
-        'estado',
     ];
 
     /**
@@ -46,8 +42,6 @@ class RequerimientoAlmacenDetalle extends Model
         $sql = '
         SELECT 
             rad.id AS id_requerimiento_almacen_detalle,
-            
-            CONCAT(emp.nombre, " ", emp.apellido) AS empleado_atencion,
             
             pr.id AS id_producto,
             pr.nombre AS producto,
@@ -126,7 +120,6 @@ class RequerimientoAlmacenDetalle extends Model
         INNER JOIN requerimiento_almacen req on req.id = rad.id_requerimiento_almacen
         INNER JOIN almacen alm on alm.id = req.id_almacen_destino
         
-        LEFT JOIN empleado emp ON emp.id = rad.id_empleado_atencion
         LEFT JOIN activo_fijo act ON act.id = rad.id_activo_fijo_destino
         WHERE 1=1
         ';

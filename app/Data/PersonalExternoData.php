@@ -14,14 +14,12 @@ class PersonalExternoData
      */
     public static function crear_personal(
         ?int $id_proveedor = null,
-        bool $es_representante = false,
         ?string $nombre = null,
         ?string $apellido = null,
         ?string $dni = null,
     ) {
         return PersonalExterno::insertGetId([
             'id_proveedor' => $id_proveedor,
-            'es_representante' => $es_representante,
             'nombre' => $nombre,
             'apellido' => $apellido,
             'dni' => $dni,
@@ -41,8 +39,8 @@ class PersonalExternoData
         SELECT
             pr.id AS id_personal,
             pr.id_proveedor,
-            pr.es_representante,
-            TRIM(CONCAT_WS(" ", NULLIF(TRIM(pr.nombre), ""), NULLIF(TRIM(pr.apellido), ""))) AS nombre_completo,
+            pr.nombre,
+            pr.apellido,
             pr.dni,
             pr.estado
         FROM

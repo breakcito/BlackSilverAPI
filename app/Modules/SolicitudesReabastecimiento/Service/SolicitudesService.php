@@ -33,12 +33,13 @@ class SolicitudesService
         int $id_empleado_solicitante,
         Premura $premura,
         bool $es_auditable,
-        // id_producto, id_unidad_medida, cantidad_solicitada, 
-        // contenido_por_presentacion 
+        // id_producto, id_unidad_medida, cantidad_solicitada,
+        // contenido_por_presentacion
         // comentario
         array $detalles,
         ?string $observacion,
         ?string $fecha_entrega_requerida,
+        ?string $fecha_solicitud = null,
     ) {
         // 1. Generar Correlativo
         $correlativoData = SolicitudesData::get_nuevo_correlativo();
@@ -54,7 +55,8 @@ class SolicitudesService
             $premura,
             $es_auditable,
             $observacion,
-            $fecha_entrega_requerida
+            $fecha_entrega_requerida,
+            $fecha_solicitud
         );
 
         // 3. Crear detalles

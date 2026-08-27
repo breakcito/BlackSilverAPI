@@ -15,12 +15,6 @@ class ProveedoresData
             pr.para_mantenimiento,
             pr.para_transporte,
             pr.para_carbon,
-            pr.id_departamento,
-            pr.id_provincia,
-            pr.id_distrito,
-            d.nombre AS departamento_nombre,
-            p.nombre AS provincia_nombre,
-            di.nombre AS distrito_nombre,
             pr.dni,
             pr.ruc,
             pr.razon_social,
@@ -44,12 +38,18 @@ class ProveedoresData
                     proveedor_carbon pc
                 WHERE
                     pc.id_proveedor = pr.id
-            ) as cantidad_tipos_carbon
+            ) as cantidad_tipos_carbon,
+            (
+                SELECT
+                    COUNT(*)
+                FROM
+                    lugar_extraccion_carbon le
+                WHERE
+                    le.id_proveedor = pr.id AND
+                    le.estado = "Activo"
+            ) as cantidad_lugares_extraccion
         FROM
             proveedor pr
-        LEFT JOIN departamento d ON d.id = pr.id_departamento
-        LEFT JOIN provincia p ON p.id = pr.id_provincia
-        LEFT JOIN distrito di ON di.id = pr.id_distrito
         WHERE 1 = 1
         ';
 

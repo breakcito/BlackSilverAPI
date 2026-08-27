@@ -16,7 +16,8 @@ class ProveedorCarbonData
             SELECT
                 pc.id_tipo_carbon,
                 t.nombre,
-                t.codigo
+                t.codigo,
+                t.para_compra
             FROM proveedor_carbon pc
             INNER JOIN tipo_carbon t ON t.id = pc.id_tipo_carbon
             WHERE pc.id_proveedor = :id_proveedor
@@ -51,7 +52,8 @@ class ProveedorCarbonData
                 pc.id_proveedor,
                 pc.id_tipo_carbon,
                 t.nombre,
-                t.codigo
+                t.codigo,
+                t.para_compra
             FROM proveedor_carbon pc
             INNER JOIN tipo_carbon t ON t.id = pc.id_tipo_carbon
             WHERE pc.id_proveedor IN ($inClause)

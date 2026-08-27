@@ -10,6 +10,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::get('{id_compra_carbon}', 'get_compra_con_detalles');
         Route::post('{id_compra_carbon}/aprobar', 'aprobar_compra');
         Route::post('{id_compra_carbon}/anular', 'anular_compra');
-        Route::post('{id_compra_carbon}/evidencias', 'set_evidencias_aprobacion');
+        Route::post('{id_compra_carbon}/evidencias', 'set_evidencias');
     });
 });

@@ -24,6 +24,7 @@ class SolicitudReabastecimiento extends Model
         //
         'observacion',
         'premura',
+        'fecha_solicitud',
         'fecha_entrega_requerida',
         //
         'es_auditable', // bool que ayuda a saber si es auditable para ocultarlo
@@ -52,6 +53,7 @@ class SolicitudReabastecimiento extends Model
         ?int $id_requerimiento_almacen = null,
         ?string $observacion = null,
         ?string $fecha_entrega_requerida = null,
+        ?string $fecha_solicitud = null,
     ) {
         return SolicitudReabastecimiento::insertGetId([
             'id_almacen_solicitante' => $id_almacen_solicitante,
@@ -61,6 +63,7 @@ class SolicitudReabastecimiento extends Model
             'numero_correlativo' => $numero_correlativo,
             'observacion' => $observacion,
             'premura' => $premura->value,
+            'fecha_solicitud' => $fecha_solicitud,
             'fecha_entrega_requerida' => $fecha_entrega_requerida,
             'es_auditable' => $es_auditable ? 1 : 0,
             'created_at' => now(),
@@ -95,6 +98,7 @@ class SolicitudReabastecimiento extends Model
             --
             scr.observacion,
             scr.premura,
+            scr.fecha_solicitud,
             scr.fecha_entrega_requerida,
             --
             scr.es_auditable,
@@ -123,12 +127,12 @@ class SolicitudReabastecimiento extends Model
         }
 
         if ($mes !== null) {
-            $sql .= ' AND MONTH(scr.created_at) = :mes';
+            $sql .= ' AND MONTH(COALESCE(scr.fecha_solicitud, scr.created_at)) = :mes';
             $params['mes'] = $mes;
         }
 
         if ($yearcito !== null) {
-            $sql .= ' AND YEAR(scr.created_at) = :yearcito';
+            $sql .= ' AND YEAR(COALESCE(scr.fecha_solicitud, scr.created_at)) = :yearcito';
             $params['yearcito'] = $yearcito;
         }
 
@@ -143,15 +147,15 @@ class SolicitudReabastecimiento extends Model
         }
 
         $sql .= '
-        ORDER BY 
+        ORDER BY
         	CASE scr.estado
                 WHEN "Generada"  THEN 1
                 WHEN "En Proceso" THEN 2
                 WHEN "Cerrada" THEN 3
                 WHEN "Anulada" THEN 4
-            	ELSE 5 
+            	ELSE 5
             END ASC,
-        	scr.created_at DESC
+        	COALESCE(scr.fecha_solicitud, scr.created_at) DESC
         ';
 
         return DB::select($sql, $params);

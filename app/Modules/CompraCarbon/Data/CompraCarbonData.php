@@ -32,9 +32,9 @@ class CompraCarbonData
                 cc.porcentaje_igv,
                 cc.correlativo,
                 cc.numero_correlativo,
-                cc.fecha_hora_compra,
+                cc.fecha_hora_ingreso,
                 cc.fecha_hora_aprobacion,
-                cc.evidencias_aprobacion,
+                cc.evidencias,
                 cc.total,
                 cc.created_at,
                 cc.estado,
@@ -68,15 +68,15 @@ class CompraCarbonData
             $params['q'] = '%' . $filtros . '%';
         }
 
-        // Filtro por periodo (mes + año) sobre fecha_hora_compra.
+        // Filtro por periodo (mes + año) sobre fecha_hora_ingreso.
         $mes = isset($opts['mes']) ? (int) $opts['mes'] : 0;
         $anio = isset($opts['anio']) ? (int) $opts['anio'] : 0;
         if ($mes > 0 && $anio > 0) {
-            $sql .= ' AND MONTH(cc.fecha_hora_compra) = :mes AND YEAR(cc.fecha_hora_compra) = :anio';
+            $sql .= ' AND MONTH(cc.fecha_hora_ingreso) = :mes AND YEAR(cc.fecha_hora_ingreso) = :anio';
             $params['mes'] = $mes;
             $params['anio'] = $anio;
         } elseif ($anio > 0) {
-            $sql .= ' AND YEAR(cc.fecha_hora_compra) = :anio';
+            $sql .= ' AND YEAR(cc.fecha_hora_ingreso) = :anio';
             $params['anio'] = $anio;
         }
 
@@ -84,9 +84,9 @@ class CompraCarbonData
 
         $rows = DB::select($sql, $params);
 
-        // Decodificar evidencias_aprobacion (JSON) para cada fila.
+        // Decodificar evidencias (JSON) para cada fila.
         foreach ($rows as $row) {
-            $row->evidencias_aprobacion = self::decode_evidencias($row->evidencias_aprobacion ?? null);
+            $row->evidencias = self::decode_evidencias($row->evidencias ?? null);
         }
 
         return $rows;
@@ -115,7 +115,7 @@ class CompraCarbonData
                 cc.porcentaje_igv,
                 cc.correlativo,
                 cc.numero_correlativo,
-                cc.fecha_hora_compra,
+                cc.fecha_hora_ingreso,
                 cc.fecha_hora_aprobacion,
                 cc.total,
                 cc.created_at,
@@ -130,8 +130,8 @@ class CompraCarbonData
         ';
         $cabecera = DB::selectOne($sqlCabecera, ['id' => $id_compra_carbon]);
         if ($cabecera !== null) {
-            $cabecera->evidencias_aprobacion = self::decode_evidencias(
-                $cabecera->evidencias_aprobacion ?? null,
+            $cabecera->evidencias = self::decode_evidencias(
+                $cabecera->evidencias ?? null,
             );
         }
 
@@ -161,21 +161,21 @@ class CompraCarbonData
      * Inserta la cabecera y devuelve el id generado.
      * @param array $cabecera claves: id_empresa, id_proveedor, id_empleado_registro,
      *                                porcentaje_igv, correlativo, numero_correlativo,
-     *                                fecha_hora_compra, total, created_at.
+     *                                fecha_hora_ingreso, total, created_at.
      */
     public static function insert_cabecera(array $cabecera): int
     {
         return DB::table('compra_carbon')->insertGetId([
-            'id_empresa'           => (int) $cabecera['id_empresa'],
-            'id_proveedor'         => (int) $cabecera['id_proveedor'],
+            'id_empresa' => (int) $cabecera['id_empresa'],
+            'id_proveedor' => (int) $cabecera['id_proveedor'],
             'id_empleado_registro' => (int) $cabecera['id_empleado_registro'],
-            'porcentaje_igv'       => (float) $cabecera['porcentaje_igv'],
-            'correlativo'          => (string) $cabecera['correlativo'],
-            'numero_correlativo'   => (int) $cabecera['numero_correlativo'],
-            'fecha_hora_compra'    => (string) $cabecera['fecha_hora_compra'],
-            'total'                => (float) $cabecera['total'],
-            'estado'               => (string) ($cabecera['estado'] ?? 'Pendiente'),
-            'created_at'           => (string) $cabecera['created_at'],
+            'porcentaje_igv' => (float) $cabecera['porcentaje_igv'],
+            'correlativo' => (string) $cabecera['correlativo'],
+            'numero_correlativo' => (int) $cabecera['numero_correlativo'],
+            'fecha_hora_ingreso' => (string) $cabecera['fecha_hora_ingreso'],
+            'total' => (float) $cabecera['total'],
+            'estado' => (string) ($cabecera['estado'] ?? 'Pendiente'),
+            'created_at' => (string) $cabecera['created_at'],
         ]);
     }
 
@@ -192,10 +192,10 @@ class CompraCarbonData
         foreach ($detalles as $d) {
             $filas[] = [
                 'id_compra_carbon' => $id_compra_carbon,
-                'id_tipo_carbon'   => (int) $d['id_tipo_carbon'],
-                'cantidad'         => (float) $d['cantidad'],
-                'precio_unitario'  => (float) $d['precio_unitario'],
-                'subtotal'         => (float) $d['subtotal'],
+                'id_tipo_carbon' => (int) $d['id_tipo_carbon'],
+                'cantidad' => (float) $d['cantidad'],
+                'precio_unitario' => (float) $d['precio_unitario'],
+                'subtotal' => (float) $d['subtotal'],
             ];
         }
         DB::table('detalle_compra_carbon')->insert($filas);
@@ -227,7 +227,7 @@ class CompraCarbonData
         return DB::table('compra_carbon')
             ->where('id', $id_compra_carbon)
             ->update([
-                'evidencias_aprobacion' => json_encode($evidencias, JSON_UNESCAPED_UNICODE),
+                'evidencias' => json_encode($evidencias, JSON_UNESCAPED_UNICODE),
             ]);
     }
 
@@ -244,7 +244,7 @@ class CompraCarbonData
     }
 
     /**
-     * Decodifica el JSON de evidencias_aprobacion (puede venir null, string JSON o array ya decodificado).
+     * Decodifica el JSON de evidencias (puede venir null, string JSON o array ya decodificado).
      */
     private static function decode_evidencias(mixed $raw): array
     {

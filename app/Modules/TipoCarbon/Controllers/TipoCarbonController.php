@@ -12,7 +12,12 @@ class TipoCarbonController
 {
     public function get_tipos(Request $request): JsonResponse
     {
-        return response()->json(TipoCarbonService::get_tipos());
+        $raw = $request->query('para_compra');
+        $soloParaCompra = ($raw === null || $raw === '')
+            ? null
+            : filter_var($raw, FILTER_VALIDATE_BOOLEAN);
+
+        return response()->json(TipoCarbonService::get_tipos(solo_para_compra: $soloParaCompra));
     }
 
     public function get_tipo_by_id_route(int $id_tipo_carbon): JsonResponse
@@ -25,6 +30,7 @@ class TipoCarbonController
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:128',
             'codigo' => 'nullable|string|max:32',
+            'para_compra' => 'sometimes|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -33,7 +39,8 @@ class TipoCarbonController
 
         return response()->json(TipoCarbonService::crear_tipo(
             nombre: (string) $request->input('nombre'),
-            codigo: $request->input('codigo')
+            codigo: $request->input('codigo'),
+            para_compra: (bool) $request->boolean('para_compra')
         ));
     }
 
@@ -42,6 +49,7 @@ class TipoCarbonController
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:128',
             'codigo' => 'nullable|string|max:32',
+            'para_compra' => 'sometimes|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -51,7 +59,8 @@ class TipoCarbonController
         return response()->json(TipoCarbonService::actualizar_tipo(
             id_tipo_carbon: $id_tipo_carbon,
             nombre: (string) $request->input('nombre'),
-            codigo: $request->input('codigo')
+            codigo: $request->input('codigo'),
+            para_compra: (bool) $request->boolean('para_compra')
         ));
     }
 

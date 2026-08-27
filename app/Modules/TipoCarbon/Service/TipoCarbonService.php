@@ -7,9 +7,11 @@ use App\Shared\Responses\ApiResponse;
 
 class TipoCarbonService
 {
-    public static function get_tipos()
+    public static function get_tipos(?bool $solo_para_compra = null)
     {
-        return ApiResponse::success(TipoCarbonData::get_tipos());
+        return ApiResponse::success(
+            TipoCarbonData::get_tipos(solo_para_compra: $solo_para_compra)
+        );
     }
 
     public static function get_tipo_by_id(int $id_tipo_carbon)
@@ -17,15 +19,20 @@ class TipoCarbonService
         return ApiResponse::success(TipoCarbonData::get_tipo_by_id(id_tipo_carbon: $id_tipo_carbon));
     }
 
-    public static function crear_tipo(string $nombre, ?string $codigo)
+    public static function crear_tipo(string $nombre, ?string $codigo, bool $para_compra = false)
     {
-        $id = TipoCarbonData::crear_tipo(nombre: $nombre, codigo: $codigo);
+        $id = TipoCarbonData::crear_tipo(nombre: $nombre, codigo: $codigo, para_compra: $para_compra);
         return ApiResponse::success(TipoCarbonData::get_tipo_by_id(id_tipo_carbon: $id), 'Tipo de carbon registrado');
     }
 
-    public static function actualizar_tipo(int $id_tipo_carbon, string $nombre, ?string $codigo)
+    public static function actualizar_tipo(int $id_tipo_carbon, string $nombre, ?string $codigo, bool $para_compra = false)
     {
-        TipoCarbonData::actualizar_tipo(id_tipo_carbon: $id_tipo_carbon, nombre: $nombre, codigo: $codigo);
+        TipoCarbonData::actualizar_tipo(
+            id_tipo_carbon: $id_tipo_carbon,
+            nombre: $nombre,
+            codigo: $codigo,
+            para_compra: $para_compra
+        );
         return ApiResponse::success(TipoCarbonData::get_tipo_by_id(id_tipo_carbon: $id_tipo_carbon), 'Tipo de carbon actualizado');
     }
 

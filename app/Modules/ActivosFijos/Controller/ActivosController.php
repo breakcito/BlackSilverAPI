@@ -7,6 +7,7 @@ use App\Services\ActivosFijosService as GlobalActivosService;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
 use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
 use App\Shared\Helpers\ArchivoHelper;
+use App\Shared\Responses\ApiResponse;
 use Carbon\Carbon;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
@@ -128,6 +129,82 @@ class ActivosController extends Controller
             id_mina: $id_mina,
             descripcion: $descripcion,
             fecha_hora_movimiento: $fecha_hora_movimiento
+        );
+    }
+
+    /**
+     * Editar un activo fijo existente.
+     * Acepta cambios en metadata (codigo, modelo, serie, placa, descripcion,
+     * yearcito_modelo, numero_serie, id_labor, estado, especificaciones) y
+     * opcionalmente cambios de ubicación física (id_almacen, id_mina).
+     * Si la ubicación cambió, el Service registra automáticamente el
+     * movimiento correspondiente. El estado enviado por el usuario tiene
+     * prioridad sobre el cálculo automático de new_ubicacion.
+     */
+    public function actualizar_activo(Request $request, int $id_activo)
+    {
+        $codigo = $request->input('codigo');
+        $numero_serie = $request->input('numero_serie');
+        $modelo = $request->input('modelo');
+        $yearcito_modelo = $request->has('yearcito_modelo') ? $request->integer('yearcito_modelo') : null;
+        $descripcion = $request->input('descripcion');
+        $serie_placa = $request->input('serie_placa');
+        $numero_placa = $request->input('numero_placa');
+        $id_labor = $request->has('id_labor') ? $request->integer('id_labor') : null;
+        $estado = $request->input('estado');
+
+        // Especificaciones: el cliente puede enviar array nativo, JSON string, o null.
+        $especificaciones = null;
+        if ($request->has('especificaciones')) {
+            $espRaw = $request->input('especificaciones');
+            if (is_string($espRaw)) {
+                $decoded = json_decode($espRaw, true);
+                $especificaciones = is_array($decoded) ? $decoded : null;
+            } elseif (is_array($espRaw)) {
+                $especificaciones = $espRaw;
+            }
+        }
+
+        $id_almacen = $request->has('id_almacen') ? $request->integer('id_almacen') : null;
+        $id_mina = $request->has('id_mina') ? $request->integer('id_mina') : null;
+        $descripcion_ubicacion = $request->input('descripcion_ubicacion');
+
+        // Construir $data con los campos que el usuario envió (no null).
+        // `estado` puede ser null explícito (para "limpiar"), así que usamos
+        // array_key_exists para distinguir "no enviado" de "null".
+        $data = [];
+        foreach ([
+            'codigo' => $codigo,
+            'numero_serie' => $numero_serie,
+            'modelo' => $modelo,
+            'yearcito_modelo' => $yearcito_modelo,
+            'descripcion' => $descripcion,
+            'serie_placa' => $serie_placa,
+            'numero_placa' => $numero_placa,
+            'id_labor' => $id_labor,
+        ] as $key => $val) {
+            if ($val !== null) {
+                $data[$key] = $val;
+            }
+        }
+
+        if ($request->has('estado')) {
+            $data['estado'] = $estado; // puede ser null explícito
+        }
+        if ($request->has('especificaciones')) {
+            $data['especificaciones'] = $especificaciones;
+        }
+
+        if (empty($data) && $id_almacen === null && $id_mina === null) {
+            return ApiResponse::error('No se proporcionaron campos para actualizar.');
+        }
+
+        return ActivosService::actualizar_activo(
+            id_activo: $id_activo,
+            data: $data,
+            id_almacen: $id_almacen,
+            id_mina: $id_mina,
+            descripcion_ubicacion: $descripcion_ubicacion
         );
     }
 

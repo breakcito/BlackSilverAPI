@@ -58,7 +58,7 @@ class LotesService
             numero_factura_compra: $numero_factura_compra,
             costo_por_unidad: $costo_por_unidad
         );
- 
+
         $id_lote = $new_lote_response['data'];
         return ApiResponse::success(LotesData::get_lote_by_id(id_lote: $id_lote), 'Lote registrado correctamente');
     }

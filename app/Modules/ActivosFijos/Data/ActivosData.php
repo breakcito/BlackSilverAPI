@@ -145,6 +145,18 @@ class ActivosData
     }
 
     /**
+     * Actualiza los campos editables de un activo fijo (metadata).
+     * NO toca ubicación física (eso lo maneja el Service vía new_ubicacion).
+     * @param array $data Mapa clave=>valor con los campos a actualizar
+     */
+    public static function actualizar_activo(int $id_activo, array $data): int
+    {
+        return DB::table('activo_fijo')
+            ->where('id', $id_activo)
+            ->update($data);
+    }
+
+    /**
      * Devuelve las labores abastecidas por un activo fijo.
      * @return array Lista de {id_labor, nombre}
      */

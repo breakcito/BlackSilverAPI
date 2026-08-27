@@ -13,5 +13,6 @@ class TipoCarbon extends Model
     protected $fillable = [
         'nombre',
         'codigo',
+        'para_compra', // ayuda a saber los tipos de carbon que se compran
     ];
 }

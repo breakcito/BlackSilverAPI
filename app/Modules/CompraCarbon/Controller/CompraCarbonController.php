@@ -43,7 +43,7 @@ class CompraCarbonController
         );
     }
 
-    public function set_evidencias_aprobacion(Request $request, int $id_compra_carbon): JsonResponse
+    public function set_evidencias(Request $request, int $id_compra_carbon): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'evidencias' => 'present|array',
@@ -61,7 +61,7 @@ class CompraCarbonController
         $evidencias = $request->input('evidencias', []);
 
         return response()->json(
-            CompraCarbonService::set_evidencias_aprobacion($id_compra_carbon, $evidencias)
+            CompraCarbonService::set_evidencias($id_compra_carbon, $evidencias)
         );
     }
 
@@ -78,7 +78,7 @@ class CompraCarbonController
             'id_empresa' => 'required|integer|min:1',
             'id_proveedor' => 'required|integer|min:1',
             'porcentaje_igv' => 'required|numeric|min:0|max:100',
-            'fecha_hora_compra' => 'required|date_format:Y-m-d H:i:s',
+            'fecha_hora_ingreso' => 'required|date_format:Y-m-d H:i:s',
             'detalles' => 'required|array|min:1',
             'detalles.*.id_tipo_carbon' => 'required|integer|min:1',
             'detalles.*.cantidad' => 'required|numeric|min:0.01',
@@ -87,8 +87,8 @@ class CompraCarbonController
             'id_empresa.required' => 'Empresa requerida',
             'id_proveedor.required' => 'Proveedor requerido',
             'porcentaje_igv.required' => 'Porcentaje de IGV requerido',
-            'fecha_hora_compra.required' => 'Fecha y hora de la compra requeridas',
-            'fecha_hora_compra.date_format' => 'Formato esperado: Y-m-d H:i:s',
+            'fecha_hora_ingreso.required' => 'Fecha y hora de la compra requeridas',
+            'fecha_hora_ingreso.date_format' => 'Formato esperado: Y-m-d H:i:s',
             'detalles.required' => 'La compra debe tener al menos un item',
         ]);
 

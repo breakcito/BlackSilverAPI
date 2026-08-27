@@ -32,12 +32,6 @@ class ProveedoresData
             p.para_mantenimiento,
             p.para_transporte,
             p.para_carbon,
-            p.id_departamento,
-            p.id_provincia,
-            p.id_distrito,
-            d.nombre AS departamento_nombre,
-            pv.nombre AS provincia_nombre,
-            di.nombre AS distrito_nombre,
             p.estado,
             (
                 SELECT COUNT(*)
@@ -45,9 +39,6 @@ class ProveedoresData
                 WHERE cn.id_proveedor = p.id AND cn.estado = "Activo"
             ) AS cantidad_cuentas_bancarias
         FROM proveedor p
-        LEFT JOIN departamento d ON d.id = p.id_departamento
-        LEFT JOIN provincia pv ON pv.id = p.id_provincia
-        LEFT JOIN distrito di ON di.id = p.id_distrito
         WHERE 1 = 1
         ';
 
@@ -101,9 +92,6 @@ class ProveedoresData
         ?string $telefono = null,
         ?string $correo = null,
         bool $paraCarbon = false,
-        ?int $id_departamento = null,
-        ?int $id_provincia = null,
-        ?int $id_distrito = null
     ): int {
         return Proveedor::insertGetId([
             'tipo_entidad' => $tipoEntidad->value,
@@ -116,9 +104,6 @@ class ProveedoresData
             'para_mantenimiento' => $paraMantenimiento,
             'para_transporte' => $paraTransporte,
             'para_carbon' => $paraCarbon,
-            'id_departamento' => $id_departamento,
-            'id_provincia' => $id_provincia,
-            'id_distrito' => $id_distrito,
             'estado' => 'Activo'
         ]);
     }

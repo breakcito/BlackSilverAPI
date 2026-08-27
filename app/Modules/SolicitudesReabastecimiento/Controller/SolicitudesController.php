@@ -42,6 +42,7 @@ class SolicitudesController extends Controller
             'premura' => 'required|string',
             'observacion' => 'nullable|string',
             'es_auditable' => 'required|boolean',
+            'fecha_solicitud' => 'nullable|date',
             'fecha_entrega_requerida' => 'nullable|string',
             'detalles' => 'required|array|min:1',
             'detalles.*.id_producto' => 'required|integer',
@@ -69,6 +70,7 @@ class SolicitudesController extends Controller
             detalles: $request->detalles,
             observacion: $request->observacion,
             fecha_entrega_requerida: $request->fecha_entrega_requerida,
+            fecha_solicitud: $request->fecha_solicitud,
         );
 
         return response()->json($result);

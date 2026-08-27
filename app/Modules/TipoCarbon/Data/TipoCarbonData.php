@@ -10,15 +10,17 @@ class TipoCarbonData
 {
     /**
      * Lista de tipos con conteo de variantes.
+     * @param bool|null $solo_para_compra si true, filtra a t.para_compra = 1.
      * @return array<object>
      */
-    public static function get_tipos(?int $id_tipo_carbon = null)
+    public static function get_tipos(?int $id_tipo_carbon = null, ?bool $solo_para_compra = null)
     {
         $sql = '
             SELECT
                 t.id AS id_tipo_carbon,
                 t.nombre,
                 t.codigo,
+                t.para_compra,
                 (
                     SELECT COUNT(*)
                     FROM variante_carbon vc
@@ -36,6 +38,10 @@ class TipoCarbonData
             return DB::selectOne($sql, $params);
         }
 
+        if ($solo_para_compra === true) {
+            $sql .= ' AND t.para_compra = 1';
+        }
+
         $sql .= ' ORDER BY t.nombre ASC';
         return DB::select($sql, $params);
     }
@@ -45,19 +51,21 @@ class TipoCarbonData
         return self::get_tipos(id_tipo_carbon: $id_tipo_carbon);
     }
 
-    public static function crear_tipo(string $nombre, ?string $codigo = null): int
+    public static function crear_tipo(string $nombre, ?string $codigo = null, bool $para_compra = false): int
     {
         return TipoCarbon::insertGetId([
             'nombre' => $nombre,
             'codigo' => $codigo,
+            'para_compra' => $para_compra ? 1 : 0,
         ]);
     }
 
-    public static function actualizar_tipo(int $id_tipo_carbon, string $nombre, ?string $codigo = null): int
+    public static function actualizar_tipo(int $id_tipo_carbon, string $nombre, ?string $codigo = null, bool $para_compra = false): int
     {
         return TipoCarbon::where('id', $id_tipo_carbon)->update([
             'nombre' => $nombre,
             'codigo' => $codigo,
+            'para_compra' => $para_compra ? 1 : 0,
         ]);
     }
 
@@ -140,7 +148,7 @@ class TipoCarbonData
      */
     public static function get_todos_los_tipos(): array
     {
-        $sql = 'SELECT id AS id_tipo_carbon, nombre, codigo FROM tipo_carbon ORDER BY nombre ASC';
+        $sql = 'SELECT id AS id_tipo_carbon, nombre, codigo, para_compra FROM tipo_carbon ORDER BY nombre ASC';
         return DB::select($sql);
     }
 }

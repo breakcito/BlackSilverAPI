@@ -60,7 +60,7 @@ class LotesProductosService
 
         $correlativoAuditoria = null;
         $numeroCorrelativoAuditoria = null;
-        if (! $esAuditable) {
+        if (!$esAuditable) {
             $correlativoAuditoria = LotesProductosData::get_nuevo_correlativo_auditoria();
             $numeroCorrelativoAuditoria = (int) $correlativoAuditoria['numero_correlativo'];
             $correlativoAuditoria = $correlativoAuditoria['correlativo'];

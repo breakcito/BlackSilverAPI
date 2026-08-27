@@ -58,7 +58,7 @@ class CompraCarbonService
      *
      * @param array<int, array{url:string, path_relativo:string, nombre_original:?string, extension:?string}> $evidencias
      */
-    public static function set_evidencias_aprobacion(int $id_compra_carbon, array $evidencias): array
+    public static function set_evidencias(int $id_compra_carbon, array $evidencias): array
     {
         $existente = CompraCarbonData::get_compra_con_detalles($id_compra_carbon);
         if ($existente['cabecera'] === null) {
@@ -100,7 +100,7 @@ class CompraCarbonService
      *   - id_empresa (int)
      *   - id_proveedor (int)
      *   - porcentaje_igv (float)
-     *   - fecha_hora_compra (string Y-m-d H:i:s)
+     *   - fecha_hora_ingreso (string Y-m-d H:i:s)
      *   - detalles (array<id_tipo_carbon:int, cantidad:float, precio_unitario:float>)
      */
     public static function crear_compra(array $payload, int $id_empleado_registro): array
@@ -108,7 +108,7 @@ class CompraCarbonService
         $id_empresa = (int) ($payload['id_empresa'] ?? 0);
         $id_proveedor = (int) ($payload['id_proveedor'] ?? 0);
         $porcentaje_igv = (float) ($payload['porcentaje_igv'] ?? 0);
-        $fecha_hora_compra = (string) ($payload['fecha_hora_compra'] ?? '');
+        $fecha_hora_ingreso = (string) ($payload['fecha_hora_ingreso'] ?? '');
         /** @var array<int, array<string, mixed>> $detallesIn */
         $detallesIn = $payload['detalles'] ?? [];
 
@@ -140,14 +140,14 @@ class CompraCarbonService
         }
         $total = round($subtotalBase * (1 + $porcentaje_igv / 100), 2);
 
-        return DB::transaction(function () use ($id_empresa, $id_proveedor, $id_empleado_registro, $porcentaje_igv, $fecha_hora_compra, $detallesNorm, $total) {
+        return DB::transaction(function () use ($id_empresa, $id_proveedor, $id_empleado_registro, $porcentaje_igv, $fecha_hora_ingreso, $detallesNorm, $total) {
             $correlativoData = CorrelativoHelper::generar(
                 tabla: 'compra_carbon',
                 prefijo: 'CC',
                 filtros: ['id_empresa' => $id_empresa],
                 longitudCeros: 5,
                 reseteo: Periodo::Anual,
-                columnaFecha: 'fecha_hora_compra',
+                columnaFecha: 'fecha_hora_ingreso',
             );
 
             $id_compra = CompraCarbonData::insert_cabecera([
@@ -157,7 +157,7 @@ class CompraCarbonService
                 'porcentaje_igv' => $porcentaje_igv,
                 'correlativo' => $correlativoData['correlativo'],
                 'numero_correlativo' => $correlativoData['numero_correlativo'],
-                'fecha_hora_compra' => $fecha_hora_compra,
+                'fecha_hora_ingreso' => $fecha_hora_ingreso,
                 'total' => $total,
                 'estado' => EstadoCompraCarbon::Pendiente->value,
                 'created_at' => now()->toDateTimeString(),

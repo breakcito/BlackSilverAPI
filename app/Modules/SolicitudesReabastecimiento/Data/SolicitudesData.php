@@ -45,6 +45,7 @@ class SolicitudesData
         bool $es_auditable,
         ?string $observacion = null,
         ?string $fecha_entrega_requerida = null,
+        ?string $fecha_solicitud = null,
     ) {
         return SolicitudReabastecimiento::crear_solicitud(
             id_almacen_solicitante: $id_almacen_solicitante,
@@ -54,6 +55,7 @@ class SolicitudesData
             premura: $premura,
             observacion: $observacion,
             fecha_entrega_requerida: $fecha_entrega_requerida,
+            fecha_solicitud: $fecha_solicitud,
             es_auditable: $es_auditable,
         );
     }

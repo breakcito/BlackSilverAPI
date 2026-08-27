@@ -45,17 +45,24 @@ class AuxController extends Controller
 {
     /**
      * Catálogo de almacenes. Acepta filtros opcionales.
+     *
+     * Por defecto NO devuelve los almacenes de carbon: el front debe
+     * enviar explicitamente `para_carbon=1` (o `true`) para incluirlos.
      */
     public function get_almacenes(Request $request): JsonResponse
     {
         $id_almacen = $request->input('id_almacen') ? (int) $request->input('id_almacen') : null;
         $id_empleado_responsable = $request->input('id_empleado_responsable') ? (int) $request->input('id_empleado_responsable') : null;
         $es_principal = $request->has('es_principal') ? (int) $request->input('es_principal') : null;
+        $incluir_carbon = $request->has('para_carbon')
+            ? $request->boolean('para_carbon')
+            : false;
 
         return response()->json(AlmacenesService::get_almacenes(
             id_almacen: $id_almacen,
             id_empleado_responsable: $id_empleado_responsable,
-            es_principal: $es_principal
+            es_principal: $es_principal,
+            incluir_carbon: $incluir_carbon
         ));
     }
 
@@ -94,7 +101,6 @@ class AuxController extends Controller
     {
         $request->validate([
             'id_proveedor' => 'nullable|int',
-            'es_representante' => 'nullable|boolean',
             'nombre' => 'required|string',
             'apellido' => 'nullable|string',
             'dni' => 'nullable|string',
@@ -102,7 +108,6 @@ class AuxController extends Controller
 
         $result = PersonalExternoService::crear_personal(
             id_proveedor: $request->input('id_proveedor') ? (int) $request->input('id_proveedor') : null,
-            es_representante: (bool) $request->input('es_representante', false),
             nombre: $request->input('nombre'),
             apellido: $request->input('apellido'),
             dni: $request->input('dni')

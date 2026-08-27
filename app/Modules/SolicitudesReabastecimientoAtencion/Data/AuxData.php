@@ -18,7 +18,6 @@ class AuxData
     {
         $updateData = [
             'estado' => $estado,
-            'id_empleado_atencion' => $id_empleado
         ];
 
         if ($comentario !== null) {
