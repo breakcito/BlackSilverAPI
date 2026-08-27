@@ -15,6 +15,7 @@ class LugarExtraccionCarbonData
     {
         $sql = '
             SELECT
+                le.id AS id_lugar_extraccion,
                 le.id_proveedor,
                 le.id_departamento,
                 d.nombre AS departamento_nombre,
@@ -58,6 +59,7 @@ class LugarExtraccionCarbonData
 
         $sql = "
             SELECT
+                le.id AS id_lugar_extraccion,
                 le.id_proveedor,
                 le.id_departamento,
                 d.nombre AS departamento_nombre,
@@ -75,6 +77,53 @@ class LugarExtraccionCarbonData
             ORDER BY le.id_proveedor, d.nombre ASC, p.nombre ASC, di.nombre ASC
         ";
         return DB::select($sql, $params);
+    }
+
+    /**
+     * Inserta un nuevo lugar de extraccion para un proveedor y devuelve el id generado.
+     */
+    public static function insertar(
+        int $id_proveedor,
+        int $id_departamento,
+        int $id_provincia,
+        int $id_distrito,
+        string $direccion,
+    ): int {
+        return DB::table('lugar_extraccion_carbon')->insertGetId([
+            'id_proveedor' => $id_proveedor,
+            'id_departamento' => $id_departamento,
+            'id_provincia' => $id_provincia,
+            'id_distrito' => $id_distrito,
+            'direccion' => trim($direccion),
+            'estado' => 'Activo',
+        ]);
+    }
+
+    /**
+     * Devuelve un lugar de extraccion por id (o null si no existe).
+     */
+    public static function get_por_id(int $id_lugar_extraccion): ?object
+    {
+        $sql = '
+            SELECT
+                le.id AS id_lugar_extraccion,
+                le.id_proveedor,
+                le.id_departamento,
+                d.nombre AS departamento_nombre,
+                le.id_provincia,
+                p.nombre AS provincia_nombre,
+                le.id_distrito,
+                di.nombre AS distrito_nombre,
+                le.direccion,
+                le.estado
+            FROM lugar_extraccion_carbon le
+            INNER JOIN departamento d ON d.id = le.id_departamento
+            INNER JOIN provincia p ON p.id = le.id_provincia
+            INNER JOIN distrito di ON di.id = le.id_distrito
+            WHERE le.id = :id
+            LIMIT 1
+        ';
+        return DB::selectOne($sql, ['id' => $id_lugar_extraccion]);
     }
 
     /**

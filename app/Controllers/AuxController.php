@@ -23,6 +23,8 @@ use App\Services\PersonalExternoService;
 use App\Services\ProductosService;
 use App\Services\ProveedoresService;
 use App\Services\RolesService;
+use App\Services\TarifasCarbonService;
+use App\Services\TransportistasService;
 use App\Services\UbicacionService;
 use App\Services\UnidadesMedidaService;
 use App\Shared\Enums\_Generic\EstadoBase;
@@ -541,6 +543,100 @@ class AuxController extends Controller
         );
 
         return response()->json($result);
+    }
+
+    /**
+     * Catalogo de transportistas (modulo Compra de Carbon).
+     */
+    public function get_transportistas(Request $request): JsonResponse
+    {
+        $id_transportista = $request->input('id_transportista') ? (int) $request->input('id_transportista') : null;
+        $estado_val = $request->input('estado');
+        $estado = $estado_val ? EstadoBase::from($estado_val) : EstadoBase::Activo;
+
+        return response()->json(TransportistasService::get_transportistas(
+            id_transportista: $id_transportista,
+            estado: $estado,
+        ));
+    }
+
+    /**
+     * Crea un transportista en el catalogo. Pensado para el boton "+"
+     * del formulario de Compra de Carbon.
+     */
+    public function crear_transportista(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'tipo_entidad' => 'required|string|in:Natural,Jurídica',
+            'razon_social' => 'required|string|max:255',
+            'ruc' => 'nullable|string|max:32',
+            'dni' => 'nullable|string|max:32',
+            'telefono' => 'nullable|string|max:64',
+        ], [
+            'tipo_entidad.required' => 'Tipo de entidad requerido',
+            'tipo_entidad.in' => 'Tipo de entidad debe ser Natural o Juridica',
+            'razon_social.required' => 'Razon social o nombre requerido',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
+        }
+
+        return response()->json(TransportistasService::crear_transportista(
+            tipo_entidad: $request->input('tipo_entidad'),
+            razon_social: $request->input('razon_social'),
+            ruc: $request->input('ruc') ?: null,
+            dni: $request->input('dni') ?: null,
+            telefono: $request->input('telefono') ?: null,
+        ));
+    }
+
+    /**
+     * Catalogo de tarifas de carbon por tipo y rango de ceniza.
+     */
+    public function get_tarifas_carbon(Request $request): JsonResponse
+    {
+        $id_tarifa_carbon = $request->input('id_tarifa_carbon') ? (int) $request->input('id_tarifa_carbon') : null;
+        $id_tipo_carbon = $request->input('id_tipo_carbon') ? (int) $request->input('id_tipo_carbon') : null;
+        $estado_val = $request->input('estado');
+        $estado = $estado_val ? EstadoBase::from($estado_val) : EstadoBase::Activo;
+
+        return response()->json(TarifasCarbonService::get_tarifas_carbon(
+            id_tarifa_carbon: $id_tarifa_carbon,
+            id_tipo_carbon: $id_tipo_carbon,
+            estado: $estado,
+        ));
+    }
+
+    /**
+     * Crea una tarifa de carbon. Pensado para el boton "+" del
+     * formulario de Compra de Carbon.
+     */
+    public function crear_tarifa_carbon(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_tipo_carbon' => 'required|integer|min:1',
+            'inicio_porcentaje_ceniza' => 'required|numeric|min:0',
+            'fin_porcentaje_ceniza' => 'required|numeric|min:0',
+            'precio_unitario' => 'required|numeric|min:0.01',
+        ], [
+            'id_tipo_carbon.required' => 'Tipo de carbon requerido',
+            'inicio_porcentaje_ceniza.required' => 'Inicio del rango de ceniza requerido',
+            'fin_porcentaje_ceniza.required' => 'Fin del rango de ceniza requerido',
+            'precio_unitario.required' => 'Precio unitario requerido',
+            'precio_unitario.min' => 'El precio unitario debe ser mayor a 0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
+        }
+
+        return response()->json(TarifasCarbonService::crear_tarifa_carbon(
+            id_tipo_carbon: (int) $request->input('id_tipo_carbon'),
+            inicio_porcentaje_ceniza: (float) $request->input('inicio_porcentaje_ceniza'),
+            fin_porcentaje_ceniza: (float) $request->input('fin_porcentaje_ceniza'),
+            precio_unitario: (float) $request->input('precio_unitario'),
+        ));
     }
 
     /**

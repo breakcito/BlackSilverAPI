@@ -40,5 +40,6 @@ class CompraCarbon extends Model
         //
         'created_at',
         'estado',
+        'estado_pago', // pendiente, en proceso, pagado
     ];
 }

@@ -68,6 +68,14 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::get('/marcas', 'get_marcas');
             Route::post('/marcas', 'crear_marca');
 
+            // transportistas (catalogo modulo Compra de Carbon)
+            Route::get('/transportistas', 'get_transportistas');
+            Route::post('/transportistas', 'crear_transportista');
+
+            // tarifas de carbon (catalogo modulo Compra de Carbon)
+            Route::get('/tarifas-carbon', 'get_tarifas_carbon');
+            Route::post('/tarifas-carbon', 'crear_tarifa_carbon');
+
             // activos fijos disponibles
             Route::get('/activos-disponibles', 'get_activos_disponibles');
 
