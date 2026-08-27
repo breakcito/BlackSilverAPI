@@ -70,6 +70,38 @@ class RequerimientosData
             ]);
     }
 
+    /**
+     * Actualiza la cabecera de un requerimiento con la lista blanca de campos
+     * editables. Solo se aplican los campos que vienen no-null en $campos.
+     */
+    public static function update_requerimiento_cabecera(int $id_requerimiento, array $campos)
+    {
+        $permitidos = [
+            'id_empleado_solicitante',
+            'id_contratista_solicitante',
+            'id_labor',
+            'premura',
+            'fecha_entrega_requerida',
+            'fecha_solicitud',
+            'observacion',
+            'es_auditable',
+        ];
+
+        $updateData = [];
+        foreach ($permitidos as $key) {
+            if (array_key_exists($key, $campos) && $campos[$key] !== null) {
+                $updateData[$key] = $campos[$key];
+            }
+        }
+
+        if (empty($updateData)) {
+            return 0;
+        }
+
+        return RequerimientoAlmacen::where('id', $id_requerimiento)
+            ->update($updateData);
+    }
+
     public static function get_correlativo_by_requerimiento(int $id_requerimiento)
     {
         return RequerimientoAlmacen::select('correlativo')

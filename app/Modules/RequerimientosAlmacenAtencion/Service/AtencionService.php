@@ -6,6 +6,7 @@ use App\Shared\Enums\_Generic\Premura;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalle;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalleLog;
 use App\Shared\Responses\ApiResponse;
+use App\Models\RequerimientoAlmacenDetalle;
 use App\Modules\RequerimientosAlmacenAtencion\Data\RequerimientosData;
 use App\Modules\RequerimientosAlmacenAtencion\Data\RequerimientosDetalleData;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimiento;
@@ -226,6 +227,216 @@ class AtencionService
             $requerimiento->save();
 
             return ApiResponse::success($evidenciasFinal, 'Evidencias subidad correctamente');
+        });
+    }
+
+    /**
+     * Edita un requerimiento. Cabecera siempre editable; detalles solo si
+     * `cantidad_entregada_base = 0`. La operacion se ejecuta en una sola
+     * transaccion y rechaza si algun detalle a modificar ya tiene entregas.
+     *
+     * Ademas permite:
+     * - `detalles_crear`: crear nuevos detalles en este requerimiento
+     *   (reutiliza el mismo flujo que el registro).
+     * - `detalles_eliminar`: ids de detalles existentes a eliminar
+     *   (solo los que no tengan entregas iniciadas).
+     */
+    public static function editar_requerimiento(
+        int $id_requerimiento,
+        int $id_empleado_editor,
+        array $cabecera,
+        array $detalles_editar,
+        array $detalles_eliminar,
+        ?array $evidencias_nuevas = null,
+        array $detalles_crear = []
+    ) {
+        return DB::transaction(function () use ($id_requerimiento, $id_empleado_editor, $cabecera, $detalles_editar, $detalles_eliminar, $evidencias_nuevas, $detalles_crear) {
+            $requerimiento = \App\Models\RequerimientoAlmacen::find($id_requerimiento);
+            if (!$requerimiento) {
+                return ApiResponse::error('Requerimiento no encontrado');
+            }
+
+            // Validar que al menos un detalle siga sin entrega iniciada; si
+            // todos los detalles ya tienen despacho, no permitimos editar.
+            $detallesActuales = RequerimientoAlmacenDetalle::where(
+                'id_requerimiento_almacen',
+                $id_requerimiento,
+            )->get();
+
+            $algunoNoEntregado = $detallesActuales->contains(
+                fn($d) => (float) $d->cantidad_entregada_base === 0.0,
+            );
+
+            if (!$algunoNoEntregado) {
+                return ApiResponse::error(
+                    'No se puede editar un requerimiento que ya tiene entregas iniciadas',
+                );
+            }
+
+            // 1. Actualizar cabecera (whitelist ya aplicada por Data).
+            RequerimientosData::update_requerimiento_cabecera(
+                $id_requerimiento,
+                $cabecera,
+            );
+
+            // 2. Procesar detalles a editar.
+            foreach ($detalles_editar as $det) {
+                $idDetalle = (int) ($det['id_requerimiento_almacen_detalle'] ?? 0);
+                if ($idDetalle <= 0) {
+                    continue;
+                }
+
+                $fila = RequerimientosDetalleData::get_detalle_raw($idDetalle);
+                if (!$fila || (int) $fila->id_requerimiento_almacen !== $id_requerimiento) {
+                    return ApiResponse::error(
+                        "El detalle {$idDetalle} no pertenece a este requerimiento",
+                    );
+                }
+                if ((float) $fila->cantidad_entregada_base > 0) {
+                    return ApiResponse::error(
+                        "El detalle {$idDetalle} ya tiene entregas iniciadas y no puede modificarse",
+                    );
+                }
+
+                // Tomamos valores actuales como base; el frontend envia solo
+                // los campos a modificar, asi que mezclamos con la fila real.
+                $cantidad = isset($det['cantidad_solicitada'])
+                    ? (float) $det['cantidad_solicitada']
+                    : (float) $fila->cantidad_solicitada;
+                $contenido = isset($det['contenido_por_presentacion'])
+                    ? (float) $det['contenido_por_presentacion']
+                    : (float) $fila->contenido_por_presentacion;
+                $conMagnitud = array_key_exists('con_magnitud', $det)
+                    ? (bool) $det['con_magnitud']
+                    : (bool) $fila->con_magnitud;
+                $cantidadItems = isset($det['cantidad_items'])
+                    ? (float) $det['cantidad_items']
+                    : (float) ($fila->cantidad_items ?? 0);
+                $valorMagnitudBase = isset($det['valor_magnitud_base'])
+                    ? (float) $det['valor_magnitud_base']
+                    : (float) ($fila->valor_magnitud_base ?? 0);
+
+                $cantidad_base = RequerimientosDetalleData::recalcular_cantidad_base(
+                    $cantidad,
+                    $contenido,
+                    $conMagnitud,
+                    $cantidadItems,
+                    $valorMagnitudBase,
+                );
+
+                RequerimientosDetalleData::update_detalle_editable(
+                    $idDetalle,
+                    [
+                        'id_unidad_medida' => isset($det['id_unidad_medida'])
+                            ? (int) $det['id_unidad_medida']
+                            : (int) $fila->id_unidad_medida,
+                        'cantidad_solicitada' => $cantidad,
+                        'contenido_por_presentacion' => $contenido,
+                        'cantidad_solicitada_base' => $cantidad_base,
+                        'comentario' => array_key_exists('comentario', $det)
+                            ? ($det['comentario'] ?: null)
+                            : $fila->comentario,
+                        'para_mantenimiento' => array_key_exists('para_mantenimiento', $det)
+                            ? (bool) $det['para_mantenimiento']
+                            : (bool) $fila->para_mantenimiento,
+                        'id_activo_fijo_destino' => array_key_exists('id_activo_fijo_destino', $det)
+                            ? ($det['id_activo_fijo_destino'] ?: null)
+                            : $fila->id_activo_fijo_destino,
+                        'con_magnitud' => $conMagnitud,
+                        'cantidad_items' => $cantidadItems ?: null,
+                        'valor_magnitud' => isset($det['valor_magnitud'])
+                            ? (float) $det['valor_magnitud']
+                            : ($fila->valor_magnitud ?? null),
+                        'valor_magnitud_base' => $valorMagnitudBase ?: null,
+                    ],
+                );
+            }
+
+            // 3. Procesar detalles nuevos (crear). Mismas reglas de
+            //    validacion que `registrar_requerimiento` (cantidad > 0,
+            //    contenido > 0, mantenimiento => activo fijo destino).
+            foreach ($detalles_crear as $det) {
+                $idProducto = (int) ($det['id_producto'] ?? 0);
+                $idUnidad = (int) ($det['id_unidad_medida'] ?? 0);
+                $cantidad = (float) ($det['cantidad_solicitada'] ?? 0);
+                $contenido = (float) ($det['contenido_por_presentacion'] ?? 0);
+                if ($idProducto <= 0 || $idUnidad <= 0 || $cantidad <= 0 || $contenido <= 0) {
+                    return ApiResponse::error(
+                        'Datos inválidos en un producto nuevo: revise cantidad, unidad y contenido',
+                    );
+                }
+
+                $conMagnitud = (bool) ($det['con_magnitud'] ?? false);
+                $cantidadItems = (float) ($det['cantidad_items'] ?? 0);
+                $valorMagnitudBase = (float) ($det['valor_magnitud_base'] ?? 0);
+                $cantidadBaseCalculada = RequerimientosDetalleData::recalcular_cantidad_base(
+                    $cantidad,
+                    $contenido,
+                    $conMagnitud,
+                    $cantidadItems,
+                    $valorMagnitudBase,
+                );
+
+                $paraMantenimiento = (bool) ($det['para_mantenimiento'] ?? false);
+                $idActivoDestino = $paraMantenimiento
+                    ? (int) ($det['id_activo_fijo_destino'] ?? 0) ?: null
+                    : null;
+
+                RequerimientosDetalleData::crear_detalle(
+                    $id_requerimiento,
+                    $idProducto,
+                    $idUnidad,
+                    $cantidad,
+                    $contenido,
+                    $cantidadBaseCalculada,
+                    $det['comentario'] ?? null,
+                    $paraMantenimiento,
+                    $idActivoDestino,
+                    con_magnitud: $conMagnitud,
+                    cantidad_items: $cantidadItems > 0 ? $cantidadItems : null,
+                    valor_magnitud: isset($det['valor_magnitud']) ? (float) $det['valor_magnitud'] : null,
+                    valor_magnitud_base: $valorMagnitudBase > 0 ? $valorMagnitudBase : null,
+                );
+            }
+
+            // 4. Procesar detalles a eliminar.
+            foreach ($detalles_eliminar as $idDetalle) {
+                $idDetalle = (int) $idDetalle;
+                if ($idDetalle <= 0) {
+                    continue;
+                }
+                $fila = RequerimientosDetalleData::get_detalle_raw($idDetalle);
+                if (!$fila || (int) $fila->id_requerimiento_almacen !== $id_requerimiento) {
+                    continue;
+                }
+                if ((float) $fila->cantidad_entregada_base > 0) {
+                    return ApiResponse::error(
+                        "El detalle {$idDetalle} ya tiene entregas iniciadas y no puede eliminarse",
+                    );
+                }
+                RequerimientosDetalleData::delete_detalle_si_no_entregado($idDetalle);
+            }
+
+            // 5. Adjuntar evidencias nuevas si llegaron.
+            if (!empty($evidencias_nuevas)) {
+                $requerimiento = \App\Models\RequerimientoAlmacen::find($id_requerimiento);
+                $nuevas = RequerimientosData::guardar_evidencias($evidencias_nuevas);
+                $existentes = $requerimiento->evidencias
+                    ? json_decode($requerimiento->evidencias, true)
+                    : [];
+                $requerimiento->evidencias = json_encode(array_merge($existentes, $nuevas));
+                $requerimiento->save();
+            }
+
+            // 6. Devolver resumen + detalles actualizados para refrescar UI.
+            $resumen = RequerimientosData::get_requerimiento_by_id($id_requerimiento);
+            $resumen->evidencias = $resumen->evidencias ? json_decode($resumen->evidencias) : null;
+            $resumen->detalles = RequerimientosDetalleData::get_detalles_by_requerimiento($id_requerimiento);
+
+            return ApiResponse::success(
+                $resumen,
+                'Requerimiento actualizado correctamente',
+            );
         });
     }
 }

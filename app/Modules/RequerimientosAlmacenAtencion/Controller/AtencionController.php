@@ -217,4 +217,100 @@ class AtencionController extends Controller
             return response()->json(ApiResponse::error('Error al subir evidencias: ' . $e->getMessage()), 500);
         }
     }
+
+    /**
+     * Edita un requerimiento existente. Permite modificar la cabecera y los
+     * detalles que aun no tengan entrega iniciada (cantidad_entregada_base = 0).
+     */
+    public function editar_requerimiento(Request $request, int $id): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+        if (!$authUser) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
+        }
+
+        $reglas = [
+            'id_empleado_solicitante' => 'nullable|integer',
+            'id_contratista_solicitante' => 'nullable|integer',
+            'id_labor' => 'nullable|integer',
+            'premura' => 'nullable|string',
+            'fecha_entrega_requerida' => 'nullable|date',
+            'fecha_solicitud' => 'nullable|date',
+            'observacion' => 'nullable|string',
+            'es_auditable' => 'nullable|boolean',
+            'evidencias_nuevas' => 'nullable|array',
+            'evidencias_nuevas.*' => 'file',
+            'detalles_editar' => 'nullable|array',
+            'detalles_editar.*.id_requerimiento_almacen_detalle' => 'required_with:detalles_editar|integer',
+            'detalles_editar.*.id_unidad_medida' => 'nullable|integer',
+            'detalles_editar.*.cantidad_solicitada' => 'nullable|numeric|min:0',
+            'detalles_editar.*.contenido_por_presentacion' => 'nullable|numeric|min:0.0001',
+            'detalles_editar.*.comentario' => 'nullable|string',
+            'detalles_editar.*.para_mantenimiento' => 'nullable|boolean',
+            'detalles_editar.*.id_activo_fijo_destino' => 'nullable|integer',
+            'detalles_editar.*.con_magnitud' => 'nullable|boolean',
+            'detalles_editar.*.cantidad_items' => 'nullable|numeric|min:0',
+            'detalles_editar.*.valor_magnitud' => 'nullable|numeric|min:0',
+            'detalles_editar.*.valor_magnitud_base' => 'nullable|numeric|min:0',
+            'detalles_eliminar' => 'nullable|array',
+            'detalles_eliminar.*' => 'integer',
+            'detalles_crear' => 'nullable|array',
+            'detalles_crear.*.id_producto' => 'required_with:detalles_crear|integer',
+            'detalles_crear.*.id_unidad_medida' => 'required_with:detalles_crear|integer',
+            'detalles_crear.*.cantidad_solicitada' => 'required_with:detalles_crear|numeric|min:0.01',
+            'detalles_crear.*.contenido_por_presentacion' => 'required_with:detalles_crear|numeric|min:0.0001',
+            'detalles_crear.*.comentario' => 'nullable|string',
+            'detalles_crear.*.para_mantenimiento' => 'nullable|boolean',
+            'detalles_crear.*.id_activo_fijo_destino' => 'nullable|integer',
+            'detalles_crear.*.con_magnitud' => 'nullable|boolean',
+            'detalles_crear.*.cantidad_items' => 'nullable|numeric|min:0',
+            'detalles_crear.*.valor_magnitud' => 'nullable|numeric|min:0',
+            'detalles_crear.*.valor_magnitud_base' => 'nullable|numeric|min:0',
+        ];
+
+        $validator = Validator::make($request->all(), $reglas);
+
+        if ($validator->fails()) {
+            $errores = $validator->errors()->all();
+            return response()->json(ApiResponse::error('Datos inválidos: ' . implode(', ', $errores)));
+        }
+
+        $cabecera = [
+            'id_empleado_solicitante' => $request->has('id_empleado_solicitante')
+                ? ($request->id_empleado_solicitante ? (int) $request->id_empleado_solicitante : null)
+                : null,
+            'id_contratista_solicitante' => $request->has('id_contratista_solicitante')
+                ? ($request->id_contratista_solicitante ? (int) $request->id_contratista_solicitante : null)
+                : null,
+            'id_labor' => $request->has('id_labor')
+                ? ($request->id_labor ? (int) $request->id_labor : null)
+                : null,
+            'premura' => $request->input('premura'),
+            'fecha_entrega_requerida' => $request->input('fecha_entrega_requerida'),
+            'fecha_solicitud' => $request->input('fecha_solicitud'),
+            'observacion' => $request->input('observacion'),
+            'es_auditable' => $request->has('es_auditable') ? (bool) $request->es_auditable : null,
+        ];
+
+        $detalles_editar = $request->input('detalles_editar', []);
+        $detalles_crear = $request->input('detalles_crear', []);
+        $detalles_eliminar = $request->input('detalles_eliminar', []);
+        $evidencias_nuevas = $request->file('evidencias_nuevas', []);
+
+        try {
+            $resultado = AtencionService::editar_requerimiento(
+                id_requerimiento: $id,
+                id_empleado_editor: (int) $authUser->id_empleado,
+                cabecera: $cabecera,
+                detalles_editar: $detalles_editar,
+                detalles_crear: $detalles_crear,
+                detalles_eliminar: $detalles_eliminar,
+                evidencias_nuevas: $evidencias_nuevas
+            );
+
+            return response()->json($resultado);
+        } catch (\Exception $e) {
+            return response()->json(ApiResponse::error('Error al editar requerimiento: ' . $e->getMessage()), 500);
+        }
+    }
 }

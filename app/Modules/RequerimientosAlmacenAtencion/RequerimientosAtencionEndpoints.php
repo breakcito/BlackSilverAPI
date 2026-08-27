@@ -16,6 +16,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::put('/save-decision-detalle', 'update_estado_detalle_requerimiento');
             Route::get('/trazabilidad', 'get_trazabilidad');
             Route::post('/evidencias', 'subir_evidencias');
+            Route::put('/{id}', 'editar_requerimiento');
         });
 
         // Entregas (Despacho, Stock, Lotes)
