@@ -82,6 +82,13 @@ class CompraCarbonController
             // Si aplica_igv es true debe traer porcentaje (por defecto 18).
             'porcentaje_igv' => 'required_if:aplica_igv,true|nullable|numeric|min:0|max:100',
             'fecha_hora_ingreso' => 'required|date_format:Y-m-d H:i:s',
+            // Evidencias a nivel de cabecera (opcional): la UI las sube
+            // primero al storage y luego nos manda la lista resultante.
+            'evidencias' => 'nullable|array',
+            'evidencias.*.url' => 'required_with:evidencias|string',
+            'evidencias.*.path_relativo' => 'required_with:evidencias|string',
+            'evidencias.*.nombre_original' => 'nullable|string',
+            'evidencias.*.extension' => 'nullable|string',
             'detalles' => 'required|array|min:1',
             'detalles.*.id_tipo_carbon' => 'required|integer|min:1',
             'detalles.*.id_transportista' => 'nullable|integer|min:1',

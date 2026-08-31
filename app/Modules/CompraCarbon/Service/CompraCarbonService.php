@@ -64,9 +64,6 @@ class CompraCarbonService
         if ($existente['cabecera'] === null) {
             return ApiResponse::error('La compra no existe');
         }
-        if ($existente['cabecera']->estado !== EstadoCompraCarbon::Aprobado->value) {
-            return ApiResponse::error('Solo se pueden subir evidencias a una compra aprobada');
-        }
 
         CompraCarbonData::set_evidencias($id_compra_carbon, $evidencias);
 
@@ -223,6 +220,11 @@ class CompraCarbonService
             ? round($total_antes_descuento * $porcentaje_igv / 100, 2)
             : 0.0;
 
+        $evidenciasCab = $payload['evidencias'] ?? [];
+        if (!is_array($evidenciasCab)) {
+            $evidenciasCab = [];
+        }
+
         return DB::transaction(function () use (
             $id_empresa,
             $id_proveedor,
@@ -236,6 +238,7 @@ class CompraCarbonService
             $descuento_flete_total,
             $total_con_descuento,
             $monto_igv,
+            $evidenciasCab,
         ) {
             $correlativoData = CorrelativoHelper::generar(
                 tabla: 'compra_carbon',
@@ -262,6 +265,9 @@ class CompraCarbonService
                 'total_con_descuento' => $total_con_descuento,
                 'estado_pago' => null,
                 'estado' => EstadoCompraCarbon::Pendiente->value,
+                'evidencias' => empty($evidenciasCab)
+                    ? null
+                    : json_encode($evidenciasCab, JSON_UNESCAPED_UNICODE),
                 'created_at' => now()->toDateTimeString(),
             ]);
 

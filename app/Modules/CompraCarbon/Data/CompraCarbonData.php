@@ -241,6 +241,7 @@ class CompraCarbonData
             'total_con_descuento' => (float) ($cabecera['total_con_descuento'] ?? 0),
             'estado_pago' => isset($cabecera['estado_pago']) ? (string) $cabecera['estado_pago'] : null,
             'estado' => (string) ($cabecera['estado'] ?? EstadoCompraCarbon::Pendiente->value),
+            'evidencias' => $cabecera['evidencias'] ?? null,
             'created_at' => (string) $cabecera['created_at'],
         ]);
     }
