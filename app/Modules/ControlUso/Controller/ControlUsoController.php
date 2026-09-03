@@ -110,6 +110,115 @@ class ControlUsoController extends Controller
     }
 
     /**
+     * Registrar multiples controles de uso en una sola transaccion (cabecera + items).
+     */
+    public function registrar_uso_bulk(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_activo_fijo'  => 'required|integer',
+            'fecha_trabajo'   => 'required|date_format:Y-m-d',
+            'id_tarifa'       => 'nullable|integer',
+            'precio_unitario' => 'required|numeric|min:0',
+            'es_para_mina'    => 'required|boolean',
+            'id_mina'         => 'nullable|integer',
+            'id_labor'        => 'nullable|integer',
+            'id_cliente'      => 'nullable|integer',
+            'id_lote_mineral' => 'nullable|integer',
+            'tipo_carga'      => 'nullable|string|max:64',
+
+            'items'                  => 'required|array|min:1',
+            'items.*.hora_inicio'    => 'required|date_format:H:i',
+            'items.*.hora_fin'       => 'required|date_format:H:i',
+            'items.*.horometro_inicio' => 'nullable|numeric|min:0',
+            'items.*.horometro_fin'    => 'nullable|numeric|min:0|gte:items.*.horometro_inicio',
+            'items.*.observacion'    => 'nullable|string',
+        ], [
+            'id_activo_fijo.required'  => 'El activo fijo es requerido',
+            'fecha_trabajo.required'   => 'La fecha del trabajo es requerida',
+            'fecha_trabajo.date_format' => 'La fecha debe tener formato YYYY-MM-DD',
+            'precio_unitario.required' => 'El precio unitario es requerido',
+            'es_para_mina.required'    => 'Debe indicar si el destino es en mina o para terceros',
+            'items.required'           => 'Debe incluir al menos un item de horario',
+            'items.min'                => 'Debe incluir al menos un item de horario',
+            'items.*.hora_inicio.required'  => 'La hora de inicio es obligatoria en todos los items',
+            'items.*.hora_fin.required'     => 'La hora de fin es obligatoria en todos los items',
+            'items.*.hora_inicio.date_format' => 'Hora de inicio debe tener formato HH:MM',
+            'items.*.hora_fin.date_format'    => 'Hora de fin debe tener formato HH:MM',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $v = $validator->validated();
+
+        $res = \App\Modules\ControlUso\Service\ControlUsoService::registrar_uso_bulk(
+            id_activo_fijo: (int) $v['id_activo_fijo'],
+            fecha_trabajo: (string) $v['fecha_trabajo'],
+            id_tarifa: isset($v['id_tarifa']) ? (int) $v['id_tarifa'] : null,
+            precio_unitario: (float) $v['precio_unitario'],
+            es_para_mina: (bool) $v['es_para_mina'],
+            id_mina: isset($v['id_mina']) ? (int) $v['id_mina'] : null,
+            id_labor: isset($v['id_labor']) ? (int) $v['id_labor'] : null,
+            id_cliente: isset($v['id_cliente']) ? (int) $v['id_cliente'] : null,
+            id_lote_mineral: isset($v['id_lote_mineral']) ? (int) $v['id_lote_mineral'] : null,
+            tipo_carga: isset($v['tipo_carga']) ? (string) $v['tipo_carga'] : null,
+            items: $v['items'],
+        );
+
+        return response()->json($res);
+    }
+
+    /**
+     * Registrar multiples controles por vueltas en una sola transaccion (cabecera + items[]).
+     * Cada item representa un viaje independiente con su propia cantidad de vueltas y sacos.
+     * El acumulado del activo_fijo se actualiza una sola vez al final.
+     */
+    public function registrar_uso_bulk_vueltas(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_activo_fijo'  => 'required|integer',
+            'id_tarifa'       => 'nullable|integer',
+            'precio_unitario' => 'required|numeric|min:0',
+            'id_mina'         => 'required|integer',
+            'id_labor'        => 'required|integer',
+
+            'items'                          => 'required|array|min:1',
+            'items.*.cantidad_vueltas'       => 'required|integer|min:1',
+            'items.*.cantidad_sacos'         => 'nullable|integer|min:0',
+            'items.*.horometro_inicio'       => 'nullable|numeric|min:0',
+            'items.*.horometro_fin'          => 'nullable|numeric|min:0|gte:items.*.horometro_inicio',
+            'items.*.observacion'            => 'nullable|string',
+        ], [
+            'id_activo_fijo.required'        => 'El activo fijo es requerido',
+            'precio_unitario.required'       => 'El precio unitario es requerido',
+            'id_mina.required'               => 'La mina es obligatoria para registrar un control por vueltas',
+            'id_labor.required'              => 'La labor es obligatoria para registrar un control por vueltas',
+            'items.required'                 => 'Debe incluir al menos un item de vueltas',
+            'items.min'                      => 'Debe incluir al menos un item de vueltas',
+            'items.*.cantidad_vueltas.required' => 'La cantidad de vueltas es obligatoria en todos los items',
+            'items.*.cantidad_vueltas.min'   => 'La cantidad de vueltas debe ser mayor o igual a 1',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $v = $validator->validated();
+
+        $res = \App\Modules\ControlUso\Service\ControlUsoService::registrar_uso_bulk_vueltas(
+            id_activo_fijo: (int) $v['id_activo_fijo'],
+            id_tarifa: isset($v['id_tarifa']) ? (int) $v['id_tarifa'] : null,
+            precio_unitario: (float) $v['precio_unitario'],
+            id_mina: (int) $v['id_mina'],
+            id_labor: (int) $v['id_labor'],
+            items: $v['items'],
+        );
+
+        return response()->json($res);
+    }
+
+    /**
      * Obtener el listado de tarifas para un activo.
      */
     public function get_tarifas(Request $request, int $id_activo_fijo): JsonResponse

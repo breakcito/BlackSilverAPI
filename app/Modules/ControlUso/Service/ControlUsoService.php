@@ -156,6 +156,233 @@ class ControlUsoService
         });
     }
 
+    /**
+     * Registrar varios logs de uso en una sola transaccion (cabecera + items[]).
+     * Cada item representa un tramo horario independiente con su propia observacion.
+     * El acumulado del activo_fijo se actualiza una sola vez al final.
+     *
+     * @param array $items Cada item: ['hora_inicio'=>HH:MM, 'hora_fin'=>HH:MM, 'horometro_inicio'?=>float, 'horometro_fin'?=>float, 'observacion'?=>string]
+     */
+    public static function registrar_uso_bulk(
+        int $id_activo_fijo,
+        string $fecha_trabajo,
+        ?int $id_tarifa,
+        float $precio_unitario,
+        bool $es_para_mina,
+        ?int $id_mina,
+        ?int $id_labor,
+        ?int $id_cliente,
+        ?int $id_lote_mineral,
+        ?string $tipo_carga,
+        array $items
+    ) {
+        if (count($items) === 0) {
+            return ApiResponse::error('Debe incluir al menos un item de horario.');
+        }
+
+        return DB::transaction(function () use (
+            $id_activo_fijo, $fecha_trabajo, $id_tarifa, $precio_unitario,
+            $es_para_mina, $id_mina, $id_labor, $id_cliente, $id_lote_mineral, $tipo_carga, $items
+        ) {
+            $created = [];
+            $suma_total_horas = 0.0;
+
+            foreach ($items as $idx => $it) {
+                $horaInicio = isset($it['hora_inicio']) ? (string) $it['hora_inicio'] : '';
+                $horaFin = isset($it['hora_fin']) ? (string) $it['hora_fin'] : '';
+
+                if ($horaInicio === '' || $horaFin === '') {
+                    throw new \RuntimeException("Item #$idx: hora de inicio y fin son obligatorias.");
+                }
+
+                $dtInicio = Carbon::createFromFormat('Y-m-d H:i', "$fecha_trabajo $horaInicio");
+                $dtFin = Carbon::createFromFormat('Y-m-d H:i', "$fecha_trabajo $horaFin");
+
+                // Si la hora de fin es menor o igual a la de inicio, asumimos que cruza la medianoche
+                if (!$dtFin->greaterThan($dtInicio)) {
+                    $dtFin = $dtFin->addDay();
+                }
+
+                $diffMinutes = $dtInicio->diffInMinutes($dtFin);
+                $totalHorasItem = round($diffMinutes / 60.0, 2);
+                $costoItem = round($totalHorasItem * ($precio_unitario ?? 0.0), 2);
+
+                $horometroInicio = (isset($it['horometro_inicio']) && $it['horometro_inicio'] !== '' && $it['horometro_inicio'] !== null)
+                    ? (float) $it['horometro_inicio']
+                    : null;
+                $horometroFin = (isset($it['horometro_fin']) && $it['horometro_fin'] !== '' && $it['horometro_fin'] !== null)
+                    ? (float) $it['horometro_fin']
+                    : null;
+
+                if ($horometroInicio !== null && $horometroFin !== null && $horometroFin <= $horometroInicio) {
+                    throw new \RuntimeException("Item #$idx: el horometro final no puede ser menor o igual al inicial.");
+                }
+
+                $observacion = (isset($it['observacion']) && $it['observacion'] !== '')
+                    ? trim((string) $it['observacion'])
+                    : null;
+
+                $log = ControlUsoActivo::create([
+                    'id_activo_fijo' => $id_activo_fijo,
+                    'fecha_hora_inicio_control' => $dtInicio->toDateTimeString(),
+                    'fecha_hora_fin_control' => $dtFin->toDateTimeString(),
+                    'horometro_inicio' => $horometroInicio,
+                    'horometro_fin' => $horometroFin,
+                    'odometro_inicio' => null,
+                    'odometro_fin' => null,
+                    'cantidad_vueltas' => null,
+                    'cantidad_sacos' => null,
+                    'total_horas' => $totalHorasItem,
+                    'precio_unitario' => $precio_unitario ?? 0.0,
+                    'costo_total' => $costoItem,
+                    'es_para_mina' => $es_para_mina,
+                    'id_mina' => $id_mina,
+                    'id_labor' => $id_labor,
+                    'id_lote_mineral' => $id_lote_mineral,
+                    'id_cliente' => $id_cliente,
+                    'tipo_carga' => $tipo_carga,
+                    'id_tarifa' => $id_tarifa,
+                    'observacion' => $observacion,
+                    'created_at' => now()->toDateTimeString(),
+                ]);
+
+                $created[] = $log;
+                $suma_total_horas += (float) $totalHorasItem;
+            }
+
+            // Update acumulado del activo_fijo UNA sola vez al final
+            if ($suma_total_horas > 0) {
+                $activoInfo = DB::table('activo_fijo')
+                    ->join('producto', 'producto.id', '=', 'activo_fijo.id_producto')
+                    ->join('categoria', 'categoria.id', '=', 'producto.id_categoria')
+                    ->select('categoria.control_por_horometro')
+                    ->where('activo_fijo.id', $id_activo_fijo)
+                    ->first();
+
+                if ($activoInfo && $activoInfo->control_por_horometro) {
+                    $curr = DB::table('activo_fijo')->where('id', $id_activo_fijo)->value('total_horas') ?? 0;
+                    DB::table('activo_fijo')
+                        ->where('id', $id_activo_fijo)
+                        ->update(['total_horas' => $curr + $suma_total_horas]);
+                }
+            }
+
+            $cantidad = count($created);
+            $msg = $cantidad === 1
+                ? 'Registro de uso guardado correctamente'
+                : "$cantidad registros de uso guardados correctamente";
+
+            return ApiResponse::success($created, $msg);
+        });
+    }
+
+    /**
+     * Registrar varios logs de uso por vueltas en una sola transaccion (cabecera + items[]).
+     * Cada item representa un viaje independiente con su propia cantidad de vueltas.
+     * El acumulado del activo_fijo se actualiza una sola vez al final.
+     *
+     * @param array $items Cada item: ['cantidad_vueltas'=>int, 'cantidad_sacos'?=>int, 'horometro_inicio'?=>float, 'horometro_fin'?=>float, 'observacion'?=>string]
+     */
+    public static function registrar_uso_bulk_vueltas(
+        int $id_activo_fijo,
+        ?int $id_tarifa,
+        float $precio_unitario,
+        int $id_mina,
+        int $id_labor,
+        array $items
+    ) {
+        if (count($items) === 0) {
+            return ApiResponse::error('Debe incluir al menos un item de vueltas.');
+        }
+
+        return DB::transaction(function () use (
+            $id_activo_fijo, $id_tarifa, $precio_unitario, $id_mina, $id_labor, $items
+        ) {
+            $created = [];
+            $suma_total_vueltas = 0;
+
+            $dtInicio = now()->toDateTimeString();
+
+            foreach ($items as $idx => $it) {
+                $cantidadVueltas = (isset($it['cantidad_vueltas']) && $it['cantidad_vueltas'] !== '' && $it['cantidad_vueltas'] !== null)
+                    ? (int) $it['cantidad_vueltas']
+                    : 0;
+                $cantidadSacos = (isset($it['cantidad_sacos']) && $it['cantidad_sacos'] !== '' && $it['cantidad_sacos'] !== null)
+                    ? (int) $it['cantidad_sacos']
+                    : null;
+                $horometroInicio = (isset($it['horometro_inicio']) && $it['horometro_inicio'] !== '' && $it['horometro_inicio'] !== null)
+                    ? (float) $it['horometro_inicio']
+                    : null;
+                $horometroFin = (isset($it['horometro_fin']) && $it['horometro_fin'] !== '' && $it['horometro_fin'] !== null)
+                    ? (float) $it['horometro_fin']
+                    : null;
+                $observacion = (isset($it['observacion']) && $it['observacion'] !== '')
+                    ? trim((string) $it['observacion'])
+                    : null;
+
+                if ($cantidadVueltas <= 0) {
+                    throw new \RuntimeException("Item #$idx: la cantidad de vueltas debe ser mayor a cero.");
+                }
+
+                if ($horometroInicio !== null && $horometroFin !== null && $horometroFin <= $horometroInicio) {
+                    throw new \RuntimeException("Item #$idx: el horometro final no puede ser menor o igual al inicial.");
+                }
+
+                $costoItem = round($cantidadVueltas * ($precio_unitario ?? 0.0), 2);
+
+                $log = ControlUsoActivo::create([
+                    'id_activo_fijo' => $id_activo_fijo,
+                    'fecha_hora_inicio_control' => $dtInicio,
+                    'fecha_hora_fin_control' => null,
+                    'horometro_inicio' => $horometroInicio,
+                    'horometro_fin' => $horometroFin,
+                    'odometro_inicio' => null,
+                    'odometro_fin' => null,
+                    'cantidad_vueltas' => $cantidadVueltas,
+                    'cantidad_sacos' => $cantidadSacos,
+                    'total_horas' => 0.0,
+                    'precio_unitario' => $precio_unitario ?? 0.0,
+                    'costo_total' => $costoItem,
+                    'es_para_mina' => true,
+                    'id_mina' => $id_mina,
+                    'id_labor' => $id_labor,
+                    'id_lote_mineral' => null,
+                    'id_cliente' => null,
+                    'tipo_carga' => null,
+                    'id_tarifa' => $id_tarifa,
+                    'observacion' => $observacion,
+                    'created_at' => now()->toDateTimeString(),
+                ]);
+
+                $created[] = $log;
+                $suma_total_vueltas += $cantidadVueltas;
+            }
+
+            if ($suma_total_vueltas > 0) {
+                $activoInfo = DB::table('activo_fijo')
+                    ->join('producto', 'producto.id', '=', 'activo_fijo.id_producto')
+                    ->join('categoria', 'categoria.id', '=', 'producto.id_categoria')
+                    ->select('categoria.control_por_vueltas')
+                    ->where('activo_fijo.id', $id_activo_fijo)
+                    ->first();
+
+                if ($activoInfo && $activoInfo->control_por_vueltas) {
+                    $curr = DB::table('activo_fijo')->where('id', $id_activo_fijo)->value('total_vueltas') ?? 0;
+                    DB::table('activo_fijo')
+                        ->where('id', $id_activo_fijo)
+                        ->update(['total_vueltas' => $curr + $suma_total_vueltas]);
+                }
+            }
+
+            $cantidad = count($created);
+            $msg = $cantidad === 1
+                ? 'Registro de uso guardado correctamente'
+                : "$cantidad registros de uso guardados correctamente";
+
+            return ApiResponse::success($created, $msg);
+        });
+    }
+
     public static function get_tarifas(int $id_activo_fijo)
     {
         $res = ControlUsoData::get_tarifas($id_activo_fijo);

@@ -16,6 +16,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::get('/ultimo-horometro/{id_activo_fijo}', 'get_ultimo_horometro');
         Route::get('/ultimo-odometro/{id_activo_fijo}', 'get_ultimo_odometro');
         Route::post('/', 'registrar_uso');
+        Route::post('/bulk', 'registrar_uso_bulk');
+        Route::post('/bulk-vueltas', 'registrar_uso_bulk_vueltas');
 
         // Tarifas
         Route::get('/tarifas/{id_activo_fijo}', 'get_tarifas');
