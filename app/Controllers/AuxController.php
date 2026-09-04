@@ -569,13 +569,17 @@ class AuxController extends Controller
         $validator = Validator::make($request->all(), [
             'tipo_entidad' => 'required|string|in:Natural,Jurídica',
             'razon_social' => 'required|string|max:255',
-            'ruc' => 'nullable|string|max:32',
-            'dni' => 'nullable|string|max:32',
+            // RUC obligatorio (11 digitos, prefijo segun tipo_entidad — se valida en Service).
+            'ruc' => 'required|string|size:11',
+            'dni' => 'nullable|string|size:8',
             'telefono' => 'nullable|string|max:64',
         ], [
             'tipo_entidad.required' => 'Tipo de entidad requerido',
             'tipo_entidad.in' => 'Tipo de entidad debe ser Natural o Juridica',
             'razon_social.required' => 'Razon social o nombre requerido',
+            'ruc.required' => 'El RUC es obligatorio',
+            'ruc.size' => 'El RUC debe tener 11 dígitos',
+            'dni.size' => 'El DNI debe tener 8 dígitos',
         ]);
 
         if ($validator->fails()) {
