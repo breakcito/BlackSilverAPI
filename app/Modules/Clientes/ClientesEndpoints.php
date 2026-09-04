@@ -9,6 +9,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::controller(ClientesController::class)->group(function () {
             Route::get('/', 'get_clientes');
             Route::post('/', 'crear_cliente');
+            Route::put('/{id_cliente}', 'actualizar_cliente');
+            Route::delete('/{id_cliente}', 'eliminar_cliente');
         });
 
         Route::prefix('cuentas-bancarias')->controller(CuentasBancariasController::class)->group(function () {

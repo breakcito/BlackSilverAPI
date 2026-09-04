@@ -52,4 +52,71 @@ class ClientesService
         $nuevo = ClientesData::get_cliente_by_id($id);
         return ApiResponse::success($nuevo, 'Cliente registrado correctamente');
     }
+
+    /**
+     * Actualizar campos administrativos de un cliente (NO estado).
+     * Si se recibe id_empleado + nombre_empleado se calcula diff y se apendea
+     * a cambios_log para trazabilidad.
+     */
+    public static function actualizar_cliente(
+        int $id_cliente,
+        ?string $tipo_entidad,
+        ?string $dni,
+        ?string $ruc,
+        string $razon_social,
+        ?string $direccion,
+        ?string $telefono,
+        ?string $correo,
+        ?int $id_empleado = null,
+        ?string $nombre_empleado = null
+    ) {
+        $existe = ClientesData::get_cliente_by_id($id_cliente);
+        if (!$existe) {
+            return ApiResponse::error('El cliente que intenta editar no existe.');
+        }
+
+        ClientesData::actualizar_cliente(
+            id_cliente: $id_cliente,
+            tipo_entidad: $tipo_entidad,
+            dni: $dni,
+            ruc: $ruc,
+            razon_social: $razon_social,
+            direccion: $direccion,
+            telefono: $telefono,
+            correo: $correo,
+            id_empleado: $id_empleado,
+            nombre_empleado: $nombre_empleado,
+        );
+
+        return ApiResponse::success(
+            ClientesData::get_cliente_by_id($id_cliente),
+            'Cliente actualizado correctamente',
+        );
+    }
+
+    /**
+     * Desactivar (soft delete) un cliente. Cambia estado a Inactivo y registra
+     * la accion en cambios_log para trazabilidad.
+     */
+    public static function eliminar_cliente(
+        int $id_cliente,
+        ?int $id_empleado = null,
+        ?string $nombre_empleado = null
+    ) {
+        $existe = ClientesData::get_cliente_by_id($id_cliente);
+        if (!$existe) {
+            return ApiResponse::error('El cliente que intenta eliminar no existe.');
+        }
+
+        ClientesData::eliminar_cliente(
+            id_cliente: $id_cliente,
+            id_empleado: $id_empleado,
+            nombre_empleado: $nombre_empleado,
+        );
+
+        return ApiResponse::success(
+            ClientesData::get_cliente_by_id($id_cliente),
+            'Cliente eliminado correctamente',
+        );
+    }
 }

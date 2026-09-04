@@ -108,6 +108,8 @@ class ActivosService
      * - Si cambió id_almacen o id_mina respecto al estado actual,
      *   registra un movimiento en activo_fijo_ubicacion_log con el
      *   MovimientoActivoFijo derivado de la transición.
+     * - Calcula diff entre estado original y nuevo y lo apendea a cambios_log
+     *   para trazabilidad (solo si recibe id_empleado + nombre_empleado).
      *
      * @param array $data Campos editables crudos del Request. El Service normaliza
      *                    el formato de `especificaciones` (json_encode si es array)
@@ -123,20 +125,22 @@ class ActivosService
         ?int $id_almacen = null,
         ?int $id_mina = null,
         ?string $descripcion_ubicacion = null,
-        ?string $fecha_hora_movimiento = null
+        ?string $fecha_hora_movimiento = null,
+        ?int $id_empleado = null,
+        ?string $nombre_empleado = null
     ) {
-        // Obtener ubicación actual para detectar cambios
-        $actual = DB::table('activo_fijo')
+        // Capturar el estado ORIGINAL completo (no solo ubicación) para el diff
+        $originalFull = DB::table('activo_fijo')
             ->where('id', $id_activo)
-            ->select(['id_almacen', 'id_mina'])
             ->first();
 
-        if (!$actual) {
+        if (!$originalFull) {
             return ApiResponse::error('El activo que intenta editar no existe.');
         }
 
-        $id_almacen_anterior = $actual->id_almacen !== null ? (int) $actual->id_almacen : null;
-        $id_mina_anterior = $actual->id_mina !== null ? (int) $actual->id_mina : null;
+        // Snapshot para detectar cambio de ubicación (campo específico)
+        $id_almacen_anterior = $originalFull->id_almacen !== null ? (int) $originalFull->id_almacen : null;
+        $id_mina_anterior = $originalFull->id_mina !== null ? (int) $originalFull->id_mina : null;
 
         $hubo_cambio_ubicacion =
             $id_almacen_anterior !== $id_almacen
@@ -172,7 +176,7 @@ class ActivosService
             }
         }
 
-        return DB::transaction(function () use ($id_activo, $data, $id_almacen, $id_mina, $id_almacen_anterior, $id_mina_anterior, $hubo_cambio_ubicacion, $descripcion_ubicacion, $fecha_hora_movimiento, $estado_enviado_por_usuario) {
+        return DB::transaction(function () use ($id_activo, $data, $originalFull, $id_almacen, $id_mina, $id_almacen_anterior, $id_mina_anterior, $hubo_cambio_ubicacion, $descripcion_ubicacion, $fecha_hora_movimiento, $estado_enviado_por_usuario, $id_empleado, $nombre_empleado) {
             // 1) Actualizar metadata (incluye id_labor, estado, especificaciones si vienen)
             ActivosData::actualizar_activo($id_activo, $data);
 
@@ -207,11 +211,66 @@ class ActivosService
                 ]);
             }
 
+            // 4) Calcular diff entre estado original y nuevo y apendear a cambios_log
+            //    SOLO si el cliente pasó id_empleado + nombre_empleado.
+            if ($id_empleado !== null && $nombre_empleado !== null) {
+                $nuevo = DB::table('activo_fijo')
+                    ->where('id', $id_activo)
+                    ->first();
+
+                if ($nuevo !== null) {
+                    $cambiosLog = ActivosData::calcularDiffCambiosActivo(
+                        original: $originalFull,
+                        nuevo: $nuevo,
+                        id_empleado: $id_empleado,
+                        nombre_empleado: $nombre_empleado,
+                    );
+
+                    // calcularDiffCambiosActivo devuelve el logPrevio + la nueva entrada
+                    // si hay cambios. Si no hay cambios, devuelve el logPrevio sin cambios.
+                    // Comparamos con el logPrevio original para saber si debemos persistir.
+                    $logOriginalDecoded = json_decode(
+                        $originalFull->cambios_log ?? '[]',
+                        true,
+                    );
+                    $logOriginalCount = is_array($logOriginalDecoded) ? count($logOriginalDecoded) : 0;
+                    if (count($cambiosLog) > $logOriginalCount) {
+                        ActivosData::appendCambiosLog($id_activo, $cambiosLog);
+                    }
+                }
+            }
+
             return ApiResponse::success(
                 ActivosData::get_activos($id_activo),
                 'Activo actualizado correctamente'
             );
         });
+    }
+
+    /**
+     * Desactivar (soft delete) un activo fijo. Cambia estado a "Dado de Baja"
+     * y registra la accion en cambios_log para trazabilidad.
+     */
+    public static function eliminar_activo(
+        int $id_activo,
+        ?int $id_empleado = null,
+        ?string $nombre_empleado = null
+    ) {
+        $existe = ActivosData::get_activos(id_activo: $id_activo);
+        if (!$existe) {
+            return ApiResponse::error('El activo que intenta eliminar no existe.');
+        }
+
+        ActivosData::eliminar_activo(
+            id_activo: $id_activo,
+            id_empleado: $id_empleado,
+            nombre_empleado: $nombre_empleado,
+        );
+
+        return ApiResponse::success(
+            ActivosData::get_activos(id_activo: $id_activo),
+            'Activo eliminado correctamente',
+        );
     }
 
     /**

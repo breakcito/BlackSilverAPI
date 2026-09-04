@@ -110,4 +110,74 @@ class LotesController extends Controller
 
         return response()->json($result);
     }
+
+    /**
+     * Actualizar campos administrativos de un lote.
+     * El stock se ajusta por el endpoint de Corrección de Inventario (Kardex inmutable).
+     * El estado se gestiona por eliminar_lote (soft-delete) — no se expone aquí.
+     * La fecha de vencimiento solo se setea al registrar el lote.
+     */
+    public function actualizar_lote(Request $request, int $id_lote): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'descripcion' => 'nullable|string|max:1000',
+            'serie_factura_compra' => 'nullable|string|max:64',
+            'numero_factura_compra' => 'nullable|string|max:64',
+            'fecha_hora_ingreso' => 'required|date',
+        ], [
+            'fecha_hora_ingreso.required' => 'La fecha de ingreso es requerida',
+            'fecha_hora_ingreso.date' => 'La fecha de ingreso no es válida',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $authUser = $request->attributes->get('auth_user');
+        $idEmpleado = is_object($authUser) && isset($authUser->id_empleado) ? (int) $authUser->id_empleado : null;
+        $nombreEmpleado = is_object($authUser)
+            ? trim(($authUser->nombre ?? '') . ' ' . ($authUser->apellido ?? '')) ?: null
+            : null;
+
+        $result = LotesService::actualizar_lote(
+            id_lote: $id_lote,
+            descripcion: (string) ($request->input('descripcion') ?? ''),
+            serie_factura_compra: $this->emptyToNull($request->input('serie_factura_compra')),
+            numero_factura_compra: $this->emptyToNull($request->input('numero_factura_compra')),
+            fecha_hora_ingreso: (string) $request->input('fecha_hora_ingreso'),
+            id_empleado: $idEmpleado,
+            nombre_empleado: $nombreEmpleado,
+        );
+
+        return response()->json($result);
+    }
+
+    /**
+     * Desactivar (soft delete) un lote. Cambia estado a Inactivo.
+     */
+    public function eliminar_lote(Request $request, int $id_lote): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+        $idEmpleado = is_object($authUser) && isset($authUser->id_empleado) ? (int) $authUser->id_empleado : null;
+        $nombreEmpleado = is_object($authUser)
+            ? trim(($authUser->nombre ?? '') . ' ' . ($authUser->apellido ?? '')) ?: null
+            : null;
+
+        $result = LotesService::eliminar_lote(
+            id_lote: $id_lote,
+            id_empleado: $idEmpleado,
+            nombre_empleado: $nombreEmpleado,
+        );
+
+        return response()->json($result);
+    }
+
+    private function emptyToNull(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $trimmed = trim((string) $value);
+        return $trimmed === '' ? null : $trimmed;
+    }
 }

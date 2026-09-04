@@ -101,4 +101,65 @@ class LotesService
         $info = LotesProductosData::get_info_to_ticket(ids_lotes: $ids_lotes);
         return ApiResponse::success($info);
     }
+
+    /**
+     * Actualizar campos administrativos de un lote (NO stock/identificadores/estado/fecha_vencimiento).
+     * Si se recibe id_empleado + nombre_empleado se calcula diff y se apendea
+     * a cambios_log para trazabilidad.
+     */
+    public static function actualizar_lote(
+        int $id_lote,
+        string $descripcion,
+        ?string $serie_factura_compra,
+        ?string $numero_factura_compra,
+        ?string $fecha_hora_ingreso,
+        ?int $id_empleado = null,
+        ?string $nombre_empleado = null
+    ) {
+        $existe = LotesData::get_resumen_lotes(id_lote: $id_lote);
+        if (!$existe) {
+            return ApiResponse::error('El lote que intenta editar no existe.');
+        }
+
+        LotesData::actualizar_lote(
+            id_lote: $id_lote,
+            descripcion: $descripcion,
+            serie_factura_compra: $serie_factura_compra,
+            numero_factura_compra: $numero_factura_compra,
+            fecha_hora_ingreso: $fecha_hora_ingreso,
+            id_empleado: $id_empleado,
+            nombre_empleado: $nombre_empleado,
+        );
+
+        return ApiResponse::success(
+            LotesData::get_resumen_lotes(id_lote: $id_lote),
+            'Lote actualizado correctamente',
+        );
+    }
+
+    /**
+     * Desactivar (soft delete) un lote. Cambia estado a Inactivo y registra
+     * la accion en cambios_log para trazabilidad.
+     */
+    public static function eliminar_lote(
+        int $id_lote,
+        ?int $id_empleado = null,
+        ?string $nombre_empleado = null
+    ) {
+        $existe = LotesData::get_resumen_lotes(id_lote: $id_lote);
+        if (!$existe) {
+            return ApiResponse::error('El lote que intenta eliminar no existe.');
+        }
+
+        LotesData::eliminar_lote(
+            id_lote: $id_lote,
+            id_empleado: $id_empleado,
+            nombre_empleado: $nombre_empleado,
+        );
+
+        return ApiResponse::success(
+            LotesData::get_resumen_lotes(id_lote: $id_lote),
+            'Lote eliminado correctamente',
+        );
+    }
 }

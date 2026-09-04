@@ -2,6 +2,7 @@
 
 namespace App\Modules\ActivosFijos\Data;
 
+use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
 use Illuminate\Support\Facades\DB;
 
 class ActivosData
@@ -86,7 +87,8 @@ class ActivosData
             act.intervalo_mantenimiento_horas,
             act.intervalo_mantenimiento_kilometros,
             act.intervalo_mantenimiento_vueltas,
-            act.estado
+            act.estado,
+            act.cambios_log
         FROM activo_fijo act
         INNER JOIN producto pr on pr.id = act.id_producto
         INNER JOIN categoria cat on cat.id = pr.id_categoria
@@ -123,6 +125,12 @@ class ActivosData
             }
             return $res;
         }
+
+        // Filtrar los activos dados de baja (estado equivalente a "Inactivo"
+        // en Productos/Lotes/Clientes). Si se requiere verlos, se puede
+        // agregar luego un toggle "Mostrar eliminados" en el frontend.
+        $sql .= ' AND act.estado != :estado_dado_de_baja';
+        $params['estado_dado_de_baja'] = EstadoActivoFijo::DadoDeBaja->value;
 
         $sql .= ' ORDER BY pr.nombre, act.correlativo DESC';
         $results = DB::select($sql, $params);
@@ -199,5 +207,233 @@ class ActivosData
             ];
         }
         return $map;
+    }
+
+    /**
+     * Decodifica cambios_log a array. MySQL puede devolverlo como string JSON
+     * (cuando se selecciona con DB::select) o como array (algunos drivers).
+     */
+    private static function decodeCambiosLog(mixed $raw): array
+    {
+        if ($raw === null || $raw === '') {
+            return [];
+        }
+        if (is_array($raw)) {
+            return $raw;
+        }
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+        return [];
+    }
+
+    /**
+     * Soft-delete: marca el activo como "Dado de Baja" y registra la accion
+     * en cambios_log para trazabilidad.
+     *
+     * Si el activo ya estaba en Dado de Baja, NO agrega entrada duplicada
+     * al log (mantiene la trazabilidad limpia).
+     */
+    public static function eliminar_activo(
+        int $id_activo,
+        ?int $id_empleado = null,
+        ?string $nombre_empleado = null
+    ): int {
+        $original = self::get_activos(id_activo: $id_activo);
+
+        $logPrevio = [];
+        if ($original !== null) {
+            $logPrevio = self::decodeCambiosLog($original->cambios_log ?? null);
+        }
+
+        if ($id_empleado !== null && $nombre_empleado !== null && $original !== null) {
+            $estadoAnterior = $original->estado ?? null;
+            if ($estadoAnterior !== EstadoActivoFijo::DadoDeBaja->value) {
+                $logPrevio[] = [
+                    'id_empleado' => $id_empleado,
+                    'nombre_empleado' => $nombre_empleado,
+                    'motivo' => null,
+                    'update_at' => now()->toDateTimeString(),
+                    'cambios' => [[
+                        'campo_bd' => 'estado',
+                        'campo' => 'Estado',
+                        'valor_anterior' => $estadoAnterior,
+                        'valor_nuevo' => EstadoActivoFijo::DadoDeBaja->value,
+                    ]],
+                ];
+            }
+        }
+
+        $updatePayload = ['estado' => EstadoActivoFijo::DadoDeBaja->value];
+        if (count($logPrevio) > 0 && $original !== null) {
+            $updatePayload['cambios_log'] = json_encode($logPrevio, JSON_UNESCAPED_UNICODE);
+        }
+
+        $affected = DB::table('activo_fijo')
+            ->where('id', $id_activo)
+            ->update($updatePayload);
+
+        return (int) $affected;
+    }
+
+    /**
+     * Mapeo campo_bd => nombre visible para el log de cambios.
+     * Mantener sincronizado con los campos que actualizar_activo() acepta en $data.
+     * NOTA: 'estado' SI está aquí — la edición sí puede cambiar estado.
+     * (A diferencia de Productos/Lotes/Clientes, aquí no exponemos estado en un
+     * Select de Edit, pero el Controller lo acepta opcionalmente.)
+     */
+    private const ACTIVO_CAMBIOS_LABELS = [
+        'codigo' => 'Código',
+        'numero_serie' => 'Número de Serie',
+        'modelo' => 'Modelo',
+        'yearcito_modelo' => 'Año/Modelo',
+        'descripcion' => 'Descripción',
+        'serie_placa' => 'Serie Placa',
+        'numero_placa' => 'Número Placa',
+        'id_labor' => 'Labor',
+        'estado' => 'Estado',
+        'especificaciones' => 'Especificaciones',
+        'id_empleado_responsable' => 'Empleado Responsable',
+        'serie_factura_compra' => 'Serie Factura',
+        'numero_factura_compra' => 'Número Factura',
+        'costo_compra' => 'Costo de Compra',
+        'costo_promedio_base' => 'Costo Promedio Base',
+    ];
+
+    /**
+     * Tipo PHP esperado por cada campo. Se usa SOLO para la normalización del diff,
+     * de modo que "" vs null o 0 vs "0" no genere falsos positivos.
+     */
+    private const ACTIVO_CAMBIOS_TIPOS = [
+        'codigo' => 'string',
+        'numero_serie' => 'string',
+        'modelo' => 'string',
+        'yearcito_modelo' => 'int',
+        'descripcion' => 'string',
+        'serie_placa' => 'string',
+        'numero_placa' => 'string',
+        'id_labor' => 'int',
+        'estado' => 'string',
+        'especificaciones' => 'json',
+        'id_empleado_responsable' => 'int',
+        'serie_factura_compra' => 'string',
+        'numero_factura_compra' => 'string',
+        'costo_compra' => 'float',
+        'costo_promedio_base' => 'float',
+    ];
+
+    /**
+     * Normaliza un valor para comparación fiable:
+     *  - string: '' se trata como null
+     *  - json: normalizamos al string canónico (mismo orden de claves)
+     *  - num: casteamos al tipo declarado
+     */
+    private static function normalizarParaCompararActivo(
+        mixed $valor,
+        string $tipo,
+    ): mixed {
+        if ($tipo === 'json') {
+            if ($valor === null || $valor === '') return null;
+            if (is_array($valor)) {
+                $rebuilt = [];
+                foreach ($valor as $k => $v) {
+                    $rebuilt[(string) $k] = $v;
+                }
+                ksort($rebuilt);
+                return json_encode($rebuilt, JSON_UNESCAPED_UNICODE);
+            }
+            if (is_string($valor)) {
+                $decoded = json_decode($valor, true);
+                if (is_array($decoded)) {
+                    ksort($decoded);
+                    return json_encode($decoded, JSON_UNESCAPED_UNICODE);
+                }
+            }
+            return null;
+        }
+        if ($tipo === 'string') {
+            if ($valor === null) return null;
+            $trimmed = trim((string) $valor);
+            return $trimmed === '' ? null : $trimmed;
+        }
+        if ($valor === null) {
+            return null;
+        }
+        return match ($tipo) {
+            'int' => (int) $valor,
+            'float' => (float) $valor,
+            'bool' => ((bool) $valor) ? 1 : 0,
+            default => (string) $valor,
+        };
+    }
+
+    /**
+     * Compara el activo previo (object) con el nuevo (object) y devuelve
+     * el array de cambios_log listo para persistir. Mantiene el log previo y
+     * solo agrega entrada si hay al menos un campo modificado.
+     */
+    public static function calcularDiffCambiosActivo(
+        $original,
+        $nuevo,
+        int $id_empleado,
+        string $nombre_empleado
+    ): array {
+        $logPrevio = [];
+        if ($nuevo !== null) {
+            $logPrevio = self::decodeCambiosLog($nuevo->cambios_log ?? null);
+        }
+
+        $cambios = [];
+        foreach (self::ACTIVO_CAMBIOS_LABELS as $campoBd => $label) {
+            if (!isset(self::ACTIVO_CAMBIOS_TIPOS[$campoBd])) {
+                continue;
+            }
+            $tipo = self::ACTIVO_CAMBIOS_TIPOS[$campoBd];
+
+            $valorAnterior = $original !== null ? ($original->{$campoBd} ?? null) : null;
+            $valorNuevo = $nuevo !== null ? ($nuevo->{$campoBd} ?? null) : null;
+
+            $anteriorNorm = self::normalizarParaCompararActivo($valorAnterior, $tipo);
+            $nuevoNorm = self::normalizarParaCompararActivo($valorNuevo, $tipo);
+
+            if ($anteriorNorm !== $nuevoNorm) {
+                $cambios[] = [
+                    'campo_bd' => $campoBd,
+                    'campo' => $label,
+                    'valor_anterior' => $valorAnterior,
+                    'valor_nuevo' => $valorNuevo,
+                ];
+            }
+        }
+
+        if (count($cambios) === 0) {
+            return $logPrevio;
+        }
+
+        $logPrevio[] = [
+            'id_empleado' => $id_empleado,
+            'nombre_empleado' => $nombre_empleado,
+            'motivo' => null,
+            'update_at' => now()->toDateTimeString(),
+            'cambios' => $cambios,
+        ];
+
+        return $logPrevio;
+    }
+
+    /**
+     * Persiste el log calculado por calcularDiffCambiosActivo() sobre el activo.
+     * Usado por ActivosService después de actualizar metadata + ubicación.
+     */
+    public static function appendCambiosLog(int $id_activo, array $cambiosLog): int
+    {
+        if (empty($cambiosLog)) {
+            return 0;
+        }
+        return DB::table('activo_fijo')
+            ->where('id', $id_activo)
+            ->update(['cambios_log' => json_encode($cambiosLog, JSON_UNESCAPED_UNICODE)]);
     }
 }

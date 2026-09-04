@@ -140,6 +140,8 @@ class ActivosController extends Controller
      * Si la ubicación cambió, el Service registra automáticamente el
      * movimiento correspondiente. El estado enviado por el usuario tiene
      * prioridad sobre el cálculo automático de new_ubicacion.
+     * El Service calcula el diff entre estado previo y nuevo y lo apendea
+     * a cambios_log (necesita id_empleado + nombre_empleado del auth_user).
      */
     public function actualizar_activo(Request $request, int $id_activo)
     {
@@ -199,12 +201,21 @@ class ActivosController extends Controller
             return ApiResponse::error('No se proporcionaron campos para actualizar.');
         }
 
+        // Para el log de cambios (trazabilidad)
+        $authUser = $request->attributes->get('auth_user');
+        $idEmpleado = is_object($authUser) && isset($authUser->id_empleado) ? (int) $authUser->id_empleado : null;
+        $nombreEmpleado = is_object($authUser)
+            ? trim(($authUser->nombre ?? '') . ' ' . ($authUser->apellido ?? '')) ?: null
+            : null;
+
         return ActivosService::actualizar_activo(
             id_activo: $id_activo,
             data: $data,
             id_almacen: $id_almacen,
             id_mina: $id_mina,
-            descripcion_ubicacion: $descripcion_ubicacion
+            descripcion_ubicacion: $descripcion_ubicacion,
+            id_empleado: $idEmpleado,
+            nombre_empleado: $nombreEmpleado,
         );
     }
 
@@ -221,6 +232,27 @@ class ActivosController extends Controller
             intervalo_kilometros: $intervalo_kilometros !== null ? (float) $intervalo_kilometros : null,
             intervalo_vueltas: $intervalo_vueltas !== null ? (float) $intervalo_vueltas : null
         );
+    }
+
+    /**
+     * Desactivar (soft delete) un activo fijo. Cambia estado a "Dado de Baja"
+     * y registra la accion en cambios_log.
+     */
+    public function eliminar_activo(Request $request, int $id_activo)
+    {
+        $authUser = $request->attributes->get('auth_user');
+        $idEmpleado = is_object($authUser) && isset($authUser->id_empleado) ? (int) $authUser->id_empleado : null;
+        $nombreEmpleado = is_object($authUser)
+            ? trim(($authUser->nombre ?? '') . ' ' . ($authUser->apellido ?? '')) ?: null
+            : null;
+
+        $result = ActivosService::eliminar_activo(
+            id_activo: $id_activo,
+            id_empleado: $idEmpleado,
+            nombre_empleado: $nombreEmpleado,
+        );
+
+        return response()->json($result);
     }
 
     public function registrar_mantenimiento(Request $request)
