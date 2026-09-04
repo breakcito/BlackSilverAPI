@@ -253,6 +253,102 @@ class EmpleadosData
     }
 
     /**
+     * Mapeo campo_bd => [label visible, tipo] para el log de cambios.
+     */
+    private const EMPLEADO_CAMBIOS_FIELDS = [
+        'id_cargo'         => ['Cargo',         'int'],
+        'id_empresa'       => ['Empresa',       'int'],
+        'nombre'           => ['Nombre',        'string'],
+        'apellido'         => ['Apellido',      'string'],
+        'genero'           => ['Género',        'string'],
+        'dni'              => ['DNI',           'string'],
+        'fecha_nacimiento' => ['Fecha de Nacimiento', 'date'],
+        'direccion'        => ['Dirección',     'string'],
+        'telefono'         => ['Teléfono',      'string'],
+        'email'            => ['Email',         'string'],
+    ];
+
+    /**
+     * Normaliza un valor al tipo canónico del campo para comparaciones fiables.
+     */
+    private static function normalizarEmpleadoParaComparar(mixed $valor, string $tipo): mixed
+    {
+        if ($valor === null) {
+            return null;
+        }
+        return match ($tipo) {
+            'int'    => (int) $valor,
+            'date'   => is_string($valor) ? substr($valor, 0, 10) : (string) $valor,
+            default  => (string) $valor,
+        };
+    }
+
+    /**
+     * Calcula el diff entre el empleado previo y el nuevo estado.
+     * Si hay cambios, apendea una entrada al array cambios_log.
+     * Si no hay cambios, devuelve el log previo sin modificar.
+     */
+    public static function calcularDiffCambiosEmpleado(
+        ?object $original,
+        array $nuevoEstado,
+        ?int $idEmpleadoLog,
+        ?string $nombreEmpleadoLog
+    ): ?array {
+        if ($idEmpleadoLog === null || $nombreEmpleadoLog === null) {
+            return null;
+        }
+
+        $logPrevio = [];
+        if ($original !== null && ! empty($original->cambios_log)) {
+            $raw = $original->cambios_log;
+            if (is_string($raw)) {
+                $decoded = json_decode($raw, true);
+                $logPrevio = is_array($decoded) ? $decoded : [];
+            } elseif (is_array($raw)) {
+                $logPrevio = $raw;
+            }
+        }
+
+        $cambios = [];
+        foreach (self::EMPLEADO_CAMBIOS_FIELDS as $campoBd => [$label, $tipo]) {
+            if (! array_key_exists($campoBd, $nuevoEstado)) {
+                continue;
+            }
+            $valorAnterior = $original !== null ? ($original->{$campoBd} ?? null) : null;
+            $valorNuevo = $nuevoEstado[$campoBd];
+
+            $anteriorNorm = self::normalizarEmpleadoParaComparar($valorAnterior, $tipo);
+            $nuevoNorm = self::normalizarEmpleadoParaComparar($valorNuevo, $tipo);
+
+            if ($anteriorNorm !== $nuevoNorm) {
+                $cambios[] = [
+                    'campo_bd' => $campoBd,
+                    'campo' => $label,
+                    // Guardamos los valores normalizados para que el log
+                    // muestre formatos consistentes (ej. fechas sin hora
+                    // y zona horaria) y el frontend no tenga que re-normalizar.
+                    'valor_anterior' => $anteriorNorm,
+                    'valor_nuevo' => $nuevoNorm,
+                ];
+            }
+        }
+
+        if (count($cambios) === 0) {
+            return $logPrevio;
+        }
+
+        $logPrevio[] = [
+            'id_empleado' => $idEmpleadoLog,
+            'nombre_empleado' => $nombreEmpleadoLog,
+            'motivo' => null,
+            'update_at' => now()->toDateTimeString(),
+            'cambios' => $cambios,
+        ];
+
+        return $logPrevio;
+    }
+
+    /**
      * Actualizar campos editables de un empleado (no contratista).
      * La foto NO se persiste aquí — va por el endpoint dedicado `/foto/{id}`.
      *
@@ -272,6 +368,8 @@ class EmpleadosData
         ?string $email = null,
         ?int $id_cargo = null,
         ?int $id_empresa = null,
+        ?int $idEmpleadoLog = null,
+        ?string $nombreEmpleadoLog = null,
     ): bool {
         $data = [
             'nombre' => $nombre,
@@ -291,6 +389,42 @@ class EmpleadosData
             $data['id_empresa'] = $id_empresa;
         }
 
+        // Calcular y persistir cambios_log si hay info del editor.
+        // Solo incluimos id_cargo / id_empresa en el diff si vinieron
+        // en el payload (no null). Usamos DB::table (no el Model
+        // Eloquent) para evitar que Carbon reformatee fechas con
+        // T05:00:00.000000Z al leer.
+        if ($idEmpleadoLog !== null && $nombreEmpleadoLog !== null) {
+            $original = DB::table('empleado')->where('id', $id_empleado)->first();
+            $nuevoEstado = $data;
+            if ($id_cargo !== null) {
+                $nuevoEstado['id_cargo'] = $id_cargo;
+            }
+            if ($id_empresa !== null) {
+                $nuevoEstado['id_empresa'] = $id_empresa;
+            }
+            $nuevoLog = self::calcularDiffCambiosEmpleado(
+                $original,
+                $nuevoEstado,
+                $idEmpleadoLog,
+                $nombreEmpleadoLog
+            );
+            if ($nuevoLog !== null) {
+                $data['cambios_log'] = json_encode($nuevoLog, JSON_UNESCAPED_UNICODE);
+            }
+        }
+
         return Empleado::where('id', $id_empleado)->update($data) >= 0;
+    }
+
+    /**
+     * Borrado logico de un empleado (cambia estado a Inactivo).
+     * Preserva integridad referencial con contratos, cuentas, fotochecks, etc.
+     */
+    public static function eliminar_empleado(int $id_empleado): bool
+    {
+        return Empleado::where('id', $id_empleado)
+            ->where('estado', '!=', 'Inactivo')
+            ->update(['estado' => 'Inactivo']) > 0;
     }
 }

@@ -14,6 +14,21 @@ use Illuminate\Support\Facades\Validator;
 class EmpleadosController
 {
     /**
+     * Extrae id_empleado y nombre completo del usuario autenticado (JWT).
+     */
+    private function getAuthUserInfo(Request $request): array
+    {
+        $authUser = $request->attributes->get('auth_user');
+        if (! is_object($authUser)) {
+            return [null, null];
+        }
+        $idEmpleado = isset($authUser->id_empleado) ? (int) $authUser->id_empleado : null;
+        $nombreCompleto = trim(($authUser->nombre ?? '') . ' ' . ($authUser->apellido ?? '')) ?: null;
+
+        return [$idEmpleado, $nombreCompleto];
+    }
+
+    /**
      * Listar empleados
      */
     public function get_empleados(Request $request): JsonResponse
@@ -256,6 +271,9 @@ class EmpleadosController
             'apellido' => 'required|string|max:255',
             'genero' => 'nullable|string|max:16',
             'dni' => 'nullable|string|max:20',
+            'ruc' => 'nullable|string|max:20',
+            'carnet_extranjeria' => 'nullable|string|max:20',
+            'pasaporte' => 'nullable|string|max:20',
             'fecha_nacimiento' => 'nullable|date',
             'direccion' => 'nullable|string|max:255',
             'telefono' => 'nullable|string|max:32',
@@ -284,6 +302,8 @@ class EmpleadosController
             }
         }
 
+        [$idEmpleadoLog, $nombreEmpleadoLog] = $this->getAuthUserInfo($request);
+
         return response()->json(EmpleadosServiceGlobal::actualizar_empleado(
             id_empleado: $id_empleado,
             nombre: (string) $request->input('nombre'),
@@ -296,6 +316,18 @@ class EmpleadosController
             email: $request->input('email'),
             id_cargo: $request->input('id_cargo') ? (int) $request->input('id_cargo') : null,
             id_empresa: $request->input('id_empresa') ? (int) $request->input('id_empresa') : null,
+            idEmpleadoLog: $idEmpleadoLog,
+            nombreEmpleadoLog: $nombreEmpleadoLog,
         ));
+    }
+
+    /**
+     * Borrado logico de un empleado (cambia estado a Inactivo).
+     */
+    public function eliminar_empleado(Request $request, int $id_empleado): JsonResponse
+    {
+        $result = EmpleadosServiceGlobal::eliminar_empleado(id_empleado: $id_empleado);
+
+        return response()->json($result);
     }
 }

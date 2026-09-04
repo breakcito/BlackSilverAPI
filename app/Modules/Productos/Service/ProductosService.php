@@ -80,7 +80,9 @@ class ProductosService
         ?string $prefijo = null,
         ?int $tiempo_espera_vencimiento = null,
         ?string $periodo_espera_vencimiento = null,
-        Moneda $moneda = Moneda::PEN
+        Moneda $moneda = Moneda::PEN,
+        ?int $id_empleado = null,
+        ?string $nombre_empleado = null
     ) {
         // 1. Validar que el producto exista
         $existe = ProductosData::get_productos(id_producto: $id_producto);
@@ -127,7 +129,9 @@ class ProductosService
             tiempo_espera_vencimiento: $tiempo_espera_vencimiento,
             periodo_espera_vencimiento: $periodo_espera_vencimiento,
             dias_espera_vencimiento: $dias_espera_vencimiento,
-            moneda: $moneda
+            moneda: $moneda,
+            id_empleado: $id_empleado,
+            nombre_empleado: $nombre_empleado,
         );
 
         // 5. Devolver el producto ya refrescado (mismo shape que listar)

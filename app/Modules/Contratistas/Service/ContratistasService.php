@@ -179,22 +179,40 @@ class ContratistasService
         string $nombre,
         string $apellido,
         ?string $dni = null,
+        ?string $ruc = null,
+        ?string $carnet_extranjeria = null,
+        ?string $pasaporte = null,
         ?string $fecha_nacimiento = null,
         ?string $genero = null,
         ?string $direccion = null,
         ?string $telefono = null,
         ?string $email = null,
+        ?int $idEmpleadoLog = null,
+        ?string $nombreEmpleadoLog = null,
     ) {
         return ContratistasServiceGlobal::actualizar_contratista(
             id_contratista: $id_contratista,
             nombre: $nombre,
             apellido: $apellido,
             dni: $dni,
+            ruc: $ruc,
+            carnet_extranjeria: $carnet_extranjeria,
+            pasaporte: $pasaporte,
             fecha_nacimiento: $fecha_nacimiento,
             genero: $genero,
             direccion: $direccion,
             telefono: $telefono,
             email: $email,
+            idEmpleadoLog: $idEmpleadoLog,
+            nombreEmpleadoLog: $nombreEmpleadoLog,
         );
+    }
+
+    /**
+     * Borrado logico de un contratista (cambia estado a Inactivo).
+     */
+    public static function eliminar_contratista(int $id_contratista)
+    {
+        return ContratistasServiceGlobal::eliminar_contratista(id_contratista: $id_contratista);
     }
 }

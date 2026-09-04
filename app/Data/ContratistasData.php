@@ -132,6 +132,7 @@ class ContratistasData
             c.email,
             c.fecha_nacimiento,
             c.url_foto,
+            c.cambios_log,
 
             c.con_contrato,
             c.id_contrato_vigente,
@@ -174,6 +175,98 @@ class ContratistasData
     }
 
     /**
+     * Mapeo campo_bd => [label visible, tipo] para el log de cambios.
+     * (Replicado del helper de EmpleadosData por la regla #3 del README
+     * "Sin reutilizacion forzada".)
+     */
+    private const CONTRATISTA_CAMBIOS_FIELDS = [
+        'nombre'           => ['Nombre',        'string'],
+        'apellido'         => ['Apellido',      'string'],
+        'genero'           => ['Género',        'string'],
+        'dni'              => ['DNI',           'string'],
+        'fecha_nacimiento' => ['Fecha de Nacimiento', 'date'],
+        'direccion'        => ['Dirección',     'string'],
+        'telefono'         => ['Teléfono',      'string'],
+        'email'            => ['Email',         'string'],
+    ];
+
+    /**
+     * Normaliza un valor al tipo canonico para comparaciones fiables.
+     */
+    private static function normalizarContratistaParaComparar(mixed $valor, string $tipo): mixed
+    {
+        if ($valor === null) {
+            return null;
+        }
+        return match ($tipo) {
+            'int'    => (int) $valor,
+            'date'   => is_string($valor) ? substr($valor, 0, 10) : (string) $valor,
+            default  => (string) $valor,
+        };
+    }
+
+    /**
+     * Calcula el diff entre el contratista previo y el nuevo estado.
+     */
+    public static function calcularDiffCambiosContratista(
+        ?object $original,
+        array $nuevoEstado,
+        ?int $idEmpleadoLog,
+        ?string $nombreEmpleadoLog
+    ): ?array {
+        if ($idEmpleadoLog === null || $nombreEmpleadoLog === null) {
+            return null;
+        }
+
+        $logPrevio = [];
+        if ($original !== null && ! empty($original->cambios_log)) {
+            $raw = $original->cambios_log;
+            if (is_string($raw)) {
+                $decoded = json_decode($raw, true);
+                $logPrevio = is_array($decoded) ? $decoded : [];
+            } elseif (is_array($raw)) {
+                $logPrevio = $raw;
+            }
+        }
+
+        $cambios = [];
+        foreach (self::CONTRATISTA_CAMBIOS_FIELDS as $campoBd => [$label, $tipo]) {
+            if (! array_key_exists($campoBd, $nuevoEstado)) {
+                continue;
+            }
+            $valorAnterior = $original !== null ? ($original->{$campoBd} ?? null) : null;
+            $valorNuevo = $nuevoEstado[$campoBd];
+
+            $anteriorNorm = self::normalizarContratistaParaComparar($valorAnterior, $tipo);
+            $nuevoNorm = self::normalizarContratistaParaComparar($valorNuevo, $tipo);
+
+            if ($anteriorNorm !== $nuevoNorm) {
+                $cambios[] = [
+                    'campo_bd' => $campoBd,
+                    'campo' => $label,
+                    // Guardamos valores normalizados para formato consistente.
+                    'valor_anterior' => $anteriorNorm,
+                    'valor_nuevo' => $nuevoNorm,
+                ];
+            }
+        }
+
+        if (count($cambios) === 0) {
+            return $logPrevio;
+        }
+
+        $logPrevio[] = [
+            'id_empleado' => $idEmpleadoLog,
+            'nombre_empleado' => $nombreEmpleadoLog,
+            'motivo' => null,
+            'update_at' => now()->toDateTimeString(),
+            'cambios' => $cambios,
+        ];
+
+        return $logPrevio;
+    }
+
+    /**
      * Actualizar datos personales + contacto de un contratista.
      * La foto NO se persiste aquí — va por el endpoint dedicado
      * `/contratistas/{id}/foto`. Tampoco se tocan `id_mina`,
@@ -189,8 +282,10 @@ class ContratistasData
         ?string $direccion = null,
         ?string $telefono = null,
         ?string $email = null,
+        ?int $idEmpleadoLog = null,
+        ?string $nombreEmpleadoLog = null,
     ): bool {
-        return Empleado::where('id', $id_contratista)->update([
+        $data = [
             'nombre' => $nombre,
             'apellido' => $apellido,
             'genero' => $genero,
@@ -199,6 +294,33 @@ class ContratistasData
             'direccion' => $direccion,
             'telefono' => $telefono,
             'email' => $email,
-        ]) >= 0;
+        ];
+
+        // Usamos DB::table (no el Model Eloquent) para evitar que
+        // Carbon reformatee fechas con T05:00:00.000000Z al leer.
+        if ($idEmpleadoLog !== null && $nombreEmpleadoLog !== null) {
+            $original = DB::table('empleado')->where('id', $id_contratista)->first();
+            $nuevoLog = self::calcularDiffCambiosContratista(
+                $original,
+                $data,
+                $idEmpleadoLog,
+                $nombreEmpleadoLog
+            );
+            if ($nuevoLog !== null) {
+                $data['cambios_log'] = json_encode($nuevoLog, JSON_UNESCAPED_UNICODE);
+            }
+        }
+
+        return Empleado::where('id', $id_contratista)->update($data) >= 0;
+    }
+
+    /**
+     * Borrado logico de un contratista (cambia estado a Inactivo).
+     */
+    public static function eliminar_contratista(int $id_contratista): bool
+    {
+        return Empleado::where('id', $id_contratista)
+            ->where('estado', '!=', 'Inactivo')
+            ->update(['estado' => 'Inactivo']) > 0;
     }
 }

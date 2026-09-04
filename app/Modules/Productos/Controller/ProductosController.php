@@ -103,6 +103,13 @@ class ProductosController
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
+        // Identidad del usuario autenticado (poblada por JwtAuthMiddleware en $request->attributes->set('auth_user', ...))
+        $authUser = $request->attributes->get('auth_user');
+        $idEmpleado = is_object($authUser) && isset($authUser->id_empleado) ? (int) $authUser->id_empleado : null;
+        $nombreEmpleado = is_object($authUser)
+            ? trim(($authUser->nombre ?? '') . ' ' . ($authUser->apellido ?? '')) ?: null
+            : null;
+
         $result = ProductosService::actualizar_producto(
             id_producto: $id_producto,
             id_categoria: $request->integer('id_categoria'),
@@ -116,7 +123,9 @@ class ProductosController
             costo_promedio_base: (float) ($request->input('costo_promedio_base') ?? 0),
             tiempo_espera_vencimiento: $request->input('tiempo_espera_vencimiento') ? (int) $request->input('tiempo_espera_vencimiento') : null,
             periodo_espera_vencimiento: $request->input('periodo_espera_vencimiento'),
-            moneda: Moneda::from($request->string('moneda')->toString())
+            moneda: Moneda::from($request->string('moneda')->toString()),
+            id_empleado: $idEmpleado,
+            nombre_empleado: $nombreEmpleado,
         );
 
         return response()->json($result);

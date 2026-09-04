@@ -193,6 +193,19 @@ class ContratosEmpleadoService
                 );
             }
 
+            // Espejamos la empresa del contrato en `empleado.id_empresa`.
+            // El listado la resuelve con IFNULL(contrato, empleado), asi que
+            // mientras el contrato viva esto no cambia nada visible; pero
+            // cuando el contrato termine el empleado conserva su empresa en
+            // vez de quedar en NULL (que dejaba el Select de Empresa vacio
+            // en el modal de edicion).
+            if ($payload['id_empresa'] !== null) {
+                DB::table('empleado')
+                    ->where('id', $id_empleado_tx)
+                    ->whereNull('id_empresa')
+                    ->update(['id_empresa' => (int) $payload['id_empresa']]);
+            }
+
             $nuevo = ContratosEmpleadoData::get_contratos(id_contrato: $id_contrato);
 
             // Devolver también el empleado actualizado (con id_contrato_vigente
@@ -618,6 +631,13 @@ class ContratosEmpleadoService
                     DB::table('empleado')
                         ->where('id', $contrato->id_empleado)
                         ->update(['id_cargo' => $datos_nuevos['id_cargo']]);
+                }
+                // Misma razon que en crear_contrato: mantener el fallback de
+                // empresa en el empleado para cuando el contrato termine.
+                if (isset($datos_nuevos['id_empresa'])) {
+                    DB::table('empleado')
+                        ->where('id', $contrato->id_empleado)
+                        ->update(['id_empresa' => (int) $datos_nuevos['id_empresa']]);
                 }
             }
 

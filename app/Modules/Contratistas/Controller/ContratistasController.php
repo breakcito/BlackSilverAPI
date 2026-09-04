@@ -10,6 +10,21 @@ use Illuminate\Support\Facades\Validator;
 
 class ContratistasController
 {
+    /**
+     * Extrae id_empleado y nombre completo del usuario autenticado (JWT).
+     */
+    private function getAuthUserInfo(Request $request): array
+    {
+        $authUser = $request->attributes->get('auth_user');
+        if (! is_object($authUser)) {
+            return [null, null];
+        }
+        $idEmpleado = isset($authUser->id_empleado) ? (int) $authUser->id_empleado : null;
+        $nombreCompleto = trim(($authUser->nombre ?? '') . ' ' . ($authUser->apellido ?? '')) ?: null;
+
+        return [$idEmpleado, $nombreCompleto];
+    }
+
     public function get_contratistas(Request $request): JsonResponse
     {
         $id_mina = $request->query('id_mina') ? (int) $request->query('id_mina') : null;
@@ -110,6 +125,9 @@ class ContratistasController
             'apellido' => 'required|string|max:255',
             'genero' => 'nullable|string|max:16',
             'dni' => 'nullable|string|max:20',
+            'ruc' => 'nullable|string|max:20',
+            'carnet_extranjeria' => 'nullable|string|max:20',
+            'pasaporte' => 'nullable|string|max:20',
             'fecha_nacimiento' => 'nullable|date',
             'direccion' => 'nullable|string|max:255',
             'telefono' => 'nullable|string|max:32',
@@ -120,16 +138,33 @@ class ContratistasController
             return response()->json(ApiResponse::error($validator->errors()->first()));
         }
 
+        [$idEmpleadoLog, $nombreEmpleadoLog] = $this->getAuthUserInfo($request);
+
         return response()->json(ContratistasService::actualizar_contratista(
             id_contratista: $id,
             nombre: (string) $request->input('nombre'),
             apellido: (string) $request->input('apellido'),
             dni: $request->input('dni'),
+            ruc: $request->input('ruc'),
+            carnet_extranjeria: $request->input('carnet_extranjeria'),
+            pasaporte: $request->input('pasaporte'),
             fecha_nacimiento: $request->input('fecha_nacimiento'),
             genero: $request->input('genero'),
             direccion: $request->input('direccion'),
             telefono: $request->input('telefono'),
             email: $request->input('email'),
+            idEmpleadoLog: $idEmpleadoLog,
+            nombreEmpleadoLog: $nombreEmpleadoLog,
         ));
+    }
+
+    /**
+     * Borrado logico de un contratista (cambia estado a Inactivo).
+     */
+    public function eliminar_contratista(Request $request, int $id): JsonResponse
+    {
+        $result = ContratistasService::eliminar_contratista(id_contratista: $id);
+
+        return response()->json($result);
     }
 }

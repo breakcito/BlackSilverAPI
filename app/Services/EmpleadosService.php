@@ -161,12 +161,17 @@ class EmpleadosService
         string $apellido,
         ?string $genero = null,
         ?string $dni = null,
+        ?string $ruc = null,
+        ?string $carnet_extranjeria = null,
+        ?string $pasaporte = null,
         ?string $fecha_nacimiento = null,
         ?string $direccion = null,
         ?string $telefono = null,
         ?string $email = null,
         ?int $id_cargo = null,
         ?int $id_empresa = null,
+        ?int $idEmpleadoLog = null,
+        ?string $nombreEmpleadoLog = null,
     ) {
         $moduloData = \App\Modules\Empleados\Data\EmpleadosData::class;
 
@@ -197,6 +202,8 @@ class EmpleadosService
             email: $email,
             id_cargo: $id_cargo,
             id_empresa: $id_empresa,
+            idEmpleadoLog: $idEmpleadoLog,
+            nombreEmpleadoLog: $nombreEmpleadoLog,
         );
 
         // Usamos el SELECT del módulo para que la respuesta incluya
@@ -205,5 +212,25 @@ class EmpleadosService
         $actualizado = $moduloData::get_empleados(id_empleado: $id_empleado);
 
         return ApiResponse::success($actualizado, 'Empleado actualizado correctamente.');
+    }
+
+    /**
+     * Borrado logico de un empleado (cambia estado a Inactivo).
+     */
+    public static function eliminar_empleado(int $id_empleado)
+    {
+        $moduloData = \App\Modules\Empleados\Data\EmpleadosData::class;
+
+        $actual = $moduloData::get_empleados(id_empleado: $id_empleado);
+        if (! $actual) {
+            return ApiResponse::error('Empleado no encontrado.');
+        }
+
+        $ok = EmpleadosData::eliminar_empleado(id_empleado: $id_empleado);
+        if (! $ok) {
+            return ApiResponse::error('No se pudo eliminar el empleado.');
+        }
+
+        return ApiResponse::success(null, 'Empleado eliminado correctamente.');
     }
 }

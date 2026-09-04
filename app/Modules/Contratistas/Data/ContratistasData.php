@@ -12,6 +12,13 @@ class ContratistasData
 {
     /**
      * Listar contratistas con su mina y labores asignadas
+     *
+     * IMPORTANTE: este SELECT es la forma canonica que consume el frontend
+     * (`RES_ContratistaResumen`). Debe incluir TODOS los campos editables
+     * (`genero`, `direccion`, `telefono`, `email`) porque el modal de
+     * edicion se pre-rellena con la fila del listado: si un campo no viene,
+     * el form lo envia vacio y el UPDATE lo borra en BD. Tambien incluye
+     * `cambios_log` para el historial de cambios de personal.
      */
     public static function get_contratistas(
         ?int $id_mina = null,
@@ -28,12 +35,17 @@ class ContratistasData
             CONCAT(c.nombre, " ", c.apellido) as nombre_completo,
             c.nombre,
             c.apellido,
+            c.genero,
             c.dni,
             c.ruc,
             c.carnet_extranjeria,
             c.pasaporte,
             c.fecha_nacimiento,
+            c.direccion,
+            c.telefono,
+            c.email,
             c.url_foto as url_foto,
+            c.cambios_log,
 
             c.con_contrato,
             c.id_contrato_vigente,

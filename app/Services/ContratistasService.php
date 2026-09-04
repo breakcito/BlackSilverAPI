@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Data\ContratistasData;
+use App\Data\EmpleadosData;
+use App\Models\Empleado;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\UploadedFile;
@@ -96,11 +98,16 @@ class ContratistasService
         string $nombre,
         string $apellido,
         ?string $dni = null,
+        ?string $ruc = null,
+        ?string $carnet_extranjeria = null,
+        ?string $pasaporte = null,
         ?string $fecha_nacimiento = null,
         ?string $genero = null,
         ?string $direccion = null,
         ?string $telefono = null,
         ?string $email = null,
+        ?int $idEmpleadoLog = null,
+        ?string $nombreEmpleadoLog = null,
     ) {
         $actual = ContratistasData::get_contratistas(id_contratista: $id_contratista);
         if (! $actual) {
@@ -117,10 +124,38 @@ class ContratistasService
             direccion: $direccion,
             telefono: $telefono,
             email: $email,
+            idEmpleadoLog: $idEmpleadoLog,
+            nombreEmpleadoLog: $nombreEmpleadoLog,
         );
 
-        $actualizado = ContratistasData::get_contratistas(id_contratista: $id_contratista);
+        // Usamos el SELECT del modulo para que la respuesta tenga la MISMA
+        // forma que el listado (`GET /contratistas`). La version global de
+        // este Data NO incluye `estado`, `labores_asignadas` ni
+        // `tipo_contrato_vigente`, y el frontend reemplaza la fila del
+        // listado con esta respuesta: si faltan, el badge de estado queda
+        // vacio y se pierden las labores hasta recargar la pagina.
+        $actualizado = \App\Modules\Contratistas\Data\ContratistasData::get_contratistas(
+            id_contratista: $id_contratista
+        );
 
         return ApiResponse::success($actualizado, 'Contratista actualizado correctamente.');
+    }
+
+    /**
+     * Borrado logico de un contratista (cambia estado a Inactivo).
+     */
+    public static function eliminar_contratista(int $id_contratista)
+    {
+        $actual = ContratistasData::get_contratistas(id_contratista: $id_contratista);
+        if (! $actual) {
+            return ApiResponse::error('Contratista no encontrado.');
+        }
+
+        $ok = EmpleadosData::eliminar_empleado(id_empleado: $id_contratista);
+        if (! $ok) {
+            return ApiResponse::error('No se pudo eliminar el contratista.');
+        }
+
+        return ApiResponse::success(null, 'Contratista eliminado correctamente.');
     }
 }

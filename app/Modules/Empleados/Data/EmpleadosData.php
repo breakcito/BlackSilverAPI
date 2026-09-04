@@ -24,6 +24,10 @@ class EmpleadosData
      * se hace un JOIN adicional a `contrato_trabajo` + `cargo_contrato` para
      * obtener el nombre del cargo y del área del contrato.
      *
+     * `id_cargo` se expone resuelto igual que `cargo` / `id_area` / `id_empresa`
+     * (empleado primero, contrato como fallback). El frontend lo necesita para
+     * pre-seleccionar el Select de cargo en el modal de edición.
+     *
      * Las URLs de foto y logo de empresa se convierten a data URL base64
      * para que el frontend (incluyendo `react-pdf` para el fotocheck) pueda
      * renderizarlas sin hacer fetch (evita problemas de CORS, URLs relativas,
@@ -34,6 +38,7 @@ class EmpleadosData
         $sql = '
         SELECT
             e.id AS id_empleado,
+            IFNULL(NULLIF(e.id_cargo, 0), ct_vig.id_cargo) AS id_cargo,
             IFNULL(car.nombre, car_contrato.nombre) AS cargo,
             IFNULL(car.id_area, car_contrato.id_area) AS id_area,
             IFNULL(a.nombre, a_contrato.nombre) AS area,
@@ -59,6 +64,7 @@ class EmpleadosData
             e.telefono,
             e.email,
             e.url_foto,
+            e.cambios_log,
             e.estado,
             (SELECT COUNT(*) FROM cuenta_bancaria_empleado cbe WHERE cbe.id_empleado = e.id) AS cantidad_cuentas_bancarias
         FROM
