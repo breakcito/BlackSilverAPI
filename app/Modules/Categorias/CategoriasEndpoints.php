@@ -17,5 +17,11 @@ Route::middleware('auth.jwt.custom')->group(function () {
 
         // Crear una nueva categoría
         Route::post('/', 'crear_categoria');
+
+        // Actualizar una categoría existente
+        Route::put('/{id_categoria}', 'actualizar_categoria');
+
+        // Eliminación lógica (estado -> Inactivo)
+        Route::delete('/{id_categoria}', 'eliminar_categoria');
     });
 });

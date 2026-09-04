@@ -16,5 +16,13 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::post('/', 'crear_cuenta_bancaria');
             Route::put('/{id_cuenta_bancaria}', 'actualizar_cuenta_bancaria');
         });
+
+        // Comodin {id_proveedor} al final: Laravel resuelve primero los
+        // segmentos literales (cuentas-bancarias, tipos-carbon,
+        // lugares-extraccion), pero se declara aqui para dejarlo explicito.
+        Route::controller(ProveedoresController::class)->group(function () {
+            Route::put('/{id_proveedor}', 'actualizar_proveedor');
+            Route::delete('/{id_proveedor}', 'eliminar_proveedor');
+        });
     });
 });

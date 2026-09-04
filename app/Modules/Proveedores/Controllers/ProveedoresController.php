@@ -69,4 +69,76 @@ class ProveedoresController
             cuentas: $request->cuentas ?? []
         ));
     }
+
+    /**
+     * Actualizar un proveedor existente (logística o carbón).
+     *
+     * `paraCarbon` no se acepta: define en qué pestaña vive el proveedor.
+     */
+    public function actualizar_proveedor(Request $request, int $id_proveedor)
+    {
+        $request->validate([
+            'tipo_entidad' => 'required|string',
+            'paraMantenimiento' => 'nullable|boolean',
+            'paraTransporte' => 'nullable|boolean',
+            'ruc' => 'required|string|size:11',
+            'dni' => 'nullable|string|size:8',
+            'razon_social' => 'required|string|max:255',
+            'direccion' => 'nullable|string|max:255',
+            'telefono' => 'nullable|string|max:20',
+            'correo' => 'nullable|email|max:100',
+        ]);
+
+        $tipo_entidad = TipoEntidad::from($request->input('tipo_entidad'));
+        $ruc = (string) $request->input('ruc');
+
+        // Mismas reglas de prefijo de RUC que en el registro.
+        if ($tipo_entidad === TipoEntidad::Juridica && ! str_starts_with($ruc, '20')) {
+            return response()->json(
+                ApiResponse::error('El RUC de una persona juridica debe comenzar con 20'),
+                422,
+            );
+        }
+        if ($tipo_entidad === TipoEntidad::Natural && ! str_starts_with($ruc, '10')) {
+            return response()->json(
+                ApiResponse::error('El RUC de una persona natural debe comenzar con 10'),
+                422,
+            );
+        }
+
+        // Identidad del usuario autenticado (la puebla JwtAuthMiddleware).
+        // Se usa para el log de cambios.
+        $authUser = $request->attributes->get('auth_user');
+        $idEmpleado = is_object($authUser) && isset($authUser->id_empleado)
+            ? (int) $authUser->id_empleado
+            : null;
+        $nombreEmpleado = is_object($authUser)
+            ? trim(($authUser->nombre ?? '') . ' ' . ($authUser->apellido ?? '')) ?: null
+            : null;
+
+        return response()->json(ProveedoresService::actualizar_proveedor(
+            id_proveedor: $id_proveedor,
+            tipoEntidad: $tipo_entidad,
+            razonSocial: (string) $request->input('razon_social'),
+            dni: $request->input('dni'),
+            ruc: $ruc,
+            direccion: $request->input('direccion'),
+            telefono: $request->input('telefono'),
+            correo: $request->input('correo'),
+            paraMantenimiento: $request->boolean('paraMantenimiento'),
+            paraTransporte: $request->boolean('paraTransporte'),
+            idEmpleado: $idEmpleado,
+            nombreEmpleado: $nombreEmpleado,
+        ));
+    }
+
+    /**
+     * Eliminar (desactivar) un proveedor
+     */
+    public function eliminar_proveedor(Request $request, int $id_proveedor)
+    {
+        return response()->json(
+            ProveedoresService::eliminar_proveedor(id_proveedor: $id_proveedor)
+        );
+    }
 }

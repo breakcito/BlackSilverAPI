@@ -11,7 +11,17 @@ class ProveedoresData
 {
 
     /**
-     * Listado proveedores
+     * Listado proveedores (catalogo auxiliar que alimenta los Selects de
+     * otros modulos: mantenimiento, cotizaciones, transporte, etc.)
+     *
+     * Por defecto EXCLUYE los Inactivos, para que un proveedor "eliminado"
+     * deje de ofrecerse al crear documentos nuevos. Si se pasa `$estado`
+     * explicitamente se respeta ese filtro (permite listar Inactivos a
+     * proposito).
+     *
+     * Buscar por `$id_proveedor` NO aplica el filtro de estado (retorna antes):
+     * asi un formulario puede resolver el proveedor de un documento viejo
+     * aunque ya este inactivo, y su Select no queda vacio.
      */
     public static function get_proveedores(
         ?int $id_proveedor = null,
@@ -68,6 +78,14 @@ class ProveedoresData
         if ($estado !== null) {
             $sql .= 'AND p.estado = :estado';
             $params['estado'] = $estado->value;
+        } else {
+            // Sin filtro explicito: ocultar los eliminados logicamente.
+            // Se usa IFNULL porque `estado` es NULLABLE: con un
+            // `p.estado != 'Inactivo'` pelado, las filas con estado NULL
+            // darian NULL en la comparacion y desaparecerian del catalogo.
+            $sql .= ' AND IFNULL(p.estado, :estado_activo_fallback) != :estado_inactivo';
+            $params['estado_activo_fallback'] = EstadoBase::Activo->value;
+            $params['estado_inactivo'] = EstadoBase::Inactivo->value;
         }
 
         if ($tipoEntidad !== null) {

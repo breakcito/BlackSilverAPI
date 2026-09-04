@@ -67,4 +67,72 @@ class CategoriasController extends Controller
 
         return response()->json($result);
     }
+
+    /**
+     * Actualizar una categoría existente
+     */
+    public function actualizar_categoria(Request $request, int $id_categoria): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'nombre' => 'required|string|max:128',
+            'descripcion' => 'nullable|string',
+            'tipo_producto' => ['required', new Enum(TipoProducto::class)],
+            'clasificacion_bien' => ['required', new Enum(TipoBien::class)],
+            'para_transporte' => 'boolean',
+            'control_por_odometro' => 'boolean',
+            'control_por_horometro' => 'boolean',
+            'control_por_vueltas' => 'boolean',
+            'es_consumible' => 'boolean',
+            'para_cocina' => 'boolean',
+            'para_mina' => 'boolean',
+            'es_auditable' => 'boolean',
+        ], [
+            'nombre.required' => 'El nombre es obligatorio',
+            'tipo_producto.required' => 'El tipo de requerimiento es obligatorio',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        // Identidad del usuario autenticado (la puebla JwtAuthMiddleware en
+        // $request->attributes->set('auth_user', ...)). Se usa para el log de cambios.
+        $authUser = $request->attributes->get('auth_user');
+        $idEmpleado = is_object($authUser) && isset($authUser->id_empleado)
+            ? (int) $authUser->id_empleado
+            : null;
+        $nombreEmpleado = is_object($authUser)
+            ? trim(($authUser->nombre ?? '') . ' ' . ($authUser->apellido ?? '')) ?: null
+            : null;
+
+        $result = CategoriasService::actualizar_categoria(
+            id_categoria: $id_categoria,
+            nombre: (string) $request->input('nombre'),
+            tipo_producto: TipoProducto::from($request->input('tipo_producto')),
+            clasificacion_bien: TipoBien::from($request->input('clasificacion_bien')),
+            descripcion: $request->input('descripcion'),
+            para_transporte: (bool) $request->boolean('para_transporte'),
+            control_por_odometro: (bool) $request->boolean('control_por_odometro'),
+            control_por_horometro: (bool) $request->boolean('control_por_horometro'),
+            control_por_vueltas: (bool) $request->boolean('control_por_vueltas'),
+            es_consumible: (bool) $request->boolean('es_consumible'),
+            para_cocina: (bool) $request->boolean('para_cocina'),
+            para_mina: (bool) $request->boolean('para_mina'),
+            es_auditable: (bool) $request->boolean('es_auditable'),
+            id_empleado: $idEmpleado,
+            nombre_empleado: $nombreEmpleado,
+        );
+
+        return response()->json($result);
+    }
+
+    /**
+     * Eliminar (desactivar) una categoría
+     */
+    public function eliminar_categoria(Request $request, int $id_categoria): JsonResponse
+    {
+        $result = CategoriasService::eliminar_categoria(id_categoria: $id_categoria);
+
+        return response()->json($result);
+    }
 }
