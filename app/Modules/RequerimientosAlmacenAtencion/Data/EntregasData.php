@@ -115,4 +115,17 @@ class EntregasData
             'estado' => EstadoRequerimientoEntrega::SinConsumir->value
         ]);
     }
+
+    /**
+     * Marca todas las entregas de un requerimiento con un estado dado
+     * (uso principal: anular al revertir entregas).
+     */
+    public static function update_estado_entregas_de_requerimiento(
+        int $id_requerimiento,
+        string $estado
+    ): int {
+        return DB::table('requerimiento_almacen_entrega')
+            ->where('id_requerimiento_almacen', $id_requerimiento)
+            ->update(['estado' => $estado]);
+    }
 }

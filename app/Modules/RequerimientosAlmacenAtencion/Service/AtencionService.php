@@ -3,13 +3,23 @@
 namespace App\Modules\RequerimientosAlmacenAtencion\Service;
 
 use App\Shared\Enums\_Generic\Premura;
+use App\Shared\Enums\_Generic\TipoTurno;
+use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalle;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalleEntrega;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalleLog;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoEntrega;
 use App\Shared\Responses\ApiResponse;
 use App\Models\RequerimientoAlmacenDetalle;
+use App\Modules\RequerimientosAlmacenAtencion\Data\EntregasData;
+use App\Modules\RequerimientosAlmacenAtencion\Data\EntregasDetalleData;
 use App\Modules\RequerimientosAlmacenAtencion\Data\RequerimientosData;
 use App\Modules\RequerimientosAlmacenAtencion\Data\RequerimientosDetalleData;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimiento;
+use App\Services\ActivosFijosService;
+use App\Services\LotesProductosService;
+use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
 use Illuminate\Support\Facades\DB;
 
 class AtencionService
@@ -61,9 +71,10 @@ class AtencionService
         ?string $fecha_entrega_requerida = null,
         ?string $fecha_solicitud = null,
         ?string $observacion = null,
-        ?array $evidencias = null
+        ?array $evidencias = null,
+        ?TipoTurno $tipo_turno = null
     ) {
-        return DB::transaction(function () use ($id_empleado_solicitante, $id_contratista_solicitante, $id_empleado_registro, $id_labor, $id_almacen_destino, $es_auditable, $premura, $observacion, $fecha_entrega_requerida, $fecha_solicitud, $detalles, $evidencias) {
+        return DB::transaction(function () use ($id_empleado_solicitante, $id_contratista_solicitante, $id_empleado_registro, $id_labor, $id_almacen_destino, $es_auditable, $premura, $observacion, $fecha_entrega_requerida, $fecha_solicitud, $detalles, $evidencias, $tipo_turno) {
             // 1. Generar correlativo
             $correlativo = RequerimientosData::get_nuevo_correlativo();
 
@@ -87,7 +98,8 @@ class AtencionService
                 observacion: $observacion,
                 fecha_entrega_requerida: $fecha_entrega_requerida,
                 fecha_solicitud: $fecha_solicitud,
-                evidencias: $evidenciasFinal
+                evidencias: $evidenciasFinal,
+                tipo_turno: $tipo_turno
             );
 
             // 4. Crear Detalles y Trazabilidad
@@ -227,6 +239,138 @@ class AtencionService
             $requerimiento->save();
 
             return ApiResponse::success($evidenciasFinal, 'Evidencias subidad correctamente');
+        });
+    }
+
+    /**
+     * Anula un requerimiento de almacén: cambia su estado a "Anulado" y
+     * revierte todas las entregas asociadas.
+     *
+     * Pasos (todo dentro de una sola DB::transaction):
+     *  1. Validar existencia y que no esté ya anulado.
+     *  2. Traer todos los detalles de TODAS las entregas del requerimiento.
+     *  3. Reingresar stock al lote:
+     *     - Agrupar los detalles con id_lote_producto por lote y sumar
+     *       cantidad_base (un solo movimiento de Kardex por lote).
+     *     - Por cada lote, LotesProductosService::update_stock(
+     *           tipo_origen: KardexOrigenMovimiento::Reingreso,
+     *           tipo_movimiento: KardexTipoMovimiento::Ingreso,
+     *           cantidad_movimiento_base: suma).
+     *  4. Devolver activos fijos a su almacén de origen:
+     *     - Por cada detalle con id_activo_fijo, ActivosFijosService::
+     *       new_ubicacion con MovimientoActivoFijo::DeMinaAAlmacen y
+     *       el id_almacen_destino del requerimiento.
+     *  5. Marcar TODAS las entregas (cabecera) como EstadoRequerimientoEntrega::Anulado.
+     *  6. Marcar TODOS los detalles de entregas como EstadoRequerimientoDetalleEntrega::Anulado.
+     *  7. Marcar la cabecera del requerimiento como EstadoRequerimiento::Anulado.
+     *
+     * Los detalles del REQUERIMIENTO (cantidad_entregada_base) NO se
+     * modifican: la anulación no borra histórico, solo bloquea nuevas
+     * entregas. La UI debe deshabilitar los checkboxes de selección.
+     *
+     * Devuelve ApiResponse::error si:
+     *  - El requerimiento no existe.
+     *  - El requerimiento ya está en estado "Anulado".
+     */
+    public static function anular_requerimiento(int $id_requerimiento)
+    {
+        return DB::transaction(function () use ($id_requerimiento) {
+            $requerimiento = \App\Models\RequerimientoAlmacen::find($id_requerimiento);
+            if (!$requerimiento) {
+                return ApiResponse::error('Requerimiento no encontrado');
+            }
+
+            if ($requerimiento->estado === EstadoRequerimiento::Anulado->value) {
+                return ApiResponse::error('El requerimiento ya se encuentra anulado');
+            }
+
+            $correlativo = $requerimiento->correlativo ?? 'S/C';
+            $id_almacen_destino = (int) $requerimiento->id_almacen_destino;
+
+            // 1) Traer TODOS los detalles de TODAS las entregas del requerimiento.
+            $detallesEntrega = EntregasDetalleData::get_detalles_por_requerimiento($id_requerimiento);
+
+            // 2) Reingresar stock agrupado por lote.
+            //     Mapa: id_lote_producto => suma de cantidad_base.
+            $sumaPorLote = [];
+            foreach ($detallesEntrega as $det) {
+                if (empty($det->id_lote_producto)) {
+                    continue;
+                }
+                $idLote = (int) $det->id_lote_producto;
+                $sumaPorLote[$idLote] = ($sumaPorLote[$idLote] ?? 0)
+                    + (float) $det->cantidad_base;
+            }
+
+            foreach ($sumaPorLote as $idLote => $cantidadBase) {
+                if ($cantidadBase <= 0) {
+                    continue;
+                }
+                LotesProductosService::update_stock(
+                    id_lote: $idLote,
+                    id_origen: null,
+                    tabla_origen: null,
+                    tipo_origen: KardexOrigenMovimiento::Reingreso,
+                    tipo_movimiento: KardexTipoMovimiento::Ingreso,
+                    cantidad_movimiento_base: $cantidadBase,
+                    descripcion: "Reingreso por anulación de requerimiento {$correlativo}",
+                );
+            }
+
+            // 3) Devolver activos fijos al almacén de destino del requerimiento.
+            //     Para evitar duplicados si un mismo activo se entregó dos veces,
+            //     deduplicamos por id_activo_fijo (con uno basta para devolverlo).
+            $idsActivosDevueltos = [];
+            foreach ($detallesEntrega as $det) {
+                if (empty($det->id_activo_fijo)) {
+                    continue;
+                }
+                $idActivo = (int) $det->id_activo_fijo;
+                if (in_array($idActivo, $idsActivosDevueltos, true)) {
+                    continue;
+                }
+                $idsActivosDevueltos[] = $idActivo;
+
+                ActivosFijosService::new_ubicacion(
+                    id_activo: $idActivo,
+                    tipo_movimiento: MovimientoActivoFijo::DeMinaAAlmacen,
+                    id_almacen: $id_almacen_destino,
+                    id_mina: null,
+                    descripcion: "Devolución por anulación de requerimiento {$correlativo}",
+                );
+            }
+
+            // 4) Eliminar físicamente los consumos asociados a las entregas del
+            //    requerimiento. Como el consumo no toca stock ni Kardex,
+            //    basta con borrar las filas: el lote ya fue reingresado en el
+            //    paso 2 y los mantenimientos / producciones que referencian
+            //    esos consumos siguen vivos (pueden tener insumos de otros
+            //    requerimientos y no es seguro borrarlos en cascada).
+            $consumosEliminados = EntregasDetalleData::eliminar_consumos_de_requerimiento(
+                $id_requerimiento,
+            );
+
+            // 5) Marcar entregas (cabecera) y detalles de entrega como Anulados.
+            EntregasData::update_estado_entregas_de_requerimiento(
+                $id_requerimiento,
+                EstadoRequerimientoEntrega::Anulado->value,
+            );
+            EntregasDetalleData::update_estado_detalles_de_requerimiento(
+                $id_requerimiento,
+                EstadoRequerimientoDetalleEntrega::Anulado->value,
+            );
+
+            // 6) Cambiar estado de la cabecera del requerimiento.
+            RequerimientosData::update_requerimiento_estado(
+                $id_requerimiento,
+                EstadoRequerimiento::Anulado->value,
+            );
+
+            $mensaje = $consumosEliminados > 0
+                ? "Requerimiento anulado correctamente. Se reingresaron " . count($sumaPorLote) . " lote(s) y se eliminaron {$consumosEliminados} consumo(s)."
+                : 'Requerimiento anulado correctamente';
+
+            return ApiResponse::success(null, $mensaje);
         });
     }
 

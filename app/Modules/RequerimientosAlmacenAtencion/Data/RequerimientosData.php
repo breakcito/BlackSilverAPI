@@ -4,6 +4,7 @@ namespace App\Modules\RequerimientosAlmacenAtencion\Data;
 
 use App\Models\RequerimientoAlmacen;
 use App\Shared\Enums\_Generic\Premura;
+use App\Shared\Enums\_Generic\TipoTurno;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimiento;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Helpers\CorrelativoHelper;
@@ -71,6 +72,18 @@ class RequerimientosData
     }
 
     /**
+     * Devuelve el estado actual del requerimiento (string) o null si no existe.
+     * Usado por EntregaService para bloquear nuevas entregas si la cabecera
+     * ya fue anulada.
+     */
+    public static function get_estado_by_id(int $id_requerimiento): ?string
+    {
+        $row = RequerimientoAlmacen::where('id', $id_requerimiento)
+            ->value('estado');
+        return $row === null ? null : (string) $row;
+    }
+
+    /**
      * Actualiza la cabecera de un requerimiento con la lista blanca de campos
      * editables. Solo se aplican los campos que vienen no-null en $campos.
      */
@@ -85,6 +98,7 @@ class RequerimientosData
             'fecha_solicitud',
             'observacion',
             'es_auditable',
+            'tipo_turno',
         ];
 
         $updateData = [];
@@ -135,7 +149,8 @@ class RequerimientosData
         ?string $observacion,
         ?string $fecha_entrega_requerida,
         ?string $fecha_solicitud = null,
-        ?array $evidencias = null
+        ?array $evidencias = null,
+        ?TipoTurno $tipo_turno = null
     ) {
         return RequerimientoAlmacen::insertGetId([
             'id_empleado_solicitante' => $id_empleado_solicitante,
@@ -147,6 +162,7 @@ class RequerimientosData
             'numero_correlativo' => $numero_correlativo,
             'es_auditable' => $es_auditable,
             'premura' => $premura->value,
+            'tipo_turno' => $tipo_turno?->value,
             'observacion' => $observacion,
             'evidencias' => $evidencias ? json_encode($evidencias) : null,
             'fecha_entrega_requerida' => $fecha_entrega_requerida,

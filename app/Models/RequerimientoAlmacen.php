@@ -22,6 +22,7 @@ class RequerimientoAlmacen extends Model
         'numero_correlativo',
         //
         'premura',
+        'tipo_turno',
         'observacion',
         'evidencias',
         'fecha_entrega_requerida',
@@ -66,6 +67,7 @@ class RequerimientoAlmacen extends Model
             ra.es_auditable,
             ra.observacion,
             ra.premura,
+            ra.tipo_turno,
             ra.fecha_entrega_requerida,
             ra.fecha_solicitud,
             ra.estado,

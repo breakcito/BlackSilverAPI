@@ -17,6 +17,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::get('/trazabilidad', 'get_trazabilidad');
             Route::post('/evidencias', 'subir_evidencias');
             Route::put('/{id}', 'editar_requerimiento');
+            // Anular un requerimiento (cambia estado a "Anulado").
+            // Solo permitido si ningun detalle tiene entregas iniciadas.
+            Route::post('/{id}/anular', 'anular_requerimiento');
         });
 
         // Entregas (Despacho, Stock, Lotes)

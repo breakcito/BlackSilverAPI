@@ -156,4 +156,88 @@ class EntregasDetalleData
     {
         return self::get_detalles_entrega(id_detalle_entrega: $id_detalle_entrega);
     }
+
+    /**
+     * Trae TODOS los detalles de TODAS las entregas de un requerimiento.
+     * Pensado para la anulación: loopeamos, agrupamos por lote / activo
+     * y reingresamos stock o devolvemos la ubicación.
+     */
+    public static function get_detalles_por_requerimiento(int $id_requerimiento)
+    {
+        $sql = "
+            SELECT
+                raed.id AS id_entrega_detalle,
+                raed.id_requerimiento_almacen_entrega,
+                raed.id_requerimiento_almacen_detalle,
+                raed.id_lote_producto,
+                raed.id_activo_fijo,
+                raed.cantidad_base,
+                raed.cantidad_lote,
+                raed.cantidad_requerimiento,
+                raed.para_mantenimiento,
+                raed.para_produccion,
+                raed.id_activo_fijo_destino,
+                raed.id_lote_mineral,
+                raed.estado
+            FROM requerimiento_almacen_entrega_detalle raed
+            INNER JOIN requerimiento_almacen_entrega rae
+                ON rae.id = raed.id_requerimiento_almacen_entrega
+            WHERE rae.id_requerimiento_almacen = :id_requerimiento
+        ";
+        return DB::select($sql, ['id_requerimiento' => $id_requerimiento]);
+    }
+
+    /**
+     * Marca TODOS los detalles de TODAS las entregas de un requerimiento
+     * con un estado dado (uso principal: revertir entregas -> Anulado).
+     */
+    public static function update_estado_detalles_de_requerimiento(
+        int $id_requerimiento,
+        string $estado
+    ): int {
+        return DB::table('requerimiento_almacen_entrega_detalle AS raed')
+            ->join(
+                'requerimiento_almacen_entrega AS rae',
+                'rae.id',
+                '=',
+                'raed.id_requerimiento_almacen_entrega',
+            )
+            ->where('rae.id_requerimiento_almacen', $id_requerimiento)
+            ->update(['raed.estado' => $estado]);
+    }
+
+    /**
+     * Elimina FISICAMENTE los consumos de las entregas de un requerimiento.
+     *
+     * Usado al anular un requerimiento con entregas que ya fueron consumidas.
+     * Como el consumo no genera movimiento en Kardex (solo registra metadata),
+     * reverterlo no requiere movimientos de Kardex inversos: basta con borrar
+     * las filas de `requerimiento_almacen_entrega_detalle_consumo` para
+     * que el saldo del lote (ya reingresado por el flujo de anulación) sea
+     * consistente con el histórico.
+     *
+     * Solo se eliminan los consumos cuyo detalle de entrega pertenece al
+     * requerimiento anulado. NO se tocan los mantenimientos ni producciones
+     * que referencian esos consumos via `id_mantenimiento` / `id_lote_mineral`,
+     * porque pueden tener insumos de OTROS requerimientos y no es seguro
+     * eliminarlos en cascada.
+     */
+    public static function eliminar_consumos_de_requerimiento(int $id_requerimiento): int
+    {
+        return DB::table('requerimiento_almacen_entrega_detalle_consumo AS cns')
+            ->join(
+                'requerimiento_almacen_entrega_detalle AS raed',
+                'raed.id',
+                '=',
+                'cns.id_requerimiento_almacen_entrega_detalle',
+            )
+            ->join(
+                'requerimiento_almacen_entrega AS rae',
+                'rae.id',
+                '=',
+                'raed.id_requerimiento_almacen_entrega',
+            )
+            ->where('rae.id_requerimiento_almacen', $id_requerimiento)
+            ->delete();
+    }
 }

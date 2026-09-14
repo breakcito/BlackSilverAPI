@@ -4,7 +4,7 @@ namespace App\Modules\ProgramacionHorarios\Controllers;
 
 use App\Modules\ProgramacionHorarios\Services\TurnoLaboralService;
 use App\Shared\Enums\_Generic\EstadoBase;
-use App\Shared\Enums\ProgramacionHorario\TipoTurno;
+use App\Shared\Enums\_Generic\TipoTurno;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

@@ -8,6 +8,7 @@ use App\Services\LotesProductosService;
 use App\Shared\Enums\ActivoFijo\MovimientoActivoFijo;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
+use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimiento;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalle;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoRequerimientoDetalleLog;
 use App\Shared\Helpers\ArchivoHelper;
@@ -61,6 +62,17 @@ class EntregaService
         ?array $evidencias, // archivos
         array $detalles
     ) {
+        // Bloqueo: no se pueden registrar entregas sobre un requerimiento anulado.
+        $estadoReq = RequerimientosData::get_estado_by_id($id_requerimiento);
+        if ($estadoReq === null) {
+            return ApiResponse::error('Requerimiento no encontrado');
+        }
+        if ($estadoReq === EstadoRequerimiento::Anulado->value) {
+            return ApiResponse::error(
+                'No se pueden registrar entregas sobre un requerimiento anulado',
+            );
+        }
+
         return DB::transaction(function () use ($id_empleado_entrega, $id_requerimiento, $id_empleado_recibe, $id_contratista_recibe, $fecha_entrega, $observacion, $evidencias, $detalles) {
 
             // Procesar Evidencias si existen

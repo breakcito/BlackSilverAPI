@@ -4,7 +4,7 @@ namespace App\Modules\ProgramacionHorarios\Data;
 
 use App\Models\TurnoLaboral;
 use App\Shared\Enums\_Generic\EstadoBase;
-use App\Shared\Enums\ProgramacionHorario\TipoTurno;
+use App\Shared\Enums\_Generic\TipoTurno;
 use Illuminate\Support\Facades\DB;
 
 class TurnoLaboralData

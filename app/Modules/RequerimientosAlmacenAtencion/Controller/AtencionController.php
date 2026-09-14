@@ -3,6 +3,7 @@
 namespace App\Modules\RequerimientosAlmacenAtencion\Controller;
 
 use App\Shared\Enums\_Generic\Premura;
+use App\Shared\Enums\_Generic\TipoTurno;
 use App\Shared\Responses\ApiResponse;
 use App\Modules\RequerimientosAlmacenAtencion\Service\AtencionService;
 use Illuminate\Http\JsonResponse;
@@ -51,6 +52,7 @@ class AtencionController extends Controller
             'id_almacen_destino' => 'required|integer',
             'es_auditable' => 'required|boolean',
             'premura' => 'required|string',
+            'tipo_turno' => 'nullable|string|in:Dia,Noche',
             'fecha_entrega_requerida' => 'required|date',
             'fecha_solicitud' => 'nullable|date',
             'observacion' => 'nullable|string',
@@ -84,6 +86,9 @@ class AtencionController extends Controller
         $evidencias = $request->file('evidencias', []);
 
         $premura = Premura::from($request->input('premura'));
+        $tipo_turno = $request->filled('tipo_turno')
+            ? TipoTurno::from($request->input('tipo_turno'))
+            : null;
         try {
             $resultado = AtencionService::registrar_requerimiento(
                 id_empleado_solicitante: $request->id_empleado_solicitante ? (int) $request->id_empleado_solicitante : null,
@@ -97,7 +102,8 @@ class AtencionController extends Controller
                 fecha_entrega_requerida: $request->fecha_entrega_requerida,
                 fecha_solicitud: $request->fecha_solicitud,
                 detalles: $request->detalles,
-                evidencias: $evidencias
+                evidencias: $evidencias,
+                tipo_turno: $tipo_turno
             );
 
             return response()->json($resultado);
@@ -219,6 +225,23 @@ class AtencionController extends Controller
     }
 
     /**
+     * Anular un requerimiento: cambia el estado a "Anulado".
+     * Bloqueado si el requerimiento tiene entregas iniciadas.
+     */
+    public function anular_requerimiento(Request $request, int $id): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+        if (!$authUser) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
+        }
+
+        $result = AtencionService::anular_requerimiento($id);
+
+        $status = ($result['success'] ?? false) ? 200 : 400;
+        return response()->json($result, $status);
+    }
+
+    /**
      * Edita un requerimiento existente. Permite modificar la cabecera y los
      * detalles que aun no tengan entrega iniciada (cantidad_entregada_base = 0).
      */
@@ -234,6 +257,7 @@ class AtencionController extends Controller
             'id_contratista_solicitante' => 'nullable|integer',
             'id_labor' => 'nullable|integer',
             'premura' => 'nullable|string',
+            'tipo_turno' => 'nullable|string|in:Dia,Noche',
             'fecha_entrega_requerida' => 'nullable|date',
             'fecha_solicitud' => 'nullable|date',
             'observacion' => 'nullable|string',
@@ -290,6 +314,7 @@ class AtencionController extends Controller
             'fecha_solicitud' => $request->input('fecha_solicitud'),
             'observacion' => $request->input('observacion'),
             'es_auditable' => $request->has('es_auditable') ? (bool) $request->es_auditable : null,
+            'tipo_turno' => $request->input('tipo_turno'),
         ];
 
         $detalles_editar = $request->input('detalles_editar', []);
