@@ -16,11 +16,17 @@ class SolicitudReabastecimientoDetalle extends Model
         'id_solicitud_reabastecimiento',
         'id_requerimiento_almacen_detalle', // null - sirve para saber si fue generado por un requerimiento
         'id_empleado_atencion', // quien aprueba o rechaza
-        'id_producto',
-        'id_unidad_medida', // bolsa
-        'cantidad_solicitada',
-        'cantidad_solicitada_base',
-        'contenido_por_presentacion',
+        'id_producto', // cables - cm
+        'id_unidad_medida', // metro
+        // campos para hacer un calculo mas intuitivo para el usuario cuando quiera aplicar conversiones como: Quiero N productos de X magnitud
+        'con_magnitud', // FALSE|0 por default
+        'cantidad_items', // 0 por default: 4 cables
+        'valor_magnitud', // (segun la unidad de medida de la solicitud)  2 metros por cada cable
+        'valor_magnitud_base', // 200cm por cada cable
+        //
+        'contenido_por_presentacion', // 100cm en 1 metro
+        'cantidad_solicitada', // cantidad de items * valor de magnitud: 8 metros
+        'cantidad_solicitada_base', // cantidad de items * valor de magnitud base: 800 cm
         'cantidad_entregada',
         'cantidad_entregada_base',
         'comentario',

@@ -57,4 +57,14 @@ enum KardexOrigenMovimiento: string
      * Cuando se realiza un movimiento interno usado para salidas/ingresos de activos fijos
      */
     case MovimientoInterno = 'Movimiento Interno';
+
+    /**
+     * Cuando se tuvo que retornar el stock de previamente salio de almacen
+     */
+    case Reingreso = 'Reingreso';
+
+    /**
+     *  Cuando se registra el consumo de un producto de forma directa
+     */
+    case Consumo = 'Consumo';
 }
