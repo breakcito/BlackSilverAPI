@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\Shared\Enums\ControlUso\EstadoControlUso;
 use Illuminate\Database\Eloquent\Model;
 
 /**
  * Modelo que hace referencia al registro de control de uso de los activos fijos,
- * como horómetro o odómetro de inicio y fin, horas de trabajo, precio y costo total.
+ * como horómetro u odómetro de inicio y fin, horas de trabajo, precio y costo total.
  */
 class ControlUsoActivo extends Model
 {
@@ -37,6 +38,7 @@ class ControlUsoActivo extends Model
         'observacion',
         'tipo_turno',
         'uuid_grupo',
+        'estado',
         'created_at'
     ];
 
@@ -54,6 +56,7 @@ class ControlUsoActivo extends Model
         'cantidad_vueltas' => 'integer',
         'fecha_hora_inicio_control' => 'datetime',
         'fecha_hora_fin_control' => 'datetime',
+        'estado' => EstadoControlUso::class,
         'created_at' => 'datetime',
     ];
 }

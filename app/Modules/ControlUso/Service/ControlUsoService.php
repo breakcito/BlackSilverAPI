@@ -8,6 +8,7 @@ use App\Models\TarifaUsoActivo;
 use App\Models\TipoMaterial;
 use App\Modules\ControlUso\Data\ControlUsoData;
 use App\Services\LotesProductosService;
+use App\Shared\Enums\ControlUso\EstadoControlUso;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoConsumoDetalleEntregaReq;
@@ -171,7 +172,12 @@ class ControlUsoService
      * Cada item representa un tramo horario independiente con su propia observacion.
      * El acumulado del activo_fijo se actualiza una sola vez al final.
      *
-     * @param array $items Cada item: ['hora_inicio'=>HH:MM, 'hora_fin'=>HH:MM, 'horometro_inicio'?=>float, 'horometro_fin'?=>float, 'observacion'?=>string]
+     * Los consumos son COMPARTIDOS por todo el grupo (mismo `uuid_grupo`):
+     * un mismo consumo (p. ej. 50 galones de combustible) cubre a todos los
+     * bloques horometrados del grupo, no a uno puntual.
+     *
+     * @param array $items     Cada item: ['hora_inicio'=>HH:MM, 'hora_fin'=>HH:MM, 'horometro_inicio'?=>float, 'horometro_fin'?=>float, 'observacion'?=>string]
+     * @param array $consumos  Lista compartida: cada elemento con los campos id_producto, id_almacen, id_lote_producto, id_unidad_medida, cantidad_consumo, contenido_por_presentacion, ...
      */
     public static function registrar_uso_bulk(
         int $id_activo_fijo,
@@ -185,6 +191,7 @@ class ControlUsoService
         ?int $id_lote_mineral,
         ?string $tipo_carga,
         array $items,
+        array $consumos = [],
         int $id_empleado_registro = 0
     ) {
         if (count($items) === 0) {
@@ -193,10 +200,10 @@ class ControlUsoService
 
         return DB::transaction(function () use (
             $id_activo_fijo, $fecha_trabajo, $id_tarifa, $precio_unitario,
-            $es_para_mina, $id_mina, $id_labor, $id_cliente, $id_lote_mineral, $tipo_carga, $items,
+            $es_para_mina, $id_mina, $id_labor, $id_cliente, $id_lote_mineral, $tipo_carga, $items, $consumos,
             $id_empleado_registro
         ) {
-            // Toda la submission comparte un mismo uuid_grupo (cabecera + N items)
+            // Toda la submission comparte un mismo uuid_grupo (cabecera + N items + consumos compartidos)
             $uuidGrupo = (string) Str::uuid();
             $created = [];
             $suma_total_horas = 0.0;
@@ -284,79 +291,83 @@ class ControlUsoService
                     'observacion' => $observacion,
                     'tipo_turno' => $tipoTurno,
                     'uuid_grupo' => $uuidGrupo,
+                    'estado' => EstadoControlUso::Activo->value,
                     'created_at' => now()->toDateTimeString(),
                 ]);
 
                 $created[] = $log;
                 $suma_total_horas += (float) $totalHorasItem;
+            }
 
-                // Consumos directos (opcional por item). Si el item viene con
-                // `consumos[]`, se inserta uno por uno en la tabla
-                // `requerimiento_almacen_entrega_detalle_consumo` con
-                // `es_consumo_directo=true` y se ejecuta `update_stock` con
-                // origen=Consumo (SALIDA) para descontar del lote y registrar
-                // el movimiento en kardex.
-                if (!empty($it['consumos']) && is_array($it['consumos'])) {
-                    $consumos = $it['consumos'];
-                    foreach ($consumos as $csIdx => $cs) {
-                        $cantidadConsumo = (float) $cs['cantidad_consumo'];
-                        $cpp = (float) $cs['contenido_por_presentacion'];
-                        $cantidadBase = round($cantidadConsumo * $cpp, 6);
+            // Consumos COMPARTIDOS por todo el grupo UUID. Se procesan UNA
+            // sola vez al final (no por bloque): un consumo (p. ej. 50
+            // galones de combustible) cubre a todos los bloques horometrados
+            // que comparten este `uuid_grupo`.
+            if (!empty($consumos) && is_array($consumos)) {
+                // Nombre del activo (solo una vez) para la descripcion del kardex.
+                $activoInfoConsumo = DB::table('activo_fijo')
+                    ->where('id', $id_activo_fijo)
+                    ->first();
+                $activoCorrelativo = $activoInfoConsumo->correlativo ?? 'S/C';
 
-                        // Estado (Consumo Parcial / Consumo Total)
-                        $estadoRaw = $cs['estado'] ?? 'Consumo Total';
-                        $estadoEnum = EstadoConsumoDetalleEntregaReq::tryFrom($estadoRaw)
-                            ?? EstadoConsumoDetalleEntregaReq::ConsumoTotal;
+                foreach ($consumos as $csIdx => $cs) {
+                    $cantidadConsumo = (float) $cs['cantidad_consumo'];
+                    $cpp = (float) $cs['contenido_por_presentacion'];
+                    $cantidadBase = round($cantidadConsumo * $cpp, 6);
 
-                        // Nombre del producto y del activo para la descripcion del kardex
-                        $productoNombre = DB::table('producto')
-                            ->where('id', (int) $cs['id_producto'])
-                            ->value('nombre');
-                        $activoInfoConsumo = DB::table('activo_fijo')
-                            ->where('id', $id_activo_fijo)
-                            ->first();
-                        $activoCorrelativo = $activoInfoConsumo->correlativo ?? 'S/C';
+                    // Estado (Consumo Parcial / Consumo Total)
+                    $estadoRaw = $cs['estado'] ?? 'Consumo Total';
+                    $estadoEnum = EstadoConsumoDetalleEntregaReq::tryFrom($estadoRaw)
+                        ?? EstadoConsumoDetalleEntregaReq::ConsumoTotal;
 
-                        $descripcionConsumo = sprintf(
-                            'Se consumio (%s) en %s - %s',
-                            $productoNombre ?? 'producto',
-                            $activoCorrelativo,
-                            (string) $id_activo_fijo,
-                        );
+                    // Nombre del producto y del almacen para la descripcion del kardex.
+                    $productoNombre = DB::table('producto')
+                        ->where('id', (int) $cs['id_producto'])
+                        ->value('nombre');
+                    $almacenNombre = DB::table('almacen')
+                        ->where('id', (int) $cs['id_almacen'])
+                        ->value('nombre');
 
-                        $idEmpleadoRegistro = $id_empleado_registro;
+                    $descripcionConsumo = sprintf(
+                        'Se consumio %s - %s en %s',
+                        $productoNombre ?? 'producto',
+                        $almacenNombre ?? 'S/A',
+                        $activoCorrelativo,
+                    );
 
-                        $consumoId = RequerimientoAlmacenEntregaDetalleConsumo::crear_consumo_directo(
-                            id_empleado_registro: $idEmpleadoRegistro,
-                            id_activo_fijo_consumidor: $id_activo_fijo,
-                            id_lote_mineral: isset($cs['id_lote_mineral']) ? (int) $cs['id_lote_mineral'] : null,
-                            id_labor_destino: isset($cs['id_labor_destino']) ? (int) $cs['id_labor_destino'] : null,
-                            para_mantenimiento: (bool) ($cs['para_mantenimiento'] ?? false),
-                            para_produccion: (bool) ($cs['para_produccion'] ?? false),
-                            cantidad_base_consumida: $cantidadBase,
-                            comentario_consumo: $cs['comentario'] ?? null,
-                            uuid_control_uso_activo: $uuidGrupo,
-                            id_producto: (int) $cs['id_producto'],
-                            id_almacen: (int) $cs['id_almacen'],
-                            id_lote_producto: (int) $cs['id_lote_producto'],
-                            id_unidad_medida: (int) $cs['id_unidad_medida'],
-                            contenido_por_presentacion: $cpp,
-                            cantidad_consumo: $cantidadConsumo,
-                            cantidad_base: $cantidadBase,
-                            estado: $estadoEnum,
-                        );
+                    $consumoId = RequerimientoAlmacenEntregaDetalleConsumo::crear_consumo_directo(
+                        id_empleado_registro: $id_empleado_registro,
+                        id_activo_fijo_consumidor: $id_activo_fijo,
+                        id_lote_mineral: isset($cs['id_lote_mineral']) ? (int) $cs['id_lote_mineral'] : null,
+                        id_labor_destino: isset($cs['id_labor_destino']) ? (int) $cs['id_labor_destino'] : null,
+                        para_mantenimiento: (bool) ($cs['para_mantenimiento'] ?? false),
+                        para_produccion: (bool) ($cs['para_produccion'] ?? false),
+                        cantidad_base_consumida: $cantidadBase,
+                        comentario_consumo: $cs['comentario'] ?? null,
+                        // El consumo se asocia al GRUPO uuid_control_uso_activo
+                        // (== control_uso_activo.uuid_grupo), no a un item
+                        // puntual. Por eso NO pasamos `id_control_uso_activo`.
+                        uuid_control_uso_activo: $uuidGrupo,
+                        id_producto: (int) $cs['id_producto'],
+                        id_almacen: (int) $cs['id_almacen'],
+                        id_lote_producto: (int) $cs['id_lote_producto'],
+                        id_unidad_medida: (int) $cs['id_unidad_medida'],
+                        contenido_por_presentacion: $cpp,
+                        cantidad_consumo: $cantidadConsumo,
+                        cantidad_base: $cantidadBase,
+                        estado: $estadoEnum,
+                    );
 
-                        // Kardex SALIDA via update_stock (origen=Consumo).
-                        LotesProductosService::update_stock(
-                            id_lote: (int) $cs['id_lote_producto'],
-                            id_origen: $consumoId,
-                            tabla_origen: 'requerimiento_almacen_entrega_detalle_consumo',
-                            tipo_origen: KardexOrigenMovimiento::Consumo,
-                            tipo_movimiento: KardexTipoMovimiento::Salida,
-                            cantidad_movimiento_base: $cantidadBase,
-                            descripcion: $descripcionConsumo,
-                        );
-                    }
+                    // Kardex SALIDA via update_stock (origen=Consumo).
+                    LotesProductosService::update_stock(
+                        id_lote: (int) $cs['id_lote_producto'],
+                        id_origen: $consumoId,
+                        tabla_origen: 'requerimiento_almacen_entrega_detalle_consumo',
+                        tipo_origen: KardexOrigenMovimiento::Consumo,
+                        tipo_movimiento: KardexTipoMovimiento::Salida,
+                        cantidad_movimiento_base: $cantidadBase,
+                        descripcion: $descripcionConsumo,
+                    );
                 }
             }
 
@@ -390,19 +401,21 @@ class ControlUsoService
      * Registrar varios logs de uso por vueltas en una sola transaccion (cabecera + items[]).
      * Cada item representa un viaje independiente con su propia cantidad de vueltas
      * y su propia tarifa (cada item puede tener una tarifa distinta).
-     * El lote de mineral es cabecera-wide (compartido por todos los items) para asociar
-     * los costos al lote de produccion elegido.
+     * El lote de mineral es cabecera-wide pero ahora OPCIONAL: hay vueltas
+     * (servicios, carguios iniciales) donde aun no se asigna lote. La fecha
+     * del trabajo pasa a ser POR BLOQUE (`fecha_trabajo` en cada item), no
+     * cabecera-wide, porque cada viaje puede ocurrir en un dia distinto.
      * El acumulado del activo_fijo se actualiza una sola vez al final.
      *
      * @param array $items Cada item: ['id_tarifa'=>int, 'precio_unitario'=>float, 'cantidad_vueltas'=>int,
      *                            'cantidad_sacos'?=>int, 'horometro_inicio'?=>float, 'horometro_fin'?=>float,
-     *                            'tipo_turno'?=>string, 'observacion'?=>string]
+     *                            'tipo_turno'?=>string, 'fecha_trabajo'=>string 'Y-m-d', 'observacion'?=>string]
      */
     public static function registrar_uso_bulk_vueltas(
         int $id_activo_fijo,
         int $id_mina,
         int $id_labor,
-        int $id_lote_mineral,
+        ?int $id_lote_mineral,
         array $items
     ) {
         if (count($items) === 0) {
@@ -416,8 +429,6 @@ class ControlUsoService
             $uuidGrupo = (string) Str::uuid();
             $created = [];
             $suma_total_vueltas = 0;
-
-            $dtInicio = now()->toDateTimeString();
 
             foreach ($items as $idx => $it) {
                 $idTarifaItem = isset($it['id_tarifa']) && $it['id_tarifa'] !== '' && $it['id_tarifa'] !== null
@@ -446,11 +457,21 @@ class ControlUsoService
                     ? (string) $it['tipo_turno']
                     : null;
 
+                // Fecha del trabajo por bloque. Si no viene, usamos la
+                // fecha del bloque anterior o el dia actual como
+                // fallback para no romper el payload.
+                $fechaTrabajoItem = (isset($it['fecha_trabajo']) && $it['fecha_trabajo'] !== '' && $it['fecha_trabajo'] !== null)
+                    ? (string) $it['fecha_trabajo']
+                    : null;
+
                 if ($idTarifaItem === null) {
                     throw new \RuntimeException("Item #$idx: la tarifa es obligatoria.");
                 }
                 if ($cantidadVueltas <= 0) {
                     throw new \RuntimeException("Item #$idx: la cantidad de vueltas debe ser mayor a cero.");
+                }
+                if ($fechaTrabajoItem === null) {
+                    throw new \RuntimeException("Item #$idx: la fecha del trabajo es obligatoria.");
                 }
 
                 if ($horometroInicio !== null && $horometroFin !== null && $horometroFin <= $horometroInicio) {
@@ -458,6 +479,13 @@ class ControlUsoService
                 }
 
                 $costoItem = round($cantidadVueltas * $precioItem, 2);
+
+                // fecha_hora_inicio_control = la fecha del item (sin hora,
+                // 00:00:00). fecha_hora_fin_control = null porque las
+                // vueltas son discretas (un viaje), no un tramo continuo.
+                $dtInicio = Carbon::createFromFormat('Y-m-d', $fechaTrabajoItem)
+                    ->startOfDay()
+                    ->toDateTimeString();
 
                 $log = ControlUsoActivo::create([
                     'id_activo_fijo' => $id_activo_fijo,
@@ -482,6 +510,7 @@ class ControlUsoService
                     'observacion' => $observacion,
                     'tipo_turno' => $tipoTurno,
                     'uuid_grupo' => $uuidGrupo,
+                    'estado' => EstadoControlUso::Activo->value,
                     'created_at' => now()->toDateTimeString(),
                 ]);
 
@@ -553,5 +582,242 @@ class ControlUsoService
             'created_at' => now()->toDateTimeString()
         ]);
         return ApiResponse::success($material, 'Material registrado exitosamente');
+    }
+
+    /**
+     * Anula un control de uso (soft-delete). El reingreso de stock al lote
+     * y la eliminacion fisica del consumo SOLO se hacen cuando este es el
+     * ULTIMO item activo del grupo (mismo `uuid_grupo`). Si quedan otros
+     * bloques activos del mismo "Registrar Control por Horometro",
+     * unicamente se marca este bloque como Anulado: el consumo del grupo
+     * sigue siendo valido para los bloques restantes.
+     *
+     * Reglas:
+     *  - Buscar el consumo asociado por `uuid_control_uso_activo` (==
+     *    `control_uso_activo.uuid_grupo`). Ya NO usamos `id_control_uso_activo`
+     *    porque el consumo representa al grupo entero, no a un item.
+     *  - Contar cuantos items del `uuid_grupo` siguen 'Activo'. Si despues
+     *    de marcar el actual como Anulado queda >= 1 activo, solo marcar y
+     *    salir (no tocar stock ni kardex).
+     *  - Si ya no queda ninguno activo del grupo: reingresar stock, registrar
+     *    Kardex (Ingreso / Reingreso) y eliminar fisicamente el/los consumos.
+     */
+    public static function anular_control_uso(int $id_control_uso)
+    {
+        $log = ControlUsoActivo::find($id_control_uso);
+        if (!$log) {
+            return ApiResponse::error("Control de uso no encontrado.", 404);
+        }
+        if ($log->estado === EstadoControlUso::Anulado) {
+            return ApiResponse::error("Este control de uso ya fue anulado.", 409);
+        }
+
+        try {
+            return DB::transaction(function () use ($id_control_uso, $log) {
+                // 1) Recopilar info del activo fijo una sola vez (para la
+                //    descripcion del Kardex).
+                $activoInfo = DB::table('activo_fijo')
+                    ->leftJoin('producto', 'producto.id', '=', 'activo_fijo.id_producto')
+                    ->where('activo_fijo.id', $log->id_activo_fijo)
+                    ->select(
+                        'activo_fijo.correlativo',
+                        'activo_fijo.id',
+                        'producto.nombre as producto_nombre',
+                    )
+                    ->first();
+
+                $activoCorrelativo = $activoInfo->correlativo ?? 'S/C';
+                $idActivoFijo = $log->id_activo_fijo;
+
+                // 2) Marcar el control_uso_activo actual como Anulado.
+                $log->estado = EstadoControlUso::Anulado;
+                $log->save();
+
+                // 3) Determinar si queda ALGUN otro item del mismo grupo
+                //    todavia en estado 'Activo'.
+                $uuidGrupo = $log->uuid_grupo;
+                $restantesActivos = 0;
+                if ($uuidGrupo !== null && $uuidGrupo !== '') {
+                    $restantesActivos = (int) DB::table('control_uso_activo')
+                        ->where('uuid_grupo', $uuidGrupo)
+                        ->where('estado', EstadoControlUso::Activo->value)
+                        ->count();
+                }
+
+                // 4) Si quedan mas bloques activos en el grupo, NO tocamos
+                //    stock ni consumos: el consumo del grupo sigue siendo
+                //    valido para esos bloques restantes.
+                if ($restantesActivos > 0) {
+                    return ApiResponse::success(
+                        $log,
+                        "Control de uso anulado. Quedan {$restantesActivos} registro(s) activo(s) en este grupo, no se reingresa stock.",
+                    );
+                }
+
+                // 5) Grupo completamente anulado -> reingresar stock,
+                //    registrar Kardex y eliminar consumo(s) del grupo.
+                $consumos = RequerimientoAlmacenEntregaDetalleConsumo::where(
+                    'uuid_control_uso_activo',
+                    $uuidGrupo,
+                )->get();
+
+                foreach ($consumos as $cs) {
+                    $cantidadBase = (float) $cs->cantidad_base_consumida;
+                    if ($cantidadBase <= 0) {
+                        // Sin cantidad para reingresar, solo borrar.
+                        $cs->delete();
+                        continue;
+                    }
+
+                    $descripcionReingreso = sprintf(
+                        'Reingreso por anulacion en control de uso en %s',
+                        $activoCorrelativo,
+                    );
+
+                    LotesProductosService::update_stock(
+                        id_lote: (int) $cs->id_lote_producto,
+                        id_origen: (int) $cs->id,
+                        tabla_origen: 'requerimiento_almacen_entrega_detalle_consumo',
+                        tipo_origen: KardexOrigenMovimiento::Reingreso,
+                        tipo_movimiento: KardexTipoMovimiento::Ingreso,
+                        cantidad_movimiento_base: $cantidadBase,
+                        descripcion: $descripcionReingreso,
+                    );
+
+                    // Eliminar fisicamente el consumo.
+                    $cs->delete();
+                }
+
+                return ApiResponse::success(
+                    $log,
+                    "Control de uso anulado. Grupo completo anulado: stock reingresado y consumos eliminados.",
+                );
+            });
+        } catch (\Throwable $e) {
+            return ApiResponse::error(
+                'Error al anular el control de uso: ' . $e->getMessage(),
+                500,
+            );
+        }
+    }
+
+    /**
+     * Actualiza un control de uso individual (no masivo). Los campos que se
+     * pueden modificar son los "datos operativos" del registro:
+     * fechas, lecturas de horometro/odometro/vueltas, observaciones,
+     * tarifa, mina/labor/lote/cliente, tipo_turno, tipo_carga, precio.
+     *
+     * Si el registro ya esta 'Anulado' no se permite editar.
+     */
+    public static function actualizar_control_uso(Request $request, int $id)
+    {
+        $log = ControlUsoActivo::find($id);
+        if (!$log) {
+            return ApiResponse::error("Control de uso no encontrado.", 404);
+        }
+        if ($log->estado === EstadoControlUso::Anulado) {
+            return ApiResponse::error(
+                "No se puede editar un control de uso anulado. Si necesitas corregirlo, primero anulalo y registra uno nuevo.",
+                409,
+            );
+        }
+
+        try {
+            return DB::transaction(function () use ($log, $request) {
+                // Campos directos (strings / numericos simples)
+                if ($request->has('fecha_hora_inicio_control')) {
+                    $log->fecha_hora_inicio_control = $request->input('fecha_hora_inicio_control');
+                }
+                if ($request->has('fecha_hora_fin_control')) {
+                    $fechaFin = $request->input('fecha_hora_fin_control');
+                    $log->fecha_hora_fin_control = $fechaFin !== null && $fechaFin !== '' ? $fechaFin : null;
+                }
+                if ($request->has('horometro_inicio')) {
+                    $log->horometro_inicio = $request->input('horometro_inicio');
+                }
+                if ($request->has('horometro_fin')) {
+                    $log->horometro_fin = $request->input('horometro_fin');
+                }
+                if ($request->has('odometro_inicio')) {
+                    $log->odometro_inicio = $request->input('odometro_inicio');
+                }
+                if ($request->has('odometro_fin')) {
+                    $log->odometro_fin = $request->input('odometro_fin');
+                }
+                if ($request->has('cantidad_vueltas')) {
+                    $cv = $request->input('cantidad_vueltas');
+                    $log->cantidad_vueltas = ($cv === null || $cv === '') ? null : (int) $cv;
+                }
+                if ($request->has('cantidad_sacos')) {
+                    $cs = $request->input('cantidad_sacos');
+                    $log->cantidad_sacos = ($cs === null || $cs === '') ? null : (int) $cs;
+                }
+                if ($request->has('precio_unitario')) {
+                    $log->precio_unitario = $request->input('precio_unitario');
+                }
+                if ($request->has('observacion')) {
+                    $log->observacion = $request->input('observacion');
+                }
+                if ($request->has('tipo_turno')) {
+                    $log->tipo_turno = $request->input('tipo_turno');
+                }
+                if ($request->has('es_para_mina')) {
+                    $log->es_para_mina = (bool) $request->input('es_para_mina');
+                }
+                if ($request->has('id_mina')) {
+                    $log->id_mina = $request->input('id_mina');
+                }
+                if ($request->has('id_labor')) {
+                    $log->id_labor = $request->input('id_labor');
+                }
+                if ($request->has('id_lote_mineral')) {
+                    $log->id_lote_mineral = $request->input('id_lote_mineral');
+                }
+                if ($request->has('id_cliente')) {
+                    $log->id_cliente = $request->input('id_cliente');
+                }
+                if ($request->has('tipo_carga')) {
+                    $log->tipo_carga = $request->input('tipo_carga');
+                }
+                if ($request->has('id_tarifa')) {
+                    $log->id_tarifa = $request->input('id_tarifa');
+                }
+
+                // Recalcular total_horas si tenemos fechas o lecturas de
+                // horometro/odometro (mismo criterio que el bulk).
+                if ($log->horometro_inicio !== null && $log->horometro_fin !== null) {
+                    $log->total_horas = max(0.0, (float) $log->horometro_fin - (float) $log->horometro_inicio);
+                } elseif ($log->odometro_inicio !== null && $log->odometro_fin !== null) {
+                    $log->total_horas = max(0.0, (float) $log->odometro_fin - (float) $log->odometro_inicio);
+                } elseif ($log->fecha_hora_inicio_control && $log->fecha_hora_fin_control) {
+                    // Recalcular a partir de las fechas (mismo calculo del bulk).
+                    try {
+                        $inicio = Carbon::parse($log->fecha_hora_inicio_control);
+                        $fin = Carbon::parse($log->fecha_hora_fin_control);
+                        $diff = $fin->diffInMinutes($inicio, true);
+                        $log->total_horas = round($diff / 60.0, 6);
+                    } catch (\Throwable $e) {
+                        // Si las fechas no son validas, dejar el total previo.
+                    }
+                }
+
+                // Recalcular costo_total (mismo criterio del bulk).
+                if ($log->precio_unitario !== null) {
+                    $log->costo_total = round(((float) $log->total_horas) * ((float) $log->precio_unitario), 2);
+                }
+
+                $log->save();
+
+                return ApiResponse::success(
+                    $log,
+                    "Control de uso actualizado correctamente.",
+                );
+            });
+        } catch (\Throwable $e) {
+            return ApiResponse::error(
+                'Error al actualizar el control de uso: ' . $e->getMessage(),
+                500,
+            );
+        }
     }
 }

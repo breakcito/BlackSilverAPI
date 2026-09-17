@@ -185,6 +185,9 @@ class ControlConsumoData
         float $cantidad_base,
         EstadoConsumoDetalleEntregaReq $estado
     ): int {
+        // El consumo ya NO lleva `id_control_uso_activo`: representa al
+        // grupo UUID completo (no a un item puntual). El reingreso al
+        // anular se decide contra el `uuid_grupo` del control_uso_activo.
         return RequerimientoAlmacenEntregaDetalleConsumo::crear_consumo_directo(
             id_empleado_registro: $id_empleado_registro,
             id_activo_fijo_consumidor: $id_activo_fijo_consumidor,

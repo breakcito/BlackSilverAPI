@@ -12,10 +12,10 @@ class ControlUsoReporteData
     public static function get_registros_uso(int $mes, int $anio)
     {
         $sql = '
-        SELECT 
+        SELECT
             log.id as id_log,
             log.id_activo_fijo,
-            
+
             act.codigo,
             act.correlativo,
             pr.nombre as producto,
@@ -23,7 +23,7 @@ class ControlUsoReporteData
             cat.control_por_horometro,
             cat.control_por_odometro,
             COALESCE(act_mi.nombre, act_al.nombre, \'SIN UBICACIÓN\') as ubicacion_activo,
-            
+
             log.fecha_hora_inicio_control,
             log.fecha_hora_fin_control,
             log.horometro_inicio,
@@ -32,7 +32,7 @@ class ControlUsoReporteData
             log.precio_unitario,
             log.costo_total,
             log.observacion,
-            
+
             log.es_para_mina,
             mi.nombre as mina,
             la.nombre as labor,
@@ -46,7 +46,14 @@ class ControlUsoReporteData
             log.odometro_inicio,
             log.odometro_fin,
             GREATEST(0, COALESCE(log.odometro_fin, 0) - COALESCE(log.odometro_inicio, 0)) as total_km,
-            tm.nombre as tipo_material
+            tm.nombre as tipo_material,
+            log.estado,
+            -- Necesarios para el Excel mensual:
+            --  - `tipo_turno`: columna TURNO de la hoja
+            --  - `uuid_grupo`: agrupar combustible por bloque (combustible
+            --    compartido por todos los items del mismo UUID)
+            log.tipo_turno,
+            log.uuid_grupo
         FROM control_uso_activo log
         INNER JOIN activo_fijo act ON act.id = log.id_activo_fijo
         INNER JOIN producto pr ON pr.id = act.id_producto
@@ -59,9 +66,11 @@ class ControlUsoReporteData
         LEFT JOIN mina act_mi ON act_mi.id = act.id_mina
         LEFT JOIN almacen act_al ON act_al.id = act.id_almacen
         LEFT JOIN tipo_material tm ON tm.id = tar.id_tipo_material
-        WHERE 
-            MONTH(log.fecha_hora_inicio_control) = :mes AND 
-            YEAR(log.fecha_hora_inicio_control) = :anio
+        WHERE
+            MONTH(log.fecha_hora_inicio_control) = :mes AND
+            YEAR(log.fecha_hora_inicio_control) = :anio AND
+            -- Excluir registros anulados del reporte mensual
+            (log.estado IS NULL OR log.estado <> "Anulado")
         ORDER BY act.correlativo ASC, log.fecha_hora_inicio_control ASC
         ';
 
@@ -88,11 +97,59 @@ class ControlUsoReporteData
         FROM
             mantenimiento_activo m
         INNER JOIN activo_fijo act ON act.id = m.id_activo_fijo
-        WHERE MONTH(m.fecha_hora_mantenimiento) = :mes 
+        WHERE MONTH(m.fecha_hora_mantenimiento) = :mes
           AND YEAR(m.fecha_hora_mantenimiento) = :anio
         ORDER BY m.fecha_hora_mantenimiento ASC
         ';
 
         return DB::select($sql, ['mes' => $mes, 'anio' => $anio]);
+    }
+
+    /**
+     * Obtener el agregado de CONSUMO DIRECTO de COMBUSTIBLE por `uuid_grupo`
+     * para el mes/anio indicado. Se usa en el Excel mensual para mostrar
+     * la cantidad de combustible asignada a cada grupo UUID una sola vez
+     * (en lugar de repetir el valor en cada fila del grupo).
+     *
+     * Solo se considera:
+     *  - `es_consumo_directo = true` (consumos generados desde Control de Uso)
+     *  - `id_producto = 12` (producto combustible hardcoded por requerimiento;
+     *    no requiere migracion ni flag nuevo en BD).
+     *  - `uuid_control_uso_activo IS NOT NULL` (consumos dentro de un
+     *    "Registrar Control por Horometro" con uuid_grupo).
+     *
+     * Devuelve un mapa `{ uuid => { cantidad, unidad, producto } }`.
+     */
+    public static function get_combustible_por_uuid(int $mes, int $anio)
+    {
+        $sql = '
+        SELECT
+            c.uuid_control_uso_activo,
+            SUM(c.cantidad_consumo) as cantidad,
+            u.abreviatura as unidad,
+            p.nombre as producto
+        FROM requerimiento_almacen_entrega_detalle_consumo c
+        INNER JOIN producto p ON p.id = c.id_producto
+        INNER JOIN unidad_medida u ON u.id = c.id_unidad_medida
+        WHERE c.es_consumo_directo = 1
+          AND c.id_producto = 12
+          AND c.uuid_control_uso_activo IS NOT NULL
+          AND MONTH(c.fecha_hora_consumo) = :mes
+          AND YEAR(c.fecha_hora_consumo) = :anio
+        GROUP BY c.uuid_control_uso_activo, u.abreviatura, p.nombre
+        ';
+
+        $rows = DB::select($sql, ['mes' => $mes, 'anio' => $anio]);
+
+        $out = [];
+        foreach ($rows as $r) {
+            $uuid = (string) $r->uuid_control_uso_activo;
+            $out[$uuid] = [
+                'cantidad' => (float) $r->cantidad,
+                'unidad' => (string) ($r->unidad ?? ''),
+                'producto' => (string) ($r->producto ?? 'Combustible'),
+            ];
+        }
+        return $out;
     }
 }

@@ -162,7 +162,10 @@ class ControlConsumoService
             $cantidad_base,
             $estado
         ) {
-            // Insert de la fila de consumo directo.
+            // Insert de la fila de consumo directo. NOTA: ya no se
+            // vincula a un `id_control_uso_activo` puntual: el consumo
+            // representa al GRUPO UUID completo (varios bloques de
+            // horometro pueden compartir un mismo consumo de combustible).
             $idConsumo = ControlConsumoData::crear_consumo_directo(
                 id_empleado_registro: $id_empleado_registro,
                 id_activo_fijo_consumidor: $id_activo_fijo_consumidor,

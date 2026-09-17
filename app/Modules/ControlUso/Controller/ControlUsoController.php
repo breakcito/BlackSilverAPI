@@ -134,22 +134,24 @@ class ControlUsoController extends Controller
             'items.*.tipo_turno'        => 'nullable|string|in:Dia,Noche',
             'items.*.observacion'    => 'nullable|string',
 
-            // Consumos directos (opcional por item). Si envias consumos, cada uno
-            // requiere sus campos para poder registrar el descuento de stock y el
-            // kardex de salida (origen=Consumo).
-            'items.*.consumos'                              => 'nullable|array',
-            'items.*.consumos.*.id_producto'                => 'required_with:items.*.consumos|integer',
-            'items.*.consumos.*.id_almacen'                 => 'required_with:items.*.consumos|integer',
-            'items.*.consumos.*.id_lote_producto'           => 'required_with:items.*.consumos|integer',
-            'items.*.consumos.*.id_unidad_medida'           => 'required_with:items.*.consumos|integer',
-            'items.*.consumos.*.cantidad_consumo'           => 'required_with:items.*.consumos|numeric|min:0.000001',
-            'items.*.consumos.*.contenido_por_presentacion' => 'required_with:items.*.consumos|numeric|min:0.000001',
-            'items.*.consumos.*.id_lote_mineral'           => 'nullable|integer',
-            'items.*.consumos.*.id_labor_destino'           => 'nullable|integer',
-            'items.*.consumos.*.para_produccion'           => 'nullable|boolean',
-            'items.*.consumos.*.para_mantenimiento'        => 'nullable|boolean',
-            'items.*.consumos.*.comentario'                => 'nullable|string|max:512',
-            'items.*.consumos.*.estado'                     => 'nullable|in:Consumo Parcial,Consumo Total',
+            // Consumos directos (opcional). COMPARTIDOS por todo el grupo
+            // UUID (no van por item): un mismo consumo (p. ej. 50 galones
+            // de combustible) cubre a todos los bloques horometrados. El
+            // backend registra el descuento de stock y el kardex de
+            // salida (origen=Consumo) una sola vez por consumo.
+            'consumos'                              => 'nullable|array',
+            'consumos.*.id_producto'                => 'required_with:consumos|integer',
+            'consumos.*.id_almacen'                 => 'required_with:consumos|integer',
+            'consumos.*.id_lote_producto'           => 'required_with:consumos|integer',
+            'consumos.*.id_unidad_medida'           => 'required_with:consumos|integer',
+            'consumos.*.cantidad_consumo'           => 'required_with:consumos|numeric|min:0.000001',
+            'consumos.*.contenido_por_presentacion' => 'required_with:consumos|numeric|min:0.000001',
+            'consumos.*.id_lote_mineral'            => 'nullable|integer',
+            'consumos.*.id_labor_destino'           => 'nullable|integer',
+            'consumos.*.para_produccion'            => 'nullable|boolean',
+            'consumos.*.para_mantenimiento'         => 'nullable|boolean',
+            'consumos.*.comentario'                 => 'nullable|string|max:512',
+            'consumos.*.estado'                     => 'nullable|in:Consumo Parcial,Consumo Total',
         ], [
             'id_activo_fijo.required'  => 'El activo fijo es requerido',
             'fecha_trabajo.required'   => 'La fecha del trabajo es requerida',
@@ -166,13 +168,13 @@ class ControlUsoController extends Controller
             'items.*.horometro_fin.required_with'    => 'El horometro final es obligatorio si indico horometro inicial',
             'items.*.horometro_fin.gt'              => 'El horometro final debe ser mayor al inicial',
             'items.*.tipo_turno.in' => 'El turno debe ser "Dia" o "Noche"',
-            'items.*.consumos.*.id_producto.required_with'                => 'Si envias consumos, id_producto es obligatorio',
-            'items.*.consumos.*.id_almacen.required_with'                 => 'Si envias consumos, id_almacen es obligatorio',
-            'items.*.consumos.*.id_lote_producto.required_with'           => 'Si envias consumos, id_lote_producto es obligatorio',
-            'items.*.consumos.*.id_unidad_medida.required_with'           => 'Si envias consumos, id_unidad_medida es obligatorio',
-            'items.*.consumos.*.cantidad_consumo.required_with'           => 'Si envias consumos, cantidad_consumo es obligatorio',
-            'items.*.consumos.*.contenido_por_presentacion.required_with' => 'Si envias consumos, contenido_por_presentacion es obligatorio',
-            'items.*.consumos.*.estado.in'                                => 'El estado del consumo debe ser "Consumo Parcial" o "Consumo Total"',
+            'consumos.*.id_producto.required_with'                => 'Si envias consumos, id_producto es obligatorio',
+            'consumos.*.id_almacen.required_with'                 => 'Si envias consumos, id_almacen es obligatorio',
+            'consumos.*.id_lote_producto.required_with'           => 'Si envias consumos, id_lote_producto es obligatorio',
+            'consumos.*.id_unidad_medida.required_with'           => 'Si envias consumos, id_unidad_medida es obligatorio',
+            'consumos.*.cantidad_consumo.required_with'           => 'Si envias consumos, cantidad_consumo es obligatorio',
+            'consumos.*.contenido_por_presentacion.required_with' => 'Si envias consumos, contenido_por_presentacion es obligatorio',
+            'consumos.*.estado.in'                                => 'El estado del consumo debe ser "Consumo Parcial" o "Consumo Total"',
         ]);
 
         if ($validator->fails()) {
@@ -182,26 +184,6 @@ class ControlUsoController extends Controller
         $v = $validator->validated();
 
         $itemsNormalizados = array_map(function ($it) {
-            // Si el item viene con consumos, normalizamos cada uno.
-            $consumos = [];
-            if (!empty($it['consumos']) && is_array($it['consumos'])) {
-                foreach ($it['consumos'] as $cs) {
-                    $consumos[] = [
-                        'id_producto'                => (int) $cs['id_producto'],
-                        'id_almacen'                 => (int) $cs['id_almacen'],
-                        'id_lote_producto'           => (int) $cs['id_lote_producto'],
-                        'id_unidad_medida'           => (int) $cs['id_unidad_medida'],
-                        'cantidad_consumo'           => (float) $cs['cantidad_consumo'],
-                        'contenido_por_presentacion' => (float) $cs['contenido_por_presentacion'],
-                        'id_lote_mineral'           => isset($cs['id_lote_mineral']) ? (int) $cs['id_lote_mineral'] : null,
-                        'id_labor_destino'           => isset($cs['id_labor_destino']) ? (int) $cs['id_labor_destino'] : null,
-                        'para_produccion'           => isset($cs['para_produccion']) ? (bool) $cs['para_produccion'] : false,
-                        'para_mantenimiento'        => isset($cs['para_mantenimiento']) ? (bool) $cs['para_mantenimiento'] : false,
-                        'comentario'                => $cs['comentario'] ?? null,
-                        'estado'                     => $cs['estado'] ?? 'Consumo Total',
-                    ];
-                }
-            }
             return [
                 'hora_inicio'      => $it['hora_inicio'] ?? null,
                 'hora_fin'         => $it['hora_fin'] ?? null,
@@ -209,9 +191,29 @@ class ControlUsoController extends Controller
                 'horometro_fin'    => isset($it['horometro_fin']) ? (float) $it['horometro_fin'] : null,
                 'tipo_turno'       => $it['tipo_turno'] ?? null,
                 'observacion'      => $it['observacion'] ?? null,
-                'consumos'         => $consumos,
             ];
         }, $v['items']);
+
+        // Consumos a nivel raiz (compartidos por todo el grupo UUID).
+        $consumosNormalizados = [];
+        if (!empty($v['consumos']) && is_array($v['consumos'])) {
+            foreach ($v['consumos'] as $cs) {
+                $consumosNormalizados[] = [
+                    'id_producto'                => (int) $cs['id_producto'],
+                    'id_almacen'                 => (int) $cs['id_almacen'],
+                    'id_lote_producto'           => (int) $cs['id_lote_producto'],
+                    'id_unidad_medida'           => (int) $cs['id_unidad_medida'],
+                    'cantidad_consumo'           => (float) $cs['cantidad_consumo'],
+                    'contenido_por_presentacion' => (float) $cs['contenido_por_presentacion'],
+                    'id_lote_mineral'           => isset($cs['id_lote_mineral']) ? (int) $cs['id_lote_mineral'] : null,
+                    'id_labor_destino'           => isset($cs['id_labor_destino']) ? (int) $cs['id_labor_destino'] : null,
+                    'para_produccion'           => isset($cs['para_produccion']) ? (bool) $cs['para_produccion'] : false,
+                    'para_mantenimiento'        => isset($cs['para_mantenimiento']) ? (bool) $cs['para_mantenimiento'] : false,
+                    'comentario'                => $cs['comentario'] ?? null,
+                    'estado'                     => $cs['estado'] ?? 'Consumo Total',
+                ];
+            }
+        }
 
         $idEmpleadoRegistro = (int) (($request->attributes->get('auth_user')->id_empleado) ?? 0);
 
@@ -227,6 +229,7 @@ class ControlUsoController extends Controller
             id_lote_mineral: isset($v['id_lote_mineral']) ? (int) $v['id_lote_mineral'] : null,
             tipo_carga: isset($v['tipo_carga']) ? (string) $v['tipo_carga'] : null,
             items: $itemsNormalizados,
+            consumos: $consumosNormalizados,
             id_empleado_registro: $idEmpleadoRegistro,
         );
 
@@ -244,7 +247,9 @@ class ControlUsoController extends Controller
             'id_activo_fijo'    => 'required|integer',
             'id_mina'           => 'required|integer',
             'id_labor'          => 'required|integer',
-            'id_lote_mineral'   => 'required|integer',
+            // `id_lote_mineral` pasa a ser OPCIONAL: muchas vueltas son
+            // servicios o carguios iniciales donde aun no se asigna lote.
+            'id_lote_mineral'   => 'nullable|integer',
 
             'items'                          => 'required|array|min:1',
             'items.*.id_tarifa'              => 'required|integer',
@@ -254,12 +259,16 @@ class ControlUsoController extends Controller
             'items.*.horometro_inicio'       => 'nullable|numeric|min:0|required_with:items.*.horometro_fin',
             'items.*.horometro_fin'          => 'nullable|numeric|min:0|required_with:items.*.horometro_inicio|gt:items.*.horometro_inicio',
             'items.*.tipo_turno'             => 'nullable|string|in:Dia,Noche',
+            // Fecha del Trabajo: ahora por bloque (cada item puede tener
+            // la suya). Sigue siendo obligatoria porque el activo necesita
+            // el momento del control.
+            'items.*.fecha_trabajo'          => 'required|date_format:Y-m-d',
             'items.*.observacion'            => 'nullable|string',
         ], [
             'id_activo_fijo.required'        => 'El activo fijo es requerido',
             'id_mina.required'               => 'La mina es obligatoria para registrar un control por vueltas',
             'id_labor.required'              => 'La labor es obligatoria para registrar un control por vueltas',
-            'id_lote_mineral.required'       => 'El lote de mineral en produccion es obligatorio para registrar un control por vueltas',
+            // sin mensaje de id_lote_mineral.required (es opcional ahora)
             'items.required'                 => 'Debe incluir al menos un item de vueltas',
             'items.min'                      => 'Debe incluir al menos un item de vueltas',
             'items.*.id_tarifa.required'     => 'La tarifa es obligatoria en todos los items',
@@ -287,6 +296,10 @@ class ControlUsoController extends Controller
                 'horometro_inicio'  => isset($it['horometro_inicio']) ? (float) $it['horometro_inicio'] : null,
                 'horometro_fin'     => isset($it['horometro_fin']) ? (float) $it['horometro_fin'] : null,
                 'tipo_turno'        => $it['tipo_turno'] ?? null,
+                // Fecha del trabajo: por bloque (cada viaje puede caer en
+                // dia distinto). El backend la requiere y el service la
+                // usa para `fecha_hora_inicio_control`.
+                'fecha_trabajo'     => $it['fecha_trabajo'] ?? null,
                 'observacion'       => $it['observacion'] ?? null,
             ];
         }, $v['items']);
@@ -366,6 +379,28 @@ class ControlUsoController extends Controller
         }
 
         $res = \App\Modules\ControlUso\Service\ControlUsoService::crear_material((string) $request->input('nombre'));
+        return response()->json($res);
+    }
+
+    /**
+     * Anular un control de uso (soft-delete). Si tiene consumos directos
+     * asociados, reingresa el stock al lote correspondiente, registra el
+     * movimiento en Kardex y elimina fisicamente los consumos.
+     */
+    public function anular_control_uso(Request $request, int $id): JsonResponse
+    {
+        $res = ControlUsoService::anular_control_uso($id);
+        return response()->json($res);
+    }
+
+    /**
+     * Actualizar un control de uso individual (no masivo). Permite
+     * corregir datos del registro (observacion, lecturas, tarifa, etc.).
+     * Si esta 'Anulado', no se puede editar.
+     */
+    public function actualizar_control_uso(Request $request, int $id): JsonResponse
+    {
+        $res = ControlUsoService::actualizar_control_uso($request, $id);
         return response()->json($res);
     }
 }

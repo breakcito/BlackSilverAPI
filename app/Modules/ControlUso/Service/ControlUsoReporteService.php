@@ -17,6 +17,11 @@ class ControlUsoReporteService
         try {
             $registros = ControlUsoReporteData::get_registros_uso($mes, $anio);
             $mantenimientos = ControlUsoReporteData::get_mantenimientos_por_mes($mes, $anio);
+            // Mapa uuid => { cantidad, unidad, producto } de combustible
+            // consumido en el mes, agrupado por uuid_grupo. El Excel lo
+            // consume para pintar la columna "Combustible/GL" una sola
+            // vez por grupo.
+            $consumos_combustible_por_uuid = ControlUsoReporteData::get_combustible_por_uuid($mes, $anio);
 
             $empresa = Empresa::first();
             $empresa_logo = null;
@@ -27,7 +32,8 @@ class ControlUsoReporteService
             return ApiResponse::success([
                 'logs' => $registros,
                 'mantenimientos' => $mantenimientos,
-                'empresa_logo' => $empresa_logo
+                'empresa_logo' => $empresa_logo,
+                'consumos_combustible_por_uuid' => $consumos_combustible_por_uuid,
             ], 'Reporte generado');
         } catch (\Exception $e) {
             Log::error('Error al generar reporte mensual de control de uso: ' . $e->getMessage());

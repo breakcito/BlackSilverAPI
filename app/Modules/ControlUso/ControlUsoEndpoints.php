@@ -18,6 +18,8 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::post('/', 'registrar_uso');
         Route::post('/bulk', 'registrar_uso_bulk');
         Route::post('/bulk-vueltas', 'registrar_uso_bulk_vueltas');
+        Route::post('/anular/{id}', 'anular_control_uso');
+        Route::put('/actualizar/{id}', 'actualizar_control_uso');
 
         // Tarifas
         Route::get('/tarifas/{id_activo_fijo}', 'get_tarifas');
