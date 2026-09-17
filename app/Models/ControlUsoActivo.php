@@ -35,6 +35,8 @@ class ControlUsoActivo extends Model
         'odometro_inicio',
         'odometro_fin',
         'observacion',
+        'tipo_turno',
+        'uuid_grupo',
         'created_at'
     ];
 
@@ -43,8 +45,10 @@ class ControlUsoActivo extends Model
         'horometro_fin' => 'decimal:2',
         'odometro_inicio' => 'decimal:2',
         'odometro_fin' => 'decimal:2',
-        'total_horas' => 'decimal:2',
-        'precio_unitario' => 'decimal:2',
+        // DECIMAL(13,6) en la columna; el cast conserva 6 decimales para no perder
+        // precision al recuperar el valor. El display redondea via toLocaleString.
+        'total_horas' => 'decimal:6',
+        'precio_unitario' => 'decimal:6',
         'costo_total' => 'decimal:2',
         'es_para_mina' => 'boolean',
         'cantidad_vueltas' => 'integer',

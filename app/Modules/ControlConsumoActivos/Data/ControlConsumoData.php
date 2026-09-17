@@ -160,4 +160,49 @@ class ControlConsumoData
             para_produccion: $para_produccion,
         );
     }
+
+    /**
+     * Registrar un consumo DIRECTO desde Control de Uso (sin requerimiento).
+     * Inserta con `id_requerimiento_almacen_entrega_detalle = NULL`,
+     * `es_consumo_directo = true`, y todos los campos del flujo de combustible.
+     */
+    public static function crear_consumo_directo(
+        int $id_empleado_registro,
+        int $id_activo_fijo_consumidor,
+        ?int $id_lote_mineral,
+        ?int $id_labor_destino,
+        bool $para_mantenimiento,
+        bool $para_produccion,
+        float $cantidad_base_consumida,
+        ?string $comentario_consumo,
+        string $uuid_control_uso_activo,
+        int $id_producto,
+        int $id_almacen,
+        int $id_lote_producto,
+        int $id_unidad_medida,
+        float $contenido_por_presentacion,
+        float $cantidad_consumo,
+        float $cantidad_base,
+        EstadoConsumoDetalleEntregaReq $estado
+    ): int {
+        return RequerimientoAlmacenEntregaDetalleConsumo::crear_consumo_directo(
+            id_empleado_registro: $id_empleado_registro,
+            id_activo_fijo_consumidor: $id_activo_fijo_consumidor,
+            id_lote_mineral: $id_lote_mineral,
+            id_labor_destino: $id_labor_destino,
+            para_mantenimiento: $para_mantenimiento,
+            para_produccion: $para_produccion,
+            cantidad_base_consumida: $cantidad_base_consumida,
+            comentario_consumo: $comentario_consumo,
+            uuid_control_uso_activo: $uuid_control_uso_activo,
+            id_producto: $id_producto,
+            id_almacen: $id_almacen,
+            id_lote_producto: $id_lote_producto,
+            id_unidad_medida: $id_unidad_medida,
+            contenido_por_presentacion: $contenido_por_presentacion,
+            cantidad_consumo: $cantidad_consumo,
+            cantidad_base: $cantidad_base,
+            estado: $estado,
+        );
+    }
 }

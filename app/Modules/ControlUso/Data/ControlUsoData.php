@@ -59,7 +59,9 @@ class ControlUsoData
             mat.nombre as tarifa_material,
             log.odometro_inicio,
             log.odometro_fin,
-            GREATEST(0, COALESCE(log.odometro_fin, 0) - COALESCE(log.odometro_inicio, 0)) as total_km
+            GREATEST(0, COALESCE(log.odometro_fin, 0) - COALESCE(log.odometro_inicio, 0)) as total_km,
+            log.tipo_turno,
+            log.uuid_grupo
         FROM control_uso_activo log
         INNER JOIN activo_fijo act ON act.id = log.id_activo_fijo
         INNER JOIN producto pr ON pr.id = act.id_producto

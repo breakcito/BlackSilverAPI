@@ -4,6 +4,9 @@ namespace App\Modules\ControlConsumoActivos\Service;
 
 use App\Modules\ControlConsumoActivos\Data\ControlConsumoData;
 use App\Modules\ControlConsumoActivos\Data\EntregasData;
+use App\Services\LotesProductosService;
+use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
+use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoConsumoDetalleEntregaReq;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Support\Facades\DB;
@@ -112,5 +115,101 @@ class ControlConsumoService
         });
     }
 
+    /**
+     * Registrar un consumo DIRECTO desde Control de Uso (o desde el boton
+     * "Registrar Uso de Combustible"). NO requiere un id_requerimiento previo.
+     * Inserta la fila con `es_consumo_directo=true` y `uuid_control_uso_activo`,
+     * y ademas ejecuta `update_stock` (origen=Consumo, SALIDA) para descontar
+     * del lote y registrar el movimiento en kardex, todo en una sola transaccion.
+     */
+    public static function registrar_consumo_directo(
+        int $id_empleado_registro,
+        int $id_activo_fijo_consumidor,
+        ?int $id_lote_mineral,
+        ?int $id_labor_destino,
+        bool $para_mantenimiento,
+        bool $para_produccion,
+        float $cantidad_base_consumida,
+        string $fecha_hora_consumo,
+        ?string $comentario_consumo,
+        string $uuid_control_uso_activo,
+        int $id_producto,
+        int $id_almacen,
+        int $id_lote_producto,
+        int $id_unidad_medida,
+        float $contenido_por_presentacion,
+        float $cantidad_consumo,
+        float $cantidad_base,
+        EstadoConsumoDetalleEntregaReq $estado
+    ) {
+        return DB::transaction(function () use (
+            $id_empleado_registro,
+            $id_activo_fijo_consumidor,
+            $id_lote_mineral,
+            $id_labor_destino,
+            $para_mantenimiento,
+            $para_produccion,
+            $cantidad_base_consumida,
+            $fecha_hora_consumo,
+            $comentario_consumo,
+            $uuid_control_uso_activo,
+            $id_producto,
+            $id_almacen,
+            $id_lote_producto,
+            $id_unidad_medida,
+            $contenido_por_presentacion,
+            $cantidad_consumo,
+            $cantidad_base,
+            $estado
+        ) {
+            // Insert de la fila de consumo directo.
+            $idConsumo = ControlConsumoData::crear_consumo_directo(
+                id_empleado_registro: $id_empleado_registro,
+                id_activo_fijo_consumidor: $id_activo_fijo_consumidor,
+                id_lote_mineral: $id_lote_mineral,
+                id_labor_destino: $id_labor_destino,
+                para_mantenimiento: $para_mantenimiento,
+                para_produccion: $para_produccion,
+                cantidad_base_consumida: $cantidad_base_consumida,
+                comentario_consumo: $comentario_consumo,
+                uuid_control_uso_activo: $uuid_control_uso_activo,
+                id_producto: $id_producto,
+                id_almacen: $id_almacen,
+                id_lote_producto: $id_lote_producto,
+                id_unidad_medida: $id_unidad_medida,
+                contenido_por_presentacion: $contenido_por_presentacion,
+                cantidad_consumo: $cantidad_consumo,
+                cantidad_base: $cantidad_base,
+                estado: $estado,
+            );
 
+            // Kardex: SALIDA via update_stock (origen=Consumo).
+            $activoInfo = DB::table('activo_fijo')
+                ->where('id', $id_activo_fijo_consumidor)
+                ->first();
+            $productoNombre = DB::table('producto')
+                ->where('id', $id_producto)
+                ->value('nombre');
+            $descripcionKardex = sprintf(
+                'Se consumio (%s) en %s - %s',
+                $productoNombre ?? 'producto',
+                $activoInfo->correlativo ?? 'S/C',
+                (string) $id_activo_fijo_consumidor,
+            );
+
+            LotesProductosService::update_stock(
+                id_lote: $id_lote_producto,
+                id_origen: $idConsumo,
+                tabla_origen: 'requerimiento_almacen_entrega_detalle_consumo',
+                tipo_origen: KardexOrigenMovimiento::Consumo,
+                tipo_movimiento: KardexTipoMovimiento::Salida,
+                cantidad_movimiento_base: $cantidad_base,
+                descripcion: $descripcionKardex,
+            );
+
+            $c = ControlConsumoData::get_consumos(id_consumo: $idConsumo);
+
+            return ApiResponse::success($c);
+        });
+    }
 }

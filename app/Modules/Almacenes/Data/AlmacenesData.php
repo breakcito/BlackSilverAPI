@@ -19,7 +19,7 @@ class AlmacenesData
      * Devuelve tambien los datos de ubicacion (departamento/provincia/distrito
      * y direccion) cuando estan registrados.
      */
-    public static function get_almacenes(?int $id_almacen = null, ?bool $para_carbon = null)
+    public static function get_almacenes(?int $id_almacen = null, ?bool $para_carbon = null, ?int $id_mina = null)
     {
         $sql = '
         SELECT
@@ -72,6 +72,11 @@ class AlmacenesData
         if ($para_carbon !== null) {
             $sql .= ' AND a.para_carbon = :para_carbon';
             $params['para_carbon'] = $para_carbon ? 1 : 0;
+        }
+
+        if ($id_mina !== null) {
+            $sql .= ' AND a.id IN (SELECT id_almacen FROM almacen_mina WHERE id_mina = :id_mina)';
+            $params['id_mina'] = $id_mina;
         }
 
         $sql .= ' ORDER BY a.es_principal DESC, a.nombre ASC';

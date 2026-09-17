@@ -22,7 +22,8 @@ class AlmacenesData
         ?int $id_almacen = null,
         ?int $id_empleado_responsable = null,
         ?int $es_principal = null,
-        bool $incluir_carbon = false
+        bool $incluir_carbon = false,
+        ?int $id_mina = null
     ) {
         $query = DB::table('almacen as alm')
             ->select(
@@ -63,6 +64,15 @@ class AlmacenesData
             $query->join('responsable_almacen as res', 'res.id_almacen', '=', 'alm.id')
                 ->where('res.estado', 'Activo')
                 ->where('res.id_empleado', $id_empleado_responsable);
+        }
+
+        // Filtrar por mina (solo almacenes que abastecen esa mina via almacen_mina).
+        if ($id_mina !== null) {
+            $query->whereIn('alm.id', function ($sub) use ($id_mina) {
+                $sub->select('id_almacen')
+                    ->from('almacen_mina')
+                    ->where('id_mina', $id_mina);
+            });
         }
 
         // Primero ordenamos por es_principal (1 antes que 0) y luego por nombre

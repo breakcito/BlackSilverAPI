@@ -59,12 +59,14 @@ class AuxController extends Controller
         $incluir_carbon = $request->has('para_carbon')
             ? $request->boolean('para_carbon')
             : false;
+        $id_mina = $request->input('id_mina') ? (int) $request->input('id_mina') : null;
 
         return response()->json(AlmacenesService::get_almacenes(
             id_almacen: $id_almacen,
             id_empleado_responsable: $id_empleado_responsable,
             es_principal: $es_principal,
-            incluir_carbon: $incluir_carbon
+            incluir_carbon: $incluir_carbon,
+            id_mina: $id_mina
         ));
     }
 

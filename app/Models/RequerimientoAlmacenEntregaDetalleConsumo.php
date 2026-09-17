@@ -12,22 +12,29 @@ class RequerimientoAlmacenEntregaDetalleConsumo extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_requerimiento_almacen_entrega_detalle', // el detalle de la entrega
-        'id_activo_fijo_consumidor', // que activo fijo esta consumiendo lo entregado 
-        'id_labor_destino', // a que labor de esa u otra mina del requerimiento esta dirigiedo lo solicitado
-        'id_empleado_registro', // quien registro el consumo
-        'id_mantenimiento', // en caso haya sido usado para un mantenimiento
-        'id_lote_mineral', // si es para produccion, debera indicar para que lote va
-        // O es uno u otro - aqui vuelve a confirmar si es para mantenimiento, sino es asi , es para produccion
-        'para_mantenimiento', // bool
-        'para_produccion', // bool
-        //
-        'cantidad_base_consumida', // cantidad consumida en base a la unidad base
-        'fecha_hora_consumo', // fecha y hora del consumo
-        'comentario_consumo', // comentario del consumo
-        //
-        'created_at', // fecha y hora del registro en el sistema
-        'estado', // Consumo Parcial / Consumo Total
+        'id_requerimiento_almacen_entrega_detalle', // el detalle de la entrega (NULL en consumo directo)
+        'id_activo_fijo_consumidor',
+        'id_labor_destino',
+        'id_empleado_registro',
+        'id_mantenimiento',
+        'id_lote_mineral',
+        'para_mantenimiento',
+        'para_produccion',
+        'cantidad_base_consumida',
+        'fecha_hora_consumo',
+        'comentario_consumo',
+        'created_at',
+        'estado',
+        // Nuevos campos para consumo directo desde Control de Uso
+        'uuid_control_uso_activo',
+        'id_producto',
+        'id_almacen',
+        'id_lote_producto',
+        'id_unidad_medida',
+        'contenido_por_presentacion',
+        'cantidad_consumo',
+        'cantidad_base',
+        'es_consumo_directo',
     ];
 
     /**
@@ -61,6 +68,59 @@ class RequerimientoAlmacenEntregaDetalleConsumo extends Model
             'comentario_consumo' => $comentario_consumo,
             'created_at' => now()->toDateTimeString(),
             'estado' => $estado->value,
+        ]);
+    }
+
+    /**
+     * Registrar un consumo DIRECTO desde Control de Uso (sin requerimiento previo).
+     * Inserta en `requerimiento_almacen_entrega_detalle_consumo` con `es_consumo_directo=1`
+     * y `uuid_control_uso_activo` para vincular al grupo de control de uso que lo origina.
+     */
+    public static function crear_consumo_directo(
+        int $id_empleado_registro,
+        int $id_activo_fijo_consumidor,
+        ?int $id_lote_mineral,
+        ?int $id_labor_destino,
+        bool $para_mantenimiento,
+        bool $para_produccion,
+        float $cantidad_base_consumida,
+        ?string $comentario_consumo,
+        string $uuid_control_uso_activo,
+        int $id_producto,
+        int $id_almacen,
+        int $id_lote_producto,
+        int $id_unidad_medida,
+        float $contenido_por_presentacion,
+        float $cantidad_consumo,
+        float $cantidad_base,
+        EstadoConsumoDetalleEntregaReq $estado
+    ): int {
+        return self::insertGetId([
+            // FK legacy (NULL en consumo directo)
+            'id_requerimiento_almacen_entrega_detalle' => null,
+            // Datos del consumo
+            'id_activo_fijo_consumidor' => $id_activo_fijo_consumidor,
+            'id_labor_destino' => $id_labor_destino,
+            'id_empleado_registro' => $id_empleado_registro,
+            'id_mantenimiento' => null,
+            'id_lote_mineral' => $id_lote_mineral,
+            'para_mantenimiento' => $para_mantenimiento,
+            'para_produccion' => $para_produccion,
+            'cantidad_base_consumida' => $cantidad_base_consumida,
+            'fecha_hora_consumo' => now()->toDateTimeString(),
+            'comentario_consumo' => $comentario_consumo,
+            'created_at' => now()->toDateTimeString(),
+            'estado' => $estado->value,
+            // Campos nuevos para consumo directo
+            'uuid_control_uso_activo' => $uuid_control_uso_activo,
+            'id_producto' => $id_producto,
+            'id_almacen' => $id_almacen,
+            'id_lote_producto' => $id_lote_producto,
+            'id_unidad_medida' => $id_unidad_medida,
+            'contenido_por_presentacion' => $contenido_por_presentacion,
+            'cantidad_consumo' => $cantidad_consumo,
+            'cantidad_base' => $cantidad_base,
+            'es_consumo_directo' => true,
         ]);
     }
 }

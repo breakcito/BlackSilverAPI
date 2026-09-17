@@ -127,11 +127,29 @@ class ControlUsoController extends Controller
             'tipo_carga'      => 'nullable|string|max:64',
 
             'items'                  => 'required|array|min:1',
-            'items.*.hora_inicio'    => 'required|date_format:H:i',
-            'items.*.hora_fin'       => 'required|date_format:H:i',
-            'items.*.horometro_inicio' => 'nullable|numeric|min:0',
-            'items.*.horometro_fin'    => 'nullable|numeric|min:0|gte:items.*.horometro_inicio',
+            'items.*.hora_inicio'    => 'nullable|date_format:H:i|required_with:items.*.hora_fin',
+            'items.*.hora_fin'       => 'nullable|date_format:H:i|required_with:items.*.hora_inicio',
+            'items.*.horometro_inicio' => 'nullable|numeric|min:0|required_with:items.*.horometro_fin',
+            'items.*.horometro_fin'    => 'nullable|numeric|min:0|required_with:items.*.horometro_inicio|gt:items.*.horometro_inicio',
+            'items.*.tipo_turno'        => 'nullable|string|in:Dia,Noche',
             'items.*.observacion'    => 'nullable|string',
+
+            // Consumos directos (opcional por item). Si envias consumos, cada uno
+            // requiere sus campos para poder registrar el descuento de stock y el
+            // kardex de salida (origen=Consumo).
+            'items.*.consumos'                              => 'nullable|array',
+            'items.*.consumos.*.id_producto'                => 'required_with:items.*.consumos|integer',
+            'items.*.consumos.*.id_almacen'                 => 'required_with:items.*.consumos|integer',
+            'items.*.consumos.*.id_lote_producto'           => 'required_with:items.*.consumos|integer',
+            'items.*.consumos.*.id_unidad_medida'           => 'required_with:items.*.consumos|integer',
+            'items.*.consumos.*.cantidad_consumo'           => 'required_with:items.*.consumos|numeric|min:0.000001',
+            'items.*.consumos.*.contenido_por_presentacion' => 'required_with:items.*.consumos|numeric|min:0.000001',
+            'items.*.consumos.*.id_lote_mineral'           => 'nullable|integer',
+            'items.*.consumos.*.id_labor_destino'           => 'nullable|integer',
+            'items.*.consumos.*.para_produccion'           => 'nullable|boolean',
+            'items.*.consumos.*.para_mantenimiento'        => 'nullable|boolean',
+            'items.*.consumos.*.comentario'                => 'nullable|string|max:512',
+            'items.*.consumos.*.estado'                     => 'nullable|in:Consumo Parcial,Consumo Total',
         ], [
             'id_activo_fijo.required'  => 'El activo fijo es requerido',
             'fecha_trabajo.required'   => 'La fecha del trabajo es requerida',
@@ -140,10 +158,21 @@ class ControlUsoController extends Controller
             'es_para_mina.required'    => 'Debe indicar si el destino es en mina o para terceros',
             'items.required'           => 'Debe incluir al menos un item de horario',
             'items.min'                => 'Debe incluir al menos un item de horario',
-            'items.*.hora_inicio.required'  => 'La hora de inicio es obligatoria en todos los items',
-            'items.*.hora_fin.required'     => 'La hora de fin es obligatoria en todos los items',
-            'items.*.hora_inicio.date_format' => 'Hora de inicio debe tener formato HH:MM',
-            'items.*.hora_fin.date_format'    => 'Hora de fin debe tener formato HH:MM',
+            'items.*.hora_inicio.required_with' => 'La hora de inicio es obligatoria si indico hora de fin',
+            'items.*.hora_fin.required_with'    => 'La hora de fin es obligatoria si indico hora de inicio',
+            'items.*.hora_inicio.date_format'   => 'Hora de inicio debe tener formato HH:MM',
+            'items.*.hora_fin.date_format'      => 'Hora de fin debe tener formato HH:MM',
+            'items.*.horometro_inicio.required_with' => 'El horometro inicial es obligatorio si indico horometro final',
+            'items.*.horometro_fin.required_with'    => 'El horometro final es obligatorio si indico horometro inicial',
+            'items.*.horometro_fin.gt'              => 'El horometro final debe ser mayor al inicial',
+            'items.*.tipo_turno.in' => 'El turno debe ser "Dia" o "Noche"',
+            'items.*.consumos.*.id_producto.required_with'                => 'Si envias consumos, id_producto es obligatorio',
+            'items.*.consumos.*.id_almacen.required_with'                 => 'Si envias consumos, id_almacen es obligatorio',
+            'items.*.consumos.*.id_lote_producto.required_with'           => 'Si envias consumos, id_lote_producto es obligatorio',
+            'items.*.consumos.*.id_unidad_medida.required_with'           => 'Si envias consumos, id_unidad_medida es obligatorio',
+            'items.*.consumos.*.cantidad_consumo.required_with'           => 'Si envias consumos, cantidad_consumo es obligatorio',
+            'items.*.consumos.*.contenido_por_presentacion.required_with' => 'Si envias consumos, contenido_por_presentacion es obligatorio',
+            'items.*.consumos.*.estado.in'                                => 'El estado del consumo debe ser "Consumo Parcial" o "Consumo Total"',
         ]);
 
         if ($validator->fails()) {
@@ -151,6 +180,40 @@ class ControlUsoController extends Controller
         }
 
         $v = $validator->validated();
+
+        $itemsNormalizados = array_map(function ($it) {
+            // Si el item viene con consumos, normalizamos cada uno.
+            $consumos = [];
+            if (!empty($it['consumos']) && is_array($it['consumos'])) {
+                foreach ($it['consumos'] as $cs) {
+                    $consumos[] = [
+                        'id_producto'                => (int) $cs['id_producto'],
+                        'id_almacen'                 => (int) $cs['id_almacen'],
+                        'id_lote_producto'           => (int) $cs['id_lote_producto'],
+                        'id_unidad_medida'           => (int) $cs['id_unidad_medida'],
+                        'cantidad_consumo'           => (float) $cs['cantidad_consumo'],
+                        'contenido_por_presentacion' => (float) $cs['contenido_por_presentacion'],
+                        'id_lote_mineral'           => isset($cs['id_lote_mineral']) ? (int) $cs['id_lote_mineral'] : null,
+                        'id_labor_destino'           => isset($cs['id_labor_destino']) ? (int) $cs['id_labor_destino'] : null,
+                        'para_produccion'           => isset($cs['para_produccion']) ? (bool) $cs['para_produccion'] : false,
+                        'para_mantenimiento'        => isset($cs['para_mantenimiento']) ? (bool) $cs['para_mantenimiento'] : false,
+                        'comentario'                => $cs['comentario'] ?? null,
+                        'estado'                     => $cs['estado'] ?? 'Consumo Total',
+                    ];
+                }
+            }
+            return [
+                'hora_inicio'      => $it['hora_inicio'] ?? null,
+                'hora_fin'         => $it['hora_fin'] ?? null,
+                'horometro_inicio' => isset($it['horometro_inicio']) ? (float) $it['horometro_inicio'] : null,
+                'horometro_fin'    => isset($it['horometro_fin']) ? (float) $it['horometro_fin'] : null,
+                'tipo_turno'       => $it['tipo_turno'] ?? null,
+                'observacion'      => $it['observacion'] ?? null,
+                'consumos'         => $consumos,
+            ];
+        }, $v['items']);
+
+        $idEmpleadoRegistro = (int) (($request->attributes->get('auth_user')->id_empleado) ?? 0);
 
         $res = \App\Modules\ControlUso\Service\ControlUsoService::registrar_uso_bulk(
             id_activo_fijo: (int) $v['id_activo_fijo'],
@@ -163,7 +226,8 @@ class ControlUsoController extends Controller
             id_cliente: isset($v['id_cliente']) ? (int) $v['id_cliente'] : null,
             id_lote_mineral: isset($v['id_lote_mineral']) ? (int) $v['id_lote_mineral'] : null,
             tipo_carga: isset($v['tipo_carga']) ? (string) $v['tipo_carga'] : null,
-            items: $v['items'],
+            items: $itemsNormalizados,
+            id_empleado_registro: $idEmpleadoRegistro,
         );
 
         return response()->json($res);
@@ -177,27 +241,35 @@ class ControlUsoController extends Controller
     public function registrar_uso_bulk_vueltas(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'id_activo_fijo'  => 'required|integer',
-            'id_tarifa'       => 'nullable|integer',
-            'precio_unitario' => 'required|numeric|min:0',
-            'id_mina'         => 'required|integer',
-            'id_labor'        => 'required|integer',
+            'id_activo_fijo'    => 'required|integer',
+            'id_mina'           => 'required|integer',
+            'id_labor'          => 'required|integer',
+            'id_lote_mineral'   => 'required|integer',
 
             'items'                          => 'required|array|min:1',
+            'items.*.id_tarifa'              => 'required|integer',
+            'items.*.precio_unitario'        => 'required|numeric|min:0',
             'items.*.cantidad_vueltas'       => 'required|integer|min:1',
             'items.*.cantidad_sacos'         => 'nullable|integer|min:0',
-            'items.*.horometro_inicio'       => 'nullable|numeric|min:0',
-            'items.*.horometro_fin'          => 'nullable|numeric|min:0|gte:items.*.horometro_inicio',
+            'items.*.horometro_inicio'       => 'nullable|numeric|min:0|required_with:items.*.horometro_fin',
+            'items.*.horometro_fin'          => 'nullable|numeric|min:0|required_with:items.*.horometro_inicio|gt:items.*.horometro_inicio',
+            'items.*.tipo_turno'             => 'nullable|string|in:Dia,Noche',
             'items.*.observacion'            => 'nullable|string',
         ], [
             'id_activo_fijo.required'        => 'El activo fijo es requerido',
-            'precio_unitario.required'       => 'El precio unitario es requerido',
             'id_mina.required'               => 'La mina es obligatoria para registrar un control por vueltas',
             'id_labor.required'              => 'La labor es obligatoria para registrar un control por vueltas',
+            'id_lote_mineral.required'       => 'El lote de mineral en produccion es obligatorio para registrar un control por vueltas',
             'items.required'                 => 'Debe incluir al menos un item de vueltas',
             'items.min'                      => 'Debe incluir al menos un item de vueltas',
+            'items.*.id_tarifa.required'     => 'La tarifa es obligatoria en todos los items',
+            'items.*.precio_unitario.required' => 'El precio unitario es obligatorio en todos los items',
             'items.*.cantidad_vueltas.required' => 'La cantidad de vueltas es obligatoria en todos los items',
             'items.*.cantidad_vueltas.min'   => 'La cantidad de vueltas debe ser mayor o igual a 1',
+            'items.*.horometro_fin.gt'         => 'El horometro final debe ser mayor al inicial',
+            'items.*.horometro_inicio.required_with' => 'El horometro inicial es obligatorio si indico horometro final',
+            'items.*.horometro_fin.required_with'    => 'El horometro final es obligatorio si indico horometro inicial',
+            'items.*.tipo_turno.in'          => 'El turno debe ser "Dia" o "Noche"',
         ]);
 
         if ($validator->fails()) {
@@ -206,13 +278,25 @@ class ControlUsoController extends Controller
 
         $v = $validator->validated();
 
+        $itemsNormalizados = array_map(function ($it) {
+            return [
+                'id_tarifa'        => isset($it['id_tarifa']) ? (int) $it['id_tarifa'] : null,
+                'precio_unitario'  => (float) $it['precio_unitario'],
+                'cantidad_vueltas'  => (int) $it['cantidad_vueltas'],
+                'cantidad_sacos'    => isset($it['cantidad_sacos']) ? (int) $it['cantidad_sacos'] : null,
+                'horometro_inicio'  => isset($it['horometro_inicio']) ? (float) $it['horometro_inicio'] : null,
+                'horometro_fin'     => isset($it['horometro_fin']) ? (float) $it['horometro_fin'] : null,
+                'tipo_turno'        => $it['tipo_turno'] ?? null,
+                'observacion'       => $it['observacion'] ?? null,
+            ];
+        }, $v['items']);
+
         $res = \App\Modules\ControlUso\Service\ControlUsoService::registrar_uso_bulk_vueltas(
             id_activo_fijo: (int) $v['id_activo_fijo'],
-            id_tarifa: isset($v['id_tarifa']) ? (int) $v['id_tarifa'] : null,
-            precio_unitario: (float) $v['precio_unitario'],
             id_mina: (int) $v['id_mina'],
             id_labor: (int) $v['id_labor'],
-            items: $v['items'],
+            id_lote_mineral: (int) $v['id_lote_mineral'],
+            items: $itemsNormalizados,
         );
 
         return response()->json($res);
