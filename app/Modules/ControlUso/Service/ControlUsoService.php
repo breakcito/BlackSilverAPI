@@ -14,6 +14,7 @@ use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoConsumoDetalleEntregaReq;
 use App\Shared\Responses\ApiResponse;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
