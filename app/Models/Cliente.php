@@ -19,6 +19,7 @@ class Cliente extends Model
         'telefono',
         'correo',
         'estado',
+        'para_carbon',
         'created_at',
     ];
 }

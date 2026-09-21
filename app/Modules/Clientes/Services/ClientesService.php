@@ -8,10 +8,13 @@ use App\Shared\Responses\ApiResponse;
 
 class ClientesService
 {
-    /** Obtiene y retorna todos los clientes registrados con sus cuentas bancarias. */
-    public static function get_clientes(): array
+    /**
+     * Obtiene y retorna todos los clientes registrados con sus cuentas bancarias.
+     * Acepta `?bool $paraCarbon` para filtrar logística vs carbon (null = ambos).
+     */
+    public static function get_clientes(?bool $paraCarbon = null): array
     {
-        $clientes = ClientesData::get_clientes();
+        $clientes = ClientesData::get_clientes(paraCarbon: $paraCarbon);
 
         if (!is_array($clientes) || empty($clientes)) {
             return ApiResponse::success($clientes, 'Clientes obtenidos correctamente');
@@ -29,7 +32,10 @@ class ClientesService
         return ApiResponse::success($clientes, 'Clientes obtenidos correctamente');
     }
 
-    /** Crea un nuevo cliente y retorna el registro recién creado. */
+    /**
+     * Crea un nuevo cliente y retorna el registro recién creado.
+     * `paraCarbon`: false para logística (default), true para clientes de carbón.
+     */
     public static function crear_cliente(
         ?string $tipoEntidad,
         ?string $dni,
@@ -37,7 +43,8 @@ class ClientesService
         string $razonSocial,
         ?string $direccion,
         ?string $telefono,
-        ?string $correo
+        ?string $correo,
+        bool $paraCarbon = false
     ): array {
         $id = ClientesData::crear_cliente(
             $tipoEntidad,
@@ -46,7 +53,8 @@ class ClientesService
             $razonSocial,
             $direccion,
             $telefono,
-            $correo
+            $correo,
+            $paraCarbon
         );
 
         $nuevo = ClientesData::get_cliente_by_id($id);
@@ -55,6 +63,11 @@ class ClientesService
 
     /**
      * Actualizar campos administrativos de un cliente (NO estado).
+     * `para_carbon` NO se acepta: define la pestaña donde vive el cliente
+     * (logística vs carbón) y se congela al crear — mismo patrón que
+     * proveedores. El backend lo preserva automáticamente al no estar en
+     * el payload.
+     *
      * Si se recibe id_empleado + nombre_empleado se calcula diff y se apendea
      * a cambios_log para trazabilidad.
      */

@@ -9,10 +9,18 @@ use Illuminate\Http\Request;
 
 class ClientesController
 {
-    /** Retorna la lista completa de clientes. */
-    public function get_clientes()
+    /**
+     * Retorna la lista de clientes.
+     * Acepta `?para_carbon=true|false`. Si no se envia, NO se filtra y se
+     * devuelven tanto logística como carbon.
+     */
+    public function get_clientes(Request $request)
     {
-        return response()->json(ClientesService::get_clientes());
+        $paraCarbon = $request->has('para_carbon')
+            ? $request->boolean('para_carbon')
+            : null;
+
+        return response()->json(ClientesService::get_clientes(paraCarbon: $paraCarbon));
     }
 
     /** Valida la entrada y registra un nuevo cliente. */
@@ -27,6 +35,7 @@ class ClientesController
             'direccion'         => 'nullable|string|max:255',
             'telefono'          => 'nullable|string|max:20',
             'correo'            => 'nullable|email|max:100',
+            'paraCarbon'        => 'nullable|boolean',
         ]);
 
         $tipo_entidad = TipoEntidad::from($request->input('tipo_entidad'));
@@ -47,19 +56,21 @@ class ClientesController
         }
 
         return response()->json(ClientesService::crear_cliente(
-            $tipo_entidad->value,
-            $request->dni,
-            $ruc,
-            $request->razon_social,
-            $request->direccion,
-            $request->telefono,
-            $request->correo
+            tipoEntidad: $tipo_entidad->value,
+            dni: $request->dni,
+            ruc: $ruc,
+            razonSocial: $request->razon_social,
+            direccion: $request->direccion,
+            telefono: $request->telefono,
+            correo: $request->correo,
+            paraCarbon: $request->boolean('paraCarbon'),
         ));
     }
 
     /**
      * Actualizar campos administrativos de un cliente.
      * El estado se gestiona por eliminar_cliente (soft-delete) — no se expone aquí.
+     * `paraCarbon` NO se acepta: define la pestaña del cliente y se congela al crear.
      */
     public function actualizar_cliente(Request $request, int $id_cliente)
     {

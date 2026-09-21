@@ -8,8 +8,15 @@ use Illuminate\Support\Facades\DB;
 
 class ClientesData
 {
-    /** Obtiene la lista de clientes o uno en específico por su id. */
-    public static function get_clientes(?int $id_cliente = null)
+    /**
+     * Obtiene la lista de clientes o uno en específico por su id.
+     *
+     * Filtros:
+     * - id_cliente: devuelve solo la fila correspondiente.
+     * - para_carbon: true|false|null. Si es null, NO se aplica filtro (se
+     *   devuelven tanto logística como carbon). El caller decide.
+     */
+    public static function get_clientes(?int $id_cliente = null, ?bool $paraCarbon = null)
     {
         $sql = '
         SELECT
@@ -22,6 +29,7 @@ class ClientesData
             cl.telefono,
             cl.correo,
             cl.estado,
+            cl.para_carbon,
             cl.created_at,
             cl.cambios_log,
             (SELECT COUNT(*) FROM cuenta_bancaria_cliente cbc WHERE cbc.id_cliente = cl.id) AS cantidad_cuentas_bancarias
@@ -38,6 +46,11 @@ class ClientesData
             return DB::selectOne($sql, $params);
         }
 
+        if ($paraCarbon !== null) {
+            $sql .= ' AND cl.para_carbon = :para_carbon';
+            $params['para_carbon'] = $paraCarbon ? 1 : 0;
+        }
+
         $sql .= ' ORDER BY cl.razon_social ASC';
         return DB::select($sql, $params);
     }
@@ -48,7 +61,12 @@ class ClientesData
         return self::get_clientes(id_cliente: $id_cliente);
     }
 
-    /** Inserta un nuevo cliente y retorna su id generado. */
+    /**
+     * Inserta un nuevo cliente y retorna su id generado.
+     *
+     * - para_carbon: lo establece el caller (la vista de logistica pasa false,
+     *   la vista de carbon pasa true). Default false (logistica).
+     */
     public static function crear_cliente(
         ?string $tipoEntidad,
         ?string $dni,
@@ -56,7 +74,8 @@ class ClientesData
         string $razonSocial,
         ?string $direccion,
         ?string $telefono,
-        ?string $correo
+        ?string $correo,
+        bool $paraCarbon = false
     ): int {
         return Cliente::insertGetId([
             'tipo_entidad'      => $tipoEntidad,
@@ -67,6 +86,7 @@ class ClientesData
             'telefono'          => $telefono,
             'correo'            => $correo,
             'estado'            => 'Activo',
+            'para_carbon'       => $paraCarbon ? 1 : 0,
             'created_at'        => now(),
         ]);
     }
@@ -84,6 +104,7 @@ class ClientesData
         'direccion' => 'Dirección',
         'telefono' => 'Teléfono',
         'correo' => 'Correo Electrónico',
+        'para_carbon' => 'Para Carbón',
     ];
 
     /**
@@ -98,6 +119,7 @@ class ClientesData
         'direccion' => 'string',
         'telefono' => 'string',
         'correo' => 'string',
+        'para_carbon' => 'bool',
     ];
 
     /**
@@ -160,6 +182,10 @@ class ClientesData
         ?int $id_empleado = null,
         ?string $nombre_empleado = null
     ): int {
+        // `para_carbon` NO se persiste aquí: define la pestaña donde vive el
+        // cliente (logística vs carbón) y se congela al crear — mismo
+        // patrón que proveedores. Se preserva automáticamente al no estar
+        // en el payload.
         $nuevoEstado = [
             'tipo_entidad' => $tipo_entidad,
             'dni' => $dni,
