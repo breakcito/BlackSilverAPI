@@ -118,6 +118,20 @@ class ControlUsoReporteData
      *  - `uuid_control_uso_activo IS NOT NULL` (consumos dentro de un
      *    "Registrar Control por Horometro" con uuid_grupo).
      *
+     * Filtro por fecha: se mira la fecha del `control_uso_activo`
+     * asociado (`fecha_hora_inicio_control`), NO la fecha del propio
+     * consumo (`c.fecha_hora_consumo`). Esto es porque el consumo se
+     * inserta con `now()` al momento de registrar el uso, pero el uso
+     * al que pertenece puede estar fechado en un mes anterior (ej. un
+     * operador registra en septiembre un control de uso fechado en
+     * febrero). Si filtraramos por `c.fecha_hora_consumo`, el
+     * combustible se perderia del reporte del mes real de operacion.
+     *
+     * Se usa `EXISTS` en lugar de `INNER JOIN` para NO multiplicar filas
+     * del consumo cuando el `uuid_grupo` tiene varios bloques (un
+     * "Registrar Control por Horometro" bulk crea N registros de
+     * `control_uso_activo` con el mismo uuid_grupo).
+     *
      * Devuelve un mapa `{ uuid => { cantidad, unidad, producto } }`.
      */
     public static function get_combustible_por_uuid(int $mes, int $anio)
@@ -134,8 +148,13 @@ class ControlUsoReporteData
         WHERE c.es_consumo_directo = 1
           AND c.id_producto = 12
           AND c.uuid_control_uso_activo IS NOT NULL
-          AND MONTH(c.fecha_hora_consumo) = :mes
-          AND YEAR(c.fecha_hora_consumo) = :anio
+          AND EXISTS (
+              SELECT 1
+              FROM control_uso_activo cua
+              WHERE cua.uuid_grupo = c.uuid_control_uso_activo
+                AND MONTH(cua.fecha_hora_inicio_control) = :mes
+                AND YEAR(cua.fecha_hora_inicio_control) = :anio
+          )
         GROUP BY c.uuid_control_uso_activo, u.abreviatura, p.nombre
         ';
 
