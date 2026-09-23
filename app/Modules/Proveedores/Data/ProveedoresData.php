@@ -74,7 +74,25 @@ class ProveedoresData
                 WHERE
                     ac.id_proveedor = pr.id AND
                     IFNULL(ac.estado, "Activo") = "Activo"
-            ) as cantidad_almacenes_carbon
+            ) as cantidad_almacenes_carbon,
+            (
+                SELECT
+                    COUNT(*)
+                FROM
+                    anticipo_proveedor ap
+                WHERE
+                    ap.id_proveedor = pr.id AND
+                    IFNULL(ap.esta_anulado, 0) = 0
+            ) as cantidad_anticipos,
+            (
+                SELECT
+                    COALESCE(SUM(ap.saldo_actual), 0)
+                FROM
+                    anticipo_proveedor ap
+                WHERE
+                    ap.id_proveedor = pr.id AND
+                    IFNULL(ap.esta_anulado, 0) = 0
+            ) as suma_saldo_anticipos
         FROM
             proveedor pr
         WHERE 1 = 1

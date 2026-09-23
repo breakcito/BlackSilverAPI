@@ -9,6 +9,7 @@ use App\Modules\Proveedores\Data\ProveedoresData;
 use App\Modules\ProveedorCarbon\Data\ProveedorCarbonData;
 use App\Modules\LugarExtraccionCarbon\Data\LugarExtraccionCarbonData;
 use App\Modules\AlmacenCarbonProveedor\Data\AlmacenCarbonProveedorData;
+use App\Modules\AnticiposProveedor\Data\AnticiposProveedorData;
 use App\Services\ProveedoresService as ProveedoresServiceGlobal;
 use Illuminate\Support\Facades\DB;
 
@@ -35,6 +36,12 @@ class ProveedoresService
             $proveedor->lugares_extraccion = $lugaresExtraccion->where('id_proveedor', $proveedor->id_proveedor)->values();
             $proveedor->almacenes_carbon = $almacenesCarbon->where('id_proveedor', $proveedor->id_proveedor)->values();
         }
+
+        // Anticipos: el count y la suma ya vienen del subquery en Data (count
+        // + COALESCE(SUM(...), 0)). Aqui solo anadimos el array completo si
+        // el caller lo pidio (lo hace el modal al abrir, via GET /anticipos).
+        // No inflamos el listado con JOIN masivo: el count + suma bastan
+        // para el badge de la celda, y el detalle se carga on-demand.
 
         return ApiResponse::success($data, "Proveedores obtenidos correctamente");
     }
