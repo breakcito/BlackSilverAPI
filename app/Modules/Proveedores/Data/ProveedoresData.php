@@ -65,7 +65,16 @@ class ProveedoresData
                 WHERE
                     lp.id_proveedor = pr.id AND
                     IFNULL(le.estado, "Activo") = "Activo"
-            ) as cantidad_lugares_extraccion
+            ) as cantidad_lugares_extraccion,
+            (
+                SELECT
+                    COUNT(*)
+                FROM
+                    almacen_carbon_proveedor ac
+                WHERE
+                    ac.id_proveedor = pr.id AND
+                    IFNULL(ac.estado, "Activo") = "Activo"
+            ) as cantidad_almacenes_carbon
         FROM
             proveedor pr
         WHERE 1 = 1

@@ -8,6 +8,7 @@ use App\Modules\Proveedores\Data\CuentasBancariasData;
 use App\Modules\Proveedores\Data\ProveedoresData;
 use App\Modules\ProveedorCarbon\Data\ProveedorCarbonData;
 use App\Modules\LugarExtraccionCarbon\Data\LugarExtraccionCarbonData;
+use App\Modules\AlmacenCarbonProveedor\Data\AlmacenCarbonProveedorData;
 use App\Services\ProveedoresService as ProveedoresServiceGlobal;
 use Illuminate\Support\Facades\DB;
 
@@ -26,11 +27,13 @@ class ProveedoresService
         $cuentas = collect(CuentasBancariasData::get_cuentas_bancarias(ids_proveedor: $ids));
         $tiposCarbon = collect(ProveedorCarbonData::get_tipos_por_proveedores($ids));
         $lugaresExtraccion = collect(LugarExtraccionCarbonData::get_por_proveedores($ids));
+        $almacenesCarbon = collect(AlmacenCarbonProveedorData::get_por_proveedores($ids));
 
         foreach ($data as $proveedor) {
             $proveedor->cuentas_bancarias = $cuentas->where('id_proveedor', $proveedor->id_proveedor)->values();
             $proveedor->tipos_carbon = $tiposCarbon->where('id_proveedor', $proveedor->id_proveedor)->values();
             $proveedor->lugares_extraccion = $lugaresExtraccion->where('id_proveedor', $proveedor->id_proveedor)->values();
+            $proveedor->almacenes_carbon = $almacenesCarbon->where('id_proveedor', $proveedor->id_proveedor)->values();
         }
 
         return ApiResponse::success($data, "Proveedores obtenidos correctamente");
@@ -225,6 +228,9 @@ class ProveedoresService
         )->where('id_proveedor', $proveedor->id_proveedor)->values();
         $proveedor->lugares_extraccion = collect(
             LugarExtraccionCarbonData::get_por_proveedores($ids)
+        )->where('id_proveedor', $proveedor->id_proveedor)->values();
+        $proveedor->almacenes_carbon = collect(
+            AlmacenCarbonProveedorData::get_por_proveedores($ids)
         )->where('id_proveedor', $proveedor->id_proveedor)->values();
 
         return $proveedor;
