@@ -2,6 +2,7 @@
 
 namespace App\Modules\Clientes\Services;
 
+use App\Modules\AlmacenCarbonCliente\Data\AlmacenCarbonClienteData;
 use App\Modules\Clientes\Data\ClientesData;
 use App\Modules\Clientes\Data\CuentasBancariasData;
 use App\Shared\Responses\ApiResponse;
@@ -25,8 +26,11 @@ class ClientesService
         // Convertimos el array en una Colección de Laravel
         $cuentas = collect(CuentasBancariasData::get_cuentas_bancarias(ids_cliente: $ids));
 
+        $almacenesCarbon = collect(AlmacenCarbonClienteData::get_por_clientes($ids));
+
         foreach ($clientes as $cliente) {
             $cliente->cuentas_bancarias = $cuentas->where('id_cliente', $cliente->id_cliente)->values();
+            $cliente->almacenes_carbon = $almacenesCarbon->where('id_cliente', $cliente->id_cliente)->values();
         }
 
         return ApiResponse::success($clientes, 'Clientes obtenidos correctamente');

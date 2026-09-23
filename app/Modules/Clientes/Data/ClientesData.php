@@ -32,7 +32,16 @@ class ClientesData
             cl.para_carbon,
             cl.created_at,
             cl.cambios_log,
-            (SELECT COUNT(*) FROM cuenta_bancaria_cliente cbc WHERE cbc.id_cliente = cl.id) AS cantidad_cuentas_bancarias
+            (SELECT COUNT(*) FROM cuenta_bancaria_cliente cbc WHERE cbc.id_cliente = cl.id) AS cantidad_cuentas_bancarias,
+            (
+                SELECT
+                    COUNT(*)
+                FROM
+                    almacen_carbon_cliente ac
+                WHERE
+                    ac.id_cliente = cl.id AND
+                    IFNULL(ac.estado, "Activo") = "Activo"
+            ) as cantidad_almacenes_carbon
         FROM
             cliente cl
         WHERE 1 = 1
