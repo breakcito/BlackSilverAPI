@@ -29,8 +29,10 @@ class ClientesController
         $request->validate([
             'tipo_entidad'      => 'required|string',
             'dni'               => 'nullable|string|size:8',
-            // RUC obligatorio (11 digitos, prefijo segun tipo_entidad — se valida abajo).
-            'ruc'               => 'required|string|size:11',
+            // RUC ahora es opcional: el frontend envia ruc=11digitos o dni=8digitos
+            // (uno de los dos), o ambos null si no se proporciono documento.
+            // El prefijo (10/20) se valida abajo solo si ruc llega con largo 11.
+            'ruc'               => 'nullable|string|size:11',
             'razon_social'      => 'required|string|max:255',
             'direccion'         => 'nullable|string|max:255',
             'telefono'          => 'nullable|string|max:20',
@@ -39,20 +41,23 @@ class ClientesController
         ]);
 
         $tipo_entidad = TipoEntidad::from($request->input('tipo_entidad'));
-        $ruc = (string) $request->input('ruc');
+        $ruc = $request->input('ruc');
+        $ruc = ($ruc === null || $ruc === '') ? null : (string) $ruc;
 
-        // Validacion de prefijo de RUC segun tipo de entidad (mismo patron que Proveedores).
-        if ($tipo_entidad === TipoEntidad::Juridica && !str_starts_with($ruc, '20')) {
-            return response()->json(
-                ApiResponse::error('El RUC de una persona juridica debe comenzar con 20'),
-                422,
-            );
-        }
-        if ($tipo_entidad === TipoEntidad::Natural && !str_starts_with($ruc, '10')) {
-            return response()->json(
-                ApiResponse::error('El RUC de una persona natural debe comenzar con 10'),
-                422,
-            );
+        // Validacion de prefijo de RUC segun tipo de entidad (solo si llega RUC).
+        if ($ruc !== null) {
+            if ($tipo_entidad === TipoEntidad::Juridica && !str_starts_with($ruc, '20')) {
+                return response()->json(
+                    ApiResponse::error('El RUC de una persona juridica debe comenzar con 20'),
+                    422,
+                );
+            }
+            if ($tipo_entidad === TipoEntidad::Natural && !str_starts_with($ruc, '10')) {
+                return response()->json(
+                    ApiResponse::error('El RUC de una persona natural debe comenzar con 10'),
+                    422,
+                );
+            }
         }
 
         return response()->json(ClientesService::crear_cliente(
@@ -77,7 +82,9 @@ class ClientesController
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'tipo_entidad'      => 'required|string',
             'dni'               => 'nullable|string|size:8',
-            'ruc'               => 'required|string|size:11',
+            // RUC opcional (mismo criterio que crear). El frontend mapea 8digitos
+            // al campo dni y 11digitos al campo ruc.
+            'ruc'               => 'nullable|string|size:11',
             'razon_social'      => 'required|string|max:255',
             'direccion'         => 'nullable|string|max:255',
             'telefono'          => 'nullable|string|max:20',
@@ -89,20 +96,23 @@ class ClientesController
         }
 
         $tipo_entidad = TipoEntidad::from($request->input('tipo_entidad'));
-        $ruc = (string) $request->input('ruc');
+        $ruc = $request->input('ruc');
+        $ruc = ($ruc === null || $ruc === '') ? null : (string) $ruc;
 
-        // Mismas reglas de prefijo de RUC que en el registro.
-        if ($tipo_entidad === TipoEntidad::Juridica && !str_starts_with($ruc, '20')) {
-            return response()->json(
-                ApiResponse::error('El RUC de una persona juridica debe comenzar con 20'),
-                422,
-            );
-        }
-        if ($tipo_entidad === TipoEntidad::Natural && !str_starts_with($ruc, '10')) {
-            return response()->json(
-                ApiResponse::error('El RUC de una persona natural debe comenzar con 10'),
-                422,
-            );
+        // Mismas reglas de prefijo de RUC que en el registro (solo si llega).
+        if ($ruc !== null) {
+            if ($tipo_entidad === TipoEntidad::Juridica && !str_starts_with($ruc, '20')) {
+                return response()->json(
+                    ApiResponse::error('El RUC de una persona juridica debe comenzar con 20'),
+                    422,
+                );
+            }
+            if ($tipo_entidad === TipoEntidad::Natural && !str_starts_with($ruc, '10')) {
+                return response()->json(
+                    ApiResponse::error('El RUC de una persona natural debe comenzar con 10'),
+                    422,
+                );
+            }
         }
 
         $authUser = $request->attributes->get('auth_user');
