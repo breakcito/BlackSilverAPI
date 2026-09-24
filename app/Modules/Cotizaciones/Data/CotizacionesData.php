@@ -51,6 +51,7 @@ class CotizacionesData
         ?string $fecha_vencimiento_pago = null,
         ?string $evidencias = null,
         EstadoCotizacion $estado = EstadoCotizacion::Generada,
+        ?int $id_solicitud_reabastecimiento = null,
     ): int {
         return Cotizacion::crear_cotizacion(
             id_comparativo: $id_comparativo,
@@ -74,6 +75,7 @@ class CotizacionesData
             fecha_vencimiento_pago: $fecha_vencimiento_pago,
             evidencias: $evidencias,
             estado: $estado,
+            id_solicitud_reabastecimiento: $id_solicitud_reabastecimiento,
         );
     }
 
@@ -140,6 +142,7 @@ class CotizacionesData
         ?string $comentario = null,
         ?string $lugar_recojo = null,
         //
+        ?int $id_solicitud_reabastecimiento_detalle = null,
         EstadoCotizacionDetalle $estado = EstadoCotizacionDetalle::Pendiente
     ): int {
         return CotizacionDetalle::crear_detalle(
@@ -159,6 +162,7 @@ class CotizacionesData
             precio_unitario: $precio_unitario,
             precio_unitario_base: $precio_unitario_base,
             comentario: $comentario,
+            id_solicitud_reabastecimiento_detalle: $id_solicitud_reabastecimiento_detalle,
             estado: $estado,
         );
     }

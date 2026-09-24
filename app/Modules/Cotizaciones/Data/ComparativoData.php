@@ -36,16 +36,33 @@ class ComparativoData
         ?int $mes = null,
         ?int $yearcito = null
     ) {
-        $sql = '
+        // Subconsulta que devuelve los correlativos UNICOS de las solicitudes
+        // de reabastecimiento que originaron las cotizaciones de este comparativo.
+        // Se concatenan con ", " para mostrar en una sola linea (ej. "SCR-26-00005, SCR-26-00003").
+        // Si el comparativo NO vino de ninguna solicitud (cotizaciones tradicionales),
+        // devuelve NULL.
+        $sql = "
         SELECT
             cmp.id AS id_comparativo,
             cmp.numero_correlativo,
-            cmp.created_at
+            cmp.created_at,
+            (
+                SELECT GROUP_CONCAT(
+                    DISTINCT sr.correlativo
+                    ORDER BY sr.correlativo ASC
+                    SEPARATOR ', '
+                )
+                FROM cotizacion ct
+                INNER JOIN solicitud_reabastecimiento sr
+                    ON sr.id = ct.id_solicitud_reabastecimiento
+                WHERE ct.id_comparativo = cmp.id
+                  AND ct.id_solicitud_reabastecimiento IS NOT NULL
+            ) AS solicitudes_origen_correlativos
         FROM
             comparativo cmp
-        WHERE 
+        WHERE
             1 = 1
-        ';
+        ";
 
         $params = [];
 

@@ -27,7 +27,7 @@ class CotizacionDetalle extends Model
         'tiempo_entrega', // 2
         'tiempo_entrega_periodo', // Semanas
         'tiempo_entrega_dias', // 14 dias
-        // 
+        //
         'cantidad', // 2 Cajas
         'contenido_por_presentacion', // 3 Unidades (unidad de medida base del producto) por Caja
         'cantidad_base', // 6 unidades
@@ -37,7 +37,10 @@ class CotizacionDetalle extends Model
         //
         'comentario',
         //
-        'estado', // Aprovado, Rechazado (cuando se aprueba la cotizacion y no se elige), Pendiente (aun no se aprueba)
+        'estado', // Aprovado, Rechazado (cuando se apruebe la cotizacion y no se elige), Pendiente (aun no se apruebe)
+        // Vinculacion con el detalle de la solicitud de reabastecimiento que origino
+        // este item de cotizacion (NULL si la cotizacion no vino de una solicitud).
+        'id_solicitud_reabastecimiento_detalle',
     ];
 
     // Funcion helpder que ayuda a crear un detalle de cotizacion
@@ -64,6 +67,7 @@ class CotizacionDetalle extends Model
         ?string $comentario = null,
         ?string $lugar_recojo = null,
         //
+        ?int $id_solicitud_reabastecimiento_detalle = null,
         EstadoCotizacionDetalle $estado = EstadoCotizacionDetalle::Pendiente
     ) {
         return CotizacionDetalle::insertGetId([
@@ -88,6 +92,8 @@ class CotizacionDetalle extends Model
             'precio_unitario_base' => $precio_unitario_base,
             //
             'comentario' => $comentario,
+            //
+            'id_solicitud_reabastecimiento_detalle' => $id_solicitud_reabastecimiento_detalle,
             //
             'estado' => $estado->value,
         ]);
@@ -183,8 +189,12 @@ class CotizacionDetalle extends Model
             -- 
             ctd.precio_unitario,
             ctd.precio_unitario_base,
-            -- 
+            --
             ctd.comentario,
+            -- vinculacion con el detalle de la solicitud de reabastecimiento
+            -- que origino este item de cotizacion (NULL si no vino de una).
+            ctd.id_solicitud_reabastecimiento_detalle,
+            --
             ctd.estado
         FROM
             cotizacion_detalle ctd

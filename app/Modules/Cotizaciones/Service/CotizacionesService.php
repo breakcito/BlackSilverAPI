@@ -102,6 +102,9 @@ class CotizacionesService
                         fecha_vencimiento_pago: $es_credito ? ($c['fecha_vencimiento_pago'] ?? null) : null,
                         evidencias: $c['evidencias'] ?? null,
                         estado: $estado_final,
+                        id_solicitud_reabastecimiento: isset($c['id_solicitud_reabastecimiento'])
+                            ? (int) $c['id_solicitud_reabastecimiento']
+                            : null,
                     );
 
                     // 4. Asignar empresas compradoras
@@ -139,6 +142,9 @@ class CotizacionesService
                             precio_unitario: (float) ($det['precio_unitario'] ?? 0),
                             precio_unitario_base: (float) ($det['precio_unitario_base'] ?? 0),
                             comentario: $det['comentario'] ?? null,
+                            id_solicitud_reabastecimiento_detalle: isset($det['id_solicitud_reabastecimiento_detalle'])
+                                ? (int) $det['id_solicitud_reabastecimiento_detalle']
+                                : null,
                             estado: $estado_det,
                         );
 

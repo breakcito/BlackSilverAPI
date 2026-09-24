@@ -17,6 +17,9 @@ class Cotizacion extends Model
         'id_comparativo',
         'id_proveedor',
         'id_empleado_registro',
+        // Vinculacion opcional con la solicitud de reabastecimiento que origino
+        // la cotizacion (NULL si la cotizacion se genero sin venir de una solicitud).
+        'id_solicitud_reabastecimiento',
         //
         'correlativo',
         'numero_correlativo',
@@ -32,7 +35,7 @@ class Cotizacion extends Model
         //
         'costo_flete',
         'otros_gastos',
-        // 
+        //
         'total_antes_igv',
         'incluye_igv',
         'porcentaje_igv',
@@ -88,11 +91,14 @@ class Cotizacion extends Model
         ?string $fecha_vencimiento_pago = null,
         ?string $evidencias = null,
         ?EstadoCotizacion $estado = EstadoCotizacion::Generada,
+        ?int $id_solicitud_reabastecimiento = null,
     ): int {
         return self::insertGetId([
             'id_comparativo' => $id_comparativo,
             'id_proveedor' => $id_proveedor,
             'id_empleado_registro' => $id_empleado_registro,
+            //
+            'id_solicitud_reabastecimiento' => $id_solicitud_reabastecimiento,
             //
             'correlativo' => $correlativo,
             'numero_correlativo' => $numero_correlativo,
@@ -172,7 +178,9 @@ class Cotizacion extends Model
             prov.razon_social AS proveedor,
             prov.tipo_entidad AS tipo_entidad_proveedor,
             IFNULL(prov.ruc, prov.dni) AS documento_proveedor,
-            -- 
+            --
+            ct.id_solicitud_reabastecimiento,
+            --
             ct.correlativo,
             -- 
             ct.observacion,

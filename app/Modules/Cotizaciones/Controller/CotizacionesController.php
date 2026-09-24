@@ -2,6 +2,7 @@
 
 namespace App\Modules\Cotizaciones\Controller;
 
+use App\Models\Producto;
 use App\Modules\Cotizaciones\Service\CotizacionesService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +22,11 @@ class CotizacionesController
             'cotizaciones.*.empresas_ids' => 'required|array|min:1',
             'cotizaciones.*.empresas_ids.*' => 'integer',
             'cotizaciones.*.detalles' => 'required|array|min:1',
+            // Vinculacion opcional con la solicitud de reabastecimiento que origino
+            // la cotizacion (solo presente cuando la cotizacion se crea desde
+            // "Detalle de Solicitud de Reabastecimiento"). NULL = cotizacion normal.
+            'cotizaciones.*.id_solicitud_reabastecimiento' => 'nullable|integer',
+            'cotizaciones.*.detalles.*.id_solicitud_reabastecimiento_detalle' => 'nullable|integer',
         ], [
             'productos.required' => 'Debe incluir al menos un producto para el comparativo.',
             'cotizaciones.required' => 'Debe incluir al menos una cotización de proveedor.',
@@ -30,6 +36,32 @@ class CotizacionesController
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        // Regla de negocio: un comparativo (cotizacion) SOLO puede mezclar
+        // productos del mismo tipo de auditable. Si hay productos auditables
+        // mezclados con no auditables, la regla exige separarlos en
+        // cotizaciones distintas. Esto se valida en backend como defensa
+        // (la UI ya evita la mezcla avisando al usuario).
+        $ids_productos = collect($request->input('productos'))
+            ->pluck('id_producto')
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+        $estadosAuditable = Producto::whereIn('id', $ids_productos)
+            ->pluck('es_auditable')
+            ->map(fn($v) => (int) $v)
+            ->unique()
+            ->values()
+            ->all();
+        if (count($estadosAuditable) > 1) {
+            return response()->json(
+                ApiResponse::error(
+                    'El comparativo no puede mezclar productos auditables con no auditables. Sepáralos en cotizaciones distintas.'
+                ),
+                422,
+            );
         }
 
         return response()->json(CotizacionesService::registrar_comparativo(
