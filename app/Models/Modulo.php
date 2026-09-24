@@ -13,12 +13,10 @@ class Modulo extends Model
         'nombre',
         'path',
         'numero_orden',
-        'es_desplegable',
         'estado',
     ];
 
     protected $casts = [
-        'es_desplegable' => 'boolean',
         'numero_orden'   => 'integer',
     ];
 }

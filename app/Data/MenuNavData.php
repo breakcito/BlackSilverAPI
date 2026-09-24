@@ -67,7 +67,7 @@ class MenuNavData
         $sql = "
         SELECT DISTINCT
           md.id AS id_modulo, md.id_submenu, md.nombre, md.path,
-          md.numero_orden, md.es_desplegable
+          md.numero_orden
         FROM modulo md
         INNER JOIN modulo_rol mr ON mr.id_modulo = md.id AND mr.id_rol = ?
         WHERE md.estado = 'Activo' AND md.id_submenu IN ($placeholders)

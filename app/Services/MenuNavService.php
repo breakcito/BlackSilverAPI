@@ -51,8 +51,7 @@ class MenuNavService
                     'modulos'       => array_map(fn($m) => [
                         'id_modulo' => (int) $m->id_modulo,
                         'nombre'    => $m->nombre,
-                        'path'      => $m->path,
-                        'es_desplegable' => (bool) $m->es_desplegable,
+                        'path'      => $m->path
                     ], $misModulos),
                 ];
             }
