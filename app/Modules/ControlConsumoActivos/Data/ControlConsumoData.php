@@ -2,8 +2,8 @@
 
 namespace App\Modules\ControlConsumoActivos\Data;
 
-
 use App\Models\RequerimientoAlmacenEntregaDetalleConsumo;
+use App\Shared\Enums\_Generic\TipoTurno;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoConsumoDetalleEntregaReq;
 use Illuminate\Support\Facades\DB;
 
@@ -35,6 +35,7 @@ class ControlConsumoData
             act.costo_compra as costo_compra_activo_fijo_consumidor,
             act.id_marca as id_marca_activo_fijo_consumidor,
             mr_af.nombre as marca_activo_fijo_consumidor,
+            pr_af.nombre as producto_activo_fijo_consumidor,
 
             c.id_labor_destino,
             lb.nombre as labor,
@@ -49,6 +50,7 @@ class ControlConsumoData
             c.comentario_consumo,
             c.created_at,
             c.estado,
+            c.tipo_turno,
             c.id_mantenimiento,
             c.id_lote_mineral,
             c.para_mantenimiento,
@@ -94,6 +96,7 @@ class ControlConsumoData
         LEFT JOIN mina mn_lm ON mn_lm.id = lm.id_mina
         LEFT JOIN labor lb_lm ON lb_lm.id = lm.id_labor
         LEFT JOIN activo_fijo act ON act.id = c.id_activo_fijo_consumidor
+        LEFT JOIN producto pr_af ON pr_af.id = act.id_producto
         LEFT JOIN marca mr_af ON mr_af.id = act.id_marca
         LEFT JOIN labor lb ON lb.id = c.id_labor_destino
         LEFT JOIN lote_producto lp ON lp.id = entd.id_lote_producto
@@ -106,7 +109,12 @@ class ControlConsumoData
         if ($id_consumo !== null) {
             $sql .= ' AND c.id = :id_consumo';
             $params['id_consumo'] = $id_consumo;
-            return DB::selectOne($sql, $params);
+            $res = DB::selectOne($sql, $params);
+            if ($res) {
+                return $res;
+            }
+            // Fallback si es un consumo directo
+            return self::get_consumos_directos(id_consumo_directo: $id_consumo);
         }
 
         if ($id_detalle_entrega !== null) {
@@ -127,6 +135,131 @@ class ControlConsumoData
         return DB::select($sql, $params);
     }
 
+    /**
+     * Obtener consumos directos de activos/maquinarias (ej. uso de combustible en horómetro).
+     */
+    public static function get_consumos_directos(?int $id_consumo_directo = null, ?int $mes = null, ?int $yearcito = null)
+    {
+        $sql = '
+        SELECT
+            c.id as id_consumo,
+            c.uuid_control_uso_activo,
+            c.tipo_turno,
+            c.es_consumo_directo,
+
+            c.id_activo_fijo_consumidor,
+            act.correlativo as correlativo_activo_fijo_consumidor,
+            act.modelo as modelo_activo_fijo_consumidor,
+            act.costo_compra as costo_compra_activo_fijo_consumidor,
+            act.id_marca as id_marca_activo_fijo_consumidor,
+            mr_af.nombre as marca_activo_fijo_consumidor,
+            pr_af.nombre as producto_activo_fijo_consumidor,
+
+            c.id_producto,
+            pr.nombre as producto,
+            cat.id as id_categoria,
+            cat.nombre as categoria,
+            cat.clasificacion_bien as tipo_bien,
+            cat.es_consumible,
+            pr.moneda,
+
+            c.id_almacen,
+            alm.nombre as almacen,
+
+            c.id_lote_producto,
+            lp.correlativo as correlativo_lote_producto,
+
+            c.id_unidad_medida,
+            um.nombre as unidad_medida,
+            um.abreviatura as unidad_medida_abv,
+            pr.id_unidad_medida_base,
+            umb.nombre as unidad_medida_base,
+            umb.abreviatura as unidad_medida_base_abv,
+
+            c.contenido_por_presentacion,
+            c.cantidad_consumo,
+            c.cantidad_base,
+            c.cantidad_base_consumida,
+            c.fecha_hora_consumo,
+            c.comentario_consumo,
+            c.created_at,
+            c.estado,
+
+            c.id_labor_destino,
+            lb.nombre as labor_destino,
+            lb.id_mina,
+            mn.nombre as mina,
+
+            c.id_lote_mineral,
+            lm.codigo as codigo_lote_mineral,
+
+            c.para_mantenimiento,
+            c.para_produccion,
+
+            c.id_empleado_registro,
+            CONCAT(emp.nombre, " ", emp.apellido) as empleado_registro,
+            emp.id_cargo as id_cargo_registro,
+            cargo_reg.nombre as cargo_registro,
+
+            COALESCE(
+                NULLIF(lp.costo_promedio_base, 0),
+                NULLIF(lp.costo_por_unidad, 0),
+                NULLIF(ocd.precio_unitario_base, 0),
+                0
+            ) as costo_unitario_base,
+            CASE
+                WHEN NULLIF(lp.costo_promedio_base, 0) IS NOT NULL THEN "lote_promedio"
+                WHEN NULLIF(lp.costo_por_unidad, 0) IS NOT NULL THEN "lote_compra"
+                WHEN NULLIF(ocd.precio_unitario_base, 0) IS NOT NULL THEN "oc_detalle"
+                ELSE "sin_costo"
+            END as origen_costo_unitario,
+
+            ROUND(c.cantidad_base_consumida * COALESCE(
+                NULLIF(lp.costo_promedio_base, 0),
+                NULLIF(lp.costo_por_unidad, 0),
+                NULLIF(ocd.precio_unitario_base, 0),
+                0
+            ), 4) as costo_total_consumo
+
+        FROM requerimiento_almacen_entrega_detalle_consumo c
+        LEFT JOIN activo_fijo act ON act.id = c.id_activo_fijo_consumidor
+        LEFT JOIN producto pr_af ON pr_af.id = act.id_producto
+        LEFT JOIN marca mr_af ON mr_af.id = act.id_marca
+        LEFT JOIN producto pr ON pr.id = c.id_producto
+        LEFT JOIN categoria cat ON cat.id = pr.id_categoria
+        LEFT JOIN unidad_medida um ON um.id = c.id_unidad_medida
+        LEFT JOIN unidad_medida umb ON umb.id = pr.id_unidad_medida_base
+        LEFT JOIN almacen alm ON alm.id = c.id_almacen
+        LEFT JOIN lote_producto lp ON lp.id = c.id_lote_producto
+        LEFT JOIN orden_compra_detalle ocd ON ocd.id = lp.id_orden_compra_detalle
+        LEFT JOIN empleado emp ON emp.id = c.id_empleado_registro
+        LEFT JOIN cargo cargo_reg ON cargo_reg.id = emp.id_cargo
+        LEFT JOIN labor lb ON lb.id = c.id_labor_destino
+        LEFT JOIN mina mn ON mn.id = lb.id_mina
+        LEFT JOIN lote_mineral lm ON lm.id = c.id_lote_mineral
+        WHERE c.es_consumo_directo = 1';
+
+        $params = [];
+
+        if ($id_consumo_directo != null) {
+            $sql .= " AND c.id = :id_consumo";
+            $params['id_consumo'] = $id_consumo_directo;
+            return DB::selectOne($sql, $params);
+        }
+
+        if ($mes != null) {
+            $sql .= " AND MONTH(c.fecha_hora_consumo) = :mes";
+            $params['mes'] = $mes;
+        }
+
+        if ($yearcito != null) {
+            $sql .= " AND YEAR(c.fecha_hora_consumo) = :yearcito";
+            $params['yearcito'] = $yearcito;
+        }
+
+        $sql .= " ORDER BY c.fecha_hora_consumo DESC";
+        return DB::select($sql, $params);
+    }
 
     /**
      * Registrar un nuevo consumo en la base de datos.
@@ -143,7 +276,8 @@ class ControlConsumoData
         ?int $id_mantenimiento = null,
         ?int $id_lote_mineral = null,
         bool $para_mantenimiento = false,
-        bool $para_produccion = false
+        bool $para_produccion = false,
+        ?TipoTurno $tipo_turno = null
     ): int {
         return RequerimientoAlmacenEntregaDetalleConsumo::crear_consumo(
             id_requerimiento_almacen_entrega_detalle: $id_requerimiento_almacen_entrega_detalle,
@@ -158,13 +292,12 @@ class ControlConsumoData
             id_lote_mineral: $id_lote_mineral,
             para_mantenimiento: $para_mantenimiento,
             para_produccion: $para_produccion,
+            tipo_turno: $tipo_turno,
         );
     }
 
     /**
      * Registrar un consumo DIRECTO desde Control de Uso (sin requerimiento).
-     * Inserta con `id_requerimiento_almacen_entrega_detalle = NULL`,
-     * `es_consumo_directo = true`, y todos los campos del flujo de combustible.
      */
     public static function crear_consumo_directo(
         int $id_empleado_registro,
@@ -183,11 +316,9 @@ class ControlConsumoData
         float $contenido_por_presentacion,
         float $cantidad_consumo,
         float $cantidad_base,
-        EstadoConsumoDetalleEntregaReq $estado
+        EstadoConsumoDetalleEntregaReq $estado,
+        ?TipoTurno $tipo_turno = null
     ): int {
-        // El consumo ya NO lleva `id_control_uso_activo`: representa al
-        // grupo UUID completo (no a un item puntual). El reingreso al
-        // anular se decide contra el `uuid_grupo` del control_uso_activo.
         return RequerimientoAlmacenEntregaDetalleConsumo::crear_consumo_directo(
             id_empleado_registro: $id_empleado_registro,
             id_activo_fijo_consumidor: $id_activo_fijo_consumidor,
@@ -206,6 +337,15 @@ class ControlConsumoData
             cantidad_consumo: $cantidad_consumo,
             cantidad_base: $cantidad_base,
             estado: $estado,
+            tipo_turno: $tipo_turno,
         );
+    }
+
+    /**
+     * Actualizar el turno de un consumo.
+     */
+    public static function actualizar_turno(int $id_consumo, TipoTurno $tipo_turno): bool
+    {
+        return RequerimientoAlmacenEntregaDetalleConsumo::actualizar_turno($id_consumo, $tipo_turno);
     }
 }

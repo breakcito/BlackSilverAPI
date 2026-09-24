@@ -2,9 +2,13 @@
 
 namespace App\Modules\ControlConsumoActivos\Service;
 
+use App\Models\ActivoFijo;
+use App\Models\Producto;
 use App\Modules\ControlConsumoActivos\Data\ControlConsumoData;
 use App\Modules\ControlConsumoActivos\Data\EntregasData;
+use App\Modules\ControlConsumoActivos\Data\GastosExtraData;
 use App\Services\LotesProductosService;
+use App\Shared\Enums\_Generic\TipoTurno;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoConsumoDetalleEntregaReq;
@@ -14,7 +18,8 @@ use Illuminate\Support\Facades\DB;
 class ControlConsumoService
 {
     /**
-     * Obtener el reporte de consumo de activos fijos e insumos con su respectivo historial agrupado.
+     * Obtener el reporte de consumo de activos fijos e insumos con su respectivo historial agrupado,
+     * los consumos directos generados desde el uso de activos y los gastos extra del periodo.
      */
     public static function get_reporte(int $mes, int $yearcito)
     {
@@ -33,7 +38,14 @@ class ControlConsumoService
             $d->consumos = $consumos_agrupados[$d->id_entrega_requerimiento_detalle] ?? [];
         }
 
-        return ApiResponse::success($detalles);
+        $consumos_directos = ControlConsumoData::get_consumos_directos(mes: $mes, yearcito: $yearcito);
+        $gastos_extra = GastosExtraData::get_gastos(mes: $mes, yearcito: $yearcito);
+
+        return ApiResponse::success([
+            'entregas' => $detalles,
+            'consumos_directos' => $consumos_directos,
+            'gastos_extra' => $gastos_extra,
+        ]);
     }
 
     /**
@@ -50,20 +62,10 @@ class ControlConsumoService
         ?int $id_labor_destino = null,
         ?int $id_lote_mineral = null,
         bool $para_mantenimiento = false,
-        bool $para_produccion = false
+        bool $para_produccion = false,
+        ?TipoTurno $tipo_turno = null
     ) {
-        return DB::transaction(function () use (
-            $id_empleado_registro,
-            $id_detalle,
-            $cantidad_base_consumida,
-            $fecha_hora_consumo,
-            $comentario_consumo,
-            $id_activo_fijo_consumidor,
-            $id_labor_destino,
-            $id_lote_mineral,
-            $para_mantenimiento,
-            $para_produccion
-        ) {
+        return DB::transaction(function () use ($id_empleado_registro, $id_detalle, $cantidad_base_consumida, $fecha_hora_consumo, $comentario_consumo, $id_activo_fijo_consumidor, $id_labor_destino, $id_lote_mineral, $para_mantenimiento, $para_produccion, $tipo_turno) {
             if ($para_mantenimiento && !$id_activo_fijo_consumidor) {
                 return ApiResponse::error('El activo fijo es obligatorio para mantenimiento.');
             }
@@ -107,6 +109,7 @@ class ControlConsumoService
                 id_lote_mineral: $id_lote_mineral,
                 para_mantenimiento: $para_mantenimiento,
                 para_produccion: $para_produccion,
+                tipo_turno: $tipo_turno,
             );
 
             $c = ControlConsumoData::get_consumos(id_consumo: $id_consumo);
@@ -140,32 +143,11 @@ class ControlConsumoService
         float $contenido_por_presentacion,
         float $cantidad_consumo,
         float $cantidad_base,
-        EstadoConsumoDetalleEntregaReq $estado
+        EstadoConsumoDetalleEntregaReq $estado,
+        ?TipoTurno $tipo_turno = null
     ) {
-        return DB::transaction(function () use (
-            $id_empleado_registro,
-            $id_activo_fijo_consumidor,
-            $id_lote_mineral,
-            $id_labor_destino,
-            $para_mantenimiento,
-            $para_produccion,
-            $cantidad_base_consumida,
-            $fecha_hora_consumo,
-            $comentario_consumo,
-            $uuid_control_uso_activo,
-            $id_producto,
-            $id_almacen,
-            $id_lote_producto,
-            $id_unidad_medida,
-            $contenido_por_presentacion,
-            $cantidad_consumo,
-            $cantidad_base,
-            $estado
-        ) {
-            // Insert de la fila de consumo directo. NOTA: ya no se
-            // vincula a un `id_control_uso_activo` puntual: el consumo
-            // representa al GRUPO UUID completo (varios bloques de
-            // horometro pueden compartir un mismo consumo de combustible).
+        return DB::transaction(function () use ($id_empleado_registro, $id_activo_fijo_consumidor, $id_lote_mineral, $id_labor_destino, $para_mantenimiento, $para_produccion, $cantidad_base_consumida, $fecha_hora_consumo, $comentario_consumo, $uuid_control_uso_activo, $id_producto, $id_almacen, $id_lote_producto, $id_unidad_medida, $contenido_por_presentacion, $cantidad_consumo, $cantidad_base, $estado, $tipo_turno) {
+            // Insert de la fila de consumo directo.
             $idConsumo = ControlConsumoData::crear_consumo_directo(
                 id_empleado_registro: $id_empleado_registro,
                 id_activo_fijo_consumidor: $id_activo_fijo_consumidor,
@@ -184,14 +166,13 @@ class ControlConsumoService
                 cantidad_consumo: $cantidad_consumo,
                 cantidad_base: $cantidad_base,
                 estado: $estado,
+                tipo_turno: $tipo_turno,
             );
 
             // Kardex: SALIDA via update_stock (origen=Consumo).
-            $activoInfo = DB::table('activo_fijo')
-                ->where('id', $id_activo_fijo_consumidor)
+            $activoInfo = ActivoFijo::where('id', $id_activo_fijo_consumidor)
                 ->first();
-            $productoNombre = DB::table('producto')
-                ->where('id', $id_producto)
+            $productoNombre = Producto::where('id', $id_producto)
                 ->value('nombre');
             $descripcionKardex = sprintf(
                 'Se consumio (%s) en %s - %s',
@@ -214,5 +195,44 @@ class ControlConsumoService
 
             return ApiResponse::success($c);
         });
+    }
+
+    /**
+     * Actualizar el turno de un consumo realizado.
+     */
+    public static function actualizar_turno(int $id_consumo, TipoTurno $tipo_turno)
+    {
+        ControlConsumoData::actualizar_turno($id_consumo, $tipo_turno);
+        $c = ControlConsumoData::get_consumos(id_consumo: $id_consumo);
+        return ApiResponse::success($c);
+    }
+
+    /**
+     * Obtener los gastos extra del periodo.
+     */
+    public static function get_gastos_extra(int $mes, int $yearcito)
+    {
+        $gastos = GastosExtraData::get_gastos(mes: $mes, yearcito: $yearcito);
+        return ApiResponse::success($gastos);
+    }
+
+    /**
+     * Registrar un nuevo gasto extra.
+     */
+    public static function registrar_gasto_extra(
+        int $id_empleado_registro,
+        int $id_labor,
+        string $descripcion,
+        float $monto
+    ) {
+        $idGasto = GastosExtraData::crear_gasto(
+            id_empleado_registro: $id_empleado_registro,
+            id_labor: $id_labor,
+            descripcion: $descripcion,
+            monto: $monto
+        );
+
+        $g = GastosExtraData::get_gasto_por_id($idGasto);
+        return ApiResponse::success($g);
     }
 }

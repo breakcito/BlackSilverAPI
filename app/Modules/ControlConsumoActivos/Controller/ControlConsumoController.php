@@ -3,12 +3,12 @@
 namespace App\Modules\ControlConsumoActivos\Controller;
 
 use App\Modules\ControlConsumoActivos\Service\ControlConsumoService;
+use App\Shared\Enums\_Generic\TipoTurno;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoConsumoDetalleEntregaReq;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-
 
 /**
  * Controlador de API para la gestión de registros de consumo de activos fijos.
@@ -20,8 +20,8 @@ class ControlConsumoController extends Controller
      */
     public function get_reporte(Request $request): JsonResponse
     {
-        $mes = $request->input('mes') ? (int) $request->input('mes') : null;
-        $yearcito = $request->input('yearcito') ? (int) $request->input('yearcito') : null;
+        $mes = $request->input('mes') ? (int) $request->input('mes') : (int) now()->month;
+        $yearcito = $request->input('yearcito') ? (int) $request->input('yearcito') : (int) now()->year;
 
         $res = ControlConsumoService::get_reporte($mes, $yearcito);
         return response()->json($res);
@@ -47,19 +47,25 @@ class ControlConsumoController extends Controller
             'id_lote_mineral' => 'required_if:para_produccion,true,1|nullable|integer',
             'para_mantenimiento' => 'nullable|boolean',
             'para_produccion' => 'nullable|boolean',
+            'tipo_turno' => 'nullable|string|in:Dia,Noche',
         ]);
 
+        $tipoTurno = $request->filled('tipo_turno')
+            ? TipoTurno::tryFrom((string) $request->input('tipo_turno'))
+            : null;
+
         $res = ControlConsumoService::registrar_consumo(
-            (int) $authUser->id_empleado,
-            (int) $request->input('id_requerimiento_almacen_entrega_detalle'),
-            (float) $request->input('cantidad_base_consumida'),
-            (string) $request->input('fecha_hora_consumo'),
-            $request->input('comentario_consumo') ? (string) $request->input('comentario_consumo') : null,
-            $request->input('id_activo_fijo_consumidor') ? (int) $request->input('id_activo_fijo_consumidor') : null,
-            $request->input('id_labor_destino') ? (int) $request->input('id_labor_destino') : null,
-            $request->input('id_lote_mineral') ? (int) $request->input('id_lote_mineral') : null,
-            (bool) $request->input('para_mantenimiento', false),
-            (bool) $request->input('para_produccion', false)
+            id_empleado_registro: (int) $authUser->id_empleado,
+            id_detalle: (int) $request->input('id_requerimiento_almacen_entrega_detalle'),
+            cantidad_base_consumida: (float) $request->input('cantidad_base_consumida'),
+            fecha_hora_consumo: (string) $request->input('fecha_hora_consumo'),
+            comentario_consumo: $request->input('comentario_consumo') ? (string) $request->input('comentario_consumo') : null,
+            id_activo_fijo_consumidor: $request->input('id_activo_fijo_consumidor') ? (int) $request->input('id_activo_fijo_consumidor') : null,
+            id_labor_destino: $request->input('id_labor_destino') ? (int) $request->input('id_labor_destino') : null,
+            id_lote_mineral: $request->input('id_lote_mineral') ? (int) $request->input('id_lote_mineral') : null,
+            para_mantenimiento: (bool) $request->input('para_mantenimiento', false),
+            para_produccion: (bool) $request->input('para_produccion', false),
+            tipo_turno: $tipoTurno
         );
 
         return response()->json($res);
@@ -67,8 +73,6 @@ class ControlConsumoController extends Controller
 
     /**
      * Registrar un consumo DIRECTO (sin requerimiento previo).
-     * Se usa desde Control de Uso (horometro modal) y desde el boton
-     * "Registrar Uso de Combustible" en la pagina de Consumo.
      */
     public function registrar_consumo_directo(Request $request): JsonResponse
     {
@@ -93,11 +97,16 @@ class ControlConsumoController extends Controller
             'para_mantenimiento'          => 'nullable|boolean',
             'para_produccion'             => 'nullable|boolean',
             'estado'                       => 'nullable|in:Consumo Parcial,Consumo Total',
+            'tipo_turno'                  => 'nullable|string|in:Dia,Noche',
         ]);
 
         $estadoRaw = $request->input('estado') ?? 'Consumo Total';
         $estadoEnum = EstadoConsumoDetalleEntregaReq::tryFrom($estadoRaw)
             ?? EstadoConsumoDetalleEntregaReq::ConsumoTotal;
+
+        $tipoTurno = $request->filled('tipo_turno')
+            ? TipoTurno::tryFrom((string) $request->input('tipo_turno'))
+            : null;
 
         $res = ControlConsumoService::registrar_consumo_directo(
             id_empleado_registro: (int) $authUser->id_empleado,
@@ -118,6 +127,66 @@ class ControlConsumoController extends Controller
             cantidad_consumo: (float) $request->input('cantidad_consumo'),
             cantidad_base: (float) $request->input('cantidad_base'),
             estado: $estadoEnum,
+            tipo_turno: $tipoTurno
+        );
+
+        return response()->json($res);
+    }
+
+    /**
+     * Actualizar el turno de un consumo.
+     */
+    public function actualizar_turno(Request $request, int $id): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+        if (! $authUser) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
+        }
+
+        $request->validate([
+            'tipo_turno' => 'required|string|in:Dia,Noche',
+        ]);
+
+        $tipoTurno = TipoTurno::from((string) $request->input('tipo_turno'));
+
+        $res = ControlConsumoService::actualizar_turno($id, $tipoTurno);
+
+        return response()->json($res);
+    }
+
+    /**
+     * Obtener los gastos extra del periodo.
+     */
+    public function get_gastos_extra(Request $request): JsonResponse
+    {
+        $mes = $request->input('mes') ? (int) $request->input('mes') : (int) now()->month;
+        $yearcito = $request->input('yearcito') ? (int) $request->input('yearcito') : (int) now()->year;
+
+        $res = ControlConsumoService::get_gastos_extra($mes, $yearcito);
+        return response()->json($res);
+    }
+
+    /**
+     * Registrar un nuevo gasto extra.
+     */
+    public function registrar_gasto_extra(Request $request): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+        if (! $authUser) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
+        }
+
+        $request->validate([
+            'id_labor' => 'required|integer',
+            'descripcion' => 'required|string|max:512',
+            'monto' => 'required|numeric|gt:0',
+        ]);
+
+        $res = ControlConsumoService::registrar_gasto_extra(
+            id_empleado_registro: (int) $authUser->id_empleado,
+            id_labor: (int) $request->input('id_labor'),
+            descripcion: trim((string) $request->input('descripcion')),
+            monto: (float) $request->input('monto')
         );
 
         return response()->json($res);

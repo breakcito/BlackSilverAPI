@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Shared\Enums\_Generic\TipoTurno;
 use App\Shared\Enums\RequerimientoAlmacen\EstadoConsumoDetalleEntregaReq;
 use Illuminate\Database\Eloquent\Model;
 
@@ -26,7 +27,7 @@ class RequerimientoAlmacenEntregaDetalleConsumo extends Model
         'created_at',
         'estado',
         // Nuevos campos para consumo directo desde Control de Uso
-        'uuid_control_uso_activo',
+        'uuid_control_uso_activo', // uuid que agrupa varios registros de la tabla de control_uso_activo
         'id_producto',
         'id_almacen',
         'id_lote_producto',
@@ -35,6 +36,8 @@ class RequerimientoAlmacenEntregaDetalleConsumo extends Model
         'cantidad_consumo',
         'cantidad_base',
         'es_consumo_directo',
+        //
+        'tipo_turno', // Dia/Noche
     ];
 
     /**
@@ -52,7 +55,8 @@ class RequerimientoAlmacenEntregaDetalleConsumo extends Model
         ?int $id_mantenimiento = null,
         ?int $id_lote_mineral = null,
         bool $para_mantenimiento = false,
-        bool $para_produccion = false
+        bool $para_produccion = false,
+        ?TipoTurno $tipo_turno = null
     ): int {
         return self::insertGetId([
             'id_requerimiento_almacen_entrega_detalle' => $id_requerimiento_almacen_entrega_detalle,
@@ -68,6 +72,7 @@ class RequerimientoAlmacenEntregaDetalleConsumo extends Model
             'comentario_consumo' => $comentario_consumo,
             'created_at' => now()->toDateTimeString(),
             'estado' => $estado->value,
+            'tipo_turno' => $tipo_turno?->value,
         ]);
     }
 
@@ -99,7 +104,8 @@ class RequerimientoAlmacenEntregaDetalleConsumo extends Model
         float $contenido_por_presentacion,
         float $cantidad_consumo,
         float $cantidad_base,
-        EstadoConsumoDetalleEntregaReq $estado
+        EstadoConsumoDetalleEntregaReq $estado,
+        ?TipoTurno $tipo_turno = null
     ): int {
         return self::insertGetId([
             // FK legacy (NULL en consumo directo)
@@ -132,6 +138,17 @@ class RequerimientoAlmacenEntregaDetalleConsumo extends Model
             'cantidad_consumo' => $cantidad_consumo,
             'cantidad_base' => $cantidad_base,
             'es_consumo_directo' => true,
+            'tipo_turno' => $tipo_turno?->value,
         ]);
+    }
+
+    /**
+     * Actualizar el turno de un consumo.
+     */
+    public static function actualizar_turno(int $id_consumo, TipoTurno $tipo_turno): bool
+    {
+        return self::where('id', $id_consumo)->update([
+            'tipo_turno' => $tipo_turno->value,
+        ]) > 0;
     }
 }
