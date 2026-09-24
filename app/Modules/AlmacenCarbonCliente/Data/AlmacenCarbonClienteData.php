@@ -39,6 +39,43 @@ class AlmacenCarbonClienteData
     }
 
     /**
+     * Lista todos los almacenes de carbon activos de todos los clientes activos.
+     * Útil para seleccionar almacén de destino del cliente en Compra de Carbón.
+     *
+     * @return array<object>
+     */
+    public static function get_todos_activos(): array
+    {
+        $sql = '
+            SELECT
+                a.id AS id_almacen,
+                a.id_cliente,
+                c.razon_social AS cliente_razon_social,
+                c.tipo_entidad AS cliente_tipo_entidad,
+                c.ruc AS cliente_ruc,
+                c.dni AS cliente_dni,
+                a.id_departamento,
+                d.nombre AS departamento_nombre,
+                a.id_provincia,
+                p.nombre AS provincia_nombre,
+                a.id_distrito,
+                di.nombre AS distrito_nombre,
+                a.direccion,
+                a.estado
+            FROM almacen_carbon_cliente a
+            INNER JOIN cliente c ON c.id = a.id_cliente
+            LEFT JOIN departamento d ON d.id = a.id_departamento
+            LEFT JOIN provincia p ON p.id = a.id_provincia
+            LEFT JOIN distrito di ON di.id = a.id_distrito
+            WHERE IFNULL(a.estado, "Activo") = "Activo"
+              AND IFNULL(c.estado, "Activo") = "Activo"
+            ORDER BY c.razon_social ASC, a.direccion ASC
+        ';
+
+        return DB::select($sql);
+    }
+
+    /**
      * Lista los almacenes de carbon de varios clientes en una sola consulta.
      * Pensado para alimentar `get_clientes` con el JOIN de almacenes.
      *

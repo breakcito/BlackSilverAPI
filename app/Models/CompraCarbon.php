@@ -17,9 +17,17 @@ class CompraCarbon extends Model
     protected $fillable = [
         'id_empresa', // la empresa que compra
         'id_proveedor', // el proveedor al que se le va a comprar
+        // // lugar al que llegara la carga
         'id_almacen', // en que lugar esta ingresando la carga de esta compra
+        "id_almacen_cliente", // aveces la carga llegara directamente al almacen de un cliente
+        'id_almacen_proveedor', // si es recojo, de que almacen del proveedor se recoge
+        //
         'id_empleado_registro', // quien registra
-        'id_empleado_aprueba', // quien aprueba
+        'id_empleado_confirma', // quien confirma la compra/llegada de la carga
+        'id_empleado_aprueba_liquidacion', // quien aprueba la liquidacion
+        'id_empleado_anula', // quien anula
+        //
+        'tipo_despacho',//  envio, recojo
         //
         // si NO aplica igv, el pago de esta compra se hará sin asociarlo a 
         // ningun comprobante (pago neto). Si es TRUE, entonces los pagos 
@@ -30,7 +38,9 @@ class CompraCarbon extends Model
         'correlativo',
         'numero_correlativo',
         'fecha_hora_ingreso',
-        'fecha_hora_aprobacion',
+        'fecha_hora_confirmacion',
+        'fecha_hora_aprobacion_liquidacion',
+        'fecha_hora_anulacion',
         'evidencias',
         // montos
         'total_antes_descuento', // suma de subtotales antes de descuento
@@ -38,8 +48,9 @@ class CompraCarbon extends Model
         'descuento_flete', // suma del descuento aplicado por el flete. Esto es lo que pagara en total la empresa en flete, a uno o varios transportistas que realizaron este servicio
         'total_con_descuento', // suma de los subtotales con descuento aplicado. Esto es lo que le va a pagar al proveedor
         //
+        'log_cambios', // json 
+        //
         'created_at',
-        'estado',
-        'estado_pago', // pendiente, en proceso, pagado
+        'estado'
     ];
 }

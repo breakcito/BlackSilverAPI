@@ -12,6 +12,16 @@ use Illuminate\Support\Facades\Validator;
 class AlmacenCarbonClienteController extends Controller
 {
     /**
+     * Lista todos los almacenes de carbon de todos los clientes activos.
+     */
+    public function get_todos_almacenes(): JsonResponse
+    {
+        return response()->json(
+            AlmacenCarbonClienteService::get_todos_activos()
+        );
+    }
+
+    /**
      * Lista los almacenes de carbon del cliente.
      */
     public function get_almacenes_por_cliente(int $id_cliente): JsonResponse

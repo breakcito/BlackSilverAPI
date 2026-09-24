@@ -17,6 +17,15 @@ class AlmacenCarbonClienteService
     }
 
     /**
+     * Lista todos los almacenes de carbon activos de clientes activos.
+     */
+    public static function get_todos_activos(): array
+    {
+        $data = AlmacenCarbonClienteData::get_todos_activos();
+        return ApiResponse::success($data, 'Almacenes de carbon de clientes obtenidos');
+    }
+
+    /**
      * Inserta un nuevo almacen de carbon para el cliente.
      * Direccion obligatoria; los ids de ubigeo son opcionales.
      */

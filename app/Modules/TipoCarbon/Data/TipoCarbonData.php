@@ -11,9 +11,10 @@ class TipoCarbonData
     /**
      * Lista de tipos con conteo de variantes.
      * @param bool|null $solo_para_compra si true, filtra a t.para_compra = 1.
+     * @param int|null $id_proveedor si se indica, solo lista tipos asociados al proveedor en proveedor_carbon.
      * @return array<object>
      */
-    public static function get_tipos(?int $id_tipo_carbon = null, ?bool $solo_para_compra = null)
+    public static function get_tipos(?int $id_tipo_carbon = null, ?bool $solo_para_compra = null, ?int $id_proveedor = null)
     {
         $sql = '
             SELECT
@@ -40,6 +41,16 @@ class TipoCarbonData
 
         if ($solo_para_compra === true) {
             $sql .= ' AND t.para_compra = 1';
+        }
+
+        if ($id_proveedor !== null) {
+            $sql .= ' AND EXISTS (
+                SELECT 1
+                FROM proveedor_carbon pc
+                WHERE pc.id_tipo_carbon = t.id
+                  AND pc.id_proveedor = :id_proveedor
+            )';
+            $params['id_proveedor'] = $id_proveedor;
         }
 
         $sql .= ' ORDER BY t.nombre ASC';

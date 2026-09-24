@@ -17,7 +17,14 @@ class TipoCarbonController
             ? null
             : filter_var($raw, FILTER_VALIDATE_BOOLEAN);
 
-        return response()->json(TipoCarbonService::get_tipos(solo_para_compra: $soloParaCompra));
+        $idProveedor = $request->has('id_proveedor') && is_numeric($request->query('id_proveedor'))
+            ? (int) $request->query('id_proveedor')
+            : null;
+
+        return response()->json(TipoCarbonService::get_tipos(
+            solo_para_compra: $soloParaCompra,
+            id_proveedor: $idProveedor
+        ));
     }
 
     public function get_tipo_by_id_route(int $id_tipo_carbon): JsonResponse

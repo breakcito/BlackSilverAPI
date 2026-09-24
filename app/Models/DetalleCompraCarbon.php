@@ -33,6 +33,7 @@ class DetalleCompraCarbon extends Model
         'subtotal_antes_descuento', // cantidad * precio unitario
         'descuento_flete', // cantidad * costo de flete por tonelada
         'subtotal_con_descuento', // subtotal sin descuento - descuento de flete
+        'log_cambios', // json
         'evidencias',
     ];
 }

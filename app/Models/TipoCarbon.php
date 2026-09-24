@@ -14,5 +14,6 @@ class TipoCarbon extends Model
         'nombre',
         'codigo',
         'para_compra', // ayuda a saber los tipos de carbon que se compran
+        'ficha_tecnica' // JSON, array de strings, cada item son datos propios del tipo de carbon
     ];
 }

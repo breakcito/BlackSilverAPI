@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Route;
  */
 Route::middleware('auth.jwt.custom')->group(function () {
     Route::prefix('clientes')->controller(AlmacenCarbonClienteController::class)->group(function () {
+        Route::get('almacenes-carbon', 'get_todos_almacenes');
         Route::get('{id_cliente}/almacenes-carbon', 'get_almacenes_por_cliente');
         Route::post('{id_cliente}/almacenes-carbon', 'crear_almacen');
         Route::put('{id_cliente}/almacenes-carbon/{id_almacen}', 'actualizar_almacen');

@@ -7,10 +7,13 @@ use App\Shared\Responses\ApiResponse;
 
 class TipoCarbonService
 {
-    public static function get_tipos(?bool $solo_para_compra = null)
+    public static function get_tipos(?bool $solo_para_compra = null, ?int $id_proveedor = null)
     {
         return ApiResponse::success(
-            TipoCarbonData::get_tipos(solo_para_compra: $solo_para_compra)
+            TipoCarbonData::get_tipos(
+                solo_para_compra: $solo_para_compra,
+                id_proveedor: $id_proveedor
+            )
         );
     }
 

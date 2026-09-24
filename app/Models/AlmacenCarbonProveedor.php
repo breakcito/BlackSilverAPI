@@ -4,14 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Tabla encargada de alojar los diferentes lugares de extraccion de carbon
- */
-class LugarExtraccionCarbon extends Model
+class AlmacenCarbonProveedor extends Model
 {
-    protected $table = 'lugar_extraccion_carbon';
+    protected $table = 'almacen_carbon_proveedor';
+
     public $timestamps = false;
+
     protected $fillable = [
+        'id_proveedor',
         'id_departamento',
         'id_provincia',
         'id_distrito',
