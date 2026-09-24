@@ -25,7 +25,11 @@ class SolicitudesDetalleData
         float $cantidad_solicitada,
         float $contenido_por_presentacion,
         float $cantidad_solicitada_base,
-        ?string $comentario
+        ?string $comentario,
+        bool $con_magnitud = false,
+        ?float $cantidad_items = null,
+        ?float $valor_magnitud = null,
+        ?float $valor_magnitud_base = null,
     ) {
         return SolicitudReabastecimientoDetalle::crear_detalle(
             id_solicitud_reabastecimiento: $id_solicitud,
@@ -35,7 +39,11 @@ class SolicitudesDetalleData
             contenido_por_presentacion: $contenido_por_presentacion,
             cantidad_solicitada_base: $cantidad_solicitada_base,
             id_requerimiento_almacen_detalle: null,
-            comentario: $comentario
+            comentario: $comentario,
+            con_magnitud: $con_magnitud,
+            cantidad_items: $cantidad_items,
+            valor_magnitud: $valor_magnitud,
+            valor_magnitud_base: $valor_magnitud_base,
         );
     }
 

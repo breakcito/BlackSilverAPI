@@ -68,6 +68,19 @@ class SolicitudesService
             $cantidad_solicitada_base = $cantidad_solicitada * $contenido_por_presentacion;
             $comentario = $detalle['comentario'] ?? null;
 
+            // Campos de smart calc: opcionales. Si el front los manda, se
+            // persisten tal cual; si no, quedan null/0 (modelo clasico).
+            $con_magnitud = (bool) ($detalle['con_magnitud'] ?? false);
+            $cantidad_items = isset($detalle['cantidad_items'])
+                ? (float) $detalle['cantidad_items']
+                : null;
+            $valor_magnitud = isset($detalle['valor_magnitud'])
+                ? (float) $detalle['valor_magnitud']
+                : null;
+            $valor_magnitud_base = isset($detalle['valor_magnitud_base'])
+                ? (float) $detalle['valor_magnitud_base']
+                : null;
+
             $id_solicitud_detalle = SolicitudesDetalleData::crear_detalle_solicitud(
                 $id_solicitud,
                 $id_producto,
@@ -75,7 +88,11 @@ class SolicitudesService
                 $cantidad_solicitada,
                 $contenido_por_presentacion,
                 $cantidad_solicitada_base,
-                $comentario
+                $comentario,
+                $con_magnitud,
+                $cantidad_items,
+                $valor_magnitud,
+                $valor_magnitud_base,
             );
 
             $estadoEnum = EstadoSolicitudDetalleLog::EsperandoAprobacion;

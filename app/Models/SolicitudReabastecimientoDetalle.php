@@ -43,7 +43,11 @@ class SolicitudReabastecimientoDetalle extends Model
         float $cantidad_solicitada_base,
         float $contenido_por_presentacion,
         ?int $id_requerimiento_almacen_detalle,
-        ?string $comentario = null
+        ?string $comentario = null,
+        bool $con_magnitud = false,
+        ?float $cantidad_items = null,
+        ?float $valor_magnitud = null,
+        ?float $valor_magnitud_base = null,
     ) {
         return SolicitudReabastecimientoDetalle::insertGetId([
             'id_solicitud_reabastecimiento' => $id_solicitud_reabastecimiento,
@@ -53,6 +57,10 @@ class SolicitudReabastecimientoDetalle extends Model
             'cantidad_solicitada' => $cantidad_solicitada,
             'cantidad_solicitada_base' => $cantidad_solicitada_base,
             'contenido_por_presentacion' => $contenido_por_presentacion,
+            'con_magnitud' => $con_magnitud ? 1 : 0,
+            'cantidad_items' => $cantidad_items,
+            'valor_magnitud' => $valor_magnitud,
+            'valor_magnitud_base' => $valor_magnitud_base,
             'cantidad_entregada' => 0,
             'cantidad_entregada_base' => 0,
             'comentario' => $comentario,
@@ -156,8 +164,14 @@ class SolicitudReabastecimientoDetalle extends Model
             
             srd.comentario,
             srd.comentario_decision,
-            
-            
+
+            -- Campos de magnitud por item (smart calc): presentes cuando
+            -- el usuario registro el item como "N items de X magnitud c/u".
+            srd.con_magnitud,
+            srd.cantidad_items,
+            srd.valor_magnitud,
+            srd.valor_magnitud_base,
+
             srd.estado
         FROM
             solicitud_reabastecimiento_detalle srd

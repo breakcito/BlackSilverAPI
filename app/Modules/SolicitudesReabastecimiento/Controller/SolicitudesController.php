@@ -50,6 +50,11 @@ class SolicitudesController extends Controller
             'detalles.*.cantidad_solicitada' => 'required|numeric|min:0.01',
             'detalles.*.contenido_por_presentacion' => 'required|numeric|min:0.01',
             'detalles.*.comentario' => 'nullable|string',
+            // Campos de smart calc: opcionales (modelo clasico no los manda).
+            'detalles.*.con_magnitud' => 'nullable|boolean',
+            'detalles.*.cantidad_items' => 'nullable|numeric|min:0',
+            'detalles.*.valor_magnitud' => 'nullable|numeric|min:0',
+            'detalles.*.valor_magnitud_base' => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
