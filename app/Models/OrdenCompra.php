@@ -153,7 +153,14 @@ class OrdenCompra extends Model
             car_reg.nombre as cargo_empleado_registro,
             -- 
             oc.created_at,
-            oc.estado
+            oc.estado,
+
+            -- verificar que tenga comprobante
+            IF(EXISTS(
+                SELECT 1
+                FROM orden_compra_comprobante com
+                WHERE com.id_orden_compra = oc.id AND com.estado != "Anulado"
+            ), 1, 0) as tiene_comprobante
         FROM orden_compra oc
         LEFT JOIN cotizacion  cot ON cot.id = oc.id_cotizacion
         INNER JOIN empresa emp ON emp.id = oc.id_empresa
