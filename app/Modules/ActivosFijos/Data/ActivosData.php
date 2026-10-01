@@ -300,6 +300,19 @@ class ActivosData
         'numero_factura_compra' => 'Número Factura',
         'costo_compra' => 'Costo de Compra',
         'costo_promedio_base' => 'Costo Promedio Base',
+        // Contadores de uso. Se exponen aquí para que `calcularDiffCambiosActivo`
+        // los reconozca cuando una edición de metadata coincida con un cambio
+        // en estos campos (o cuando se llame explícitamente). El ajuste manual
+        // se hace vía endpoint dedicado que construye su propia entrada de log.
+        'total_horas' => 'Total Horas',
+        'total_kilometros' => 'Total Kilómetros',
+        'total_vueltas' => 'Total Vueltas',
+        // Próximas alertas de mantenimiento (también recalculadas en el
+        // ajuste manual para mantener consistencia con configurar_alertas
+        // y registrar_mantenimiento).
+        'proxima_advertencia_horas' => 'Próxima alerta (horas)',
+        'proxima_advertencia_kilometros' => 'Próxima alerta (kilómetros)',
+        'proxima_advertencia_vueltas' => 'Próxima alerta (vueltas)',
     ];
 
     /**
@@ -322,6 +335,12 @@ class ActivosData
         'numero_factura_compra' => 'string',
         'costo_compra' => 'float',
         'costo_promedio_base' => 'float',
+        'total_horas' => 'float',
+        'total_kilometros' => 'float',
+        'total_vueltas' => 'float',
+        'proxima_advertencia_horas' => 'float',
+        'proxima_advertencia_kilometros' => 'float',
+        'proxima_advertencia_vueltas' => 'float',
     ];
 
     /**

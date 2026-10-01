@@ -11,6 +11,7 @@ use App\Shared\Responses\ApiResponse;
 use Carbon\Carbon;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class ActivosController extends Controller
 {
@@ -270,5 +271,52 @@ class ActivosController extends Controller
             observacion: $observacion,
             fecha_hora_mantenimiento: $fecha_hora_mantenimiento
         );
+    }
+
+    /**
+     * Ajuste manual de los contadores de uso de un activo fijo
+     * (total_horas, total_kilometros, total_vueltas).
+     *
+     * NO recalcula `proxima_advertencia_X` (esa lógica vive en el flujo de
+     * mantenimiento) ni modifica el historial de `control_uso_activo`. Solo
+     * corrige el contador acumulado para que cuadre con la realidad (ej.
+     * horómetro reemplazado, lecturas perdidas, etc.) y deja registro en
+     * `cambios_log` con el motivo provisto para trazabilidad.
+     */
+    public function ajustar_totales(Request $request, int $id_activo)
+    {
+        $validator = Validator::make($request->all(), [
+            'total_horas' => 'nullable|numeric|min:0',
+            'total_kilometros' => 'nullable|numeric|min:0',
+            'total_vueltas' => 'nullable|numeric|min:0',
+            'motivo' => 'nullable|string|max:500',
+        ], [
+            'motivo.max' => 'El motivo no puede superar los 500 caracteres.',
+            'total_horas.min' => 'El total de horas no puede ser negativo.',
+            'total_kilometros.min' => 'El total de kilómetros no puede ser negativo.',
+            'total_vueltas.min' => 'El total de vueltas no puede ser negativo.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 400);
+        }
+
+        $authUser = $request->attributes->get('auth_user');
+        $idEmpleado = is_object($authUser) && isset($authUser->id_empleado) ? (int) $authUser->id_empleado : null;
+        $nombreEmpleado = is_object($authUser)
+            ? trim(($authUser->nombre ?? '') . ' ' . ($authUser->apellido ?? '')) ?: null
+            : null;
+
+        $result = ActivosService::ajustar_totales_activo(
+            id_activo: $id_activo,
+            total_horas: $request->has('total_horas') ? (float) $request->total_horas : null,
+            total_kilometros: $request->has('total_kilometros') ? (float) $request->total_kilometros : null,
+            total_vueltas: $request->has('total_vueltas') ? (float) $request->total_vueltas : null,
+            motivo: $request->motivo,
+            id_empleado: $idEmpleado,
+            nombre_empleado: $nombreEmpleado,
+        );
+
+        return response()->json($result);
     }
 }

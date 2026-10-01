@@ -274,6 +274,128 @@ class ActivosService
     }
 
     /**
+     * Ajuste manual de los contadores de uso de un activo fijo.
+     *
+     * Solo modifica los campos cuyo valor realmente cambió (no pisa con
+     * null los que el cliente no envió). Si ningún campo cambió respecto
+     * al valor actual, devuelve success sin tocar la BD ni el log.
+     *
+     * IMPORTANTE: este endpoint NO recalcula `proxima_advertencia_X`. La
+     * alerta es un valor "seteado" por `configurar_alertas` o por
+     * `registrar_mantenimiento` (que es la única mecánica que la mueve),
+     * y se mantiene estable hasta el próximo ciclo de mantenimiento. Si
+     * se recalculara en cada edición del total, la alerta quedaría
+     * "saltarina" ante cualquier corrección, perdiendo estabilidad.
+     *
+     * Caso de "reset" (ej. horómetro reemplazado, total=5000 → 0): el
+     * operario registra mantenimiento después del reemplazo, lo que
+     * fija la alerta al valor correcto (`nuevo_total + intervalo`).
+     *
+     * NO toca el historial de `control_uso_activo`. La trazabilidad del
+     * ajuste queda registrada en `activo_fijo.cambios_log`.
+     */
+    public static function ajustar_totales_activo(
+        int $id_activo,
+        ?float $total_horas = null,
+        ?float $total_kilometros = null,
+        ?float $total_vueltas = null,
+        ?string $motivo = null,
+        ?int $id_empleado = null,
+        ?string $nombre_empleado = null,
+    ) {
+        $original = DB::table('activo_fijo')->where('id', $id_activo)->first();
+        if (!$original) {
+            return ApiResponse::error('El activo que intenta ajustar no existe.');
+        }
+
+        // Diff: solo los campos que efectivamente cambiaron.
+        $cambios = [];
+        $updatePayload = [];
+
+        if ($total_horas !== null && (float) $original->total_horas !== $total_horas) {
+            $cambios[] = [
+                'campo_bd' => 'total_horas',
+                'campo' => 'Total Horas',
+                'valor_anterior' => $original->total_horas,
+                'valor_nuevo' => $total_horas,
+            ];
+            $updatePayload['total_horas'] = $total_horas;
+        }
+
+        if ($total_kilometros !== null && (float) $original->total_kilometros !== $total_kilometros) {
+            $cambios[] = [
+                'campo_bd' => 'total_kilometros',
+                'campo' => 'Total Kilómetros',
+                'valor_anterior' => $original->total_kilometros,
+                'valor_nuevo' => $total_kilometros,
+            ];
+            $updatePayload['total_kilometros'] = $total_kilometros;
+        }
+
+        if ($total_vueltas !== null && (float) $original->total_vueltas !== $total_vueltas) {
+            $cambios[] = [
+                'campo_bd' => 'total_vueltas',
+                'campo' => 'Total Vueltas',
+                'valor_anterior' => $original->total_vueltas,
+                'valor_nuevo' => $total_vueltas,
+            ];
+            $updatePayload['total_vueltas'] = $total_vueltas;
+        }
+
+        if (empty($cambios)) {
+            return ApiResponse::success(
+                ActivosData::get_activos($id_activo),
+                'No se realizaron cambios (los valores son iguales a los actuales).'
+            );
+        }
+
+        return DB::transaction(function () use ($id_activo, $updatePayload, $cambios, $original, $motivo, $id_empleado, $nombre_empleado) {
+            // 1) Aplicar solo los totales cambiados. La alerta NO se toca.
+            DB::table('activo_fijo')
+                ->where('id', $id_activo)
+                ->update($updatePayload);
+
+            // 2) Append al log de cambios.
+            if ($id_empleado !== null && $nombre_empleado !== null) {
+                $logPrevio = self::decodeCambiosLogLocal($original->cambios_log ?? null);
+                $logPrevio[] = [
+                    'id_empleado' => $id_empleado,
+                    'nombre_empleado' => $nombre_empleado,
+                    'motivo' => $motivo,
+                    'update_at' => now()->toDateTimeString(),
+                    'cambios' => $cambios,
+                ];
+                ActivosData::appendCambiosLog($id_activo, $logPrevio);
+            }
+
+            return ApiResponse::success(
+                ActivosData::get_activos($id_activo),
+                'Contadores ajustados correctamente'
+            );
+        });
+    }
+
+    /**
+     * Decodifica el JSON de `cambios_log` con tolerancia a null / array
+     * / string. Misma lógica que `ActivosData::decodeCambiosLog` pero
+     * accesible desde este Service sin ampliar la API pública del Data.
+     */
+    private static function decodeCambiosLogLocal(mixed $raw): array
+    {
+        if ($raw === null || $raw === '') {
+            return [];
+        }
+        if (is_array($raw)) {
+            return $raw;
+        }
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+        return [];
+    }
+
+    /**
      * Deriva el MovimientoActivoFijo comparando ubicación anterior vs nueva.
      * Devuelve null si la transición no aplica para log (ej. misma ubicación).
      */

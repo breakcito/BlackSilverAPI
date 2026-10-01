@@ -144,9 +144,25 @@ class ControlUsoService
 
             if ($activoInfo) {
                 $updates = [];
-                if ($activoInfo->control_por_horometro && $total_horas > 0) {
-                    $currHoras = DB::table('activo_fijo')->where('id', $id_activo_fijo)->value('total_horas') ?? 0;
-                    $updates['total_horas'] = $currHoras + $total_horas;
+                if ($activoInfo->control_por_horometro) {
+                    // Regla de actualización de activo_fijo.total_horas según
+                    // la fuente del control de uso (NO toca control_uso.total_horas):
+                    //   - Si el control trae lecturas de horómetro (con o sin
+                    //     horas): SET al horómetro final, SOLO si es mayor que
+                    //     el total_horas actual. Un horómetro final menor NUNCA
+                    //     decrementa el acumulado.
+                    //   - Si el control solo trae horas (rango inicio/fin):
+                    //     SUM del delta de horas al total_horas actual.
+                    // El horómetro manda cuando está presente.
+                    if ($horometro_inicio !== null && $horometro_fin !== null) {
+                        $currHoras = DB::table('activo_fijo')->where('id', $id_activo_fijo)->value('total_horas') ?? 0;
+                        if ($horometro_fin > (float) $currHoras) {
+                            $updates['total_horas'] = $horometro_fin;
+                        }
+                    } elseif ($total_horas > 0) {
+                        $currHoras = DB::table('activo_fijo')->where('id', $id_activo_fijo)->value('total_horas') ?? 0;
+                        $updates['total_horas'] = $currHoras + $total_horas;
+                    }
                 }
                 if ($activoInfo->control_por_odometro && $odometro_fin !== null) {
                     $updates['total_kilometros'] = $odometro_fin;
@@ -207,7 +223,14 @@ class ControlUsoService
             // Toda la submission comparte un mismo uuid_grupo (cabecera + N items + consumos compartidos)
             $uuidGrupo = (string) Str::uuid();
             $created = [];
-            $suma_total_horas = 0.0;
+            // Para la actualización de activo_fijo.total_horas:
+            //   - $suma_horas_only acumula SOLO horas de items que NO traen horómetro.
+            //   - $max_horometro_fin captura el mayor horómetro_fin entre los items
+            //     que sí traen horómetro.
+            // Si hay al menos un item con horómetro, manda el horómetro (regla
+            // del usuario). Si no hay ninguno, mandan las horas.
+            $suma_horas_only = 0.0;
+            $max_horometro_fin = null;
 
             foreach ($items as $idx => $it) {
                 $horaInicio = isset($it['hora_inicio']) && $it['hora_inicio'] !== '' && $it['hora_inicio'] !== null
@@ -297,7 +320,15 @@ class ControlUsoService
                 ]);
 
                 $created[] = $log;
-                $suma_total_horas += (float) $totalHorasItem;
+                if ($horometroInicio !== null && $horometroFin !== null) {
+                    // Item con horómetro: trackear el máximo horómetro_fin.
+                    if ($max_horometro_fin === null || $horometroFin > $max_horometro_fin) {
+                        $max_horometro_fin = $horometroFin;
+                    }
+                } else {
+                    // Item solo-horas: acumular al delta de horas.
+                    $suma_horas_only += (float) $totalHorasItem;
+                }
             }
 
             // Consumos COMPARTIDOS por todo el grupo UUID. Se procesan UNA
@@ -372,8 +403,31 @@ class ControlUsoService
                 }
             }
 
-            // Update acumulado del activo_fijo UNA sola vez al final
-            if ($suma_total_horas > 0) {
+            // Update acumulado del activo_fijo UNA sola vez al final.
+            // Regla para activo_fijo.total_horas (NO toca control_uso.total_horas):
+            //   - Si al menos un item trae horómetro: SET a MAX(horometro_fin),
+            //     SOLO si ese MAX es mayor que el total_horas actual (un valor
+            //     menor nunca decrementa).
+            //   - Si ningún item trae horómetro (todos son horas): SUM del delta
+            //     de horas al total_horas actual.
+            // El horómetro manda cuando está presente.
+            if ($max_horometro_fin !== null) {
+                $activoInfo = DB::table('activo_fijo')
+                    ->join('producto', 'producto.id', '=', 'activo_fijo.id_producto')
+                    ->join('categoria', 'categoria.id', '=', 'producto.id_categoria')
+                    ->select('categoria.control_por_horometro')
+                    ->where('activo_fijo.id', $id_activo_fijo)
+                    ->first();
+
+                if ($activoInfo && $activoInfo->control_por_horometro) {
+                    $curr = DB::table('activo_fijo')->where('id', $id_activo_fijo)->value('total_horas') ?? 0;
+                    if ($max_horometro_fin > (float) $curr) {
+                        DB::table('activo_fijo')
+                            ->where('id', $id_activo_fijo)
+                            ->update(['total_horas' => $max_horometro_fin]);
+                    }
+                }
+            } elseif ($suma_horas_only > 0) {
                 $activoInfo = DB::table('activo_fijo')
                     ->join('producto', 'producto.id', '=', 'activo_fijo.id_producto')
                     ->join('categoria', 'categoria.id', '=', 'producto.id_categoria')
@@ -385,7 +439,7 @@ class ControlUsoService
                     $curr = DB::table('activo_fijo')->where('id', $id_activo_fijo)->value('total_horas') ?? 0;
                     DB::table('activo_fijo')
                         ->where('id', $id_activo_fijo)
-                        ->update(['total_horas' => $curr + $suma_total_horas]);
+                        ->update(['total_horas' => $curr + $suma_horas_only]);
                 }
             }
 

@@ -18,5 +18,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::post('/ubicacion', 'actualizar_ubicacion');
         Route::post('/configurar-alertas', 'configurar_alertas');
         Route::post('/mantenimiento', 'registrar_mantenimiento');
+        Route::put('/{id_activo}/ajustar-totales', 'ajustar_totales');
     });
 });
