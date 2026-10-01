@@ -16,6 +16,7 @@ class GastoExtra extends Model
     protected $fillable = [
         'id_labor',
         'id_empleado_registro',
+        'fecha_gasto',
         'descripcion',
         'monto',
         'created_at',
@@ -30,6 +31,7 @@ class GastoExtra extends Model
         int $id_labor,
         string $descripcion,
         float $monto,
+        ?string $fecha_gasto = null,
         EstadoBase $estado = EstadoBase::Activo
     ): int {
         return self::insertGetId([
@@ -37,6 +39,7 @@ class GastoExtra extends Model
             'id_labor' => $id_labor,
             'descripcion' => $descripcion,
             'monto' => $monto,
+            'fecha_gasto' => $fecha_gasto,
             'created_at' => now()->toDateTimeString(),
             'estado' => $estado->value,
         ]);

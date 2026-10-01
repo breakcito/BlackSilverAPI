@@ -10,6 +10,8 @@ class GastosExtraData
 {
     /**
      * Obtener los gastos extra activos de un periodo (mes y año).
+     * El filtro por mes/año y el orden usan `fecha_gasto` (la fecha real
+     * del gasto, no cuando fue registrado en el sistema).
      */
     public static function get_gastos(int $mes, int $yearcito): array
     {
@@ -26,6 +28,7 @@ class GastosExtraData
             cargo_reg.nombre as cargo_registro,
             g.descripcion,
             g.monto,
+            g.fecha_gasto,
             g.created_at,
             g.estado
         FROM gasto_extra g
@@ -34,9 +37,9 @@ class GastosExtraData
         LEFT JOIN empleado emp ON emp.id = g.id_empleado_registro
         LEFT JOIN cargo cargo_reg ON cargo_reg.id = emp.id_cargo
         WHERE g.estado = :estado
-          AND MONTH(g.created_at) = :mes
-          AND YEAR(g.created_at) = :yearcito
-        ORDER BY g.created_at DESC
+          AND MONTH(g.fecha_gasto) = :mes
+          AND YEAR(g.fecha_gasto) = :yearcito
+        ORDER BY g.fecha_gasto DESC
         ';
 
         return DB::select($sql, [
@@ -64,6 +67,7 @@ class GastosExtraData
             cargo_reg.nombre as cargo_registro,
             g.descripcion,
             g.monto,
+            g.fecha_gasto,
             g.created_at,
             g.estado
         FROM gasto_extra g
@@ -84,13 +88,15 @@ class GastosExtraData
         int $id_empleado_registro,
         int $id_labor,
         string $descripcion,
-        float $monto
+        float $monto,
+        ?string $fecha_gasto = null
     ): int {
         return GastoExtra::crear_gasto(
             id_empleado_registro: $id_empleado_registro,
             id_labor: $id_labor,
             descripcion: $descripcion,
             monto: $monto,
+            fecha_gasto: $fecha_gasto,
             estado: EstadoBase::Activo
         );
     }

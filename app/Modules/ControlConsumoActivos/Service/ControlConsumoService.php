@@ -228,13 +228,15 @@ class ControlConsumoService
         int $id_empleado_registro,
         int $id_labor,
         string $descripcion,
-        float $monto
+        float $monto,
+        ?string $fecha_gasto = null
     ) {
         $idGasto = GastosExtraData::crear_gasto(
             id_empleado_registro: $id_empleado_registro,
             id_labor: $id_labor,
             descripcion: $descripcion,
-            monto: $monto
+            monto: $monto,
+            fecha_gasto: $fecha_gasto
         );
 
         $g = GastosExtraData::get_gasto_por_id($idGasto);

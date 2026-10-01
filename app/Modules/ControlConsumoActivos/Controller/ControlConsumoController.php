@@ -186,13 +186,18 @@ class ControlConsumoController extends Controller
             'id_labor' => 'required|integer',
             'descripcion' => 'required|string|max:512',
             'monto' => 'required|numeric|gt:0',
+            'fecha_gasto' => 'required|date',
+        ], [
+            'fecha_gasto.required' => 'La fecha del gasto es obligatoria.',
+            'fecha_gasto.date' => 'La fecha del gasto no tiene un formato válido.',
         ]);
 
         $res = ControlConsumoService::registrar_gasto_extra(
             id_empleado_registro: (int) $authUser->id_empleado,
             id_labor: (int) $request->input('id_labor'),
             descripcion: trim((string) $request->input('descripcion')),
-            monto: (float) $request->input('monto')
+            monto: (float) $request->input('monto'),
+            fecha_gasto: (string) $request->input('fecha_gasto')
         );
 
         return response()->json($res);
