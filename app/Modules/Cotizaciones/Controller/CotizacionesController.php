@@ -22,6 +22,13 @@ class CotizacionesController
             'cotizaciones.*.empresas_ids' => 'required|array|min:1',
             'cotizaciones.*.empresas_ids.*' => 'integer',
             'cotizaciones.*.detalles' => 'required|array|min:1',
+            // Cantidad y precio deben ser > 0 en todo detalle que llegue
+            // (los items marcados como "no_cotiza" se filtran en el front
+            // antes de enviar, por lo que llegan como cotizados). Defensa
+            // final del backend contra bypass del front.
+            'cotizaciones.*.detalles.*.cantidad' => 'required|numeric|min:0.01',
+            'cotizaciones.*.detalles.*.precio_unitario' => 'required|numeric|min:0.01',
+            'cotizaciones.*.detalles.*.contenido_por_presentacion' => 'required|numeric|min:0.0001',
             // Vinculacion opcional con la solicitud de reabastecimiento que origino
             // la cotizacion (solo presente cuando la cotizacion se crea desde
             // "Detalle de Solicitud de Reabastecimiento"). NULL = cotizacion normal.
@@ -32,6 +39,12 @@ class CotizacionesController
             'cotizaciones.required' => 'Debe incluir al menos una cotización de proveedor.',
             'cotizaciones.*.empresas_ids.required' => 'Debe seleccionar al menos una empresa para cada cotización.',
             'cotizaciones.*.detalles.required' => 'Cada cotización debe incluir al menos un detalle.',
+            'cotizaciones.*.detalles.*.cantidad.required' => 'La cantidad es obligatoria en cada producto cotizado.',
+            'cotizaciones.*.detalles.*.cantidad.min' => 'La cantidad debe ser mayor a 0.',
+            'cotizaciones.*.detalles.*.precio_unitario.required' => 'El precio unitario es obligatorio en cada producto cotizado.',
+            'cotizaciones.*.detalles.*.precio_unitario.min' => 'El precio unitario debe ser mayor a 0.',
+            'cotizaciones.*.detalles.*.contenido_por_presentacion.required' => 'El factor de conversión es obligatorio.',
+            'cotizaciones.*.detalles.*.contenido_por_presentacion.min' => 'El factor de conversión debe ser mayor a 0.',
         ]);
 
         if ($validator->fails()) {
