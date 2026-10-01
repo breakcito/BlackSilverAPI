@@ -68,4 +68,36 @@ class SolicitudesData
     {
         return SolicitudReabastecimiento::get_nuevo_correlativo();
     }
+
+    /**
+     * Actualiza la cabecera de una solicitud con la lista blanca de campos
+     * editables. Solo se aplican los campos que vienen no-null en $campos.
+     * Los campos `correlativo`, `numero_correlativo`, `id_almacen_solicitante`,
+     * `id_empleado_solicitante`, `id_requerimiento_almacen`, `created_at` y
+     * `estado` NO son editables desde aca (el estado cambia por otros flujos).
+     */
+    public static function update_solicitud_cabecera(int $id_solicitud, array $campos)
+    {
+        $permitidos = [
+            'observacion',
+            'premura',
+            'fecha_solicitud',
+            'fecha_entrega_requerida',
+            'es_auditable',
+        ];
+
+        $updateData = [];
+        foreach ($permitidos as $key) {
+            if (array_key_exists($key, $campos) && $campos[$key] !== null) {
+                $updateData[$key] = $campos[$key];
+            }
+        }
+
+        if (empty($updateData)) {
+            return 0;
+        }
+
+        return SolicitudReabastecimiento::where('id', $id_solicitud)
+            ->update($updateData);
+    }
 }

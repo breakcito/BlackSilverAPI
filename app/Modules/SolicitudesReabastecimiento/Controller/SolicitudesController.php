@@ -104,4 +104,79 @@ class SolicitudesController extends Controller
         $result = SolicitudesService::get_trazabilidad_by_detalle((int) $id_detalle);
         return response()->json($result);
     }
+
+    /**
+     * Edita una solicitud existente. Permite modificar la cabecera y los
+     * detalles que aun no tengan entregas iniciadas. Tambien permite agregar
+     * y eliminar detalles (siempre que los eliminados no tengan entregas).
+     */
+    public function editar_solicitud(Request $request, int $id): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+        if (!$authUser) {
+            return response()->json(ApiResponse::error('No autorizado'), 401);
+        }
+
+        $reglas = [
+            'observacion' => 'nullable|string',
+            'premura' => 'nullable|string',
+            'fecha_solicitud' => 'nullable|date',
+            'fecha_entrega_requerida' => 'nullable|string',
+            'es_auditable' => 'nullable|boolean',
+            'detalles_editar' => 'nullable|array',
+            'detalles_editar.*.id_solicitud_reabastecimiento_detalle' => 'required_with:detalles_editar|integer',
+            'detalles_editar.*.id_unidad_medida' => 'nullable|integer',
+            'detalles_editar.*.cantidad_solicitada' => 'nullable|numeric|min:0',
+            'detalles_editar.*.contenido_por_presentacion' => 'nullable|numeric|min:0.0001',
+            'detalles_editar.*.comentario' => 'nullable|string',
+            'detalles_editar.*.con_magnitud' => 'nullable|boolean',
+            'detalles_editar.*.cantidad_items' => 'nullable|numeric|min:0',
+            'detalles_editar.*.valor_magnitud' => 'nullable|numeric|min:0',
+            'detalles_editar.*.valor_magnitud_base' => 'nullable|numeric|min:0',
+            'detalles_eliminar' => 'nullable|array',
+            'detalles_eliminar.*' => 'integer',
+            'detalles_crear' => 'nullable|array',
+            'detalles_crear.*.id_producto' => 'required_with:detalles_crear|integer',
+            'detalles_crear.*.id_unidad_medida' => 'required_with:detalles_crear|integer',
+            'detalles_crear.*.cantidad_solicitada' => 'required_with:detalles_crear|numeric|min:0.01',
+            'detalles_crear.*.contenido_por_presentacion' => 'required_with:detalles_crear|numeric|min:0.0001',
+            'detalles_crear.*.comentario' => 'nullable|string',
+            'detalles_crear.*.con_magnitud' => 'nullable|boolean',
+            'detalles_crear.*.cantidad_items' => 'nullable|numeric|min:0',
+            'detalles_crear.*.valor_magnitud' => 'nullable|numeric|min:0',
+            'detalles_crear.*.valor_magnitud_base' => 'nullable|numeric|min:0',
+        ];
+
+        $validator = Validator::make($request->all(), $reglas);
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error('Datos inválidos: ' . implode(', ', $validator->errors()->all())), 400);
+        }
+
+        $cabecera = [
+            'observacion' => $request->input('observacion'),
+            'premura' => $request->input('premura'),
+            'fecha_solicitud' => $request->input('fecha_solicitud'),
+            'fecha_entrega_requerida' => $request->input('fecha_entrega_requerida'),
+            'es_auditable' => $request->has('es_auditable') ? (bool) $request->es_auditable : null,
+        ];
+
+        $detalles_editar = $request->input('detalles_editar', []);
+        $detalles_crear = $request->input('detalles_crear', []);
+        $detalles_eliminar = $request->input('detalles_eliminar', []);
+
+        try {
+            $resultado = SolicitudesService::editar_solicitud(
+                id_solicitud: $id,
+                id_empleado_editor: (int) $authUser->id_empleado,
+                cabecera: $cabecera,
+                detalles_editar: $detalles_editar,
+                detalles_eliminar: $detalles_eliminar,
+                detalles_crear: $detalles_crear,
+            );
+
+            return response()->json($resultado);
+        } catch (\Exception $e) {
+            return response()->json(ApiResponse::error('Error al editar solicitud: ' . $e->getMessage()), 500);
+        }
+    }
 }

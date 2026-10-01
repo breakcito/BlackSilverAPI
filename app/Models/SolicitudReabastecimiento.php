@@ -104,7 +104,51 @@ class SolicitudReabastecimiento extends Model
             scr.es_auditable,
             --
             scr.created_at,
-            scr.estado
+            scr.estado,
+            -- Datos del transportista de la ultima entrega registrada (si existe).
+            -- Se usa una subconsulta para tomar SOLO la entrega mas reciente
+            -- y evitar duplicar filas en el listado (un mismo JOIN con la tabla
+            -- de entregas multiplicaria las filas por cada entrega).
+            --
+            -- NOTA: en MySQL el operador `||` por default es OR logico, NO
+            -- concatenacion. Cuando ambos operandos son NULL/`""` el resultado
+            -- es el entero `0` en lugar del string vacio esperado. Por eso
+            -- aqui usamos la columna cruda (que devuelve NULL en sin match)
+            -- y CONCAT_WS para la guia (que ya concatena correctamente).
+            (
+                SELECT sre.medio_entrega
+                FROM solicitud_reabastecimiento_entrega sre
+                WHERE sre.id_solicitud_reabastecimiento = scr.id
+                ORDER BY sre.id DESC
+                LIMIT 1
+            ) AS medio_entrega,
+            (
+                SELECT prov_t.razon_social
+                FROM solicitud_reabastecimiento_entrega sre
+                LEFT JOIN proveedor prov_t ON prov_t.id = sre.id_proveedor_transporte
+                WHERE sre.id_solicitud_reabastecimiento = scr.id
+                ORDER BY sre.id DESC
+                LIMIT 1
+            ) AS proveedor_transporte,
+            (
+                SELECT age_t.razon_social
+                FROM solicitud_reabastecimiento_entrega sre
+                LEFT JOIN agencia_transporte age_t ON age_t.id = sre.id_agencia_transporte
+                WHERE sre.id_solicitud_reabastecimiento = scr.id
+                ORDER BY sre.id DESC
+                LIMIT 1
+            ) AS agencia_transporte,
+            (
+                SELECT CONCAT_WS(
+                    \' \',
+                    NULLIF(sre.serie_guia_transportista, \'\'),
+                    NULLIF(sre.numero_guia_transportista, \'\')
+                )
+                FROM solicitud_reabastecimiento_entrega sre
+                WHERE sre.id_solicitud_reabastecimiento = scr.id
+                ORDER BY sre.id DESC
+                LIMIT 1
+            ) AS guia_transportista
         FROM
             solicitud_reabastecimiento scr
         INNER JOIN empleado emp ON emp.id = scr.id_empleado_solicitante

@@ -17,6 +17,8 @@ Route::middleware('auth.jwt.custom')->prefix('solicitudes-reabastecimiento')->gr
         Route::get('/', 'get_solicitudes');
         // Registrar una solicitud y sus detalles
         Route::post('/', 'crear_solicitud');
+        // Editar cabecera + detalles de una solicitud (mientras no tenga entregas iniciadas)
+        Route::put('/{id}', 'editar_solicitud');
         // Obtener los detalles de una solicitud
         Route::get('/detalles-solicitud', 'get_detalles_solicitud');
         // Obtener la trazabilidad de un detalle de solicitud
