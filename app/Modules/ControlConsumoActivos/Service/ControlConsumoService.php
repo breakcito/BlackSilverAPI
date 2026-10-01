@@ -119,11 +119,16 @@ class ControlConsumoService
     }
 
     /**
-     * Registrar un consumo DIRECTO desde Control de Uso (o desde el boton
-     * "Registrar Uso de Combustible"). NO requiere un id_requerimiento previo.
-     * Inserta la fila con `es_consumo_directo=true` y `uuid_control_uso_activo`,
-     * y ademas ejecuta `update_stock` (origen=Consumo, SALIDA) para descontar
-     * del lote y registrar el movimiento en kardex, todo en una sola transaccion.
+     * Registrar un consumo DIRECTO desde Control de Uso. NO requiere un
+     * id_requerimiento previo. Inserta la fila con `es_consumo_directo=true`
+     * y `uuid_control_uso_activo` (opcional), y ademas ejecuta `update_stock`
+     * (origen=Consumo, SALIDA) para descontar del lote y registrar el
+     * movimiento en kardex, todo en una sola transaccion.
+     *
+     * Si `uuid_control_uso_activo` es null, el consumo queda como
+     * "consumo directo huérfano" sin grupo. Esto pasa cuando se registra
+     * desde el botón independiente "Registrar Consumo" del listado de
+     * Control de Uso (no viene de un "Registrar Control por Horometro").
      */
     public static function registrar_consumo_directo(
         int $id_empleado_registro,
@@ -135,7 +140,7 @@ class ControlConsumoService
         float $cantidad_base_consumida,
         string $fecha_hora_consumo,
         ?string $comentario_consumo,
-        string $uuid_control_uso_activo,
+        ?string $uuid_control_uso_activo,
         int $id_producto,
         int $id_almacen,
         int $id_lote_producto,

@@ -91,7 +91,11 @@ class ControlConsumoController extends Controller
             'contenido_por_presentacion'  => 'required|numeric|gt:0',
             'cantidad_base'               => 'required|numeric|gt:0',
             'comentario_consumo'          => 'nullable|string',
-            'uuid_control_uso_activo'     => 'required|string|size:36',
+            // Opcional: se envia cuando el consumo nace dentro de un
+            // "Registrar Control por Horometro" (vinculado al grupo UUID).
+            // Queda null cuando se registra desde el flujo independiente
+            // "Registrar Consumo" del listado de Control de Uso.
+            'uuid_control_uso_activo'     => 'nullable|string|size:36',
             'id_lote_mineral'             => 'nullable|integer',
             'id_labor_destino'            => 'nullable|integer',
             'para_mantenimiento'          => 'nullable|boolean',
@@ -118,7 +122,9 @@ class ControlConsumoController extends Controller
             cantidad_base_consumida: (float) $request->input('cantidad_base'),
             fecha_hora_consumo: now()->toDateTimeString(),
             comentario_consumo: $request->input('comentario_consumo') ? (string) $request->input('comentario_consumo') : null,
-            uuid_control_uso_activo: (string) $request->input('uuid_control_uso_activo'),
+            uuid_control_uso_activo: $request->filled('uuid_control_uso_activo')
+                ? (string) $request->input('uuid_control_uso_activo')
+                : null,
             id_producto: (int) $request->input('id_producto'),
             id_almacen: (int) $request->input('id_almacen'),
             id_lote_producto: (int) $request->input('id_lote_producto'),

@@ -308,7 +308,7 @@ class ControlConsumoData
         bool $para_produccion,
         float $cantidad_base_consumida,
         ?string $comentario_consumo,
-        string $uuid_control_uso_activo,
+        ?string $uuid_control_uso_activo,
         int $id_producto,
         int $id_almacen,
         int $id_lote_producto,

@@ -79,13 +79,16 @@ class RequerimientoAlmacenEntregaDetalleConsumo extends Model
     /**
      * Registrar un consumo DIRECTO desde Control de Uso (sin requerimiento previo).
      * Inserta en `requerimiento_almacen_entrega_detalle_consumo` con
-     * `es_consumo_directo=1` y `uuid_control_uso_activo` para vincular el
-     * consumo al GRUPO (uuid_grupo) de control de uso que lo origina.
+     * `es_consumo_directo=1`. Si el consumo nace de un "Registrar Control
+     * por Horometro" se vincula al GRUPO via `uuid_control_uso_activo`;
+     * si nace del nuevo botón "Registrar Consumo" del listado de Control
+     * de Uso (consumo directo sin grupo), `uuid_control_uso_activo` es null.
      *
      * Ya NO se persiste `id_control_uso_activo`: el consumo pertenece al
      * grupo UUID completo (un "Registrar Control por Horometro" puede
      * tener varios bloques y los consumos no son propios de un unico
-     * bloque, sino del grupo entero).
+     * bloque, sino del grupo entero). Si `uuid_control_uso_activo` es
+     * null, el consumo queda como "consumo directo huérfano" sin grupo.
      */
     public static function crear_consumo_directo(
         int $id_empleado_registro,
@@ -96,7 +99,7 @@ class RequerimientoAlmacenEntregaDetalleConsumo extends Model
         bool $para_produccion,
         float $cantidad_base_consumida,
         ?string $comentario_consumo,
-        string $uuid_control_uso_activo,
+        ?string $uuid_control_uso_activo,
         int $id_producto,
         int $id_almacen,
         int $id_lote_producto,
