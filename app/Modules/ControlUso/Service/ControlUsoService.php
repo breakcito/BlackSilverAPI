@@ -469,7 +469,7 @@ class ControlUsoService
     public static function registrar_uso_bulk_vueltas(
         int $id_activo_fijo,
         int $id_mina,
-        int $id_labor,
+        ?int $id_labor,
         ?int $id_lote_mineral,
         array $items
     ) {
@@ -522,8 +522,8 @@ class ControlUsoService
                 if ($idTarifaItem === null) {
                     throw new \RuntimeException("Item #$idx: la tarifa es obligatoria.");
                 }
-                if ($cantidadVueltas <= 0) {
-                    throw new \RuntimeException("Item #$idx: la cantidad de vueltas debe ser mayor a cero.");
+                if ($cantidadVueltas <= 0 && ($cantidadSacos === null || $cantidadSacos <= 0)) {
+                    throw new \RuntimeException("Item #$idx: debe ingresar al menos la cantidad de vueltas o la cantidad de sacos.");
                 }
                 if ($fechaTrabajoItem === null) {
                     throw new \RuntimeException("Item #$idx: la fecha del trabajo es obligatoria.");

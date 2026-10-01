@@ -246,7 +246,7 @@ class ControlUsoController extends Controller
         $validator = Validator::make($request->all(), [
             'id_activo_fijo'    => 'required|integer',
             'id_mina'           => 'required|integer',
-            'id_labor'          => 'required|integer',
+            'id_labor'          => 'nullable|integer',
             // `id_lote_mineral` pasa a ser OPCIONAL: muchas vueltas son
             // servicios o carguios iniciales donde aun no se asigna lote.
             'id_lote_mineral'   => 'nullable|integer',
@@ -254,7 +254,7 @@ class ControlUsoController extends Controller
             'items'                          => 'required|array|min:1',
             'items.*.id_tarifa'              => 'required|integer',
             'items.*.precio_unitario'        => 'required|numeric|min:0',
-            'items.*.cantidad_vueltas'       => 'required|integer|min:1',
+            'items.*.cantidad_vueltas'       => 'nullable|integer|min:0',
             'items.*.cantidad_sacos'         => 'nullable|integer|min:0',
             'items.*.horometro_inicio'       => 'nullable|numeric|min:0|required_with:items.*.horometro_fin',
             'items.*.horometro_fin'          => 'nullable|numeric|min:0|required_with:items.*.horometro_inicio|gt:items.*.horometro_inicio',
@@ -267,14 +267,11 @@ class ControlUsoController extends Controller
         ], [
             'id_activo_fijo.required'        => 'El activo fijo es requerido',
             'id_mina.required'               => 'La mina es obligatoria para registrar un control por vueltas',
-            'id_labor.required'              => 'La labor es obligatoria para registrar un control por vueltas',
-            // sin mensaje de id_lote_mineral.required (es opcional ahora)
+            // sin mensaje de id_labor.required e id_lote_mineral.required (son opcionales)
             'items.required'                 => 'Debe incluir al menos un item de vueltas',
             'items.min'                      => 'Debe incluir al menos un item de vueltas',
             'items.*.id_tarifa.required'     => 'La tarifa es obligatoria en todos los items',
             'items.*.precio_unitario.required' => 'El precio unitario es obligatorio en todos los items',
-            'items.*.cantidad_vueltas.required' => 'La cantidad de vueltas es obligatoria en todos los items',
-            'items.*.cantidad_vueltas.min'   => 'La cantidad de vueltas debe ser mayor o igual a 1',
             'items.*.horometro_fin.gt'         => 'El horometro final debe ser mayor al inicial',
             'items.*.horometro_inicio.required_with' => 'El horometro inicial es obligatorio si indico horometro final',
             'items.*.horometro_fin.required_with'    => 'El horometro final es obligatorio si indico horometro inicial',
@@ -291,7 +288,7 @@ class ControlUsoController extends Controller
             return [
                 'id_tarifa'        => isset($it['id_tarifa']) ? (int) $it['id_tarifa'] : null,
                 'precio_unitario'  => (float) $it['precio_unitario'],
-                'cantidad_vueltas'  => (int) $it['cantidad_vueltas'],
+                'cantidad_vueltas'  => isset($it['cantidad_vueltas']) ? (int) $it['cantidad_vueltas'] : 0,
                 'cantidad_sacos'    => isset($it['cantidad_sacos']) ? (int) $it['cantidad_sacos'] : null,
                 'horometro_inicio'  => isset($it['horometro_inicio']) ? (float) $it['horometro_inicio'] : null,
                 'horometro_fin'     => isset($it['horometro_fin']) ? (float) $it['horometro_fin'] : null,
@@ -307,8 +304,8 @@ class ControlUsoController extends Controller
         $res = \App\Modules\ControlUso\Service\ControlUsoService::registrar_uso_bulk_vueltas(
             id_activo_fijo: (int) $v['id_activo_fijo'],
             id_mina: (int) $v['id_mina'],
-            id_labor: (int) $v['id_labor'],
-            id_lote_mineral: (int) $v['id_lote_mineral'],
+            id_labor: isset($v['id_labor']) ? (int) $v['id_labor'] : null,
+            id_lote_mineral: isset($v['id_lote_mineral']) ? (int) $v['id_lote_mineral'] : null,
             items: $itemsNormalizados,
         );
 
