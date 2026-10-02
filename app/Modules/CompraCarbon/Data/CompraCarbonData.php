@@ -125,11 +125,11 @@ class CompraCarbonData
         $mes = isset($opts['mes']) ? (int) $opts['mes'] : 0;
         $anio = isset($opts['anio']) ? (int) $opts['anio'] : 0;
         if ($mes > 0 && $anio > 0) {
-            $sql .= ' AND MONTH(cc.fecha_hora_ingreso) = :mes AND YEAR(cc.fecha_hora_ingreso) = :anio';
+            $sql .= ' AND MONTH(cc.created_at) = :mes AND YEAR(cc.created_at) = :anio';
             $params['mes'] = $mes;
             $params['anio'] = $anio;
         } elseif ($anio > 0) {
-            $sql .= ' AND YEAR(cc.fecha_hora_ingreso) = :anio';
+            $sql .= ' AND YEAR(cc.created_at) = :anio';
             $params['anio'] = $anio;
         }
 
@@ -332,7 +332,7 @@ class CompraCarbonData
             'porcentaje_igv' => (float) ($cabecera['porcentaje_igv'] ?? 0),
             'correlativo' => (string) $cabecera['correlativo'],
             'numero_correlativo' => (int) $cabecera['numero_correlativo'],
-            'fecha_hora_ingreso' => (string) ($cabecera['fecha_hora_ingreso'] ?? now()->toDateTimeString()),
+            'fecha_hora_ingreso' => null,
             'total_antes_descuento' => (float) ($cabecera['total_antes_descuento'] ?? 0),
             'monto_igv' => (float) ($cabecera['monto_igv'] ?? 0),
             'descuento_flete' => (float) ($cabecera['descuento_flete'] ?? 0),

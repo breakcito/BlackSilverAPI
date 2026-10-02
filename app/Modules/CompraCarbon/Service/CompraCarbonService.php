@@ -5,6 +5,7 @@ namespace App\Modules\CompraCarbon\Service;
 use App\Modules\CompraCarbon\Data\CompraCarbonData;
 use App\Shared\Enums\CompraCarbon\EstadoCompraCarbon;
 use App\Shared\Enums\_Generic\Periodo;
+use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Helpers\CorrelativoHelper;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Support\Facades\DB;
@@ -141,11 +142,21 @@ class CompraCarbonService
     /**
      * Confirma la llegada de la carga de una compra preliminar.
      * Completa tipo_despacho, almacenes, IGV, fecha real, y la lista completa de detalles.
+     *
+     * @param array<int, \Illuminate\Http\UploadedFile> $archivos
+     *   Evidencias de cabecera tal como llegan en el multipart. Se persisten con
+     *   `ArchivoHelper::guardarArchivos()` (carpeta `evidencias-compra-carbon`,
+     *   subcarpetada por fecha) y la metadata se guarda como JSON en la columna
+     *   `evidencias`. Se AGREGAN a las ya existentes porque el front solo manda
+     *   los archivos nuevos. Si no se puede guardar ningun archivo se aborta la
+     *   confirmacion para no dejar la compra sin las evidencias que el usuario
+     *   adjuntó.
      */
     public static function confirmar_compra(
         int $id_compra_carbon,
         array $payload,
-        int $id_empleado_confirma
+        int $id_empleado_confirma,
+        array $archivos = []
     ): array {
         $existente = CompraCarbonData::get_compra_con_detalles($id_compra_carbon);
         if ($existente['cabecera'] === null) {
@@ -153,6 +164,15 @@ class CompraCarbonService
         }
         if ($existente['cabecera']->estado !== EstadoCompraCarbon::Preliminar->value) {
             return ApiResponse::error('Solo se puede confirmar una compra en estado Preliminar');
+        }
+
+        $previas = self::decodificar_evidencias($existente['cabecera']->evidencias ?? null);
+        $resEvidencias = self::persistir_evidencias($archivos, $previas);
+        if ($resEvidencias['error'] !== null) {
+            return ApiResponse::error($resEvidencias['error']);
+        }
+        if ($resEvidencias['evidencias'] !== null) {
+            $payload['evidencias'] = $resEvidencias['evidencias'];
         }
 
         $resNormalizado = self::validar_y_normalizar_compra_completa($payload);
@@ -176,13 +196,18 @@ class CompraCarbonService
     /**
      * Edita una compra de carbón mientras no haya sido aprobada su liquidación.
      * Registra los cambios en log_cambios.
+     *
+     * @param array<int, \Illuminate\Http\UploadedFile> $archivos
+     *   Evidencias nuevas de cabecera (ver `confirmar_compra`): se persisten con
+     *   `ArchivoHelper` y se agregan a las ya registradas.
      */
     public static function actualizar_compra(
         int $id_compra_carbon,
         array $payload,
         int $id_empleado,
         string $nombre_empleado,
-        ?string $motivo = null
+        ?string $motivo = null,
+        array $archivos = []
     ): array {
         $existente = CompraCarbonData::get_compra_con_detalles($id_compra_carbon);
         if ($existente['cabecera'] === null) {
@@ -195,6 +220,17 @@ class CompraCarbonService
         }
         if ($estadoActual === EstadoCompraCarbon::Anulado->value) {
             return ApiResponse::error('No se puede editar una compra anulada');
+        }
+
+        if (count($archivos) > 0) {
+            $resEvidencias = self::persistir_evidencias(
+                $archivos,
+                self::decodificar_evidencias($existente['cabecera']->evidencias ?? null)
+            );
+            if ($resEvidencias['error'] !== null) {
+                return ApiResponse::error($resEvidencias['error']);
+            }
+            $payload['evidencias'] = $resEvidencias['evidencias'];
         }
 
         // Si es preliminar y sigue preliminar, valida flexible; si ya es confirmada, valida completa
@@ -226,6 +262,11 @@ class CompraCarbonService
                 'monto_igv' => 0.0,
                 'descuento_flete' => 0.0,
                 'total_con_descuento' => $subtotal,
+                // Los adjuntos ya persistidos por ArchivoHelper deben quedar
+                // registrados aqui o el archivo quedaria huerfano en el disco.
+                'evidencias' => isset($payload['evidencias']) && is_array($payload['evidencias'])
+                    ? json_encode($payload['evidencias'], JSON_UNESCAPED_UNICODE)
+                    : null,
             ];
 
             $detallesNorm = [
@@ -377,6 +418,48 @@ class CompraCarbonService
         );
 
         return ApiResponse::success($duplicados, 'Verificación de documentos completada');
+    }
+
+    /**
+     * Persiste los adjuntos de cabecera y los fusiona con los ya registrados.
+     *
+     * Si no llegan archivos devuelve `evidencias: null` para que el flujo siga
+     * sin tocar la columna. Si llegan pero ninguno se pudo guardar, devuelve
+     * `error` para abortar y no perder en silencio lo que el usuario adjuntó.
+     *
+     * @param  array<int, \Illuminate\Http\UploadedFile> $archivos
+     * @param  array<int, array<string, mixed>> $previas
+     * @return array{evidencias: array<int, array<string, mixed>>|null, error: string|null}
+     */
+    private static function persistir_evidencias(array $archivos, array $previas): array
+    {
+        if (count($archivos) === 0) {
+            return ['evidencias' => null, 'error' => null];
+        }
+
+        $guardadas = ArchivoHelper::guardarArchivos('evidencias-compra-carbon', $archivos);
+        if (count($guardadas) === 0) {
+            return ['evidencias' => null, 'error' => 'No se pudieron guardar las evidencias de la compra'];
+        }
+
+        return ['evidencias' => array_merge($previas, $guardadas), 'error' => null];
+    }
+
+    /**
+     * Normaliza la columna `evidencias` (JSON) a array para poder fusionarla.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function decodificar_evidencias(mixed $raw): array
+    {
+        if (is_array($raw)) {
+            return $raw;
+        }
+        if ($raw === null || $raw === '') {
+            return [];
+        }
+        $decoded = json_decode((string) $raw, true);
+        return is_array($decoded) ? $decoded : [];
     }
 
     /**
