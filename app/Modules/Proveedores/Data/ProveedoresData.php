@@ -316,6 +316,17 @@ class ProveedoresData
 
         $cambios = [];
         foreach (self::PROVEEDOR_CAMBIOS_LABELS as $campoBd => $label) {
+            // `contratos` se excluye del diff: la columna se decodifica a
+            // array PHP en `hidratarProveedor()` (ver linea ~161), por lo que
+            // pasarla por `normalizarParaComparar(..., 'string')` lanzaria
+            // "Array to string conversion". Ademas, un diff por igualdad de
+            // string sobre un JSON con orden de claves variable genera ruido
+            // (false positives). El alta/baja de contratos ya queda
+            // registrada en cambios_log de otras formas; si en el futuro
+            // queremos diffearla, hay que comparar canonicamente (k-sort).
+            if ($campoBd === 'contratos') {
+                continue;
+            }
             // `para_carbon` está en los labels para auditar cambios
             // programáticos, pero no llega en $nuevoEstado (no se edita).
             if (! array_key_exists($campoBd, $nuevoEstado)) {
