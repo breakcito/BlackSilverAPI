@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+/**
+ * Representa el comprobante del flete de una o varias cargas de una
+ * compra de carbon, cuando el se indico que esa carga va a ser pagada 
+ * por la empresa y por tanto descontada al proveedor
+ */
+class ComprobanteTransporteCarbon extends Model
+{
+    protected $table = 'comprobante_transporte_carbon';
+
+    public $timestamps = false;
+
+    protected $fillable = [
+        'id_compra_carbon',
+        'id_empleado_registro',
+        'id_transportista',
+        //
+        'codigo_comprobante', // enum TipoComprobante
+        'fecha_emision',
+        'observacion',
+        'evidencias',
+        //
+        'total', //  suma del descuento de flete de cada carga
+        'con_detraccion', // bool - Dejarle a libertad del usuario esta eleccion
+        'porcentaje_detraccion', // el porcentaje que sera aplicado para la detraccion
+        'monto_detraccion', //  Se calcula a partir del total y el porcentaje de detraccion estipulado. Sera pagado mediante el banco de la nacion
+        'total_neto', // total - monto de detraccion . es lo que se le pagara al transportista
+        'avance_pago_detraccion', // ssuma acumulada de los pagos de detraccion
+        //
+        'created_at',
+        'estado' // enum: Pendiente de Pago / En proceso de Pago  / Pagado
+    ];
+}

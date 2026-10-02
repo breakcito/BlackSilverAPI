@@ -48,6 +48,10 @@ class CompraCarbon extends Model
         'descuento_flete', // suma del descuento aplicado por el flete. Esto es lo que pagara en total la empresa en flete, a uno o varios transportistas que realizaron este servicio
         'total_con_descuento', // suma de los subtotales con descuento aplicado. Esto es lo que le va a pagar al proveedor
         //
+        'monto_pagado_anticipos', // suma del total de anticipos aplicados al aprobar liquidacion
+        'avance_pago_neto', // monto_pagado_anticipos + suma del monto pagado de los pagos
+        'avance_pago_flete', // suma del monto pagado en los pagos del transporte
+        //
         'log_cambios', // json 
         //
         'created_at',
