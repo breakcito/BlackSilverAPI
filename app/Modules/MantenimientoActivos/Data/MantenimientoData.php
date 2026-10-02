@@ -22,6 +22,8 @@ class MantenimientoData
             ma.fecha_hora_mantenimiento,
             ma.observacion,
             ma.lugar_trabajo,
+            ma.serie_factura,
+            ma.numero_factura,
             ma.costo_mano_obra,
             ma.otros_gastos,
             ma.total_horas,
@@ -29,6 +31,8 @@ class MantenimientoData
             ma.total_vueltas,
             ma.id_proveedor,
             prov.razon_social AS proveedor_razon_social,
+            ma.id_personal_externo,
+            CONCAT(pere.nombre, " ", pere.apellido) AS personal_externo_nombre,
             ma.id_empleado_ejecutor,
             CONCAT(ejec.nombre, " ", ejec.apellido) AS ejecutor_nombre,
             ma.id_empleado_supervisor,
@@ -38,6 +42,7 @@ class MantenimientoData
         INNER JOIN activo_fijo act ON act.id = ma.id_activo_fijo
         INNER JOIN producto prod ON prod.id = act.id_producto
         LEFT JOIN proveedor prov ON prov.id = ma.id_proveedor
+        LEFT JOIN personal_externo pere ON pere.id = ma.id_personal_externo
         LEFT JOIN empleado ejec ON ejec.id = ma.id_empleado_ejecutor
         LEFT JOIN empleado superv ON superv.id = ma.id_empleado_supervisor
         WHERE MONTH(ma.fecha_hora_mantenimiento) = :mes 

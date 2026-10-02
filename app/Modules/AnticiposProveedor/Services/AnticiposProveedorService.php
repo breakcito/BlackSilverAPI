@@ -5,6 +5,7 @@ namespace App\Modules\AnticiposProveedor\Services;
 use App\Modules\AnticiposProveedor\Data\AnticiposProveedorData;
 use App\Shared\Enums\AnticipoProveedor\EstadoAnticipo;
 use App\Shared\Enums\AnticipoProveedor\MedioPago;
+use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 
 class AnticiposProveedorService
@@ -31,18 +32,33 @@ class AnticiposProveedorService
      * `evidencias` es la lista de IArchivo (subidos previamente al storage
      * por el FE). El Data la persiste como JSON.
      *
-     * @param array<int, array{url:string,path_relativo:string,nombre_original?:?string,extension?:?string}>|null $evidencias
+     * `pago_a_terceros` marca que el dinero NO fue a una cuenta del
+     * proveedor (pago de una deuda, etc). Es puramente informativo: NO
+     * excluye el anticipo de la liquidacion de una compra de carbon. Cuando
+     * va activo, `id_cuenta_bancaria_proveedor` se fuerza a null en el
+     * Data porque no existe una cuenta destino del proveedor que registrar.
+     *
+     * @param array<int, \Illuminate\Http\UploadedFile> $archivos
+     *   Evidencias tal como llegan en el multipart. Se persisten con
+     *   `ArchivoHelper::guardarArchivos()` (carpeta `anticipos-proveedor`,
+     *   subcarpetada por fecha) y la metadata resultante se guarda como
+     *   JSON en la columna `evidencias`. Si el guardado de archivos falla
+     *   se aborta el registro para no dejar un anticipo sin sus evidencias.
      */
     public static function registrar(
         int $id_proveedor,
         int $id_empresa,
         int $id_empleado_registro,
         ?int $id_cuenta_bancaria_empresa,
+        ?int $id_cuenta_bancaria_proveedor,
         ?MedioPago $medio_pago,
         ?string $fecha_hora_pago,
         ?string $numero_operacion,
+        ?string $codigo_comprobante,
+        ?string $observacion,
+        bool $pago_a_terceros,
         float $saldo,
-        ?array $evidencias
+        array $archivos = []
     ): array {
         if ($saldo <= 0) {
             return ApiResponse::error('El saldo inicial debe ser mayor a 0');
@@ -65,14 +81,26 @@ class AnticiposProveedorService
             }
         }
 
+        $evidencias = null;
+        if (count($archivos) > 0) {
+            $evidencias = ArchivoHelper::guardarArchivos('anticipos-proveedor', $archivos);
+            if (count($evidencias) === 0) {
+                return ApiResponse::error('No se pudieron guardar las evidencias del anticipo');
+            }
+        }
+
         $id = AnticiposProveedorData::insertar(
             id_empresa: $id_empresa,
             id_proveedor: $id_proveedor,
             id_empleado_registro: $id_empleado_registro,
             id_cuenta_bancaria_empresa: $id_cuenta_bancaria_empresa,
+            id_cuenta_bancaria_proveedor: $id_cuenta_bancaria_proveedor,
             medio_pago: $medio_pago?->value,
             fecha_hora_pago: $fecha_hora_pago,
             numero_operacion: $numero_operacion,
+            codigo_comprobante: $codigo_comprobante,
+            observacion: $observacion,
+            pago_a_terceros: $pago_a_terceros,
             saldo_inicial: $saldo,
             saldo_actual: $saldo,
             evidencias: $evidencias,

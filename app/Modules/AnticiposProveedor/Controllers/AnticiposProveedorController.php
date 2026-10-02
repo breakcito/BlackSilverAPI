@@ -21,15 +21,28 @@ class AnticiposProveedorController extends Controller
     }
 
     /**
-     * Body esperado:
+     * Registra un anticipo.
+     *
+     * El request es `multipart/form-data`: los adjuntos llegan en el campo
+     * `evidencias[]` como `UploadedFile` y los guarda el Service via
+     * `ArchivoHelper::guardarArchivos()` (mismo patron que
+     * Mantenimientos, OC y Prestamos). El backend NO acepta URLs ni paths
+     * de archivos: los genera el al persistir, asi nadie puede inventarse
+     * una evidencia que nunca se subio.
+     *
+     * Campos escalares:
      * {
      *   id_empresa: int (default 1 = Cupper en este proyecto),
-     *   id_cuenta_bancaria_empresa?: int,
+     *   id_cuenta_bancaria_empresa?: int,   // cuenta ORIGEN (de la empresa)
+     *   id_cuenta_bancaria_proveedor?: int, // cuenta DESTINO (del proveedor)
      *   medio_pago?: 'Transferencia' | 'Depósito' | 'Efectivo',
      *   fecha_hora_pago?: 'YYYY-MM-DD HH:MM:SS',
      *   numero_operacion?: string(64),
+     *   codigo_comprobante?: string(64),  // factura / comprobante que respalda el anticipo
+     *   observacion?: string(500),
+     *   pago_a_terceros?: bool,          // el dinero no fue a cuenta del proveedor
      *   saldo: float > 0  // se guarda en saldo_inicial y saldo_actual,
-     *   evidencias?: array<{url,path_relativo,nombre_original?,extension?}>  // IArchivo[]
+     *   evidencias[]: UploadedFile        // opcional
      * }
      *
      * `id_empleado_registro` se toma del JWT (inyectado por el middleware
@@ -40,18 +53,24 @@ class AnticiposProveedorController extends Controller
         $validator = Validator::make($request->all(), [
             'id_empresa' => 'required|integer|min:1',
             'id_cuenta_bancaria_empresa' => 'nullable|integer|min:1',
+            'id_cuenta_bancaria_proveedor' => 'nullable|integer|min:1',
             'medio_pago' => ['nullable', new Enum(MedioPago::class)],
             'fecha_hora_pago' => 'nullable|date_format:Y-m-d H:i:s',
             'numero_operacion' => 'nullable|string|max:64',
+            'codigo_comprobante' => 'nullable|string|max:64',
+            'observacion' => 'nullable|string|max:500',
+            'pago_a_terceros' => 'nullable|boolean',
             'saldo' => 'required|numeric|min:0.01',
             'evidencias' => 'nullable|array',
-            'evidencias.*.url' => 'required_with:evidencias|string',
-            'evidencias.*.path_relativo' => 'required_with:evidencias|string',
+            'evidencias.*' => 'file',
         ], [
             'id_empresa.required' => 'La empresa es obligatoria',
             'saldo.required' => 'El saldo es obligatorio',
             'saldo.min' => 'El saldo debe ser mayor a 0',
             'fecha_hora_pago.date_format' => 'Formato de fecha y hora invalido (YYYY-MM-DD HH:MM:SS)',
+            'codigo_comprobante.max' => 'El comprobante no puede superar 64 caracteres',
+            'observacion.max' => 'La observacion no puede superar 500 caracteres',
+            'evidencias.*.file' => 'Las evidencias deben ser archivos validos',
         ]);
 
         if ($validator->fails()) {
@@ -76,13 +95,11 @@ class AnticiposProveedorController extends Controller
             ? MedioPago::from($medioPagoRaw)
             : null;
 
-        // evidencias puede venir como array asociativo de IArchivo (ya
-        // subidos por el FE via POST /archivos/upload) o como null/array
-        // vacio.
-        $evidenciasRaw = $request->input('evidencias');
-        $evidencias = is_array($evidenciasRaw) && count($evidenciasRaw) > 0
-            ? array_values($evidenciasRaw)
-            : null;
+        // Archivos crudos: el Service los persiste y devuelve la metadata
+        // (url / path_relativo / nombre_original / extension) que se
+        // guarda como JSON en la columna `evidencias`.
+        $archivos = $request->file('evidencias', []);
+        $archivos = is_array($archivos) ? $archivos : [];
 
         $result = AnticiposProveedorService::registrar(
             id_proveedor: $id_proveedor,
@@ -91,14 +108,30 @@ class AnticiposProveedorController extends Controller
             id_cuenta_bancaria_empresa: $request->input('id_cuenta_bancaria_empresa') !== null
                 ? (int) $request->input('id_cuenta_bancaria_empresa')
                 : null,
+            id_cuenta_bancaria_proveedor: $request->input('id_cuenta_bancaria_proveedor') !== null
+                ? (int) $request->input('id_cuenta_bancaria_proveedor')
+                : null,
             medio_pago: $medioPago,
             fecha_hora_pago: $request->input('fecha_hora_pago') ?: null,
-            numero_operacion: $request->input('numero_operacion') ?: null,
+            numero_operacion: $this->textoOpcional($request->input('numero_operacion')),
+            codigo_comprobante: $this->textoOpcional($request->input('codigo_comprobante')),
+            observacion: $this->textoOpcional($request->input('observacion')),
+            pago_a_terceros: (bool) $request->boolean('pago_a_terceros'),
             saldo: (float) $request->input('saldo'),
-            evidencias: $evidencias,
+            archivos: $archivos,
         );
 
         return response()->json($result);
+    }
+
+    /** Recorta el texto y convierte el vacio en null. */
+    private function textoOpcional(mixed $valor): ?string
+    {
+        if (!is_string($valor)) {
+            return null;
+        }
+        $trimmed = trim($valor);
+        return $trimmed === '' ? null : $trimmed;
     }
 
     /**
