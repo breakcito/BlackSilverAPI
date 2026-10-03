@@ -24,6 +24,7 @@ use App\Services\ProductosService;
 use App\Services\ProveedoresService;
 use App\Services\RolesService;
 use App\Services\TarifasCarbonService;
+use App\Services\TransportistasCuentasService;
 use App\Services\TransportistasService;
 use App\Services\UbicacionService;
 use App\Services\UnidadesMedidaService;
@@ -598,11 +599,98 @@ class AuxController extends Controller
     }
 
     /**
+     * Cuentas bancarias de transportista (modulo Compra de Carbon).
+     * Acepta id_transportista simple o array.
+     */
+    public function get_cuentas_transportista(Request $request): JsonResponse
+    {
+        $id_transportista = $this->aIntONull($request->input('id_transportista'));
+        $id_cuenta_bancaria = $this->aIntONull($request->input('id_cuenta_bancaria'));
+        $estado_val = $request->input('estado');
+        $estado = $estado_val ? EstadoBase::from($estado_val) : EstadoBase::Activo;
+
+        return response()->json(TransportistasCuentasService::get_cuentas(
+            id_transportista: $id_transportista,
+            id_cuenta_bancaria: $id_cuenta_bancaria,
+            estado: $estado,
+        ));
+    }
+
+    public function crear_cuenta_transportista(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_transportista' => 'required|integer|min:1',
+            'id_banco' => 'required|integer|min:1',
+            'moneda' => ['required', new Enum(Moneda::class)],
+            'numero_cuenta' => 'required|string|max:50',
+            'cci' => 'nullable|string|max:50',
+            'es_para_detraccion' => 'nullable|boolean',
+        ], [
+            'id_transportista.required' => 'El transportista es obligatorio',
+            'id_banco.required' => 'El banco es obligatorio',
+            'moneda.required' => 'La moneda es obligatoria',
+            'numero_cuenta.required' => 'El número de cuenta es obligatorio',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
+        }
+
+        return response()->json(TransportistasCuentasService::crear_cuenta(
+            id_transportista: (int) $request->input('id_transportista'),
+            id_banco: (int) $request->input('id_banco'),
+            moneda: Moneda::from($request->input('moneda')),
+            numero_cuenta: $request->input('numero_cuenta'),
+            cci: $request->input('cci'),
+            es_para_detraccion: (bool) $request->input('es_para_detraccion', false),
+        ));
+    }
+
+    public function actualizar_cuenta_transportista(Request $request, int $id_cuenta_bancaria): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_banco' => 'required|integer|min:1',
+            'moneda' => ['required', new Enum(Moneda::class)],
+            'numero_cuenta' => 'required|string|max:50',
+            'cci' => 'nullable|string|max:50',
+            'es_para_detraccion' => 'nullable|boolean',
+        ], [
+            'id_banco.required' => 'El banco es obligatorio',
+            'moneda.required' => 'La moneda es obligatoria',
+            'numero_cuenta.required' => 'El número de cuenta es obligatorio',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
+        }
+
+        return response()->json(TransportistasCuentasService::actualizar_cuenta(
+            id_cuenta_bancaria: $id_cuenta_bancaria,
+            id_banco: (int) $request->input('id_banco'),
+            moneda: Moneda::from($request->input('moneda')),
+            numero_cuenta: $request->input('numero_cuenta'),
+            cci: $request->input('cci'),
+            es_para_detraccion: (bool) $request->input('es_para_detraccion', false),
+        ));
+    }
+
+    /**
+     * Normaliza un input que puede venir como entero o como array de enteros.
+     */
+    private function aIntONull(mixed $valor): int|array|null
+    {
+        if (is_array($valor)) {
+            return array_map('intval', $valor);
+        }
+
+        return $valor !== null ? (int) $valor : null;
+    }
+
+    /**
      * Catalogo de tarifas de carbon por tipo y rango de ceniza.
      */
     public function get_tarifas_carbon(Request $request): JsonResponse
-    {
-        $id_tarifa_carbon = $request->input('id_tarifa_carbon') ? (int) $request->input('id_tarifa_carbon') : null;
+    {        $id_tarifa_carbon = $request->input('id_tarifa_carbon') ? (int) $request->input('id_tarifa_carbon') : null;
         $id_tipo_carbon = $request->input('id_tipo_carbon') ? (int) $request->input('id_tipo_carbon') : null;
         $estado_val = $request->input('estado');
         $estado = $estado_val ? EstadoBase::from($estado_val) : EstadoBase::Activo;

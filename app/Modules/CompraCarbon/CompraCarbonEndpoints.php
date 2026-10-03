@@ -1,6 +1,8 @@
 <?php
 
+use App\Modules\CompraCarbon\Controller\CompraCarbonComprobantesController;
 use App\Modules\CompraCarbon\Controller\CompraCarbonController;
+use App\Modules\CompraCarbon\Controller\CompraCarbonPagosController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.jwt.custom')->group(function () {
@@ -19,4 +21,29 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::post('{id_compra_carbon}/anular', 'anular_compra');
         Route::post('{id_compra_carbon}/evidencias', 'set_evidencias');
     });
+
+    // Comprobantes del proveedor y de flete. Se registran al aprobar la
+    // liquidacion y se adjuntan evidencias, asi que las escrituras son POST
+    // multipart por la misma razon que confirmar/actualizar.
+    Route::middleware('auth.jwt.custom')
+        ->prefix('compras-carbon/{id_compra_carbon}')
+        ->controller(CompraCarbonComprobantesController::class)
+        ->group(function () {
+            Route::get('comprobante-proveedor', 'get_comprobante_proveedor');
+            Route::post('comprobante-proveedor', 'registrar_comprobante_proveedor');
+
+            Route::get('grupos-flete', 'get_grupos_flete');
+            Route::get('comprobantes-transporte/{id_comprobante}', 'get_comprobante_transporte');
+            Route::post('comprobantes-transporte', 'registrar_comprobante_transporte');
+        });
+
+    // Pagos al proveedor (directos o contra su comprobante) y al transportista.
+    Route::middleware('auth.jwt.custom')
+        ->prefix('compras-carbon/{id_compra_carbon}')
+        ->controller(CompraCarbonPagosController::class)
+        ->group(function () {
+            Route::get('pagos', 'get_pagos');
+            Route::post('pagos-proveedor', 'registrar_pago_proveedor');
+            Route::post('pagos-transporte', 'registrar_pago_transporte');
+        });
 });

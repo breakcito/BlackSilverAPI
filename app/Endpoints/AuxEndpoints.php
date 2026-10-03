@@ -72,6 +72,11 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::get('/transportistas', 'get_transportistas');
             Route::post('/transportistas', 'crear_transportista');
 
+            // cuentas bancarias de transportista (catalogo modulo Compra de Carbon)
+            Route::get('/cuentas-transportista', 'get_cuentas_transportista');
+            Route::post('/cuentas-transportista', 'crear_cuenta_transportista');
+            Route::put('/cuentas-transportista/{id_cuenta_bancaria}', 'actualizar_cuenta_transportista');
+
             // tarifas de carbon (catalogo modulo Compra de Carbon)
             Route::get('/tarifas-carbon', 'get_tarifas_carbon');
             Route::post('/tarifas-carbon', 'crear_tarifa_carbon');

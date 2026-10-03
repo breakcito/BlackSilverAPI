@@ -83,6 +83,9 @@ class CompraCarbonData
                 cc.monto_igv,
                 cc.descuento_flete,
                 cc.total_con_descuento,
+                cc.monto_pagado_anticipos,
+                cc.avance_pago_neto,
+                cc.avance_pago_flete,
                 cc.log_cambios,
                 cc.created_at,
                 cc.estado,
@@ -195,6 +198,9 @@ class CompraCarbonData
                 cc.monto_igv,
                 cc.descuento_flete,
                 cc.total_con_descuento,
+                cc.monto_pagado_anticipos,
+                cc.avance_pago_neto,
+                cc.avance_pago_flete,
                 cc.log_cambios,
                 cc.created_at,
                 cc.estado
@@ -484,6 +490,11 @@ class CompraCarbonData
         array $anticipos = []
     ): void {
         DB::transaction(function () use ($id_compra_carbon, $id_empleado_aprueba, $fecha_hora_aprobacion, $anticipos) {
+            // Suma de lo que esta aprobacion consume de anticipos ya entregados
+            // al proveedor. Se acumula en `monto_pagado_anticipos` para que el
+            // saldo de la compra descuente el anticipo sin releer el historico.
+            $totalAnticiposAplicados = 0.0;
+
             foreach ($anticipos as $a) {
                 $idAnticipo = (int) ($a['id_anticipo_proveedor'] ?? 0);
                 $montoRetirado = round((float) ($a['monto_retirado'] ?? 0), 2);
@@ -514,13 +525,20 @@ class CompraCarbonData
                     'id_compra_carbon' => $id_compra_carbon,
                     'monto_retirado' => $montoRetirado,
                 ]);
+
+                $totalAnticiposAplicados += $montoRetirado;
             }
+
+            $totalAnticiposAplicados = round($totalAnticiposAplicados, 2);
 
             DB::table('compra_carbon')
                 ->where('id', $id_compra_carbon)
                 ->update([
                     'id_empleado_aprueba_liquidacion' => $id_empleado_aprueba,
                     'fecha_hora_aprobacion_liquidacion' => $fecha_hora_aprobacion,
+                    'monto_pagado_anticipos' => DB::raw(
+                        'COALESCE(monto_pagado_anticipos, 0) + ' . $totalAnticiposAplicados
+                    ),
                     'estado' => EstadoCompraCarbon::LiquidacionAprobada->value,
                 ]);
         });

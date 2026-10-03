@@ -15,9 +15,10 @@ class PagoTransporteCarbon extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'id_compra_carbon',
         'id_comprobante_transporte_carbon', 
         'id_cuenta_bancaria_empresa', 
-        'id_cuenta_bancaria_proveedor',
+        'id_cuenta_bancaria_transportista',
         'id_empleado_registro',
         'medio_pago', // Transferencia / Depósito / Efectivo - solo guardar como varchar
         'numero_operacion', // Obligatorio si es transferencia o deposito
