@@ -216,6 +216,7 @@ class CotizacionesService
                                 total_antes_igv: $total_antes,
                                 total_despues_igv: $total_despues,
                                 fecha_vencimiento_pago: $es_credito ? ($c['fecha_vencimiento_pago'] ?? null) : null,
+                                observacion: $c['observacion'] ?? null,
                             );
 
                             // Crear detalles de OC y logs
@@ -384,20 +385,25 @@ class CotizacionesService
         int $id_cotizacion,
         int $id_empresa_compradora,
         int $id_empleado,
-        array $detalles_aprobados, // [{id, precio_confirmado}]
-        ?float $tipo_cambio_aplicado = null
+        array $detalles_aprobados, // [{id, precio_confirmado, comentario?}]
+        ?float $tipo_cambio_aplicado = null,
+        ?string $observacion = null
     ): array {
         try {
-            return DB::transaction(function () use ($id_cotizacion, $id_empresa_compradora, $id_empleado, $detalles_aprobados, $tipo_cambio_aplicado) {
+            return DB::transaction(function () use ($id_cotizacion, $id_empresa_compradora, $id_empleado, $detalles_aprobados, $tipo_cambio_aplicado, $observacion) {
 
                 // 1. Marcar cotización como Aprobada
                 CotizacionesData::actualizar_estado($id_cotizacion, EstadoCotizacion::Aprobada);
 
-                // Extraer IDs y mapa de precios confirmados
+                // Extraer IDs, mapa de precios confirmados y comentarios por detalle
                 $ids_aprobados = array_column($detalles_aprobados, 'id');
                 $precios_map = [];
+                $comentarios_map = [];
                 foreach ($detalles_aprobados as $da) {
                     $precios_map[(int) $da['id']] = (float) $da['precio_confirmado'];
+                    if (array_key_exists('comentario', $da) && $da['comentario'] !== null && $da['comentario'] !== '') {
+                        $comentarios_map[(int) $da['id']] = (string) $da['comentario'];
+                    }
                 }
 
                 // 2. Marcar detalles como Aprobados / Rechazados
@@ -459,12 +465,18 @@ class CotizacionesService
                     total_antes_igv: $total_antes,
                     total_despues_igv: $total_despues,
                     fecha_vencimiento_pago: $cotizacion->fecha_vencimiento_pago ?? null,
+                    observacion: $observacion,
                 );
 
                 // 6. Crear detalles de OC (copiando los campos de despacho/almacén del detalle de cotización)
                 foreach ($detalles_aprobados_data as $det) {
                     $tipo_despacho = TipoDespachoCompra::from($det->tipo_despacho);
                     $periodo = Periodo::from($det->tiempo_entrega_periodo);
+
+                    // Comentario: priorizar el enviado en la aprobacion, si no, heredar del detalle de cotizacion
+                    $comentario_oc = $comentarios_map[$det->id_cotizacion_detalle]
+                        ?? $det->comentario
+                        ?? null;
 
                     $id_oc_det = OrdenesCompraData::crear_detalle_orden(
                         id_orden_compra: $id_orden,
@@ -486,7 +498,7 @@ class CotizacionesService
                         precio_unitario_base: isset($precios_map[$det->id_cotizacion_detalle])
                         ? round($precios_map[$det->id_cotizacion_detalle] / max((float) $det->contenido_por_presentacion, 1), 4)
                         : (float) $det->precio_unitario_base,
-                        comentario: $det->comentario ?? null,
+                        comentario: $comentario_oc,
                     );
 
                     OrdenesCompraData::crear_logs(
