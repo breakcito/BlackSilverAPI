@@ -172,6 +172,15 @@ class SolicitudReabastecimientoDetalle extends Model
             srd.valor_magnitud,
             srd.valor_magnitud_base,
 
+            EXISTS(
+                SELECT 1
+                FROM orden_compra_detalle ocd
+                INNER JOIN orden_compra oc on oc.id = ocd.id_orden_compra
+                WHERE 
+                    ocd.id_producto = srd.id_producto AND
+                    oc.estado IN ("Generada", "En Recepción")
+            ) as en_orden_compra,
+
             srd.estado
         FROM
             solicitud_reabastecimiento_detalle srd

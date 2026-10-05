@@ -21,6 +21,7 @@ class EmpresasData
             emp.ruc,
             emp.razon_social,
             emp.url_logo,
+            emp.domicilio_fiscal,
             emp.color_predominante
         FROM
             empresa emp
