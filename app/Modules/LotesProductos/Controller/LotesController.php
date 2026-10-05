@@ -70,6 +70,52 @@ class LotesController extends Controller
         return response()->json($result);
     }
 
+    /**
+     * Registrar varios lotes en una sola operacion contra el mismo almacen.
+     * Los lotes son independientes entre si: cada uno tiene su propio producto,
+     * unidad, cantidad, contenido, fecha de ingreso, costo y factura.
+     * Si uno falla, se hace rollback de toda la operacion.
+     */
+    public function crear_lotes_masivo(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_almacen' => 'required|integer',
+            'lotes' => 'required|array|min:1',
+            'lotes.*.id_producto' => 'required|integer',
+            'lotes.*.id_unidad_medida' => 'required|integer',
+            'lotes.*.stock_inicial' => 'required|numeric|min:0',
+            'lotes.*.contenido_por_presentacion' => 'required|numeric|min:0',
+            'lotes.*.fecha_hora_ingreso' => 'required|date',
+            'lotes.*.fecha_vencimiento' => 'nullable|date',
+            'lotes.*.descripcion' => 'nullable|string',
+            'lotes.*.serie_factura_compra' => 'nullable|string',
+            'lotes.*.numero_factura_compra' => 'nullable|string',
+            'lotes.*.costo_por_unidad' => 'nullable|numeric|min:0',
+        ], [
+            'id_almacen.required' => 'El almacen es requerido',
+            'lotes.required' => 'Debe incluir al menos un lote',
+            'lotes.min' => 'Debe incluir al menos un lote',
+            'lotes.*.id_producto.required' => 'Cada lote requiere un producto',
+            'lotes.*.id_unidad_medida.required' => 'Cada lote requiere una unidad de medida',
+            'lotes.*.stock_inicial.required' => 'Cada lote requiere un stock inicial',
+            'lotes.*.stock_inicial.min' => 'El stock inicial no puede ser negativo',
+            'lotes.*.contenido_por_presentacion.required' => 'Cada lote requiere un contenido por presentacion',
+            'lotes.*.fecha_hora_ingreso.required' => 'Cada lote requiere una fecha de ingreso',
+            'lotes.*.costo_por_unidad.min' => 'El costo unitario no puede ser negativo',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $result = LotesService::crear_lotes_masivo(
+            id_almacen: (int) $request->id_almacen,
+            lotes: $request->input('lotes')
+        );
+
+        return response()->json($result);
+    }
+
     public function ajustar_stock(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [

@@ -15,6 +15,7 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::prefix('lotes-productos')->controller(LotesController::class)->group(function () {
         Route::get('/', 'get_resumen_lotes');
         Route::post('/', 'crear_lote');
+        Route::post('/masivo', 'crear_lotes_masivo');
         Route::put('/{id_lote}', 'actualizar_lote');
         Route::delete('/{id_lote}', 'eliminar_lote');
         Route::post('/ajustar-stock', 'ajustar_stock');
