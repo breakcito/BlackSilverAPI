@@ -135,7 +135,9 @@ class CotizacionesController
             'detalles_aprobados' => 'required|array|min:1',
             'detalles_aprobados.*.id' => 'required|integer',
             'detalles_aprobados.*.precio_confirmado' => 'required|numeric|min:0',
+            'detalles_aprobados.*.comentario' => 'nullable|string',
             'tipo_cambio_aplicado' => 'nullable|numeric',
+            'observacion' => 'nullable|string',
         ], [
             'id_empresa_compradora.required' => 'Debe elegir la empresa compradora para la Orden de Compra.',
             'detalles_aprobados.required' => 'Debe incluir al menos un producto a ser aprobado.',
@@ -152,7 +154,8 @@ class CotizacionesController
             id_empresa_compradora: $request->input('id_empresa_compradora'),
             id_empleado: $request->user()->id_empleado,
             detalles_aprobados: $request->input('detalles_aprobados'),
-            tipo_cambio_aplicado: $request->input('tipo_cambio_aplicado') ? (float) $request->input('tipo_cambio_aplicado') : null
+            tipo_cambio_aplicado: $request->input('tipo_cambio_aplicado') ? (float) $request->input('tipo_cambio_aplicado') : null,
+            observacion: $request->input('observacion'),
         ));
     }
 }
