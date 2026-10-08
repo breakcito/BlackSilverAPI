@@ -7,8 +7,10 @@ use Illuminate\Support\Facades\DB;
 class MenuNavData
 {
     /**
-     * Menus visibles para el rol. UNION ALL entre permiso directo (id_menu en
-     * modulo_rol) y permiso derivado (modulos hijos con permiso id_modulo).
+     * Menus visibles para el rol. UNION entre:
+     * - Permiso directo en menu (mr.id_menu)
+     * - Permiso derivado de submenu (mr.id_submenu) para submenus hoja
+     * - Permiso derivado de modulo hijo (mr.id_modulo)
      */
     public static function get_menus_by_rol(int $id_rol): array
     {
@@ -21,13 +23,19 @@ class MenuNavData
         (SELECT DISTINCT m.id AS id_menu, m.nombre, m.path, m.numero_orden, m.es_desplegable
          FROM menu m
          INNER JOIN submenu s ON s.id_menu = m.id AND s.estado = "Activo"
+         INNER JOIN modulo_rol mr ON mr.id_submenu = s.id AND mr.id_rol = :rol_b
+         WHERE m.estado = "Activo")
+        UNION
+        (SELECT DISTINCT m.id AS id_menu, m.nombre, m.path, m.numero_orden, m.es_desplegable
+         FROM menu m
+         INNER JOIN submenu s ON s.id_menu = m.id AND s.estado = "Activo"
          INNER JOIN modulo md ON md.id_submenu = s.id AND md.estado = "Activo"
-         INNER JOIN modulo_rol mr ON mr.id_modulo = md.id AND mr.id_rol = :rol_b
+         INNER JOIN modulo_rol mr ON mr.id_modulo = md.id AND mr.id_rol = :rol_c
          WHERE m.estado = "Activo")
         ORDER BY numero_orden ASC;
         ';
 
-        return DB::select($sql, ['rol_a' => $id_rol, 'rol_b' => $id_rol]);
+        return DB::select($sql, ['rol_a' => $id_rol, 'rol_b' => $id_rol, 'rol_c' => $id_rol]);
     }
 
     /**

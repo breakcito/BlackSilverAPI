@@ -109,7 +109,7 @@ class PermisosData
                 $submenu->modulos = Modulo::where('id_submenu', $submenu->id)
                     ->where('estado', 'Activo')
                     ->orderBy('numero_orden')
-                    ->get(['id', 'id_submenu', 'nombre', 'path', 'numero_orden', 'es_desplegable']);
+                    ->get(['id', 'id_submenu', 'nombre', 'path', 'numero_orden']);
             }
 
             $menu->submenus = $submenus;
