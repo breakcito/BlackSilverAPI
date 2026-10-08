@@ -91,7 +91,7 @@ class CompraCarbonData
                 cc.estado,
                 (
                     SELECT COUNT(*)
-                    FROM detalle_compra_carbon d
+                    FROM carga_compra_carbon d
                     WHERE d.id_compra_carbon = cc.id
                 ) AS cantidad_items
             FROM compra_carbon cc
@@ -226,7 +226,7 @@ class CompraCarbonData
 
         $sqlDetalles = '
             SELECT
-                d.id AS id_detalle_compra_carbon,
+                d.id AS id_carga_compra_carbon,
                 d.id_tipo_carbon,
                 t.nombre AS tipo_carbon_nombre,
                 t.codigo AS tipo_carbon_codigo,
@@ -261,7 +261,7 @@ class CompraCarbonData
                 d.subtotal_con_descuento,
                 d.evidencias,
                 d.log_cambios
-            FROM detalle_compra_carbon d
+            FROM carga_compra_carbon d
             INNER JOIN tipo_carbon t ON t.id = d.id_tipo_carbon
             LEFT JOIN transportista tr ON tr.id = d.id_transportista
             LEFT JOIN lugar_extraccion_carbon le ON le.id = d.id_lugar_extraccion
@@ -394,7 +394,7 @@ class CompraCarbonData
                     : null,
             ];
         }
-        DB::table('detalle_compra_carbon')->insert($filas);
+        DB::table('carga_compra_carbon')->insert($filas);
     }
 
     /**
@@ -427,7 +427,7 @@ class CompraCarbonData
                     'evidencias' => $cabecera['evidencias'] ?? null,
                 ]);
 
-            DB::table('detalle_compra_carbon')->where('id_compra_carbon', $id_compra_carbon)->delete();
+            DB::table('carga_compra_carbon')->where('id_compra_carbon', $id_compra_carbon)->delete();
             self::insert_detalles($id_compra_carbon, $detalles);
         });
     }
@@ -474,7 +474,7 @@ class CompraCarbonData
             DB::table('compra_carbon')->where('id', $id_compra_carbon)->update($updateData);
 
             // Reemplazo de detalles preservando diff en log si aplica
-            DB::table('detalle_compra_carbon')->where('id_compra_carbon', $id_compra_carbon)->delete();
+            DB::table('carga_compra_carbon')->where('id_compra_carbon', $id_compra_carbon)->delete();
             self::insert_detalles($id_compra_carbon, $detalles);
         });
     }
@@ -627,14 +627,14 @@ class CompraCarbonData
 
         $sql = '
             SELECT
-                d.id AS id_detalle_compra_carbon,
+                d.id AS id_carga_compra_carbon,
                 d.codigo_ticket_balanza,
                 d.guia_remitente,
                 d.guia_transportista,
                 cc.id AS id_compra_carbon,
                 cc.correlativo,
                 cc.fecha_hora_ingreso
-            FROM detalle_compra_carbon d
+            FROM carga_compra_carbon d
             INNER JOIN compra_carbon cc ON cc.id = d.id_compra_carbon
             WHERE cc.id_proveedor = :id_proveedor
               AND cc.estado != "' . EstadoCompraCarbon::Anulado->value . '"

@@ -17,44 +17,30 @@ class CompraCarbon extends Model
     protected $fillable = [
         'id_empresa', // la empresa que compra
         'id_proveedor', // el proveedor al que se le va a comprar
-        // // lugar al que llegara la carga
-        'id_almacen', // en que lugar esta ingresando la carga de esta compra
-        "id_almacen_cliente", // aveces la carga llegara directamente al almacen de un cliente
-        'id_almacen_proveedor', // si es recojo, de que almacen del proveedor se recoge
         //
         'id_empleado_registro', // quien registra
-        'id_empleado_confirma', // quien confirma la compra/llegada de la carga
-        'id_empleado_aprueba_liquidacion', // quien aprueba la liquidacion
         'id_empleado_anula', // quien anula
         //
-        'tipo_despacho',//  envio, recojo
+        'id_tipo_carbon_prometido', //  lo que dice el proveedor que te va a traer
+        'id_tarifa_carbon', // la tarifa de costos aplicada, por defecto se toma la tarifa mas alta segun el tipo de carbon
         //
-        // si NO aplica igv, el pago de esta compra se hará sin asociarlo a 
-        // ningun comprobante (pago neto). Si es TRUE, entonces los pagos 
-        // estaran asociados a un comprobante el cual posiblemente aplique detraccion
+        'correlativo', // <numero de correlativo>-<año>
+        'numero_correlativo', // se reinicia al año
+        //
+        // si NO aplica igv, el pago de esta compra se hará sin asociarlo a ningun 
+        // comprobante. Si es TRUE, entonces los pagos estaran asociados a 
+        // un comprobante
         'aplica_igv', // bool 
-        //
         'porcentaje_igv', // 0 si no aplica igv, si si aplica por defecto 18 pero el usuario lo puede cambiar
-        'correlativo',
-        'numero_correlativo',
-        'fecha_hora_ingreso',
-        'fecha_hora_confirmacion',
-        'fecha_hora_aprobacion_liquidacion',
+        //
+        'toneladas_prometidas', // cantidad de toneladas que dice el proveedor que va a traer
+        'precio_unitario_cotizado', // se autocompleta con la tarifa pero el usuario puede modificar
+        'total_cotizado', // precio por tonelada * cantidad de toneladas prometidas
+        'monto_igv_cotizado', // representa el 18% del total cotizado si aplica igv. Si no aplica IGV este es 0.
+        //
+        'log_cambios', // json, para guardar las ediciones de esta compra
+        'created_at', // cuando se registro en el sistema
         'fecha_hora_anulacion',
-        'evidencias',
-        // montos
-        'total_antes_descuento', // suma de subtotales antes de descuento
-        'monto_igv', // 0 si aplica igv, sino, se calcula el monto en base al porcentaje de igv segun el total antes de descuento. por defecto todas las compras incluyen igv asi que solo se calcula el monto
-        'descuento_flete', // suma del descuento aplicado por el flete. Esto es lo que pagara en total la empresa en flete, a uno o varios transportistas que realizaron este servicio
-        'total_con_descuento', // suma de los subtotales con descuento aplicado. Esto es lo que le va a pagar al proveedor
-        //
-        'monto_pagado_anticipos', // suma del total de anticipos aplicados al aprobar liquidacion
-        'avance_pago_neto', // monto_pagado_anticipos + suma del monto pagado de los pagos
-        'avance_pago_flete', // suma del monto pagado en los pagos del transporte
-        //
-        'log_cambios', // json 
-        //
-        'created_at',
-        'estado'
+        'estado' // Preliminar / En Liquidacion (cuando llega la primera carga) / Pagado (cuando se pagaron todas las cargas) / Anulado 
     ];
 }

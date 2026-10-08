@@ -161,7 +161,7 @@ class CompraCarbonPagosData
                 COALESCE(SUM(d.descuento_flete), 0) AS total,
                 COALESCE(SUM(d.cantidad), 0) AS cantidad_tm,
                 GROUP_CONCAT(d.id ORDER BY d.id ASC) AS ids_detalles
-             FROM detalle_compra_carbon d
+             FROM carga_compra_carbon d
              INNER JOIN transportista tr ON tr.id = d.id_transportista
              WHERE d.id_compra_carbon = :id AND d.pagar_flete = 1
              GROUP BY d.id_transportista, tr.razon_social, tr.tipo_entidad
@@ -238,7 +238,7 @@ class CompraCarbonPagosData
     {
         return DB::select(
             'SELECT
-                d.id AS id_detalle_compra_carbon,
+                d.id AS id_carga_compra_carbon,
                 d.id_tipo_carbon,
                 t.nombre AS tipo_carbon_nombre,
                 d.placa,
@@ -249,7 +249,7 @@ class CompraCarbonPagosData
                 d.costo_flete_por_tonelada,
                 d.descuento_flete
              FROM detalle_comprobante_transporte_carbon dc
-             INNER JOIN detalle_compra_carbon d ON d.id = dc.id_detalle_compra_carbon
+             INNER JOIN carga_compra_carbon d ON d.id = dc.id_carga_compra_carbon
              INNER JOIN tipo_carbon t ON t.id = d.id_tipo_carbon
              WHERE dc.id_comprobante_transporte_carbon = :id
              ORDER BY d.id ASC',
@@ -328,9 +328,9 @@ class CompraCarbonPagosData
         ]);
 
         DB::table('detalle_comprobante_transporte_carbon')->insert(array_map(
-            fn (int $idDetalle): array => [
+            fn(int $idDetalle): array => [
                 'id_comprobante_transporte_carbon' => $id,
-                'id_detalle_compra_carbon' => $idDetalle,
+                'id_carga_compra_carbon' => $idDetalle,
             ],
             $ids_detalle_carga
         ));
@@ -383,7 +383,7 @@ class CompraCarbonPagosData
 
         return DB::select(
             'SELECT
-                d.id AS id_detalle_compra_carbon,
+                d.id AS id_carga_compra_carbon,
                 d.id_tipo_carbon,
                 t.nombre AS tipo_carbon_nombre,
                 d.placa,
@@ -393,7 +393,7 @@ class CompraCarbonPagosData
                 d.cantidad,
                 d.costo_flete_por_tonelada,
                 d.descuento_flete
-             FROM detalle_compra_carbon d
+             FROM carga_compra_carbon d
              INNER JOIN tipo_carbon t ON t.id = d.id_tipo_carbon
              WHERE d.id_compra_carbon = :id_compra
                AND d.id_transportista = :id_tr
@@ -721,12 +721,12 @@ class CompraCarbonPagosData
         }
 
         $rows = DB::select(
-            'SELECT id FROM detalle_compra_carbon
+            'SELECT id FROM carga_compra_carbon
              WHERE id_compra_carbon = :id_compra AND pagar_flete = 1 AND id IN (' . implode(',', $ph) . ')',
             $params
         );
 
-        $validos = array_map(fn ($r): int => (int) $r->id, $rows);
+        $validos = array_map(fn($r): int => (int) $r->id, $rows);
 
         return array_values(array_intersect(array_map('intval', $ids), $validos));
     }
