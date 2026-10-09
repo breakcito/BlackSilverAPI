@@ -2,11 +2,9 @@
 
 namespace App\Shared\Enums\CompraCarbon;
 
-enum EstadoCompraCarbon: string
+enum EstadoCargaCompraCarbon: string
 {
-    case Preliminar = 'Preliminar';
     case EnLiquidacion = 'En Liquidación';
     case Pagado = 'Pagado';
-    case Cerrado = 'Cerrado';
     case Anulado = 'Anulado';
 }

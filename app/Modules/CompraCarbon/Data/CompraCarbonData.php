@@ -2,43 +2,18 @@
 
 namespace App\Modules\CompraCarbon\Data;
 
+use App\Models\CargaCompraCarbon;
+use App\Models\CompraCarbon;
+use App\Models\KardexCarbon;
+use App\Models\StockCarbon;
+use App\Shared\Enums\CompraCarbon\EstadoCargaCompraCarbon;
 use App\Shared\Enums\CompraCarbon\EstadoCompraCarbon;
 use Illuminate\Support\Facades\DB;
 
 class CompraCarbonData
 {
-    public const CABECERA_CAMBIOS_LABELS = [
-        'id_empresa' => 'Empresa',
-        'id_proveedor' => 'Proveedor',
-        'id_almacen' => 'Almacén Empresa',
-        'id_almacen_cliente' => 'Almacén Cliente',
-        'id_almacen_proveedor' => 'Almacén Proveedor',
-        'tipo_despacho' => 'Tipo de Despacho',
-        'aplica_igv' => 'Aplica IGV',
-        'porcentaje_igv' => 'Porcentaje IGV',
-        'fecha_hora_ingreso' => 'Fecha y Hora de Ingreso',
-    ];
-
-    public const DETALLE_CAMBIOS_LABELS = [
-        'id_tipo_carbon' => 'Tipo de Carbón',
-        'id_transportista' => 'Transportista',
-        'id_lugar_extraccion' => 'Lugar de Extracción',
-        'id_tarifa_carbon' => 'Tarifa de Carbón',
-        'placa' => 'Placa',
-        'guia_remitente' => 'Guía Remitente',
-        'guia_transportista' => 'Guía Transportista',
-        'pagar_flete' => 'Paga Flete',
-        'codigo_ticket_balanza' => 'Ticket Balanza',
-        'cantidad' => 'Cantidad (TM)',
-        'porcentaje_ceniza' => '% Ceniza',
-        'porcentaje_humedad' => '% Humedad',
-        'precio_unitario' => 'Precio Unitario',
-        'costo_flete_por_tonelada' => 'Costo Flete/TM',
-    ];
-
     /**
-     * Lista cabeceras de compra de carbon con JOIN a proveedores,
-     * empresas, empleados, almacenes y conteo de detalles.
+     * Lista compras de carbón con datos de proveedor, empresa, tipo prometido y totales.
      * @param array{filtros?: string, id_empresa?: int, id_proveedor?: int, mes?: int, anio?: int} $opts
      * @return array<object>
      */
@@ -49,67 +24,68 @@ class CompraCarbonData
                 cc.id AS id_compra_carbon,
                 cc.id_empresa,
                 e.razon_social AS empresa,
+                e.ruc AS empresa_ruc,
                 cc.id_proveedor,
                 p.razon_social AS proveedor,
                 p.tipo_entidad AS proveedor_tipo_entidad,
                 p.ruc AS proveedor_ruc,
                 p.dni AS proveedor_dni,
-                cc.tipo_despacho,
-                cc.id_almacen,
-                alm.nombre AS almacen,
-                cc.id_almacen_cliente,
-                ac.direccion AS almacen_cliente_direccion,
-                cli.razon_social AS cliente_destino,
-                cc.id_almacen_proveedor,
-                aprov.direccion AS almacen_proveedor_direccion,
-                cc.id_empleado_registro,
-                CONCAT(er.nombre, " ", er.apellido) AS empleado_registro,
-                cc.id_empleado_confirma,
-                CONCAT(ec.nombre, " ", ec.apellido) AS empleado_aprueba,
-                cc.id_empleado_aprueba_liquidacion,
-                CONCAT(eal.nombre, " ", eal.apellido) AS empleado_aprueba_liquidacion,
-                cc.id_empleado_anula,
-                CONCAT(ean.nombre, " ", ean.apellido) AS empleado_anula,
-                cc.aplica_igv,
-                cc.porcentaje_igv,
+                p.direccion AS proveedor_direccion,
+                cc.id_tipo_carbon_prometido,
+                tc_prom.nombre AS tipo_carbon_prometido,
+                tc_prom.codigo AS tipo_carbon_prometido_codigo,
+                tc_prom.ficha_tecnica,
+                cc.id_tarifa_carbon,
                 cc.correlativo,
                 cc.numero_correlativo,
-                cc.fecha_hora_ingreso,
-                cc.fecha_hora_confirmacion,
-                cc.fecha_hora_aprobacion_liquidacion,
+                cc.aplica_igv,
+                cc.porcentaje_igv,
+                cc.toneladas_prometidas,
+                cc.precio_unitario_cotizado,
+                cc.total_cotizado,
+                cc.monto_igv_cotizado,
+                cc.id_empleado_registro,
+                CONCAT(er.nombre, " ", er.apellido) AS empleado_registro,
+                cc.id_empleado_cierre,
+                CONCAT(ec.nombre, " ", ec.apellido) AS empleado_cierre,
+                cc.id_empleado_anula,
+                CONCAT(ea.nombre, " ", ea.apellido) AS empleado_anula,
+                cc.fecha_hora_cierre,
                 cc.fecha_hora_anulacion,
-                cc.evidencias,
-                cc.total_antes_descuento,
-                cc.monto_igv,
-                cc.descuento_flete,
-                cc.total_con_descuento,
-                cc.monto_pagado_anticipos,
-                cc.avance_pago_neto,
-                cc.avance_pago_flete,
                 cc.log_cambios,
                 cc.created_at,
                 cc.estado,
                 (
                     SELECT COUNT(*)
-                    FROM carga_compra_carbon d
-                    WHERE d.id_compra_carbon = cc.id
-                ) AS cantidad_items
+                    FROM carga_compra_carbon c
+                    WHERE c.id_compra_carbon = cc.id
+                ) AS cantidad_cargas,
+                (
+                    SELECT COALESCE(SUM(c.cantidad), 0)
+                    FROM carga_compra_carbon c
+                    WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
+                ) AS total_toneladas_reales,
+                (
+                    SELECT COALESCE(SUM(c.subtotal_con_descuento), 0)
+                    FROM carga_compra_carbon c
+                    WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
+                ) AS total_real_con_descuento
             FROM compra_carbon cc
             INNER JOIN empresa e ON e.id = cc.id_empresa
             INNER JOIN proveedor p ON p.id = cc.id_proveedor
             INNER JOIN empleado er ON er.id = cc.id_empleado_registro
-            LEFT JOIN empleado ec ON ec.id = cc.id_empleado_confirma
-            LEFT JOIN empleado eal ON eal.id = cc.id_empleado_aprueba_liquidacion
-            LEFT JOIN empleado ean ON ean.id = cc.id_empleado_anula
-            LEFT JOIN almacen alm ON alm.id = cc.id_almacen
-            LEFT JOIN almacen_carbon_cliente ac ON ac.id = cc.id_almacen_cliente
-            LEFT JOIN cliente cli ON cli.id = ac.id_cliente
-            LEFT JOIN almacen_carbon_proveedor aprov ON aprov.id = cc.id_almacen_proveedor
+            LEFT JOIN tipo_carbon tc_prom ON tc_prom.id = cc.id_tipo_carbon_prometido
+            LEFT JOIN empleado ec ON ec.id = cc.id_empleado_cierre
+            LEFT JOIN empleado ea ON ea.id = cc.id_empleado_anula
             WHERE 1 = 1
         ';
 
         $params = [];
 
+        if (!empty($opts['id_compra_carbon'])) {
+            $sql .= ' AND cc.id = :id_compra_carbon';
+            $params['id_compra_carbon'] = (int) $opts['id_compra_carbon'];
+        }
         if (!empty($opts['id_empresa'])) {
             $sql .= ' AND cc.id_empresa = :id_empresa';
             $params['id_empresa'] = (int) $opts['id_empresa'];
@@ -139,18 +115,26 @@ class CompraCarbonData
         $sql .= ' ORDER BY cc.id DESC';
 
         $rows = DB::select($sql, $params);
-
         foreach ($rows as $row) {
-            $row->evidencias = self::decode_json($row->evidencias ?? null);
             $row->log_cambios = self::decode_json($row->log_cambios ?? null);
+            $row->ficha_tecnica = self::decode_json($row->ficha_tecnica ?? null);
         }
 
         return $rows;
     }
 
     /**
-     * Trae la cabecera + detalles + anticipos utilizados de una compra por id.
-     * @return array{cabecera: object|null, detalles: array<object>, anticipos_utilizados: array<object>}
+     * Obtiene una compra por su id con la misma estructura del listado.
+     */
+    public static function get_compra_by_id(int $id_compra_carbon): ?object
+    {
+        $rows = self::get_compras(['id_compra_carbon' => $id_compra_carbon]);
+        return $rows[0] ?? null;
+    }
+
+    /**
+     * Trae cabecera + cargas + comprobantes + pagos + anticipos de una compra por id.
+     * @return array<string, mixed>
      */
     public static function get_compra_con_detalles(int $id_compra_carbon): array
     {
@@ -159,48 +143,33 @@ class CompraCarbonData
                 cc.id AS id_compra_carbon,
                 cc.id_empresa,
                 e.razon_social AS empresa,
+                e.ruc AS empresa_ruc,
                 cc.id_proveedor,
                 p.razon_social AS proveedor,
                 p.tipo_entidad AS proveedor_tipo_entidad,
                 p.ruc AS proveedor_ruc,
                 p.dni AS proveedor_dni,
-                cc.tipo_despacho,
-                cc.id_almacen,
-                alm.nombre AS almacen,
-                alm.id_departamento AS almacen_id_departamento,
-                alm.id_provincia AS almacen_id_provincia,
-                alm.id_distrito AS almacen_id_distrito,
-                alm.direccion AS almacen_direccion,
-                cc.id_almacen_cliente,
-                ac.direccion AS almacen_cliente_direccion,
-                cli.id AS cliente_destino_id,
-                cli.razon_social AS cliente_destino,
-                cc.id_almacen_proveedor,
-                aprov.direccion AS almacen_proveedor_direccion,
-                cc.id_empleado_registro,
-                CONCAT(er.nombre, " ", er.apellido) AS empleado_registro,
-                cc.id_empleado_confirma,
-                CONCAT(ec.nombre, " ", ec.apellido) AS empleado_aprueba,
-                cc.id_empleado_aprueba_liquidacion,
-                CONCAT(eal.nombre, " ", eal.apellido) AS empleado_aprueba_liquidacion,
-                cc.id_empleado_anula,
-                CONCAT(ean.nombre, " ", ean.apellido) AS empleado_anula,
-                cc.aplica_igv,
-                cc.porcentaje_igv,
+                p.direccion AS proveedor_direccion,
+                cc.id_tipo_carbon_prometido,
+                tc_prom.nombre AS tipo_carbon_prometido,
+                tc_prom.codigo AS tipo_carbon_prometido_codigo,
+                cc.id_tarifa_carbon,
                 cc.correlativo,
                 cc.numero_correlativo,
-                cc.fecha_hora_ingreso,
-                cc.fecha_hora_confirmacion,
-                cc.fecha_hora_aprobacion_liquidacion,
+                cc.aplica_igv,
+                cc.porcentaje_igv,
+                cc.toneladas_prometidas,
+                cc.precio_unitario_cotizado,
+                cc.total_cotizado,
+                cc.monto_igv_cotizado,
+                cc.id_empleado_registro,
+                CONCAT(er.nombre, " ", er.apellido) AS empleado_registro,
+                cc.id_empleado_cierre,
+                CONCAT(ec.nombre, " ", ec.apellido) AS empleado_cierre,
+                cc.id_empleado_anula,
+                CONCAT(ea.nombre, " ", ea.apellido) AS empleado_anula,
+                cc.fecha_hora_cierre,
                 cc.fecha_hora_anulacion,
-                cc.evidencias,
-                cc.total_antes_descuento,
-                cc.monto_igv,
-                cc.descuento_flete,
-                cc.total_con_descuento,
-                cc.monto_pagado_anticipos,
-                cc.avance_pago_neto,
-                cc.avance_pago_flete,
                 cc.log_cambios,
                 cc.created_at,
                 cc.estado
@@ -208,107 +177,313 @@ class CompraCarbonData
             INNER JOIN empresa e ON e.id = cc.id_empresa
             INNER JOIN proveedor p ON p.id = cc.id_proveedor
             INNER JOIN empleado er ON er.id = cc.id_empleado_registro
-            LEFT JOIN empleado ec ON ec.id = cc.id_empleado_confirma
-            LEFT JOIN empleado eal ON eal.id = cc.id_empleado_aprueba_liquidacion
-            LEFT JOIN empleado ean ON ean.id = cc.id_empleado_anula
-            LEFT JOIN almacen alm ON alm.id = cc.id_almacen
-            LEFT JOIN almacen_carbon_cliente ac ON ac.id = cc.id_almacen_cliente
-            LEFT JOIN cliente cli ON cli.id = ac.id_cliente
-            LEFT JOIN almacen_carbon_proveedor aprov ON aprov.id = cc.id_almacen_proveedor
+            LEFT JOIN tipo_carbon tc_prom ON tc_prom.id = cc.id_tipo_carbon_prometido
+            LEFT JOIN empleado ec ON ec.id = cc.id_empleado_cierre
+            LEFT JOIN empleado ea ON ea.id = cc.id_empleado_anula
             WHERE cc.id = :id
             LIMIT 1
         ';
+
         $cabecera = DB::selectOne($sqlCabecera, ['id' => $id_compra_carbon]);
         if ($cabecera !== null) {
-            $cabecera->evidencias = self::decode_json($cabecera->evidencias ?? null);
             $cabecera->log_cambios = self::decode_json($cabecera->log_cambios ?? null);
         }
 
-        $sqlDetalles = '
+        $sqlCargas = '
             SELECT
-                d.id AS id_carga_compra_carbon,
-                d.id_tipo_carbon,
-                t.nombre AS tipo_carbon_nombre,
-                t.codigo AS tipo_carbon_codigo,
-                t.ficha_tecnica AS tipo_carbon_ficha_tecnica,
-                d.id_transportista,
+                c.id AS id_carga_compra_carbon,
+                c.id_compra_carbon,
+                c.id_empleado_registro,
+                CONCAT(e.nombre, " ", e.apellido) AS empleado_registro,
+                c.id_tipo_carbon,
+                tc.nombre AS tipo_carbon_nombre,
+                tc.codigo AS tipo_carbon_codigo,
+                c.id_lugar_extraccion,
+                le.direccion AS lugar_extraccion_nombre,
+                le.direccion AS lugar_extraccion_direccion,
+                c.id_almacen_proveedor_recojo,
+                aprov.direccion AS almacen_proveedor_direccion,
+                c.id_almacen_empresa_llegada,
+                alm.nombre AS almacen_empresa_nombre,
+                c.id_almacen_cliente_llegada,
+                ac.direccion AS almacen_cliente_direccion,
+                cli.razon_social AS cliente_destino,
+                c.id_tarifa_carbon,
+                tar.inicio_porcentaje_ceniza AS tarifa_inicio_ceniza,
+                tar.fin_porcentaje_ceniza AS tarifa_fin_ceniza,
+                tar.precio_unitario AS tarifa_precio_unitario,
+                c.id_transportista,
                 tr.razon_social AS transportista_razon_social,
-                tr.tipo_entidad AS transportista_tipo_entidad,
-                d.id_lugar_extraccion,
-                le.id_departamento AS lugar_id_departamento,
-                dpto.nombre AS lugar_departamento,
-                le.id_provincia AS lugar_id_provincia,
-                prov.nombre AS lugar_provincia,
-                le.id_distrito AS lugar_id_distrito,
-                dist.nombre AS lugar_distrito,
-                le.direccion AS lugar_direccion,
-                d.id_tarifa_carbon,
-                tc.inicio_porcentaje_ceniza AS tarifa_inicio_ceniza,
-                tc.fin_porcentaje_ceniza AS tarifa_fin_ceniza,
-                tc.precio_unitario AS tarifa_precio_unitario,
-                d.placa,
-                d.guia_remitente,
-                d.guia_transportista,
-                d.pagar_flete,
-                d.codigo_ticket_balanza,
-                d.cantidad,
-                d.porcentaje_ceniza,
-                d.porcentaje_humedad,
-                d.precio_unitario,
-                d.costo_flete_por_tonelada,
-                d.subtotal_antes_descuento,
-                d.descuento_flete,
-                d.subtotal_con_descuento,
-                d.evidencias,
-                d.log_cambios
-            FROM carga_compra_carbon d
-            INNER JOIN tipo_carbon t ON t.id = d.id_tipo_carbon
-            LEFT JOIN transportista tr ON tr.id = d.id_transportista
-            LEFT JOIN lugar_extraccion_carbon le ON le.id = d.id_lugar_extraccion
-            LEFT JOIN departamento dpto ON dpto.id = le.id_departamento
-            LEFT JOIN provincia prov ON prov.id = le.id_provincia
-            LEFT JOIN distrito dist ON dist.id = le.id_distrito
-            LEFT JOIN tarifa_carbon tc ON tc.id = d.id_tarifa_carbon
-            WHERE d.id_compra_carbon = :id
-            ORDER BY d.id ASC
+                c.id_comprobante_transporte_carbon,
+                com_tr.codigo_comprobante AS comprobante_transporte_codigo,
+                c.id_comprobante_compra_carbon,
+                com_pr.codigo_comprobante AS comprobante_compra_codigo,
+                c.id_pago_compra_carbon,
+                p_dir.numero_operacion AS pago_directo_numero_operacion,
+                c.tipo_despacho,
+                c.placa,
+                c.fecha_hora_ingreso,
+                c.guia_remitente,
+                c.guia_transportista,
+                c.pagar_flete,
+                c.codigo_ticket_balanza,
+                c.cantidad,
+                c.porcentaje_ceniza,
+                c.porcentaje_humedad,
+                c.precio_unitario,
+                c.costo_flete_por_tonelada,
+                c.subtotal_antes_descuento,
+                c.descuento_flete,
+                c.subtotal_con_descuento,
+                c.evidencias,
+                c.log_cambios,
+                c.created_at,
+                c.estado
+            FROM carga_compra_carbon c
+            INNER JOIN empleado e ON e.id = c.id_empleado_registro
+            INNER JOIN tipo_carbon tc ON tc.id = c.id_tipo_carbon
+            LEFT JOIN lugar_extraccion_carbon le ON le.id = c.id_lugar_extraccion
+            LEFT JOIN almacen_carbon_proveedor aprov ON aprov.id = c.id_almacen_proveedor_recojo
+            LEFT JOIN almacen alm ON alm.id = c.id_almacen_empresa_llegada
+            LEFT JOIN almacen_carbon_cliente ac ON ac.id = c.id_almacen_cliente_llegada
+            LEFT JOIN cliente cli ON cli.id = ac.id_cliente
+            LEFT JOIN tarifa_carbon tar ON tar.id = c.id_tarifa_carbon
+            LEFT JOIN transportista tr ON tr.id = c.id_transportista
+            LEFT JOIN comprobante_transporte_carbon com_tr ON com_tr.id = c.id_comprobante_transporte_carbon
+            LEFT JOIN comprobante_compra_carbon com_pr ON com_pr.id = c.id_comprobante_compra_carbon
+            LEFT JOIN pago_compra_carbon p_dir ON p_dir.id = c.id_pago_compra_carbon
+            WHERE c.id_compra_carbon = :id
+            ORDER BY c.id ASC
         ';
-        $detalles = DB::select($sqlDetalles, ['id' => $id_compra_carbon]);
 
-        foreach ($detalles as $row) {
-            $row->evidencias = self::decode_json($row->evidencias ?? null);
-            $row->log_cambios = self::decode_json($row->log_cambios ?? null);
-            $row->tipo_carbon_ficha_tecnica = self::decode_json($row->tipo_carbon_ficha_tecnica ?? null);
+        $cargas = DB::select($sqlCargas, ['id' => $id_compra_carbon]);
+        foreach ($cargas as $c) {
+            $c->evidencias = self::decode_json($c->evidencias ?? null);
+            $c->log_cambios = self::decode_json($c->log_cambios ?? null);
         }
 
-        $sqlAnticipos = '
+        // Comprobantes del proveedor
+        $sqlComprobantes = '
             SELECT
-                tap.id AS id_transaccion_anticipo,
+                cmp.id AS id_comprobante_compra_carbon,
+                cmp.id_empleado_registro,
+                CONCAT(e.nombre, " ", e.apellido) AS empleado_registro,
+                cmp.id_compra_carbon,
+                cmp.codigo_comprobante,
+                cmp.fecha_emision,
+                cmp.observacion,
+                cmp.evidencias,
+                cmp.total,
+                cmp.con_detraccion,
+                cmp.porcentaje_detraccion,
+                cmp.monto_detraccion,
+                cmp.total_sin_detraccion,
+                cmp.monto_pagado_anticipos,
+                cmp.total_neto,
+                cmp.avance_pago_detraccion,
+                cmp.avance_pago_neto,
+                cmp.created_at,
+                cmp.estado
+            FROM comprobante_compra_carbon cmp
+            INNER JOIN empleado e ON e.id = cmp.id_empleado_registro
+            WHERE cmp.id_compra_carbon = :id
+            ORDER BY cmp.id ASC
+        ';
+        $comprobantesProveedor = DB::select($sqlComprobantes, ['id' => $id_compra_carbon]);
+        foreach ($comprobantesProveedor as $cmp) {
+            $cmp->evidencias = self::decode_json($cmp->evidencias ?? null);
+            // Pagos asociados a este comprobante
+            $cmp->pagos = DB::select('
+                SELECT
+                    p.id AS id_pago_compra_carbon,
+                    p.id_compra_carbon,
+                    p.id_comprobante_compra_carbon,
+                    p.id_cuenta_bancaria_empresa,
+                    cbe.banco AS empresa_banco,
+                    cbe.numero_cuenta AS empresa_numero_cuenta,
+                    p.id_cuenta_bancaria_proveedor,
+                    cbp.banco AS proveedor_banco,
+                    cbp.numero_cuenta AS proveedor_numero_cuenta,
+                    p.id_empleado_registro,
+                    CONCAT(ep.nombre, " ", ep.apellido) AS empleado_registro,
+                    p.medio_pago,
+                    p.numero_operacion,
+                    p.fecha_hora_pago,
+                    p.es_para_detraccion,
+                    p.observacion,
+                    p.evidencias,
+                    p.monto_pagado,
+                    p.created_at
+                FROM pago_compra_carbon p
+                LEFT JOIN cuenta_bancaria_empresa cbe ON cbe.id = p.id_cuenta_bancaria_empresa
+                LEFT JOIN cuenta_bancaria_proveedor cbp ON cbp.id = p.id_cuenta_bancaria_proveedor
+                INNER JOIN empleado ep ON ep.id = p.id_empleado_registro
+                WHERE p.id_comprobante_compra_carbon = :id_cmp
+                ORDER BY p.id ASC
+            ', ['id_cmp' => $cmp->id_comprobante_compra_carbon]);
+            foreach ($cmp->pagos as $p) {
+                $p->evidencias = self::decode_json($p->evidencias ?? null);
+            }
+
+            // Anticipos aplicados a este comprobante
+            $cmp->anticipos_aplicados = DB::select('
+                SELECT
+                    tap.id AS id_transaccion,
+                    tap.id_anticipo_proveedor,
+                    tap.monto_retirado,
+                    ap.medio_pago,
+                    ap.numero_operacion,
+                    ap.fecha_hora_pago,
+                    ap.codigo_comprobante
+                FROM transaccion_anticipo_proveedor tap
+                INNER JOIN anticipo_proveedor ap ON ap.id = tap.id_anticipo_proveedor
+                WHERE tap.id_comprobante_compra_carbon = :id_cmp
+            ', ['id_cmp' => $cmp->id_comprobante_compra_carbon]);
+        }
+
+        // Pagos directos (sin comprobante) de la compra
+        $sqlPagosDirectos = '
+            SELECT
+                p.id AS id_pago_compra_carbon,
+                p.id_compra_carbon,
+                p.id_cuenta_bancaria_empresa,
+                cbe.banco AS empresa_banco,
+                cbe.numero_cuenta AS empresa_numero_cuenta,
+                p.id_cuenta_bancaria_proveedor,
+                cbp.banco AS proveedor_banco,
+                cbp.numero_cuenta AS proveedor_numero_cuenta,
+                p.id_empleado_registro,
+                CONCAT(ep.nombre, " ", ep.apellido) AS empleado_registro,
+                p.medio_pago,
+                p.numero_operacion,
+                p.fecha_hora_pago,
+                p.es_para_detraccion,
+                p.observacion,
+                p.evidencias,
+                p.monto_pagado,
+                p.created_at
+            FROM pago_compra_carbon p
+            LEFT JOIN cuenta_bancaria_empresa cbe ON cbe.id = p.id_cuenta_bancaria_empresa
+            LEFT JOIN cuenta_bancaria_proveedor cbp ON cbp.id = p.id_cuenta_bancaria_proveedor
+            INNER JOIN empleado ep ON ep.id = p.id_empleado_registro
+            WHERE p.id_compra_carbon = :id AND p.id_comprobante_compra_carbon IS NULL
+            ORDER BY p.id ASC
+        ';
+        $pagosDirectos = DB::select($sqlPagosDirectos, ['id' => $id_compra_carbon]);
+        foreach ($pagosDirectos as $p) {
+            $p->evidencias = self::decode_json($p->evidencias ?? null);
+            // Anticipos aplicados a este pago
+            $p->anticipos_aplicados = DB::select('
+                SELECT
+                    tap.id AS id_transaccion,
+                    tap.id_anticipo_proveedor,
+                    tap.monto_retirado,
+                    ap.medio_pago,
+                    ap.numero_operacion,
+                    ap.fecha_hora_pago,
+                    ap.codigo_comprobante
+                FROM transaccion_anticipo_proveedor tap
+                INNER JOIN anticipo_proveedor ap ON ap.id = tap.id_anticipo_proveedor
+                WHERE tap.id_pago_compra_carbon = :id_pago
+            ', ['id_pago' => $p->id_pago_compra_carbon]);
+        }
+
+        // Comprobantes de flete / transporte
+        $sqlComprobantesTransporte = '
+            SELECT
+                ct.id AS id_comprobante_transporte_carbon,
+                ct.id_compra_carbon,
+                ct.id_empleado_registro,
+                CONCAT(e.nombre, " ", e.apellido) AS empleado_registro,
+                ct.id_transportista,
+                tr.razon_social AS transportista_razon_social,
+                ct.codigo_comprobante,
+                ct.fecha_emision,
+                ct.observacion,
+                ct.evidencias,
+                ct.total,
+                ct.con_detraccion,
+                ct.porcentaje_detraccion,
+                ct.monto_detraccion,
+                ct.total_neto,
+                ct.avance_pago_detraccion,
+                ct.avance_pago_neto,
+                ct.created_at,
+                ct.estado
+            FROM comprobante_transporte_carbon ct
+            INNER JOIN empleado e ON e.id = ct.id_empleado_registro
+            INNER JOIN transportista tr ON tr.id = ct.id_transportista
+            WHERE ct.id_compra_carbon = :id
+            ORDER BY ct.id ASC
+        ';
+        $comprobantesTransporte = DB::select($sqlComprobantesTransporte, ['id' => $id_compra_carbon]);
+        foreach ($comprobantesTransporte as $ct) {
+            $ct->evidencias = self::decode_json($ct->evidencias ?? null);
+            $ct->pagos = DB::select('
+                SELECT
+                    pt.id AS id_pago_transporte_carbon,
+                    pt.id_compra_carbon,
+                    pt.id_comprobante_transporte_carbon,
+                    pt.id_cuenta_bancaria_empresa,
+                    cbe.banco AS empresa_banco,
+                    cbe.numero_cuenta AS empresa_numero_cuenta,
+                    pt.id_cuenta_bancaria_transportista,
+                    cbt.banco AS transportista_banco,
+                    cbt.numero_cuenta AS transportista_numero_cuenta,
+                    pt.id_empleado_registro,
+                    CONCAT(ep.nombre, " ", ep.apellido) AS empleado_registro,
+                    pt.medio_pago,
+                    pt.numero_operacion,
+                    pt.fecha_hora_pago,
+                    pt.es_para_detraccion,
+                    pt.observacion,
+                    pt.evidencias,
+                    pt.monto_pagado,
+                    pt.created_at
+                FROM pago_transporte_carbon pt
+                LEFT JOIN cuenta_bancaria_empresa cbe ON cbe.id = pt.id_cuenta_bancaria_empresa
+                LEFT JOIN cuenta_bancaria_transportista cbt ON cbt.id = pt.id_cuenta_bancaria_transportista
+                INNER JOIN empleado ep ON ep.id = pt.id_empleado_registro
+                WHERE pt.id_comprobante_transporte_carbon = :id_ct
+                ORDER BY pt.id ASC
+            ', ['id_ct' => $ct->id_comprobante_transporte_carbon]);
+            foreach ($ct->pagos as $p) {
+                $p->evidencias = self::decode_json($p->evidencias ?? null);
+            }
+        }
+
+        // Todos los anticipos usados en esta compra
+        $sqlAnticiposConsolidados = '
+            SELECT
+                tap.id AS id_transaccion,
                 tap.id_anticipo_proveedor,
-                tap.id_compra_carbon,
+                tap.id_comprobante_compra_carbon,
+                tap.id_pago_compra_carbon,
                 tap.monto_retirado,
                 ap.medio_pago,
-                ap.fecha_hora_pago,
                 ap.numero_operacion,
-                ap.saldo_inicial,
-                ap.saldo_actual,
-                ce.numero_cuenta AS cuenta_bancaria_empresa_numero
+                ap.fecha_hora_pago,
+                ap.codigo_comprobante,
+                ap.observacion
             FROM transaccion_anticipo_proveedor tap
             INNER JOIN anticipo_proveedor ap ON ap.id = tap.id_anticipo_proveedor
-            LEFT JOIN cuenta_bancaria_empresa ce ON ce.id = ap.id_cuenta_bancaria_empresa
             WHERE tap.id_compra_carbon = :id
             ORDER BY tap.id ASC
         ';
-        $anticipos = DB::select($sqlAnticipos, ['id' => $id_compra_carbon]);
+        $anticiposConsolidados = DB::select($sqlAnticiposConsolidados, ['id' => $id_compra_carbon]);
 
         return [
             'cabecera' => $cabecera,
-            'detalles' => $detalles,
-            'anticipos_utilizados' => $anticipos,
+            'cargas' => $cargas,
+            'comprobantes_proveedor' => $comprobantesProveedor,
+            'pagos_directos' => $pagosDirectos,
+            'comprobantes_transporte' => $comprobantesTransporte,
+            'anticipos_utilizados' => $anticiposConsolidados,
         ];
     }
 
     /**
-     * Devuelve la tarifa de precio mayor para un tipo de carbón.
+     * Devuelve la tarifa activa con el precio más alto para un tipo de carbón.
      */
     public static function get_tarifa_max_precio(int $id_tipo_carbon): ?object
     {
@@ -322,393 +497,248 @@ class CompraCarbonData
     }
 
     /**
-     * Inserta la cabecera preliminar y devuelve el id generado.
+     * Busca la tarifa adecuada según el porcentaje de ceniza.
      */
-    public static function insert_cabecera(array $cabecera): int
+    public static function get_tarifa_por_ceniza(int $id_tipo_carbon, float $ceniza): ?object
     {
-        return DB::table('compra_carbon')->insertGetId([
-            'id_empresa' => (int) $cabecera['id_empresa'],
-            'id_proveedor' => (int) $cabecera['id_proveedor'],
-            'id_almacen' => isset($cabecera['id_almacen']) && $cabecera['id_almacen'] ? (int) $cabecera['id_almacen'] : null,
-            'id_almacen_cliente' => isset($cabecera['id_almacen_cliente']) && $cabecera['id_almacen_cliente'] ? (int) $cabecera['id_almacen_cliente'] : null,
-            'id_almacen_proveedor' => isset($cabecera['id_almacen_proveedor']) && $cabecera['id_almacen_proveedor'] ? (int) $cabecera['id_almacen_proveedor'] : null,
-            'id_empleado_registro' => (int) $cabecera['id_empleado_registro'],
-            'tipo_despacho' => $cabecera['tipo_despacho'] ?? null,
-            'aplica_igv' => !empty($cabecera['aplica_igv']) ? 1 : 0,
-            'porcentaje_igv' => (float) ($cabecera['porcentaje_igv'] ?? 0),
-            'correlativo' => (string) $cabecera['correlativo'],
-            'numero_correlativo' => (int) $cabecera['numero_correlativo'],
-            'fecha_hora_ingreso' => null,
-            'total_antes_descuento' => (float) ($cabecera['total_antes_descuento'] ?? 0),
-            'monto_igv' => (float) ($cabecera['monto_igv'] ?? 0),
-            'descuento_flete' => (float) ($cabecera['descuento_flete'] ?? 0),
-            'total_con_descuento' => (float) ($cabecera['total_con_descuento'] ?? 0),
-            'estado' => (string) ($cabecera['estado'] ?? EstadoCompraCarbon::Preliminar->value),
-            'evidencias' => $cabecera['evidencias'] ?? null,
+        return DB::table('tarifa_carbon')
+            ->where('id_tipo_carbon', $id_tipo_carbon)
+            ->where(function ($q) {
+                $q->whereNull('estado')->orWhere('estado', 'Activo');
+            })
+            ->where('inicio_porcentaje_ceniza', '<=', $ceniza)
+            ->where('fin_porcentaje_ceniza', '>=', $ceniza)
+            ->orderByDesc('precio_unitario')
+            ->first();
+    }
+
+    /**
+     * Genera el siguiente correlativo anual de compra de carbón.
+     * @return array{correlativo: string, numero_correlativo: int}
+     */
+    public static function generar_correlativo(int $anio): array
+    {
+        $max = DB::table('compra_carbon')
+            ->whereRaw('YEAR(created_at) = ?', [$anio])
+            ->max('numero_correlativo');
+
+        $sig = ((int) $max) + 1;
+        $correlativo = sprintf('%04d-%d', $sig, $anio);
+
+        return [
+            'correlativo' => $correlativo,
+            'numero_correlativo' => $sig,
+        ];
+    }
+
+    /**
+     * Inserta la orden de compra preliminar.
+     * @param array<string, mixed> $data
+     */
+    public static function insert_compra(array $data): int
+    {
+        return CompraCarbon::insertGetId([
+            'id_empresa' => (int) $data['id_empresa'],
+            'id_proveedor' => (int) $data['id_proveedor'],
+            'id_empleado_registro' => (int) $data['id_empleado_registro'],
+            'id_tipo_carbon_prometido' => (int) $data['id_tipo_carbon_prometido'],
+            'id_tarifa_carbon' => isset($data['id_tarifa_carbon']) && (int) $data['id_tarifa_carbon'] > 0
+                ? (int) $data['id_tarifa_carbon']
+                : null,
+            'correlativo' => (string) $data['correlativo'],
+            'numero_correlativo' => (int) $data['numero_correlativo'],
+            'aplica_igv' => !empty($data['aplica_igv']) ? 1 : 0,
+            'porcentaje_igv' => (float) ($data['porcentaje_igv'] ?? 0),
+            'toneladas_prometidas' => (float) $data['toneladas_prometidas'],
+            'precio_unitario_cotizado' => (float) $data['precio_unitario_cotizado'],
+            'total_cotizado' => (float) $data['total_cotizado'],
+            'monto_igv_cotizado' => (float) ($data['monto_igv_cotizado'] ?? 0),
             'log_cambios' => null,
-            'created_at' => (string) ($cabecera['created_at'] ?? now()->toDateTimeString()),
+            'created_at' => (string) ($data['created_at'] ?? now()->toDateTimeString()),
+            'estado' => EstadoCompraCarbon::Preliminar->value,
         ]);
     }
 
     /**
-     * Inserta N lineas de detalle para una compra.
-     * @param array<int, array<string, mixed>> $detalles
+     * Inserta una o varias cargas en carga_compra_carbon y afecta stock/kardex si ingresan a almacén de empresa.
+     * @param array<int, array<string, mixed>> $cargas
+     * @return array<int> IDs de las cargas insertadas
      */
-    public static function insert_detalles(int $id_compra_carbon, array $detalles): void
+    public static function insert_cargas(int $id_compra_carbon, array $cargas, int $id_empleado): array
     {
-        if (empty($detalles)) {
-            return;
-        }
-        $filas = [];
-        foreach ($detalles as $d) {
-            $filas[] = [
-                'id_compra_carbon' => $id_compra_carbon,
-                'id_tipo_carbon' => (int) $d['id_tipo_carbon'],
-                'id_transportista' => isset($d['id_transportista']) && $d['id_transportista'] !== null && (int) $d['id_transportista'] > 0
-                    ? (int) $d['id_transportista']
-                    : null,
-                'id_lugar_extraccion' => isset($d['id_lugar_extraccion']) && $d['id_lugar_extraccion'] !== null && (int) $d['id_lugar_extraccion'] > 0
-                    ? (int) $d['id_lugar_extraccion']
-                    : null,
-                'id_tarifa_carbon' => isset($d['id_tarifa_carbon']) && $d['id_tarifa_carbon'] !== null && (int) $d['id_tarifa_carbon'] > 0
-                    ? (int) $d['id_tarifa_carbon']
-                    : null,
-                'placa' => isset($d['placa']) ? (string) $d['placa'] : '',
-                'guia_remitente' => isset($d['guia_remitente']) ? (string) $d['guia_remitente'] : '',
-                'guia_transportista' => isset($d['guia_transportista']) && $d['guia_transportista'] !== '' ? (string) $d['guia_transportista'] : null,
-                'pagar_flete' => !empty($d['pagar_flete']) ? 1 : 0,
-                'codigo_ticket_balanza' => isset($d['codigo_ticket_balanza']) ? (string) $d['codigo_ticket_balanza'] : '',
-                'cantidad' => (float) $d['cantidad'],
-                'porcentaje_ceniza' => (float) ($d['porcentaje_ceniza'] ?? 0),
-                'porcentaje_humedad' => (float) ($d['porcentaje_humedad'] ?? 0),
-                'precio_unitario' => (float) $d['precio_unitario'],
-                'costo_flete_por_tonelada' => (float) ($d['costo_flete_por_tonelada'] ?? 0),
-                'subtotal_antes_descuento' => (float) $d['subtotal_antes_descuento'],
-                'descuento_flete' => (float) $d['descuento_flete'],
-                'subtotal_con_descuento' => (float) $d['subtotal_con_descuento'],
-                'evidencias' => isset($d['evidencias']) && $d['evidencias'] !== null
-                    ? (is_string($d['evidencias']) ? $d['evidencias'] : json_encode($d['evidencias'], JSON_UNESCAPED_UNICODE))
-                    : null,
-                'log_cambios' => isset($d['log_cambios']) && $d['log_cambios'] !== null
-                    ? (is_string($d['log_cambios']) ? $d['log_cambios'] : json_encode($d['log_cambios'], JSON_UNESCAPED_UNICODE))
-                    : null,
-            ];
-        }
-        DB::table('carga_compra_carbon')->insert($filas);
-    }
+        return DB::transaction(function () use ($id_compra_carbon, $cargas, $id_empleado) {
+            $idsInsertados = [];
 
-    /**
-     * Confirma la llegada de carga de una compra preliminar.
-     */
-    public static function confirmar_compra(
-        int $id_compra_carbon,
-        array $cabecera,
-        array $detalles,
-        int $id_empleado_confirma
-    ): void {
-        DB::transaction(function () use ($id_compra_carbon, $cabecera, $detalles, $id_empleado_confirma) {
-            DB::table('compra_carbon')
-                ->where('id', $id_compra_carbon)
-                ->update([
-                    'tipo_despacho' => $cabecera['tipo_despacho'],
-                    'id_almacen' => $cabecera['id_almacen'] ?? null,
-                    'id_almacen_cliente' => $cabecera['id_almacen_cliente'] ?? null,
-                    'id_almacen_proveedor' => $cabecera['id_almacen_proveedor'] ?? null,
-                    'aplica_igv' => !empty($cabecera['aplica_igv']) ? 1 : 0,
-                    'porcentaje_igv' => (float) ($cabecera['porcentaje_igv'] ?? 0),
-                    'fecha_hora_ingreso' => (string) $cabecera['fecha_hora_ingreso'],
-                    'total_antes_descuento' => (float) ($cabecera['total_antes_descuento'] ?? 0),
-                    'monto_igv' => (float) ($cabecera['monto_igv'] ?? 0),
-                    'descuento_flete' => (float) ($cabecera['descuento_flete'] ?? 0),
-                    'total_con_descuento' => (float) ($cabecera['total_con_descuento'] ?? 0),
-                    'id_empleado_confirma' => $id_empleado_confirma,
-                    'fecha_hora_confirmacion' => now()->toDateTimeString(),
-                    'estado' => EstadoCompraCarbon::Confirmado->value,
-                    'evidencias' => $cabecera['evidencias'] ?? null,
-                ]);
+            foreach ($cargas as $c) {
+                $idAlmacenEmpresa = isset($c['id_almacen_empresa_llegada']) && (int) $c['id_almacen_empresa_llegada'] > 0
+                    ? (int) $c['id_almacen_empresa_llegada']
+                    : null;
+                $idAlmacenCliente = isset($c['id_almacen_cliente_llegada']) && (int) $c['id_almacen_cliente_llegada'] > 0
+                    ? (int) $c['id_almacen_cliente_llegada']
+                    : null;
+                $idAlmacenProveedor = isset($c['id_almacen_proveedor_recojo']) && (int) $c['id_almacen_proveedor_recojo'] > 0
+                    ? (int) $c['id_almacen_proveedor_recojo']
+                    : null;
 
-            DB::table('carga_compra_carbon')->where('id_compra_carbon', $id_compra_carbon)->delete();
-            self::insert_detalles($id_compra_carbon, $detalles);
-        });
-    }
+                $pagarFlete = !empty($c['pagar_flete']);
+                $cantidad = (float) $c['cantidad'];
+                $precioUnitario = (float) $c['precio_unitario'];
+                $costoFlete = $pagarFlete ? (float) ($c['costo_flete_por_tonelada'] ?? 0) : 0.0;
 
-    /**
-     * Actualiza la compra y registra los cambios en log_cambios.
-     */
-    public static function actualizar_compra(
-        int $id_compra_carbon,
-        array $cabecera,
-        array $detalles,
-        int $id_empleado,
-        string $nombre_empleado,
-        ?string $motivo = null
-    ): void {
-        DB::transaction(function () use ($id_compra_carbon, $cabecera, $detalles, $id_empleado, $nombre_empleado, $motivo) {
-            $originalCab = DB::table('compra_carbon')->where('id', $id_compra_carbon)->first();
+                $subtotalAntes = round($cantidad * $precioUnitario, 2);
+                $descuentoFlete = $pagarFlete ? round($cantidad * $costoFlete, 2) : 0.0;
+                $subtotalConDesc = round($subtotalAntes - $descuentoFlete, 2);
 
-            $logCabecera = self::calcularDiffCabecera($originalCab, $cabecera, $id_empleado, $nombre_empleado, $motivo);
+                $evidenciasJson = isset($c['evidencias']) && $c['evidencias'] !== null
+                    ? (is_string($c['evidencias']) ? $c['evidencias'] : json_encode($c['evidencias'], JSON_UNESCAPED_UNICODE))
+                    : null;
 
-            $updateData = [
-                'id_empresa' => (int) $cabecera['id_empresa'],
-                'id_proveedor' => (int) $cabecera['id_proveedor'],
-                'tipo_despacho' => $cabecera['tipo_despacho'] ?? null,
-                'id_almacen' => $cabecera['id_almacen'] ?? null,
-                'id_almacen_cliente' => $cabecera['id_almacen_cliente'] ?? null,
-                'id_almacen_proveedor' => $cabecera['id_almacen_proveedor'] ?? null,
-                'aplica_igv' => !empty($cabecera['aplica_igv']) ? 1 : 0,
-                'porcentaje_igv' => (float) ($cabecera['porcentaje_igv'] ?? 0),
-                'fecha_hora_ingreso' => (string) $cabecera['fecha_hora_ingreso'],
-                'total_antes_descuento' => (float) ($cabecera['total_antes_descuento'] ?? 0),
-                'monto_igv' => (float) ($cabecera['monto_igv'] ?? 0),
-                'descuento_flete' => (float) ($cabecera['descuento_flete'] ?? 0),
-                'total_con_descuento' => (float) ($cabecera['total_con_descuento'] ?? 0),
-            ];
-
-            if ($logCabecera !== null) {
-                $updateData['log_cambios'] = json_encode($logCabecera, JSON_UNESCAPED_UNICODE);
-            }
-            if (isset($cabecera['evidencias'])) {
-                $updateData['evidencias'] = $cabecera['evidencias'];
-            }
-
-            DB::table('compra_carbon')->where('id', $id_compra_carbon)->update($updateData);
-
-            // Reemplazo de detalles preservando diff en log si aplica
-            DB::table('carga_compra_carbon')->where('id_compra_carbon', $id_compra_carbon)->delete();
-            self::insert_detalles($id_compra_carbon, $detalles);
-        });
-    }
-
-    /**
-     * Aprueba la liquidación asociando los anticipos del proveedor.
-     * @param array<int, array{id_anticipo_proveedor: int, monto_retirado: float}> $anticipos
-     */
-    public static function aprobar_liquidacion(
-        int $id_compra_carbon,
-        int $id_empleado_aprueba,
-        string $fecha_hora_aprobacion,
-        array $anticipos = []
-    ): void {
-        DB::transaction(function () use ($id_compra_carbon, $id_empleado_aprueba, $fecha_hora_aprobacion, $anticipos) {
-            // Suma de lo que esta aprobacion consume de anticipos ya entregados
-            // al proveedor. Se acumula en `monto_pagado_anticipos` para que el
-            // saldo de la compra descuente el anticipo sin releer el historico.
-            $totalAnticiposAplicados = 0.0;
-
-            foreach ($anticipos as $a) {
-                $idAnticipo = (int) ($a['id_anticipo_proveedor'] ?? 0);
-                $montoRetirado = round((float) ($a['monto_retirado'] ?? 0), 2);
-                if ($idAnticipo <= 0 || $montoRetirado <= 0) {
-                    continue;
-                }
-
-                $ant = DB::table('anticipo_proveedor')->where('id', $idAnticipo)->lockForUpdate()->first();
-                if (!$ant) {
-                    throw new \InvalidArgumentException("El anticipo ID {$idAnticipo} no existe.");
-                }
-                if ((float) $ant->saldo_actual < $montoRetirado) {
-                    throw new \InvalidArgumentException("El anticipo no cuenta con saldo suficiente (Saldo: {$ant->saldo_actual}, Requerido: {$montoRetirado}).");
-                }
-
-                $nuevoSaldo = round((float) $ant->saldo_actual - $montoRetirado, 2);
-                $nuevoEstado = $nuevoSaldo <= 0 ? 'Sin Saldo' : 'Con Saldo';
-
-                DB::table('anticipo_proveedor')
-                    ->where('id', $idAnticipo)
-                    ->update([
-                        'saldo_actual' => $nuevoSaldo,
-                        'estado' => $nuevoEstado,
-                    ]);
-
-                DB::table('transaccion_anticipo_proveedor')->insert([
-                    'id_anticipo_proveedor' => $idAnticipo,
+                $idCarga = CargaCompraCarbon::insertGetId([
                     'id_compra_carbon' => $id_compra_carbon,
-                    'monto_retirado' => $montoRetirado,
+                    'id_empleado_registro' => $id_empleado,
+                    'id_tipo_carbon' => (int) $c['id_tipo_carbon'],
+                    'id_lugar_extraccion' => isset($c['id_lugar_extraccion']) && (int) $c['id_lugar_extraccion'] > 0 ? (int) $c['id_lugar_extraccion'] : null,
+                    'id_almacen_proveedor_recojo' => $idAlmacenProveedor,
+                    'id_almacen_empresa_llegada' => $idAlmacenEmpresa,
+                    'id_almacen_cliente_llegada' => $idAlmacenCliente,
+                    'id_tarifa_carbon' => isset($c['id_tarifa_carbon']) && (int) $c['id_tarifa_carbon'] > 0 ? (int) $c['id_tarifa_carbon'] : null,
+                    'id_transportista' => $pagarFlete && isset($c['id_transportista']) && (int) $c['id_transportista'] > 0 ? (int) $c['id_transportista'] : null,
+                    'id_comprobante_transporte_carbon' => null,
+                    'id_comprobante_compra_carbon' => null,
+                    'id_pago_compra_carbon' => null,
+                    'tipo_despacho' => (string) ($c['tipo_despacho'] ?? 'Envio'),
+                    'placa' => (string) ($c['placa'] ?? ''),
+                    'fecha_hora_ingreso' => (string) ($c['fecha_hora_ingreso'] ?? now()->toDateTimeString()),
+                    'guia_remitente' => (string) ($c['guia_remitente'] ?? ''),
+                    'guia_transportista' => isset($c['guia_transportista']) && $c['guia_transportista'] !== '' ? (string) $c['guia_transportista'] : null,
+                    'pagar_flete' => $pagarFlete ? 1 : 0,
+                    'codigo_ticket_balanza' => (string) ($c['codigo_ticket_balanza'] ?? ''),
+                    'cantidad' => $cantidad,
+                    'porcentaje_ceniza' => (float) ($c['porcentaje_ceniza'] ?? 0),
+                    'porcentaje_humedad' => (float) ($c['porcentaje_humedad'] ?? 0),
+                    'precio_unitario' => $precioUnitario,
+                    'costo_flete_por_tonelada' => $costoFlete,
+                    'subtotal_antes_descuento' => $subtotalAntes,
+                    'descuento_flete' => $descuentoFlete,
+                    'subtotal_con_descuento' => $subtotalConDesc,
+                    'evidencias' => $evidenciasJson,
+                    'log_cambios' => null,
+                    'created_at' => now()->toDateTimeString(),
+                    'estado' => EstadoCargaCompraCarbon::EnLiquidacion->value,
                 ]);
 
-                $totalAnticiposAplicados += $montoRetirado;
+                $idsInsertados[] = $idCarga;
+
+                // Afectar Stock y Kardex si ingresó a almacén de la empresa
+                if ($idAlmacenEmpresa !== null) {
+                    self::afectar_stock_ingreso_carga(
+                        idAlmacen: $idAlmacenEmpresa,
+                        idTipoCarbon: (int) $c['id_tipo_carbon'],
+                        idCarga: $idCarga,
+                        cantidad: $cantidad,
+                        costoTotal: $subtotalAntes,
+                        fechaHoraIngreso: (string) ($c['fecha_hora_ingreso'] ?? now()->toDateTimeString())
+                    );
+                }
             }
 
-            $totalAnticiposAplicados = round($totalAnticiposAplicados, 2);
-
+            // Actualizar compra a En Liquidación si estaba en Preliminar
             DB::table('compra_carbon')
                 ->where('id', $id_compra_carbon)
-                ->update([
-                    'id_empleado_aprueba_liquidacion' => $id_empleado_aprueba,
-                    'fecha_hora_aprobacion_liquidacion' => $fecha_hora_aprobacion,
-                    'monto_pagado_anticipos' => DB::raw(
-                        'COALESCE(monto_pagado_anticipos, 0) + ' . $totalAnticiposAplicados
-                    ),
-                    'estado' => EstadoCompraCarbon::LiquidacionAprobada->value,
-                ]);
+                ->where('estado', EstadoCompraCarbon::Preliminar->value)
+                ->update(['estado' => EstadoCompraCarbon::EnLiquidacion->value]);
+
+            return $idsInsertados;
         });
     }
 
     /**
-     * Anula una compra de carbón.
+     * Afecta StockCarbon y genera el movimiento de KardexCarbon por ingreso de carga.
      */
-    public static function anular(int $id_compra_carbon, int $id_empleado_anula): int
+    private static function afectar_stock_ingreso_carga(
+        int $idAlmacen,
+        int $idTipoCarbon,
+        int $idCarga,
+        float $cantidad,
+        float $costoTotal,
+        string $fechaHoraIngreso
+    ): void {
+        $stock = DB::table('stock_carbon')
+            ->where('id_almacen', $idAlmacen)
+            ->where('id_tipo_carbon', $idTipoCarbon)
+            ->lockForUpdate()
+            ->first();
+
+        $stockAnterior = $stock !== null ? (float) $stock->stock_actual : 0.0;
+        $stockResultante = round($stockAnterior + $cantidad, 4);
+
+        if ($stock === null) {
+            StockCarbon::insert([
+                'id_almacen' => $idAlmacen,
+                'id_tipo_carbon' => $idTipoCarbon,
+                'stock_actual' => $stockResultante,
+                'cambios_log' => null,
+            ]);
+        } else {
+            DB::table('stock_carbon')
+                ->where('id', $stock->id)
+                ->update(['stock_actual' => $stockResultante]);
+        }
+
+        KardexCarbon::insert([
+            'id_almacen' => $idAlmacen,
+            'id_tipo_carbon' => $idTipoCarbon,
+            'id_carga_compra_carbon' => $idCarga,
+            'fecha_hora_movimiento' => $fechaHoraIngreso,
+            'tipo_movimiento' => 'Ingreso',
+            'stock_anterior' => $stockAnterior,
+            'cantidad_movimiento' => $cantidad,
+            'stock_resultante' => $stockResultante,
+            'costo_total' => $costoTotal,
+            'created_at' => now()->toDateTimeString(),
+        ]);
+    }
+
+    /**
+     * Cierra la orden de compra.
+     */
+    public static function cerrar_compra(int $id_compra_carbon, int $id_empleado): void
     {
-        return DB::table('compra_carbon')
+        DB::table('compra_carbon')
             ->where('id', $id_compra_carbon)
             ->update([
-                'id_empleado_anula' => $id_empleado_anula,
-                'fecha_hora_anulacion' => now()->toDateTimeString(),
+                'estado' => EstadoCompraCarbon::Cerrado->value,
+                'id_empleado_cierre' => $id_empleado,
+                'fecha_hora_cierre' => now()->toDateTimeString(),
+            ]);
+    }
+
+    /**
+     * Anula una orden de compra siempre que no tenga cargas activas ni pagos.
+     */
+    public static function anular_compra(int $id_compra_carbon, int $id_empleado): void
+    {
+        DB::table('compra_carbon')
+            ->where('id', $id_compra_carbon)
+            ->update([
                 'estado' => EstadoCompraCarbon::Anulado->value,
+                'id_empleado_anula' => $id_empleado,
+                'fecha_hora_anulacion' => now()->toDateTimeString(),
             ]);
     }
 
     /**
-     * Guarda evidencias en cabecera.
+     * Helper para decodificar JSON sin errores.
      */
-    public static function set_evidencias(int $id_compra_carbon, array $evidencias): int
+    public static function decode_json(mixed $val): mixed
     {
-        return DB::table('compra_carbon')
-            ->where('id', $id_compra_carbon)
-            ->update([
-                'evidencias' => json_encode($evidencias, JSON_UNESCAPED_UNICODE),
-            ]);
-    }
-
-    /**
-     * Verifica si tickets o guías ya fueron usados en compras anteriores del mismo proveedor.
-     * @param string[] $tickets
-     * @param string[] $guiasRemitente
-     * @param string[] $guiasTransportista
-     * @return array<object>
-     */
-    public static function verificar_documentos_duplicados(
-        int $id_proveedor,
-        array $tickets,
-        array $guiasRemitente,
-        array $guiasTransportista,
-        ?int $id_compra_ignorar = null
-    ): array {
-        $tickets = array_values(array_filter(array_map('trim', $tickets)));
-        $guiasRemitente = array_values(array_filter(array_map('trim', $guiasRemitente)));
-        $guiasTransportista = array_values(array_filter(array_map('trim', $guiasTransportista)));
-
-        if (empty($tickets) && empty($guiasRemitente) && empty($guiasTransportista)) {
-            return [];
+        if (is_array($val) || is_object($val)) {
+            return $val;
         }
-
-        $conditions = [];
-        $params = ['id_proveedor' => $id_proveedor];
-
-        if (!empty($tickets)) {
-            $inT = [];
-            foreach ($tickets as $i => $t) {
-                $k = "t_$i";
-                $inT[] = ":$k";
-                $params[$k] = $t;
-            }
-            $conditions[] = 'd.codigo_ticket_balanza IN (' . implode(',', $inT) . ')';
+        if (is_string($val) && $val !== '') {
+            $dec = json_decode($val, true);
+            return json_last_error() === JSON_ERROR_NONE ? $dec : [];
         }
-
-        if (!empty($guiasRemitente)) {
-            $inR = [];
-            foreach ($guiasRemitente as $i => $g) {
-                $k = "gr_$i";
-                $inR[] = ":$k";
-                $params[$k] = $g;
-            }
-            $conditions[] = 'd.guia_remitente IN (' . implode(',', $inR) . ')';
-        }
-
-        if (!empty($guiasTransportista)) {
-            $inTr = [];
-            foreach ($guiasTransportista as $i => $g) {
-                $k = "gt_$i";
-                $inTr[] = ":$k";
-                $params[$k] = $g;
-            }
-            $conditions[] = 'd.guia_transportista IN (' . implode(',', $inTr) . ')';
-        }
-
-        $sql = '
-            SELECT
-                d.id AS id_carga_compra_carbon,
-                d.codigo_ticket_balanza,
-                d.guia_remitente,
-                d.guia_transportista,
-                cc.id AS id_compra_carbon,
-                cc.correlativo,
-                cc.fecha_hora_ingreso
-            FROM carga_compra_carbon d
-            INNER JOIN compra_carbon cc ON cc.id = d.id_compra_carbon
-            WHERE cc.id_proveedor = :id_proveedor
-              AND cc.estado != "' . EstadoCompraCarbon::Anulado->value . '"
-              AND (' . implode(' OR ', $conditions) . ')
-        ';
-
-        if ($id_compra_ignorar !== null && $id_compra_ignorar > 0) {
-            $sql .= ' AND cc.id != :id_compra_ignorar';
-            $params['id_compra_ignorar'] = $id_compra_ignorar;
-        }
-
-        return DB::select($sql, $params);
-    }
-
-    /**
-     * Calcula la diferencia entre cabecera original y nueva para log_cambios.
-     */
-    private static function calcularDiffCabecera(
-        ?object $original,
-        array $nuevoEstado,
-        int $id_empleado,
-        string $nombre_empleado,
-        ?string $motivo = null
-    ): ?array {
-        $logPrevio = $original !== null ? self::decode_json($original->log_cambios ?? null) : [];
-
-        $cambios = [];
-        foreach (self::CABECERA_CAMBIOS_LABELS as $campoBd => $label) {
-            if (!array_key_exists($campoBd, $nuevoEstado)) {
-                continue;
-            }
-            $valAnt = $original !== null ? ($original->{$campoBd} ?? null) : null;
-            $valNue = $nuevoEstado[$campoBd];
-
-            $antStr = is_null($valAnt) ? '' : trim((string) $valAnt);
-            $nueStr = is_null($valNue) ? '' : trim((string) $valNue);
-
-            if ($antStr !== $nueStr) {
-                $cambios[] = [
-                    'campo_bd' => $campoBd,
-                    'campo' => $label,
-                    'valor_anterior' => $valAnt,
-                    'valor_nuevo' => $valNue,
-                ];
-            }
-        }
-
-        if (empty($cambios)) {
-            return count($logPrevio) > 0 ? $logPrevio : null;
-        }
-
-        $logPrevio[] = [
-            'id_empleado' => $id_empleado,
-            'nombre_empleado' => $nombre_empleado,
-            'motivo' => $motivo,
-            'update_at' => now()->toDateTimeString(),
-            'cambios' => $cambios,
-        ];
-
-        return $logPrevio;
-    }
-
-    /**
-     * Decodifica un campo JSON de forma segura.
-     */
-    private static function decode_json(mixed $raw): array
-    {
-        if ($raw === null || $raw === '') {
-            return [];
-        }
-        if (is_array($raw)) {
-            return $raw;
-        }
-        $decoded = json_decode((string) $raw, true);
-        return is_array($decoded) ? $decoded : [];
+        return [];
     }
 }

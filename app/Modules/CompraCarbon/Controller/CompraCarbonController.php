@@ -31,263 +31,134 @@ class CompraCarbonController
     }
 
     /**
-     * Registro preliminar de la compra de carbón.
+     * Registro de la orden de compra preliminar / cotización.
      */
     public function crear_compra(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'id_empresa' => 'required|integer|min:1',
             'id_proveedor' => 'required|integer|min:1',
-            'fecha_hora_ingreso' => 'nullable|string',
-            'detalles' => 'required|array|min:1',
-            'detalles.0.id_tipo_carbon' => 'required|integer|min:1',
-            'detalles.0.cantidad' => 'required|numeric|min:0.01',
-            'detalles.0.precio_unitario' => 'nullable|numeric|min:0',
-        ], [
-            'id_empresa.required' => 'Empresa requerida',
-            'id_proveedor.required' => 'Proveedor requerido',
-            'detalles.required' => 'Debe indicar al menos un ítem preliminar',
-            'detalles.0.id_tipo_carbon.required' => 'Tipo de carbón requerido',
-            'detalles.0.cantidad.required' => 'Cantidad en toneladas requerida',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
-        }
-
-        $authUser = $request->attributes->get('auth_user');
-        $id_empleado_registro = (int) ($authUser->id_empleado ?? 0);
-        if ($id_empleado_registro <= 0) {
-            return response()->json(ApiResponse::error('No se pudo identificar al empleado de registro'), 422);
-        }
-
-        return response()->json(
-            CompraCarbonService::crear_compra($validator->validated(), $id_empleado_registro)
-        );
-    }
-
-    /**
-     * Confirmación de llegada de la carga (completa cabecera y detalles).
-     *
-     * El request es `multipart/form-data`: `detalles` viaja como JSON string,
-     * `aplica_igv` como "1"/"0" y los adjuntos en `evidencias[]`. Los archivos
-     * los persiste el Service con `ArchivoHelper::guardarArchivos()`; el
-     * backend NO acepta URLs ni paths, los genera al guardar.
-     */
-    public function confirmar_compra(Request $request, int $id_compra_carbon): JsonResponse
-    {
-        $authUser = $request->attributes->get('auth_user');
-        $id_empleado_confirma = (int) ($authUser->id_empleado ?? 0);
-        if ($id_empleado_confirma <= 0) {
-            return response()->json(ApiResponse::error('No se pudo identificar al empleado de confirmación'), 422);
-        }
-
-        $this->normalizar_multipart($request);
-
-        $validator = Validator::make($request->all(), [
-            'id_empresa' => 'required|integer|min:1',
-            'id_proveedor' => 'required|integer|min:1',
-            'tipo_despacho' => 'required|in:envio,recojo',
-            'id_almacen_proveedor' => 'nullable|integer|min:1',
-            'id_almacen' => 'nullable|integer|min:1',
-            'id_almacen_cliente' => 'nullable|integer|min:1',
-            'aplica_igv' => 'required|boolean',
+            'id_tipo_carbon_prometido' => 'required|integer|min:1',
+            'toneladas_prometidas' => 'required|numeric|min:0.01',
+            'aplica_igv' => 'nullable|boolean',
             'porcentaje_igv' => 'nullable|numeric|min:0|max:100',
-            'fecha_hora_ingreso' => 'required|string',
-            'detalles' => 'required|array|min:1',
-            'detalles.*.id_tipo_carbon' => 'required|integer|min:1',
-            'detalles.*.cantidad' => 'required|numeric|min:0.01',
-            'detalles.*.precio_unitario' => 'required|numeric|min:0',
-            'detalles.*.pagar_flete' => 'required|boolean',
-            'detalles.*.id_transportista' => 'required_if:detalles.*.pagar_flete,true|nullable|integer|min:1',
-            'detalles.*.costo_flete_por_tonelada' => 'required_if:detalles.*.pagar_flete,true|nullable|numeric|min:0',
-            'detalles.*.id_lugar_extraccion' => 'nullable|integer|min:1',
-            'detalles.*.id_tarifa_carbon' => 'nullable|integer|min:1',
-            'detalles.*.placa' => 'nullable|string|max:20',
-            'detalles.*.guia_remitente' => 'nullable|string|max:50',
-            'detalles.*.guia_transportista' => 'nullable|string|max:50',
-            'detalles.*.codigo_ticket_balanza' => 'nullable|string|max:50',
-            'detalles.*.porcentaje_ceniza' => 'nullable|numeric|min:0|max:100',
-            'detalles.*.porcentaje_humedad' => 'nullable|numeric|min:0|max:100',
-            'evidencias' => 'nullable|array',
-            'evidencias.*' => 'file',
+            'precio_unitario_cotizado' => 'nullable|numeric|min:0',
+            'id_tarifa_carbon' => 'nullable|integer|min:1',
         ], [
-            'tipo_despacho.required' => 'Tipo de despacho requerido (envío o recojo)',
-            'fecha_hora_ingreso.required' => 'Fecha y hora de ingreso requeridas',
-            'detalles.required' => 'La compra confirmada debe tener al menos una carga',
-            'evidencias.*.file' => 'Las evidencias deben ser archivos validos',
+            'id_empresa.required' => 'La empresa compradora es requerida',
+            'id_proveedor.required' => 'El proveedor es requerido',
+            'id_tipo_carbon_prometido.required' => 'Debe indicar el tipo de carbón prometido por el proveedor',
+            'toneladas_prometidas.required' => 'Debe ingresar la cantidad de toneladas prometidas',
         ]);
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()), 422);
         }
 
-        /** @var array<int, \Illuminate\Http\UploadedFile> $archivos */
-        $archivos = $request->file('evidencias', []);
-        $archivos = is_array($archivos) ? $archivos : [];
+        $authUser = $request->attributes->get('auth_user');
+        $idEmpleadoRegistro = (int) ($authUser->id_empleado ?? 0);
+        if ($idEmpleadoRegistro <= 0) {
+            return response()->json(ApiResponse::error('No se pudo identificar al empleado que registra'), 422);
+        }
 
-        // OJO: se pasa el request COMPLETO, no `$validator->validated()`.
-        // `validated()` descarta la clave `detalles` entera cuando tiene reglas
-        // `array` y sub-reglas `detalles.*` (excludeUnvalidatedArrayKeys), y
-        // solo devuelve las sub-claves con regla. Sin esto se perdian placa,
-        // guias, ticket, lugar, tarifa, ceniza y humedad en silencio.
         return response()->json(
-            CompraCarbonService::confirmar_compra(
-                $id_compra_carbon,
-                $request->all(),
-                $id_empleado_confirma,
-                $archivos
-            )
+            CompraCarbonService::crear_compra($validator->validated(), $idEmpleadoRegistro)
         );
     }
 
     /**
-     * Edición de una compra (registra en log_cambios).
-     *
-     * Mismo contrato multipart que la confirmación: `detalles` como JSON,
-     * `aplica_igv` como "1"/"0" y `evidencias[]` con los adjuntos.
+     * Ingreso de una o varias cargas de carbón asociadas a la orden de compra.
      */
-    public function actualizar_compra(Request $request, int $id_compra_carbon): JsonResponse
+    public function registrar_cargas(Request $request, int $id_compra_carbon): JsonResponse
     {
         $authUser = $request->attributes->get('auth_user');
-        $id_empleado = (int) ($authUser->id_empleado ?? 0);
-        $nombre_empleado = trim(($authUser->nombre ?? '') . ' ' . ($authUser->apellido ?? ''));
-        if ($id_empleado <= 0) {
-            return response()->json(ApiResponse::error('No se pudo identificar al empleado editor'), 422);
+        $idEmpleado = (int) ($authUser->id_empleado ?? 0);
+        if ($idEmpleado <= 0) {
+            return response()->json(ApiResponse::error('No se pudo identificar al empleado'), 422);
         }
 
-        $this->normalizar_multipart($request);
-
-        $motivo = $request->input('motivo') ? (string) $request->input('motivo') : null;
-
-        /** @var array<int, \Illuminate\Http\UploadedFile> $archivos */
-        $archivos = $request->file('evidencias', []);
-        $archivos = is_array($archivos) ? $archivos : [];
-
-        return response()->json(
-            CompraCarbonService::actualizar_compra(
-                $id_compra_carbon,
-                $request->all(),
-                $id_empleado,
-                $nombre_empleado,
-                $motivo,
-                $archivos
-            )
-        );
-    }
-
-    /**
-     * Deja el request en el mismo formato que enviaba el front cuando usaba JSON.
-     *
-     * En multipart todo llega como string: `detalles` viene dentro de un JSON y
-     * los booleanos serian "true"/"false" (que en PHP son truthy). Sin esto, un
-     * `aplica_igv` en false llegaria como la cadena "false" y se guardaria como
-     * verdadero.
-     */
-    private function normalizar_multipart(Request $request): void
-    {
-        $detallesRaw = $request->input('detalles');
-        $detalles = is_string($detallesRaw) ? json_decode($detallesRaw, true) : $detallesRaw;
-        $request->merge([
-            'detalles' => is_array($detalles) ? $detalles : [],
-            'aplica_igv' => $request->boolean('aplica_igv'),
-        ]);
-    }
-
-    /**
-     * Aprobación de la liquidación con anticipos.
-     */
-    public function aprobar_liquidacion(Request $request, int $id_compra_carbon): JsonResponse
-    {
-        $authUser = $request->attributes->get('auth_user');
-        $id_empleado_aprueba = (int) ($authUser->id_empleado ?? 0);
-        if ($id_empleado_aprueba <= 0) {
-            return response()->json(ApiResponse::error('No se pudo identificar al empleado aprobador'), 422);
+        $cargasRaw = $request->input('cargas');
+        $cargas = is_string($cargasRaw) ? json_decode($cargasRaw, true) : $cargasRaw;
+        if (!is_array($cargas) || empty($cargas)) {
+            return response()->json(ApiResponse::error('Debe ingresar al menos una carga'), 422);
         }
 
-        $validator = Validator::make($request->all(), [
-            'anticipos' => 'nullable|array',
-            'anticipos.*.id_anticipo_proveedor' => 'required_with:anticipos|integer|min:1',
-            'anticipos.*.monto_retirado' => 'required_with:anticipos|numeric|min:0.01',
+        $validator = Validator::make(['cargas' => $cargas], [
+            'cargas.*.id_tipo_carbon' => 'required|integer|min:1',
+            'cargas.*.cantidad' => 'required|numeric|min:0.01',
+            'cargas.*.precio_unitario' => 'required|numeric|min:0',
+            'cargas.*.pagar_flete' => 'nullable|boolean',
+            'cargas.*.id_transportista' => 'required_if:cargas.*.pagar_flete,true|nullable|integer|min:1',
+            'cargas.*.costo_flete_por_tonelada' => 'required_if:cargas.*.pagar_flete,true|nullable|numeric|min:0',
+            'cargas.*.placa' => 'required|string|max:20',
+            'cargas.*.codigo_ticket_balanza' => 'required|string|max:50',
+            'cargas.*.fecha_hora_ingreso' => 'required|string',
+            'cargas.*.tipo_despacho' => 'required|in:Envio,Recojo,envio,recojo',
+            'cargas.*.id_almacen_proveedor_recojo' => 'required_if:cargas.*.tipo_despacho,Recojo,recojo|nullable|integer|min:1',
+            'cargas.*.id_almacen_empresa_llegada' => 'nullable|integer|min:1',
+            'cargas.*.id_almacen_cliente_llegada' => 'nullable|integer|min:1',
+            'cargas.*.id_lugar_extraccion' => 'nullable|integer|min:1',
+            'cargas.*.porcentaje_ceniza' => 'nullable|numeric|min:0|max:100',
+            'cargas.*.porcentaje_humedad' => 'nullable|numeric|min:0|max:100',
+        ], [
+            'cargas.*.id_tipo_carbon.required' => 'El tipo de carbón es obligatorio en cada carga',
+            'cargas.*.cantidad.required' => 'La cantidad de toneladas es obligatoria en cada carga',
+            'cargas.*.placa.required' => 'La placa del vehículo es obligatoria',
+            'cargas.*.codigo_ticket_balanza.required' => 'El ticket de balanza es obligatorio',
+            'cargas.*.fecha_hora_ingreso.required' => 'La fecha y hora de ingreso son obligatorias',
         ]);
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()), 422);
         }
 
-        /** @var array<int, array{id_anticipo_proveedor: int, monto_retirado: float}> $anticipos */
-        $anticipos = $request->input('anticipos', []);
+        // Agrupar archivos por carga: evidencias_0, evidencias_1, etc.
+        $archivosPorCarga = [];
+        foreach ($cargas as $i => $_) {
+            $files = $request->file("evidencias_{$i}", []);
+            if (!empty($files)) {
+                $archivosPorCarga["evidencias_{$i}"] = is_array($files) ? $files : [$files];
+            }
+        }
+        $generalFiles = $request->file('evidencias', []);
+        if (!empty($generalFiles)) {
+            $archivosPorCarga['evidencias'] = is_array($generalFiles) ? $generalFiles : [$generalFiles];
+        }
 
         return response()->json(
-            CompraCarbonService::aprobar_liquidacion($id_compra_carbon, $id_empleado_aprueba, $anticipos)
+            CompraCarbonService::registrar_cargas($id_compra_carbon, $cargas, $idEmpleado, $archivosPorCarga)
         );
     }
 
     /**
-     * Anulación de compra mientras no esté liquidada.
+     * Cierre de la orden de compra.
+     */
+    public function cerrar_compra(Request $request, int $id_compra_carbon): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+        $idEmpleado = (int) ($authUser->id_empleado ?? 0);
+        if ($idEmpleado <= 0) {
+            return response()->json(ApiResponse::error('No se pudo identificar al empleado'), 422);
+        }
+
+        return response()->json(
+            CompraCarbonService::cerrar_compra($id_compra_carbon, $idEmpleado)
+        );
+    }
+
+    /**
+     * Anulación de la orden de compra.
      */
     public function anular_compra(Request $request, int $id_compra_carbon): JsonResponse
     {
         $authUser = $request->attributes->get('auth_user');
-        $id_empleado_anula = (int) ($authUser->id_empleado ?? 0);
-        if ($id_empleado_anula <= 0) {
-            return response()->json(ApiResponse::error('No se pudo identificar al empleado que anula'), 422);
+        $idEmpleado = (int) ($authUser->id_empleado ?? 0);
+        if ($idEmpleado <= 0) {
+            return response()->json(ApiResponse::error('No se pudo identificar al empleado'), 422);
         }
 
         return response()->json(
-            CompraCarbonService::anular_compra($id_compra_carbon, $id_empleado_anula)
-        );
-    }
-
-    /**
-     * Reemplazo de evidencias.
-     */
-    public function set_evidencias(Request $request, int $id_compra_carbon): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'evidencias' => 'present|array',
-            'evidencias.*.url' => 'required|string',
-            'evidencias.*.path_relativo' => 'required|string',
-            'evidencias.*.nombre_original' => 'nullable|string',
-            'evidencias.*.extension' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
-        }
-
-        /** @var array<int, array<string, mixed>> $evidencias */
-        $evidencias = $request->input('evidencias', []);
-
-        return response()->json(
-            CompraCarbonService::set_evidencias($id_compra_carbon, $evidencias)
-        );
-    }
-
-    /**
-     * Verificación de documentos duplicados (ticket balanza y guías).
-     */
-    public function verificar_documentos_duplicados(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'id_proveedor' => 'required|integer|min:1',
-            'tickets' => 'nullable|array',
-            'tickets.*' => 'string',
-            'guias_remitente' => 'nullable|array',
-            'guias_remitente.*' => 'string',
-            'guias_transportista' => 'nullable|array',
-            'guias_transportista.*' => 'string',
-            'id_compra_carbon' => 'nullable|integer',
-        ], [
-            'id_proveedor.required' => 'Proveedor requerido para la verificación',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
-        }
-
-        return response()->json(
-            CompraCarbonService::verificar_documentos_duplicados($validator->validated())
+            CompraCarbonService::anular_compra($id_compra_carbon, $idEmpleado)
         );
     }
 }

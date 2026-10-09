@@ -13,11 +13,10 @@ class TarifaCarbon extends Model
     protected $table = 'tarifa_carbon';
     public $timestamps = false;
     protected $fillable = [
-        'id_proveedor',
-        'id_departamento',
-        'id_provincia',
-        'id_distrito',
-        'direccion',
+        'id_tipo_carbon',
+        'inicio_porcentaje_ceniza',
+        'fin_porcentaje_ceniza',
+        'precio_unitario',
         'estado',
     ];
 }
