@@ -19,6 +19,7 @@ class CompraCarbon extends Model
         'id_proveedor', // el proveedor al que se le va a comprar
         //
         'id_empleado_registro', // quien registra
+        'id_empleado_cierre', // quien hace el cierre
         'id_empleado_anula', // quien anula
         //
         'id_tipo_carbon_prometido', //  lo que dice el proveedor que te va a traer
@@ -41,6 +42,7 @@ class CompraCarbon extends Model
         'log_cambios', // json, para guardar las ediciones de esta compra
         'created_at', // cuando se registro en el sistema
         'fecha_hora_anulacion',
-        'estado' // Preliminar / En Liquidacion (cuando llega la primera carga) / Pagado (cuando se pagaron todas las cargas) / Anulado 
+        'fecha_hora_cierre',
+        'estado' // Preliminar / En Liquidacion (cuando llega la primera carga) / Pagado (cuando se pagaron todas las cargas) / Anulado / Cerrado
     ];
 }

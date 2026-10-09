@@ -15,6 +15,8 @@ class CuentaBancariaTransportista extends Model
         'id_banco',
         'numero_cuenta',
         'cci',
-        'estado', // Estado Basico
+        'estado', // Estado Basico /app/Shared/Enums/_Generic/EstadoBase.php
+        'moneda', // Soles/Dolares,
+        'es_para_detraccion', // bool
     ];
 }

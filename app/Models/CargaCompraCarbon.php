@@ -31,6 +31,7 @@ class CargaCompraCarbon extends Model
         //
         'id_transportista', // opcional - solo es obligatorio si se va a pagar el flete
         // a que comprobante (si la compra aplica para igv) o pago directo (si la compra NO aplica igv) esta sujeta esta carga
+        'id_comprobante_transporte_carbon', // si se pagara el flete de la carga
         'id_comprobante_compra_carbon', // si la compra aplica igv, cada carga o grupo de cargas estaran en un comprobante
         'id_pago_compra_carbon', // si la compra NO aplica igv y solo se hacen pagos directos de cada carga o en grupo de forma directa sin tener un comprobante
         //
