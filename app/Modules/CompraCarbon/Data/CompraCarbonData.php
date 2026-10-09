@@ -9,6 +9,7 @@ use App\Models\StockCarbon;
 use App\Shared\Enums\CompraCarbon\EstadoCargaCompraCarbon;
 use App\Shared\Enums\CompraCarbon\EstadoCompraCarbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class CompraCarbonData
 {
@@ -172,7 +173,22 @@ class CompraCarbonData
                 cc.fecha_hora_anulacion,
                 cc.log_cambios,
                 cc.created_at,
-                cc.estado
+                cc.estado,
+                (
+                    SELECT COUNT(*)
+                    FROM carga_compra_carbon c
+                    WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
+                ) AS cantidad_cargas,
+                (
+                    SELECT COALESCE(SUM(c.cantidad), 0)
+                    FROM carga_compra_carbon c
+                    WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
+                ) AS total_toneladas_reales,
+                (
+                    SELECT COALESCE(SUM(c.subtotal_con_descuento), 0)
+                    FROM carga_compra_carbon c
+                    WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
+                ) AS total_real_con_descuento
             FROM compra_carbon cc
             INNER JOIN empresa e ON e.id = cc.id_empresa
             INNER JOIN proveedor p ON p.id = cc.id_proveedor
@@ -188,6 +204,14 @@ class CompraCarbonData
         if ($cabecera !== null) {
             $cabecera->log_cambios = self::decode_json($cabecera->log_cambios ?? null);
         }
+
+        $hasColCompTrans = Schema::hasColumn('carga_compra_carbon', 'id_comprobante_transporte_carbon');
+        $colCompTrans = $hasColCompTrans
+            ? "c.id_comprobante_transporte_carbon,\n                com_tr.codigo_comprobante AS comprobante_transporte_codigo,"
+            : "NULL AS id_comprobante_transporte_carbon,\n                NULL AS comprobante_transporte_codigo,";
+        $joinCompTrans = $hasColCompTrans
+            ? "LEFT JOIN comprobante_transporte_carbon com_tr ON com_tr.id = c.id_comprobante_transporte_carbon"
+            : "";
 
         $sqlCargas = '
             SELECT
@@ -214,8 +238,7 @@ class CompraCarbonData
                 tar.precio_unitario AS tarifa_precio_unitario,
                 c.id_transportista,
                 tr.razon_social AS transportista_razon_social,
-                c.id_comprobante_transporte_carbon,
-                com_tr.codigo_comprobante AS comprobante_transporte_codigo,
+                ' . $colCompTrans . '
                 c.id_comprobante_compra_carbon,
                 com_pr.codigo_comprobante AS comprobante_compra_codigo,
                 c.id_pago_compra_carbon,
@@ -249,7 +272,7 @@ class CompraCarbonData
             LEFT JOIN cliente cli ON cli.id = ac.id_cliente
             LEFT JOIN tarifa_carbon tar ON tar.id = c.id_tarifa_carbon
             LEFT JOIN transportista tr ON tr.id = c.id_transportista
-            LEFT JOIN comprobante_transporte_carbon com_tr ON com_tr.id = c.id_comprobante_transporte_carbon
+            ' . $joinCompTrans . '
             LEFT JOIN comprobante_compra_carbon com_pr ON com_pr.id = c.id_comprobante_compra_carbon
             LEFT JOIN pago_compra_carbon p_dir ON p_dir.id = c.id_pago_compra_carbon
             WHERE c.id_compra_carbon = :id
@@ -299,10 +322,10 @@ class CompraCarbonData
                     p.id_compra_carbon,
                     p.id_comprobante_compra_carbon,
                     p.id_cuenta_bancaria_empresa,
-                    cbe.banco AS empresa_banco,
+                    bce.nombre AS empresa_banco,
                     cbe.numero_cuenta AS empresa_numero_cuenta,
                     p.id_cuenta_bancaria_proveedor,
-                    cbp.banco AS proveedor_banco,
+                    bcp.nombre AS proveedor_banco,
                     cbp.numero_cuenta AS proveedor_numero_cuenta,
                     p.id_empleado_registro,
                     CONCAT(ep.nombre, " ", ep.apellido) AS empleado_registro,
@@ -316,7 +339,9 @@ class CompraCarbonData
                     p.created_at
                 FROM pago_compra_carbon p
                 LEFT JOIN cuenta_bancaria_empresa cbe ON cbe.id = p.id_cuenta_bancaria_empresa
+                LEFT JOIN banco bce on bce.id = cbe.id_banco
                 LEFT JOIN cuenta_bancaria_proveedor cbp ON cbp.id = p.id_cuenta_bancaria_proveedor
+                LEFT JOIN banco bcp on bcp.id = cbp.id_banco
                 INNER JOIN empleado ep ON ep.id = p.id_empleado_registro
                 WHERE p.id_comprobante_compra_carbon = :id_cmp
                 ORDER BY p.id ASC
@@ -347,10 +372,10 @@ class CompraCarbonData
                 p.id AS id_pago_compra_carbon,
                 p.id_compra_carbon,
                 p.id_cuenta_bancaria_empresa,
-                cbe.banco AS empresa_banco,
+                bce.nombre AS empresa_banco,
                 cbe.numero_cuenta AS empresa_numero_cuenta,
                 p.id_cuenta_bancaria_proveedor,
-                cbp.banco AS proveedor_banco,
+                bcp.nombre AS proveedor_banco,
                 cbp.numero_cuenta AS proveedor_numero_cuenta,
                 p.id_empleado_registro,
                 CONCAT(ep.nombre, " ", ep.apellido) AS empleado_registro,
@@ -364,7 +389,9 @@ class CompraCarbonData
                 p.created_at
             FROM pago_compra_carbon p
             LEFT JOIN cuenta_bancaria_empresa cbe ON cbe.id = p.id_cuenta_bancaria_empresa
+            LEFT JOIN banco bce ON bce.id = cbe.id_banco
             LEFT JOIN cuenta_bancaria_proveedor cbp ON cbp.id = p.id_cuenta_bancaria_proveedor
+            LEFT JOIN banco bcp ON bcp.id = cbp.id_banco
             INNER JOIN empleado ep ON ep.id = p.id_empleado_registro
             WHERE p.id_compra_carbon = :id AND p.id_comprobante_compra_carbon IS NULL
             ORDER BY p.id ASC
@@ -425,10 +452,10 @@ class CompraCarbonData
                     pt.id_compra_carbon,
                     pt.id_comprobante_transporte_carbon,
                     pt.id_cuenta_bancaria_empresa,
-                    cbe.banco AS empresa_banco,
+                    bce.nombre AS empresa_banco,
                     cbe.numero_cuenta AS empresa_numero_cuenta,
                     pt.id_cuenta_bancaria_transportista,
-                    cbt.banco AS transportista_banco,
+                    bct.nombre AS transportista_banco,
                     cbt.numero_cuenta AS transportista_numero_cuenta,
                     pt.id_empleado_registro,
                     CONCAT(ep.nombre, " ", ep.apellido) AS empleado_registro,
@@ -442,7 +469,9 @@ class CompraCarbonData
                     pt.created_at
                 FROM pago_transporte_carbon pt
                 LEFT JOIN cuenta_bancaria_empresa cbe ON cbe.id = pt.id_cuenta_bancaria_empresa
+                LEFT JOIN banco bce ON bce.id = cbe.id_banco
                 LEFT JOIN cuenta_bancaria_transportista cbt ON cbt.id = pt.id_cuenta_bancaria_transportista
+                LEFT JOIN banco bct ON bct.id = cbt.id_banco
                 INNER JOIN empleado ep ON ep.id = pt.id_empleado_registro
                 WHERE pt.id_comprobante_transporte_carbon = :id_ct
                 ORDER BY pt.id ASC
@@ -593,7 +622,7 @@ class CompraCarbonData
                     ? (is_string($c['evidencias']) ? $c['evidencias'] : json_encode($c['evidencias'], JSON_UNESCAPED_UNICODE))
                     : null;
 
-                $idCarga = CargaCompraCarbon::insertGetId([
+                $cargaDataToInsert = [
                     'id_compra_carbon' => $id_compra_carbon,
                     'id_empleado_registro' => $id_empleado,
                     'id_tipo_carbon' => (int) $c['id_tipo_carbon'],
@@ -603,7 +632,6 @@ class CompraCarbonData
                     'id_almacen_cliente_llegada' => $idAlmacenCliente,
                     'id_tarifa_carbon' => isset($c['id_tarifa_carbon']) && (int) $c['id_tarifa_carbon'] > 0 ? (int) $c['id_tarifa_carbon'] : null,
                     'id_transportista' => $pagarFlete && isset($c['id_transportista']) && (int) $c['id_transportista'] > 0 ? (int) $c['id_transportista'] : null,
-                    'id_comprobante_transporte_carbon' => null,
                     'id_comprobante_compra_carbon' => null,
                     'id_pago_compra_carbon' => null,
                     'tipo_despacho' => (string) ($c['tipo_despacho'] ?? 'Envio'),
@@ -625,7 +653,13 @@ class CompraCarbonData
                     'log_cambios' => null,
                     'created_at' => now()->toDateTimeString(),
                     'estado' => EstadoCargaCompraCarbon::EnLiquidacion->value,
-                ]);
+                ];
+
+                if (Schema::hasColumn('carga_compra_carbon', 'id_comprobante_transporte_carbon')) {
+                    $cargaDataToInsert['id_comprobante_transporte_carbon'] = null;
+                }
+
+                $idCarga = CargaCompraCarbon::insertGetId($cargaDataToInsert);
 
                 $idsInsertados[] = $idCarga;
 
@@ -725,6 +759,271 @@ class CompraCarbonData
                 'id_empleado_anula' => $id_empleado,
                 'fecha_hora_anulacion' => now()->toDateTimeString(),
             ]);
+    }
+
+    /**
+     * Obtiene un pago al proveedor por su ID con sus relaciones y anticipos aplicados.
+     */
+    public static function get_pago_proveedor_by_id(int $id_pago): ?object
+    {
+        $rows = DB::select('
+            SELECT
+                p.id AS id_pago_compra_carbon,
+                p.id_compra_carbon,
+                p.id_comprobante_compra_carbon,
+                p.id_cuenta_bancaria_empresa,
+                bce.nombre AS empresa_banco,
+                cbe.numero_cuenta AS empresa_numero_cuenta,
+                p.id_cuenta_bancaria_proveedor,
+                bcp.nombre AS proveedor_banco,
+                cbp.numero_cuenta AS proveedor_numero_cuenta,
+                p.id_empleado_registro,
+                CONCAT(ep.nombre, " ", ep.apellido) AS empleado_registro,
+                p.medio_pago,
+                p.numero_operacion,
+                p.fecha_hora_pago,
+                p.es_para_detraccion,
+                p.observacion,
+                p.evidencias,
+                p.monto_pagado,
+                p.created_at
+            FROM pago_compra_carbon p
+            LEFT JOIN cuenta_bancaria_empresa cbe ON cbe.id = p.id_cuenta_bancaria_empresa
+            LEFT JOIN banco bce ON bce.id = cbe.id_banco
+            LEFT JOIN cuenta_bancaria_proveedor cbp ON cbp.id = p.id_cuenta_bancaria_proveedor
+            LEFT JOIN banco bcp ON bcp.id = cbp.id_banco
+            INNER JOIN empleado ep ON ep.id = p.id_empleado_registro
+            WHERE p.id = :id
+        ', ['id' => $id_pago]);
+
+        if (empty($rows)) {
+            return null;
+        }
+
+        $p = $rows[0];
+        $p->evidencias = self::decode_json($p->evidencias ?? null);
+        $p->anticipos_aplicados = DB::select('
+            SELECT
+                tap.id AS id_transaccion,
+                tap.id_anticipo_proveedor,
+                tap.monto_retirado,
+                ap.medio_pago,
+                ap.numero_operacion,
+                ap.fecha_hora_pago,
+                ap.codigo_comprobante
+            FROM transaccion_anticipo_proveedor tap
+            INNER JOIN anticipo_proveedor ap ON ap.id = tap.id_anticipo_proveedor
+            WHERE tap.id_pago_compra_carbon = :id_pago
+        ', ['id_pago' => $id_pago]);
+
+        return $p;
+    }
+
+    /**
+     * Obtiene un comprobante del proveedor por su ID con sus pagos y anticipos aplicados.
+     */
+    public static function get_comprobante_proveedor_by_id(int $id_comprobante): ?object
+    {
+        $rows = DB::select('
+            SELECT
+                cmp.id AS id_comprobante_compra_carbon,
+                cmp.id_empleado_registro,
+                CONCAT(e.nombre, " ", e.apellido) AS empleado_registro,
+                cmp.id_compra_carbon,
+                cmp.codigo_comprobante,
+                cmp.fecha_emision,
+                cmp.observacion,
+                cmp.evidencias,
+                cmp.total,
+                cmp.con_detraccion,
+                cmp.porcentaje_detraccion,
+                cmp.monto_detraccion,
+                cmp.total_sin_detraccion,
+                cmp.monto_pagado_anticipos,
+                cmp.total_neto,
+                cmp.avance_pago_detraccion,
+                cmp.avance_pago_neto,
+                cmp.created_at,
+                cmp.estado
+            FROM comprobante_compra_carbon cmp
+            INNER JOIN empleado e ON e.id = cmp.id_empleado_registro
+            WHERE cmp.id = :id
+        ', ['id' => $id_comprobante]);
+
+        if (empty($rows)) {
+            return null;
+        }
+
+        $cmp = $rows[0];
+        $cmp->evidencias = self::decode_json($cmp->evidencias ?? null);
+        $cmp->pagos = DB::select('
+            SELECT
+                p.id AS id_pago_compra_carbon,
+                p.id_compra_carbon,
+                p.id_comprobante_compra_carbon,
+                p.id_cuenta_bancaria_empresa,
+                bce.nombre AS empresa_banco,
+                cbe.numero_cuenta AS empresa_numero_cuenta,
+                p.id_cuenta_bancaria_proveedor,
+                bcp.nombre AS proveedor_banco,
+                cbp.numero_cuenta AS proveedor_numero_cuenta,
+                p.id_empleado_registro,
+                CONCAT(ep.nombre, " ", ep.apellido) AS empleado_registro,
+                p.medio_pago,
+                p.numero_operacion,
+                p.fecha_hora_pago,
+                p.es_para_detraccion,
+                p.observacion,
+                p.evidencias,
+                p.monto_pagado,
+                p.created_at
+            FROM pago_compra_carbon p
+            LEFT JOIN cuenta_bancaria_empresa cbe ON cbe.id = p.id_cuenta_bancaria_empresa
+            LEFT JOIN banco bce ON bce.id = cbe.id_banco
+            LEFT JOIN cuenta_bancaria_proveedor cbp ON cbp.id = p.id_cuenta_bancaria_proveedor
+            LEFT JOIN banco bcp ON bcp.id = cbp.id_banco
+            INNER JOIN empleado ep ON ep.id = p.id_empleado_registro
+            WHERE p.id_comprobante_compra_carbon = :id_cmp
+            ORDER BY p.id ASC
+        ', ['id_cmp' => $id_comprobante]);
+        foreach ($cmp->pagos as $p) {
+            $p->evidencias = self::decode_json($p->evidencias ?? null);
+        }
+
+        $cmp->anticipos_aplicados = DB::select('
+            SELECT
+                tap.id AS id_transaccion,
+                tap.id_anticipo_proveedor,
+                tap.monto_retirado,
+                ap.medio_pago,
+                ap.numero_operacion,
+                ap.fecha_hora_pago,
+                ap.codigo_comprobante
+            FROM transaccion_anticipo_proveedor tap
+            INNER JOIN anticipo_proveedor ap ON ap.id = tap.id_anticipo_proveedor
+            WHERE tap.id_comprobante_compra_carbon = :id_cmp
+        ', ['id_cmp' => $id_comprobante]);
+
+        return $cmp;
+    }
+
+    /**
+     * Obtiene un comprobante de transporte por su ID con sus pagos.
+     */
+    public static function get_comprobante_transporte_by_id(int $id_comprobante): ?object
+    {
+        $rows = DB::select('
+            SELECT
+                ct.id AS id_comprobante_transporte_carbon,
+                ct.id_compra_carbon,
+                ct.id_empleado_registro,
+                CONCAT(e.nombre, " ", e.apellido) AS empleado_registro,
+                ct.id_transportista,
+                tr.razon_social AS transportista_razon_social,
+                ct.codigo_comprobante,
+                ct.fecha_emision,
+                ct.observacion,
+                ct.evidencias,
+                ct.total,
+                ct.con_detraccion,
+                ct.porcentaje_detraccion,
+                ct.monto_detraccion,
+                ct.total_neto,
+                ct.avance_pago_detraccion,
+                ct.avance_pago_neto,
+                ct.created_at,
+                ct.estado
+            FROM comprobante_transporte_carbon ct
+            INNER JOIN empleado e ON e.id = ct.id_empleado_registro
+            INNER JOIN transportista tr ON tr.id = ct.id_transportista
+            WHERE ct.id = :id
+        ', ['id' => $id_comprobante]);
+
+        if (empty($rows)) {
+            return null;
+        }
+
+        $ct = $rows[0];
+        $ct->evidencias = self::decode_json($ct->evidencias ?? null);
+        $ct->pagos = DB::select('
+            SELECT
+                p.id AS id_pago_transporte_carbon,
+                p.id_compra_carbon,
+                p.id_comprobante_transporte_carbon,
+                p.id_cuenta_bancaria_empresa,
+                bce.nombre AS empresa_banco,
+                cbe.numero_cuenta AS empresa_numero_cuenta,
+                p.id_cuenta_bancaria_transportista,
+                bct.nombre AS transportista_banco,
+                cbt.numero_cuenta AS transportista_numero_cuenta,
+                p.id_empleado_registro,
+                CONCAT(ep.nombre, " ", ep.apellido) AS empleado_registro,
+                p.medio_pago,
+                p.numero_operacion,
+                p.fecha_hora_pago,
+                p.es_para_detraccion,
+                p.observacion,
+                p.evidencias,
+                p.monto_pagado,
+                p.created_at
+            FROM pago_transporte_carbon p
+            LEFT JOIN cuenta_bancaria_empresa cbe ON cbe.id = p.id_cuenta_bancaria_empresa
+            LEFT JOIN banco bce ON bce.id = cbe.id_banco
+            LEFT JOIN cuenta_bancaria_transportista cbt ON cbt.id = p.id_cuenta_bancaria_transportista
+            LEFT JOIN banco bct ON bct.id = cbt.id_banco
+            INNER JOIN empleado ep ON ep.id = p.id_empleado_registro
+            WHERE p.id_comprobante_transporte_carbon = :id_ct
+            ORDER BY p.id ASC
+        ', ['id_ct' => $id_comprobante]);
+        foreach ($ct->pagos as $p) {
+            $p->evidencias = self::decode_json($p->evidencias ?? null);
+        }
+
+        return $ct;
+    }
+
+    /**
+     * Obtiene un pago de transporte por su ID.
+     */
+    public static function get_pago_transporte_by_id(int $id_pago): ?object
+    {
+        $rows = DB::select('
+            SELECT
+                p.id AS id_pago_transporte_carbon,
+                p.id_compra_carbon,
+                p.id_comprobante_transporte_carbon,
+                p.id_cuenta_bancaria_empresa,
+                bce.nombre AS empresa_banco,
+                cbe.numero_cuenta AS empresa_numero_cuenta,
+                p.id_cuenta_bancaria_transportista,
+                bct.nombre AS transportista_banco,
+                cbt.numero_cuenta AS transportista_numero_cuenta,
+                p.id_empleado_registro,
+                CONCAT(ep.nombre, " ", ep.apellido) AS empleado_registro,
+                p.medio_pago,
+                p.numero_operacion,
+                p.fecha_hora_pago,
+                p.es_para_detraccion,
+                p.observacion,
+                p.evidencias,
+                p.monto_pagado,
+                p.created_at
+            FROM pago_transporte_carbon p
+            LEFT JOIN cuenta_bancaria_empresa cbe ON cbe.id = p.id_cuenta_bancaria_empresa
+            LEFT JOIN banco bce ON bce.id = cbe.id_banco
+            LEFT JOIN cuenta_bancaria_transportista cbt ON cbt.id = p.id_cuenta_bancaria_transportista
+            LEFT JOIN banco bct ON bct.id = cbt.id_banco
+            INNER JOIN empleado ep ON ep.id = p.id_empleado_registro
+            WHERE p.id = :id
+        ', ['id' => $id_pago]);
+
+        if (empty($rows)) {
+            return null;
+        }
+
+        $p = $rows[0];
+        $p->evidencias = self::decode_json($p->evidencias ?? null);
+        return $p;
     }
 
     /**

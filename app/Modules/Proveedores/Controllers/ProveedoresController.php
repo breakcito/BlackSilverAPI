@@ -17,8 +17,9 @@ class ProveedoresController
         $paraCarbon = $request->has('para_carbon')
             ? $request->boolean('para_carbon')
             : null;
+        $conLugares = !$request->boolean('sin_lugares', false);
 
-        return response()->json(ProveedoresService::get_proveedores(paraCarbon: $paraCarbon));
+        return response()->json(ProveedoresService::get_proveedores(paraCarbon: $paraCarbon, conLugares: $conLugares));
     }
 
     public function crear_proveedor(Request $request)

@@ -24,6 +24,7 @@ class TamizajeCarbonData
                 s.id_tipo_carbon,
                 tc.nombre AS tipo_carbon_nombre,
                 tc.codigo AS tipo_carbon_codigo,
+                tc.para_compra as tipo_carbon_para_compra,
                 s.stock_actual,
                 s.cambios_log
             FROM stock_carbon s
@@ -50,11 +51,12 @@ class TamizajeCarbonData
             $params['q'] = '%' . $filtros . '%';
         }
 
-        $sql .= ' ORDER BY alm.nombre ASC, tc.nombre ASC';
+        $sql .= ' ORDER BY tc.para_compra DESC, tc.nombre ASC, alm.nombre ASC';
 
         $rows = DB::select($sql, $params);
         foreach ($rows as $row) {
             $row->cambios_log = self::decode_json($row->cambios_log ?? null);
+            $row->tipo_carbon_para_compra = (bool) ($row->tipo_carbon_para_compra ?? false);
         }
 
         return $rows;
@@ -84,7 +86,7 @@ class TamizajeCarbonData
 
     /**
      * Lista los tamizajes realizados con sus variantes.
-     * @param array{id_almacen?: int, mes?: int, anio?: int, filtros?: string} $opts
+     * @param array{id_tamizaje?: int, id_almacen?: int, mes?: int, anio?: int, filtros?: string} $opts
      * @return array<object>
      */
     public static function get_tamizajes(array $opts = []): array
@@ -122,6 +124,11 @@ class TamizajeCarbonData
         ';
 
         $params = [];
+
+        if (!empty($opts['id_tamizaje'])) {
+            $sql .= ' AND tz.id = :id_tamizaje';
+            $params['id_tamizaje'] = (int) $opts['id_tamizaje'];
+        }
 
         if (!empty($opts['id_almacen'])) {
             $sql .= ' AND tz.id_almacen = :id_almacen';
@@ -173,6 +180,15 @@ class TamizajeCarbonData
         }
 
         return $tamizajes;
+    }
+
+    /**
+     * Obtiene un tamizaje por su ID con sus variantes y evidencias formateadas.
+     */
+    public static function get_tamizaje_by_id(int $id_tamizaje): ?object
+    {
+        $tamizajes = self::get_tamizajes(['id_tamizaje' => $id_tamizaje]);
+        return $tamizajes[0] ?? null;
     }
 
     /**
@@ -273,6 +289,48 @@ class TamizajeCarbonData
                 ->where('id', $stock->id)
                 ->update(['stock_actual' => $nuevoStock]);
         }
+    }
+
+    /**
+     * Lista las cargas de carbón que aún no han sido tamizadas.
+     * @param array{id_almacen?: int} $opts
+     * @return array<object>
+     */
+    public static function get_cargas_pendientes(array $opts = []): array
+    {
+        $sql = '
+            SELECT 
+                c.id AS id_carga_compra_carbon,
+                c.id_compra_carbon,
+                cc.correlativo AS compra_correlativo,
+                c.id_tipo_carbon,
+                tc.nombre AS tipo_carbon_nombre,
+                tc.codigo AS tipo_carbon_codigo,
+                c.id_almacen_empresa_llegada AS id_almacen,
+                alm.nombre AS almacen_nombre,
+                c.codigo_ticket_balanza,
+                c.placa,
+                c.cantidad,
+                c.fecha_hora_ingreso
+            FROM carga_compra_carbon c
+            INNER JOIN compra_carbon cc ON cc.id = c.id_compra_carbon
+            INNER JOIN tipo_carbon tc ON tc.id = c.id_tipo_carbon
+            LEFT JOIN almacen alm ON alm.id = c.id_almacen_empresa_llegada
+            LEFT JOIN tamizaje_carbon tz ON tz.id_carga_compra_carbon = c.id
+            WHERE tz.id IS NULL
+              AND c.estado != "Anulado"
+              AND c.id_almacen_empresa_llegada IS NOT NULL
+        ';
+
+        $params = [];
+        if (!empty($opts['id_almacen'])) {
+            $sql .= ' AND c.id_almacen_empresa_llegada = :id_almacen';
+            $params['id_almacen'] = (int) $opts['id_almacen'];
+        }
+
+        $sql .= ' ORDER BY c.fecha_hora_ingreso DESC, c.id DESC';
+
+        return DB::select($sql, $params);
     }
 
     /**

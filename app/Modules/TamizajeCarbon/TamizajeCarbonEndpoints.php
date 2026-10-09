@@ -9,5 +9,6 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::post('/', 'registrar_tamizaje');
         Route::get('stocks', 'get_stocks');
         Route::put('stocks/{id_stock_carbon}', 'actualizar_stock');
+        Route::get('cargas-pendientes', 'get_cargas_pendientes');
     });
 });

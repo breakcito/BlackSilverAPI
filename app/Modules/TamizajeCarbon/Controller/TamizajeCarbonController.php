@@ -65,6 +65,15 @@ class TamizajeCarbonController
         return response()->json(TamizajeCarbonService::get_tamizajes($opts));
     }
 
+    public function get_cargas_pendientes(Request $request): JsonResponse
+    {
+        $opts = [
+            'id_almacen' => $request->query('id_almacen'),
+        ];
+
+        return response()->json(TamizajeCarbonService::get_cargas_pendientes($opts));
+    }
+
     public function registrar_tamizaje(Request $request): JsonResponse
     {
         $authUser = $request->attributes->get('auth_user');

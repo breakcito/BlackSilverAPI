@@ -59,8 +59,12 @@ class CompraCarbonPagosService
                 'anticipos' => $payload['anticipos'] ?? [],
             ]);
 
+            $comprobante = CompraCarbonData::get_comprobante_proveedor_by_id($idComprobante);
+
             return ApiResponse::success([
                 'id_comprobante_compra_carbon' => $idComprobante,
+                'comprobante' => $comprobante,
+                'ids_cargas' => array_map('intval', $idsCargas),
             ], 'Comprobante del proveedor registrado satisfactoriamente');
         } catch (\Throwable $e) {
             return ApiResponse::error($e->getMessage());
@@ -98,6 +102,8 @@ class CompraCarbonPagosService
         }
 
         try {
+            $idsCargas = isset($payload['ids_cargas']) && is_array($payload['ids_cargas']) ? array_map('intval', $payload['ids_cargas']) : [];
+
             $idPago = CompraCarbonPagosData::registrar_pago_proveedor([
                 'id_compra_carbon' => $id_compra_carbon,
                 'id_comprobante_compra_carbon' => $idComprobante,
@@ -113,12 +119,18 @@ class CompraCarbonPagosService
                 'observacion' => $payload['observacion'] ?? null,
                 'evidencias' => $evidencias,
                 'monto_pagado' => (float) $payload['monto_pagado'],
-                'ids_cargas' => isset($payload['ids_cargas']) && is_array($payload['ids_cargas']) ? array_map('intval', $payload['ids_cargas']) : [],
+                'ids_cargas' => $idsCargas,
                 'anticipos' => $payload['anticipos'] ?? [],
             ]);
 
+            $pago = CompraCarbonData::get_pago_proveedor_by_id($idPago);
+            $comprobante = $idComprobante !== null ? CompraCarbonData::get_comprobante_proveedor_by_id($idComprobante) : null;
+
             return ApiResponse::success([
                 'id_pago_compra_carbon' => $idPago,
+                'pago' => $pago,
+                'comprobante' => $comprobante,
+                'ids_cargas_pagadas' => $idsCargas,
             ], 'Pago al proveedor registrado con éxito');
         } catch (\Throwable $e) {
             return ApiResponse::error($e->getMessage());
@@ -160,8 +172,12 @@ class CompraCarbonPagosService
                 'ids_cargas' => array_map('intval', $idsCargas),
             ]);
 
+            $comprobante = CompraCarbonData::get_comprobante_transporte_by_id($idComprobante);
+
             return ApiResponse::success([
                 'id_comprobante_transporte_carbon' => $idComprobante,
+                'comprobante' => $comprobante,
+                'ids_cargas' => array_map('intval', $idsCargas),
             ], 'Comprobante de transporte registrado exitosamente');
         } catch (\Throwable $e) {
             return ApiResponse::error($e->getMessage());
@@ -185,9 +201,11 @@ class CompraCarbonPagosService
         }
 
         try {
+            $idCmpTrans = (int) $payload['id_comprobante_transporte_carbon'];
+
             $idPago = CompraCarbonPagosData::registrar_pago_transporte([
                 'id_compra_carbon' => $id_compra_carbon,
-                'id_comprobante_transporte_carbon' => (int) $payload['id_comprobante_transporte_carbon'],
+                'id_comprobante_transporte_carbon' => $idCmpTrans,
                 'id_cuenta_bancaria_empresa' => (int) $payload['id_cuenta_bancaria_empresa'],
                 'id_cuenta_bancaria_transportista' => isset($payload['id_cuenta_bancaria_transportista']) && (int) $payload['id_cuenta_bancaria_transportista'] > 0
                     ? (int) $payload['id_cuenta_bancaria_transportista']
@@ -202,8 +220,13 @@ class CompraCarbonPagosService
                 'monto_pagado' => (float) $payload['monto_pagado'],
             ]);
 
+            $pago = CompraCarbonData::get_pago_transporte_by_id($idPago);
+            $comprobante = CompraCarbonData::get_comprobante_transporte_by_id($idCmpTrans);
+
             return ApiResponse::success([
                 'id_pago_transporte_carbon' => $idPago,
+                'pago' => $pago,
+                'comprobante' => $comprobante,
             ], 'Pago de flete registrado satisfactoriamente');
         } catch (\Throwable $e) {
             return ApiResponse::error($e->getMessage());

@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 class ProveedoresService
 {
 
-    public static function get_proveedores(?bool $paraCarbon = null): array
+    public static function get_proveedores(?bool $paraCarbon = null, bool $conLugares = true): array
     {
         $data = ProveedoresData::get_proveedores(paraCarbon: $paraCarbon);
 
@@ -27,13 +27,15 @@ class ProveedoresService
         $ids = array_map(fn($p) => (int) $p->id_proveedor, $data);
         $cuentas = collect(CuentasBancariasData::get_cuentas_bancarias(ids_proveedor: $ids));
         $tiposCarbon = collect(ProveedorCarbonData::get_tipos_por_proveedores($ids));
-        $lugaresExtraccion = collect(LugarExtraccionCarbonData::get_por_proveedores($ids));
+        $lugaresExtraccion = $conLugares ? collect(LugarExtraccionCarbonData::get_por_proveedores($ids)) : collect();
         $almacenesCarbon = collect(AlmacenCarbonProveedorData::get_por_proveedores($ids));
 
         foreach ($data as $proveedor) {
             $proveedor->cuentas_bancarias = $cuentas->where('id_proveedor', $proveedor->id_proveedor)->values();
             $proveedor->tipos_carbon = $tiposCarbon->where('id_proveedor', $proveedor->id_proveedor)->values();
-            $proveedor->lugares_extraccion = $lugaresExtraccion->where('id_proveedor', $proveedor->id_proveedor)->values();
+            if ($conLugares) {
+                $proveedor->lugares_extraccion = $lugaresExtraccion->where('id_proveedor', $proveedor->id_proveedor)->values();
+            }
             $proveedor->almacenes_carbon = $almacenesCarbon->where('id_proveedor', $proveedor->id_proveedor)->values();
         }
 

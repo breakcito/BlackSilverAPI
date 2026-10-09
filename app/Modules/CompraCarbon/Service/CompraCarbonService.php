@@ -3,6 +3,7 @@
 namespace App\Modules\CompraCarbon\Service;
 
 use App\Modules\CompraCarbon\Data\CompraCarbonData;
+use App\Shared\Enums\CompraCarbon\EstadoCompraCarbon;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\UploadedFile;
@@ -110,7 +111,11 @@ class CompraCarbonService
             return ApiResponse::error('Compra no encontrada');
         }
 
-        if (in_array($compra['cabecera']->estado, ['Anulado', 'Cerrado'], true)) {
+        if (in_array($compra['cabecera']->estado, [
+            EstadoCompraCarbon::Anulado->value,
+            EstadoCompraCarbon::Cerrado->value,
+            EstadoCompraCarbon::Pagado->value,
+        ], true)) {
             return ApiResponse::error("No se pueden añadir cargas a una compra en estado '{$compra['cabecera']->estado}'");
         }
 
@@ -155,8 +160,16 @@ class CompraCarbonService
             return ApiResponse::error('Compra no encontrada');
         }
 
-        if ($compra['cabecera']->estado === 'Anulado') {
+        if ($compra['cabecera']->estado === EstadoCompraCarbon::Anulado->value) {
             return ApiResponse::error('No se puede cerrar una compra anulada');
+        }
+
+        if ($compra['cabecera']->estado === EstadoCompraCarbon::Cerrado->value) {
+            return ApiResponse::error('La compra ya se encuentra cerrada');
+        }
+
+        if (count($compra['cargas']) === 0) {
+            return ApiResponse::error('No se puede cerrar una orden de compra sin cargas registradas');
         }
 
         CompraCarbonData::cerrar_compra($id_compra_carbon, $id_empleado);
@@ -173,8 +186,12 @@ class CompraCarbonService
             return ApiResponse::error('Compra no encontrada');
         }
 
-        if ($compra['cabecera']->estado !== 'Preliminar' && !empty($compra['cargas'])) {
-            return ApiResponse::error('Solo se puede anular una compra preliminar sin cargas activas');
+        if ($compra['cabecera']->estado === EstadoCompraCarbon::Anulado->value) {
+            return ApiResponse::error('La orden ya se encuentra anulada');
+        }
+
+        if (!empty($compra['cargas'])) {
+            return ApiResponse::error('No se puede anular una orden que ya tiene cargas registradas');
         }
 
         CompraCarbonData::anular_compra($id_compra_carbon, $id_empleado);

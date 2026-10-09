@@ -70,6 +70,16 @@ class TamizajeCarbonService
     }
 
     /**
+     * Lista las cargas de carbón que aún no han sido tamizadas.
+     * @param array<string, mixed> $opts
+     */
+    public static function get_cargas_pendientes(array $opts = []): array
+    {
+        $rows = TamizajeCarbonData::get_cargas_pendientes($opts);
+        return ApiResponse::success($rows);
+    }
+
+    /**
      * Registra un nuevo tamizaje de carbón.
      * @param array<string, mixed> $payload
      * @param array<int, UploadedFile> $archivos
@@ -117,9 +127,12 @@ class TamizajeCarbonService
                 'variantes' => $variantes,
             ]);
 
-            return ApiResponse::success([
-                'id_tamizaje_carbon' => $idTamizaje,
-            ], 'Tamizaje de carbón registrado y stock actualizado satisfactoriamente');
+            $tamizajeCreado = TamizajeCarbonData::get_tamizaje_by_id($idTamizaje);
+
+            return ApiResponse::success(
+                $tamizajeCreado ?? ['id_tamizaje_carbon' => $idTamizaje],
+                'Tamizaje de carbón registrado y stock actualizado satisfactoriamente'
+            );
         } catch (\Throwable $e) {
             return ApiResponse::error($e->getMessage());
         }
