@@ -114,7 +114,7 @@ class CompraCarbonService
         if (in_array($compra['cabecera']->estado, [
             EstadoCompraCarbon::Anulado->value,
             EstadoCompraCarbon::Cerrado->value,
-            EstadoCompraCarbon::Pagado->value,
+            // EstadoCompraCarbon::Pagado->value,
         ], true)) {
             return ApiResponse::error("No se pueden añadir cargas a una compra en estado '{$compra['cabecera']->estado}'");
         }
