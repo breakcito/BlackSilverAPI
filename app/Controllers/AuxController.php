@@ -610,15 +610,17 @@ class AuxController extends Controller
         $validator = Validator::make($request->all(), [
             'tipo_entidad' => 'required|string|in:Natural,Jurídica',
             'razon_social' => 'required|string|max:255',
-            // RUC obligatorio (11 digitos, prefijo segun tipo_entidad — se valida en Service).
-            'ruc' => 'required|string|size:11',
+            // Para personas juridicas: RUC obligatorio (11 digitos, prefijo 20).
+            // Para personas naturales: DNI obligatorio (8 digitos).
+            // El frontend envia el valor al campo que corresponda segun el
+            // tipo_entidad; el Service valida segun la regla del tipo.
+            'ruc' => 'nullable|string|size:11',
             'dni' => 'nullable|string|size:8',
             'telefono' => 'nullable|string|max:64',
         ], [
             'tipo_entidad.required' => 'Tipo de entidad requerido',
             'tipo_entidad.in' => 'Tipo de entidad debe ser Natural o Juridica',
             'razon_social.required' => 'Razon social o nombre requerido',
-            'ruc.required' => 'El RUC es obligatorio',
             'ruc.size' => 'El RUC debe tener 11 dígitos',
             'dni.size' => 'El DNI debe tener 8 dígitos',
         ]);
@@ -644,12 +646,20 @@ class AuxController extends Controller
     {
         $id_transportista = $this->aIntONull($request->input('id_transportista'));
         $id_cuenta_bancaria = $this->aIntONull($request->input('id_cuenta_bancaria'));
+        $moneda_val = $request->input('moneda');
+        $moneda = $moneda_val ? Moneda::from($moneda_val) : null;
+        $detraccion_val = $request->input('es_para_detraccion');
+        $es_para_detraccion = $detraccion_val === null
+            ? null
+            : filter_var($detraccion_val, FILTER_VALIDATE_BOOLEAN);
         $estado_val = $request->input('estado');
         $estado = $estado_val ? EstadoBase::from($estado_val) : EstadoBase::Activo;
 
         return response()->json(TransportistasCuentasService::get_cuentas(
             id_transportista: $id_transportista,
             id_cuenta_bancaria: $id_cuenta_bancaria,
+            moneda: $moneda,
+            es_para_detraccion: $es_para_detraccion,
             estado: $estado,
         ));
     }

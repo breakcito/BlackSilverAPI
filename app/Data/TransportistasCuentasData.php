@@ -19,6 +19,8 @@ class TransportistasCuentasData
     public static function get_cuentas(
         int|array|null $id_transportista = null,
         int|array|null $id_cuenta_bancaria = null,
+        ?Moneda $moneda = null,
+        ?bool $es_para_detraccion = null,
         ?EstadoBase $estado = EstadoBase::Activo,
     ) {
         $query = DB::table('cuenta_bancaria_transportista as cn')
@@ -48,6 +50,10 @@ class TransportistasCuentasData
                     ? $q->whereIn('cn.id', $id_cuenta_bancaria)
                     : $q->where('cn.id', $id_cuenta_bancaria);
             })
+
+            ->when($moneda !== null, fn($q) => $q->where('cn.moneda', $moneda->value))
+
+            ->when($es_para_detraccion !== null, fn($q) => $q->where('cn.es_para_detraccion', $es_para_detraccion ? 1 : 0))
 
             ->when($estado !== null, fn($q) => $q->where('cn.estado', $estado->value))
 

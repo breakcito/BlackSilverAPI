@@ -39,19 +39,26 @@ class TransportistasService
             return ApiResponse::error('Tipo de entidad inválido');
         }
 
-        // Patron Proveedores: RUC obligatorio (11 digitos, prefijo 10/20 segun
-        // tipo_entidad); DNI opcional pero validado si llega.
-        if (empty($ruc) || !preg_match('/^\d{11}$/', $ruc)) {
-            return ApiResponse::error('El RUC debe tener 11 dígitos');
-        }
-        if ($tipo_enum === TipoEntidad::Juridica && !str_starts_with($ruc, '20')) {
-            return ApiResponse::error('El RUC de una persona jurídica debe comenzar con 20');
-        }
-        if ($tipo_enum === TipoEntidad::Natural && !str_starts_with($ruc, '10')) {
-            return ApiResponse::error('El RUC de una persona natural debe comenzar con 10');
-        }
-        if (!empty($dni) && !preg_match('/^\d{8}$/', $dni)) {
-            return ApiResponse::error('El DNI debe tener 8 dígitos');
+        // Reglas de identificacion segun tipo de entidad:
+        //   Juridica  -> RUC obligatorio (11 digitos, prefijo 20). DNI opcional.
+        //   Natural   -> DNI obligatorio (8 digitos). RUC opcional (prefijo 10
+        //                 si llega; SUNAT tambien emite RUC de 10 a naturales con
+        //                 negocio).
+        if ($tipo_enum === TipoEntidad::Juridica) {
+            if (empty($ruc) || !preg_match('/^\d{11}$/', $ruc)) {
+                return ApiResponse::error('El RUC de la persona jurídica debe tener 11 dígitos');
+            }
+            if (!str_starts_with($ruc, '20')) {
+                return ApiResponse::error('El RUC de una persona jurídica debe comenzar con 20');
+            }
+        } else {
+            // Natural
+            if (empty($dni) || !preg_match('/^\d{8}$/', $dni)) {
+                return ApiResponse::error('El DNI de la persona natural debe tener 8 dígitos');
+            }
+            if (!empty($ruc) && !str_starts_with($ruc, '10')) {
+                return ApiResponse::error('Si la persona natural tiene RUC, debe comenzar con 10');
+            }
         }
 
         if (TransportistasData::existe_transportista($razon_social, $ruc, $dni)) {

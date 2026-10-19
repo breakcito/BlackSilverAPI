@@ -14,12 +14,16 @@ class TransportistasCuentasService
     public static function get_cuentas(
         int|array|null $id_transportista = null,
         int|array|null $id_cuenta_bancaria = null,
+        ?Moneda $moneda = null,
+        ?bool $es_para_detraccion = null,
         ?EstadoBase $estado = EstadoBase::Activo,
     ): array {
         return ApiResponse::success(
             TransportistasCuentasData::get_cuentas(
                 id_transportista: $id_transportista,
                 id_cuenta_bancaria: $id_cuenta_bancaria,
+                moneda: $moneda,
+                es_para_detraccion: $es_para_detraccion,
                 estado: $estado,
             ),
             'Cuentas bancarias de transportista obtenidas correctamente',
