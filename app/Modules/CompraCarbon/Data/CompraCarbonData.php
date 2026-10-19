@@ -712,8 +712,11 @@ class CompraCarbonData
 
     /**
      * Afecta StockCarbon y genera el movimiento de KardexCarbon por ingreso de carga.
+     *
+     * Public para que `CompraCarbonService::actualizar_carga` pueda invocarla
+     * al re-aplicar stock despues de una edicion.
      */
-    private static function afectar_stock_ingreso_carga(
+    public static function afectar_stock_ingreso_carga(
         int $idAlmacen,
         int $idTipoCarbon,
         int $idCarga,
@@ -749,6 +752,62 @@ class CompraCarbonData
             'id_carga_compra_carbon' => $idCarga,
             'fecha_hora_movimiento' => $fechaHoraIngreso,
             'tipo_movimiento' => 'Ingreso',
+            'stock_anterior' => $stockAnterior,
+            'cantidad_movimiento' => $cantidad,
+            'stock_resultante' => $stockResultante,
+            'costo_total' => $costoTotal,
+            'created_at' => now()->toDateTimeString(),
+        ]);
+    }
+
+    /**
+     * Revierte un movimiento de stock/kardex previamente aplicado a una carga.
+     * Usado por la edicion de carga cuando cambian campos stock-affecting
+     * (id_almacen_empresa_llegada, id_tipo_carbon, cantidad). El Kardex es
+     * inmutable, asi que la "anulacion" es un movimiento `Salida` adicional
+     * que compensa exactamente el `Ingreso` original de la carga.
+     *
+     * Precondicion: el caller ya tiene lock sobre la fila de carga y ha leido
+     * el stock actual antes de llamar.
+     *
+     * Public para que `CompraCarbonService::actualizar_carga` pueda invocarla
+     * al revertir el movimiento viejo antes de aplicar el nuevo.
+     */
+    public static function revertir_stock_ingreso_carga(
+        int $idAlmacen,
+        int $idTipoCarbon,
+        int $idCarga,
+        float $cantidad,
+        float $costoTotal,
+        string $fechaHoraMovimiento
+    ): void {
+        $stock = DB::table('stock_carbon')
+            ->where('id_almacen', $idAlmacen)
+            ->where('id_tipo_carbon', $idTipoCarbon)
+            ->lockForUpdate()
+            ->first();
+
+        // Si por alguna razon no existe la fila de stock (corrupcion), abortamos
+        // para no dejar stock negativo silenciosamente.
+        if ($stock === null) {
+            throw new \RuntimeException(
+                "No existe fila de stock_carbon para almacen {$idAlmacen} / tipo {$idTipoCarbon}. No se puede revertir la carga {$idCarga}.",
+            );
+        }
+
+        $stockAnterior = (float) $stock->stock_actual;
+        $stockResultante = round($stockAnterior - $cantidad, 4);
+
+        DB::table('stock_carbon')
+            ->where('id', $stock->id)
+            ->update(['stock_actual' => $stockResultante]);
+
+        KardexCarbon::insert([
+            'id_almacen' => $idAlmacen,
+            'id_tipo_carbon' => $idTipoCarbon,
+            'id_carga_compra_carbon' => $idCarga,
+            'fecha_hora_movimiento' => $fechaHoraMovimiento,
+            'tipo_movimiento' => 'Salida',
             'stock_anterior' => $stockAnterior,
             'cantidad_movimiento' => $cantidad,
             'stock_resultante' => $stockResultante,
@@ -1063,5 +1122,167 @@ class CompraCarbonData
             return json_last_error() === JSON_ERROR_NONE ? $dec : [];
         }
         return [];
+    }
+
+    /**
+     * Actualiza los campos editables de una compra de carbon. NO toca
+     * `estado`, `correlativo`, `numero_correlativo`, ni los ids de empleado
+     * (registro / cierre / anulacion). El caller es responsable de validar
+     * que la compra este en estado modificable antes de llamar.
+     *
+     * @param array<string, mixed> $data
+     */
+    public static function update_compra(int $id_compra_carbon, array $data): int
+    {
+        $payload = [];
+        $camposPermitidos = [
+            'id_empresa',
+            'id_proveedor',
+            'id_tipo_carbon_prometido',
+            'id_tarifa_carbon',
+            'id_cuenta_proveedor',
+            'aplica_igv',
+            'porcentaje_igv',
+            'toneladas_prometidas',
+            'precio_unitario_cotizado',
+            'total_cotizado',
+            'monto_igv_cotizado',
+        ];
+
+        foreach ($camposPermitidos as $campo) {
+            if (array_key_exists($campo, $data)) {
+                $payload[$campo] = $data[$campo];
+            }
+        }
+
+        if (empty($payload)) {
+            return 0;
+        }
+
+        return DB::table('compra_carbon')
+            ->where('id', $id_compra_carbon)
+            ->update($payload);
+    }
+
+    /**
+     * Append de un evento al log de cambios de una compra (json column).
+     */
+    public static function append_log_cambio_compra(int $id_compra_carbon, string $event): void
+    {
+        $actual = DB::table('compra_carbon')
+            ->where('id', $id_compra_carbon)
+            ->value('log_cambios');
+
+        $log = self::decode_json($actual) ?? [];
+        if (!is_array($log)) {
+            $log = [];
+        }
+        $log[] = json_decode($event, true) ?? $event;
+        DB::table('compra_carbon')
+            ->where('id', $id_compra_carbon)
+            ->update([
+                    'log_cambios' => json_encode($log, JSON_UNESCAPED_UNICODE),
+                ]);
+    }
+
+    /**
+     * Obtiene una carga por id. Usado por la logica de edicion para conocer
+     * el estado previo de stock antes de revertir.
+     */
+    public static function get_carga_by_id(int $id_carga_compra_carbon): ?object
+    {
+        $rows = DB::select('
+            SELECT
+                c.id AS id_carga_compra_carbon,
+                c.id_compra_carbon,
+                c.id_tipo_carbon,
+                c.id_almacen_empresa_llegada,
+                c.cantidad,
+                c.precio_unitario,
+                c.estado,
+                c.id_comprobante_compra_carbon,
+                c.id_pago_compra_carbon,
+                c.id_comprobante_transporte_carbon,
+                c.fecha_hora_ingreso,
+                c.subtotal_antes_descuento
+            FROM carga_compra_carbon c
+            WHERE c.id = :id
+            LIMIT 1
+        ', ['id' => $id_carga_compra_carbon]);
+        return $rows[0] ?? null;
+    }
+
+    /**
+     * Actualiza los campos editables de una carga. NO toca estado, ni los ids
+     * de comprobante / pago (esas relaciones son inmutables salvo anulacion
+     * explicita). Si el cambio incluye campos stock-affecting
+     * (id_almacen_empresa_llegada, id_tipo_carbon, cantidad) el caller debe
+     * haber revertido y reaplicado el stock en la misma transaccion.
+     *
+     * @param array<string, mixed> $data
+     */
+    public static function update_carga(int $id_carga_compra_carbon, array $data): int
+    {
+        $payload = [];
+        $camposPermitidos = [
+            'id_tipo_carbon',
+            'id_lugar_extraccion',
+            'id_almacen_proveedor_recojo',
+            'id_almacen_empresa_llegada',
+            'id_almacen_cliente_llegada',
+            'id_tarifa_carbon',
+            'id_transportista',
+            'tipo_despacho',
+            'placa',
+            'fecha_hora_ingreso',
+            'guia_remitente',
+            'guia_transportista',
+            'pagar_flete',
+            'codigo_ticket_balanza',
+            'cantidad',
+            'porcentaje_ceniza',
+            'porcentaje_humedad',
+            'precio_unitario',
+            'costo_flete_por_tonelada',
+            'subtotal_antes_descuento',
+            'descuento_flete',
+            'subtotal_con_descuento',
+            'evidencias',
+        ];
+
+        foreach ($camposPermitidos as $campo) {
+            if (array_key_exists($campo, $data)) {
+                $payload[$campo] = $data[$campo];
+            }
+        }
+
+        if (empty($payload)) {
+            return 0;
+        }
+
+        return DB::table('carga_compra_carbon')
+            ->where('id', $id_carga_compra_carbon)
+            ->update($payload);
+    }
+
+    /**
+     * Append de un evento al log de cambios de una carga (json column).
+     */
+    public static function append_log_cambio_carga(int $id_carga_compra_carbon, string $event): void
+    {
+        $actual = DB::table('carga_compra_carbon')
+            ->where('id', $id_carga_compra_carbon)
+            ->value('log_cambios');
+
+        $log = self::decode_json($actual) ?? [];
+        if (!is_array($log)) {
+            $log = [];
+        }
+        $log[] = json_decode($event, true) ?? $event;
+        DB::table('carga_compra_carbon')
+            ->where('id', $id_carga_compra_carbon)
+            ->update([
+                    'log_cambios' => json_encode($log, JSON_UNESCAPED_UNICODE),
+                ]);
     }
 }

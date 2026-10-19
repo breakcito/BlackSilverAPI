@@ -7,10 +7,19 @@ use App\Shared\Enums\CompraCarbon\EstadoCompraCarbon;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 
 class CompraCarbonService
 {
     private const CARPETA_EVIDENCIAS_CARGAS = 'evidencias-cargas-carbon';
+
+    // Estados en los que NO se permite editar la cabecera. Anulado y Cerrado
+    // son terminales; Pagado es estado terminal de liquidacion.
+    private const ESTADOS_CABECERA_NO_EDITABLES = [
+        'Anulado',
+        'Cerrado',
+        'Pagado',
+    ];
 
     /**
      * Lista compras con filtros.
@@ -20,6 +29,88 @@ class CompraCarbonService
     {
         $rows = CompraCarbonData::get_compras($opts);
         return ApiResponse::success($rows);
+    }
+
+    /**
+     * Edita la cabecera de una compra. Solo aplica si la compra esta en
+     * estado Preliminar o En Liquidacion (regla: mientras NO este pagada,
+     * cerrada ni anulada).
+     *
+     * Recalcula `total_cotizado` y `monto_igv_cotizado` si cambian
+     * toneladas/precio/aplica_igv/porcentaje_igv.
+     *
+     * @param array<string, mixed> $payload
+     */
+    public static function actualizar_compra(int $id_compra_carbon, array $payload, int $id_empleado_editor): array
+    {
+        $actual = CompraCarbonData::get_compra_by_id($id_compra_carbon);
+        if ($actual === null) {
+            return ApiResponse::error('Compra de carbon no encontrada', 404);
+        }
+
+        if (in_array($actual->estado, self::ESTADOS_CABECERA_NO_EDITABLES, true)) {
+            return ApiResponse::error(
+                "No se puede editar una compra en estado '{$actual->estado}'",
+                422,
+            );
+        }
+
+        $cambios = [];
+        $camposEditables = [
+            'id_empresa',
+            'id_proveedor',
+            'id_tipo_carbon_prometido',
+            'id_tarifa_carbon',
+            'id_cuenta_proveedor',
+            'aplica_igv',
+            'porcentaje_igv',
+            'toneladas_prometidas',
+            'precio_unitario_cotizado',
+        ];
+        foreach ($camposEditables as $campo) {
+            if (array_key_exists($campo, $payload) && $payload[$campo] !== null) {
+                $cambios[$campo] = [
+                    'antes' => $actual->{$campo} ?? null,
+                    'despues' => is_bool($payload[$campo])
+                        ? ($payload[$campo] ? 1 : 0)
+                        : (int) $payload[$campo],
+                ];
+            }
+        }
+
+        if (empty($cambios)) {
+            return ApiResponse::success($actual, 'Sin cambios');
+        }
+
+        // Recalcular totales derivados cuando cambian toneladas / precio / igv.
+        $toneladas = (float) ($cambios['toneladas_prometidas']['despues'] ?? $actual->toneladas_prometidas);
+        $precio = (float) ($cambios['precio_unitario_cotizado']['despues'] ?? $actual->precio_unitario_cotizado);
+        $aplicaIgv = (bool) ($cambios['aplica_igv']['despues'] ?? ((int) $actual->aplica_igv === 1));
+        $porcentajeIgv = (float) ($cambios['porcentaje_igv']['despues'] ?? $actual->porcentaje_igv);
+        $totalCotizado = round($toneladas * $precio, 2);
+        $montoIgvCotizado = $aplicaIgv ? round($totalCotizado * ($porcentajeIgv / 100), 2) : 0.0;
+
+        $update = [];
+        foreach ($cambios as $campo => $val) {
+            $update[$campo] = $val['despues'];
+        }
+        $update['total_cotizado'] = $totalCotizado;
+        $update['monto_igv_cotizado'] = $montoIgvCotizado;
+
+        CompraCarbonData::update_compra($id_compra_carbon, $update);
+
+        CompraCarbonData::append_log_cambio_compra(
+            $id_compra_carbon,
+            json_encode([
+                'evento' => 'edicion_cabecera',
+                'id_empleado' => $id_empleado_editor,
+                'fecha_hora' => now()->toDateTimeString(),
+                'cambios' => $cambios,
+            ], JSON_UNESCAPED_UNICODE),
+        );
+
+        $actualizada = CompraCarbonData::get_compra_by_id($id_compra_carbon);
+        return ApiResponse::success($actualizada, 'Compra de carbon actualizada correctamente');
     }
 
     /**
@@ -201,5 +292,205 @@ class CompraCarbonService
 
         CompraCarbonData::anular_compra($id_compra_carbon, $id_empleado);
         return ApiResponse::success(null, 'Compra de carbón anulada con éxito');
+    }
+
+    /**
+     * Edita una carga individual. Solo aplica si la carga:
+     *   - no esta Anulada,
+     *   - no tiene comprobante de proveedor asignado,
+     *   - no tiene pago directo asignado,
+     *   - no tiene comprobante de transporte (flete) asignado.
+     *
+     * Si la carga ya afecto stock (ingreso a almacen de empresa), y los
+     * campos stock-affecting cambiaron (id_almacen_empresa_llegada,
+     * id_tipo_carbon, cantidad, precio_unitario), se revierte el movimiento
+     * viejo y se aplica el nuevo en la misma transaccion. El kardex queda
+     * con los dos asientos: el original (Ingreso) y el de reversion (Salida),
+     * mas el nuevo Ingreso si corresponde.
+     *
+     * @param array<string, mixed> $payload
+     */
+    public static function actualizar_carga(
+        int $id_compra_carbon,
+        int $id_carga_compra_carbon,
+        array $payload,
+        int $id_empleado_editor,
+        ?int $id_empleado_registro_reasignado = null,
+    ): array {
+        try {
+            $result = DB::transaction(function () use ($id_compra_carbon, $id_carga_compra_carbon, $payload, $id_empleado_editor, $id_empleado_registro_reasignado) {
+                $compra = CompraCarbonData::get_compra_by_id($id_compra_carbon);
+                if ($compra === null) {
+                    return ApiResponse::error('Compra de carbon no encontrada', 404);
+                }
+                if (in_array($compra->estado, self::ESTADOS_CABECERA_NO_EDITABLES, true)) {
+                    return ApiResponse::error(
+                        "No se puede editar cargas de una compra en estado '{$compra->estado}'",
+                        422,
+                    );
+                }
+
+                $carga = CompraCarbonData::get_carga_by_id($id_carga_compra_carbon);
+                if ($carga === null) {
+                    return ApiResponse::error('Carga no encontrada', 404);
+                }
+                if ((int) $carga->id_compra_carbon !== $id_compra_carbon) {
+                    return ApiResponse::error('La carga no pertenece a la compra indicada', 422);
+                }
+
+                // Reglas de inmutabilidad: si ya esta asociada a comprobante /
+                // pago / comprobante de flete, no se puede editar.
+                if (!empty($carga->id_comprobante_compra_carbon)
+                    || !empty($carga->id_pago_compra_carbon)
+                    || !empty($carga->id_comprobante_transporte_carbon)
+                ) {
+                    return ApiResponse::error(
+                        'La carga ya esta asociada a un comprobante o pago; no se puede editar',
+                        422,
+                    );
+                }
+                if ($carga->estado === 'Anulado') {
+                    return ApiResponse::error('La carga esta anulada', 422);
+                }
+
+                // Valores finales (post-cambio)
+                $nuevoAlmacen = array_key_exists('id_almacen_empresa_llegada', $payload)
+                    ? ($payload['id_almacen_empresa_llegada'] !== null ? (int) $payload['id_almacen_empresa_llegada'] : null)
+                    : ((int) $carga->id_almacen_empresa_llegada ?: null);
+                $nuevoTipo = array_key_exists('id_tipo_carbon', $payload)
+                    ? (int) $payload['id_tipo_carbon']
+                    : (int) $carga->id_tipo_carbon;
+                $nuevaCantidad = array_key_exists('cantidad', $payload)
+                    ? (float) $payload['cantidad']
+                    : (float) $carga->cantidad;
+                $nuevoPrecio = array_key_exists('precio_unitario', $payload)
+                    ? (float) $payload['precio_unitario']
+                    : (float) $carga->precio_unitario;
+                $nuevaFechaHora = array_key_exists('fecha_hora_ingreso', $payload)
+                    ? (string) $payload['fecha_hora_ingreso']
+                    : (string) $carga->fecha_hora_ingreso;
+
+                $viejoAlmacen = $carga->id_almacen_empresa_llegada ? (int) $carga->id_almacen_empresa_llegada : null;
+                $viejoTipo = (int) $carga->id_tipo_carbon;
+                $viejaCantidad = (float) $carga->cantidad;
+                $viejoPrecio = (float) $carga->precio_unitario;
+
+                $stockAplicadoOriginal = $viejoAlmacen !== null && $viejaCantidad > 0;
+
+                // Calcular subtotales nuevos (mismas formulas que insert_cargas).
+                $subtotalAntes = round($nuevaCantidad * $nuevoPrecio, 2);
+                $pagarFleteNuevo = !empty($payload['pagar_flete'])
+                    || (array_key_exists('pagar_flete', $payload) ? (bool) $payload['pagar_flete'] : false);
+                $costoFleteNuevo = array_key_exists('costo_flete_por_tonelada', $payload)
+                    ? (float) $payload['costo_flete_por_tonelada']
+                    : 0.0;
+                $descuentoFlete = $pagarFleteNuevo ? round($nuevaCantidad * $costoFleteNuevo, 2) : 0.0;
+                $subtotalConDesc = round($subtotalAntes - $descuentoFlete, 2);
+
+                // 1) Revertir movimiento de stock previo, si aplica y si algo cambia.
+                $stockAplicaNuevo = $nuevoAlmacen !== null && $nuevaCantidad > 0;
+                if ($stockAplicadoOriginal && (
+                    $nuevoAlmacen !== $viejoAlmacen
+                    || $nuevoTipo !== $viejoTipo
+                    || abs($nuevaCantidad - $viejaCantidad) > 0.0001
+                    || !$stockAplicaNuevo
+                )) {
+                    $costoTotalViejo = round($viejaCantidad * $viejoPrecio, 2);
+                    CompraCarbonData::revertir_stock_ingreso_carga(
+                        idAlmacen: $viejoAlmacen,
+                        idTipoCarbon: $viejoTipo,
+                        idCarga: $id_carga_compra_carbon,
+                        cantidad: $viejaCantidad,
+                        costoTotal: $costoTotalViejo,
+                        fechaHoraMovimiento: $nuevaFechaHora,
+                    );
+                }
+
+                // 2) Aplicar nuevo movimiento de stock, si corresponde.
+                if ($stockAplicaNuevo && (
+                    $nuevoAlmacen !== $viejoAlmacen
+                    || $nuevoTipo !== $viejoTipo
+                    || abs($nuevaCantidad - $viejaCantidad) > 0.0001
+                    || !$stockAplicadoOriginal
+                )) {
+                    $costoTotalNuevo = round($nuevaCantidad * $nuevoPrecio, 2);
+                    CompraCarbonData::afectar_stock_ingreso_carga(
+                        idAlmacen: $nuevoAlmacen,
+                        idTipoCarbon: $nuevoTipo,
+                        idCarga: $id_carga_compra_carbon,
+                        cantidad: $nuevaCantidad,
+                        costoTotal: $costoTotalNuevo,
+                        fechaHoraIngreso: $nuevaFechaHora,
+                    );
+                }
+
+                // 3) Aplicar update de los campos editables + subtotales recalculados.
+                $update = [];
+                $campos = [
+                    'id_tipo_carbon',
+                    'id_lugar_extraccion',
+                    'id_almacen_proveedor_recojo',
+                    'id_almacen_empresa_llegada',
+                    'id_almacen_cliente_llegada',
+                    'id_tarifa_carbon',
+                    'id_transportista',
+                    'tipo_despacho',
+                    'placa',
+                    'fecha_hora_ingreso',
+                    'guia_remitente',
+                    'guia_transportista',
+                    'pagar_flete',
+                    'codigo_ticket_balanza',
+                    'cantidad',
+                    'porcentaje_ceniza',
+                    'porcentaje_humedad',
+                    'precio_unitario',
+                    'costo_flete_por_tonelada',
+                    'evidencias',
+                ];
+                foreach ($campos as $c) {
+                    if (array_key_exists($c, $payload)) {
+                        $update[$c] = $payload[$c];
+                    }
+                }
+                $update['subtotal_antes_descuento'] = $subtotalAntes;
+                $update['descuento_flete'] = $descuentoFlete;
+                $update['subtotal_con_descuento'] = $subtotalConDesc;
+
+                CompraCarbonData::update_carga($id_carga_compra_carbon, $update);
+
+                CompraCarbonData::append_log_cambio_carga(
+                    $id_carga_compra_carbon,
+                    json_encode([
+                        'evento' => 'edicion_carga',
+                        'id_empleado_editor' => $id_empleado_editor,
+                        'fecha_hora' => now()->toDateTimeString(),
+                        'cambios_stock' => [
+                            'antes' => [
+                                'id_almacen' => $viejoAlmacen,
+                                'id_tipo_carbon' => $viejoTipo,
+                                'cantidad' => $viejaCantidad,
+                                'precio_unitario' => $viejoPrecio,
+                            ],
+                            'despues' => [
+                                'id_almacen' => $nuevoAlmacen,
+                                'id_tipo_carbon' => $nuevoTipo,
+                                'cantidad' => $nuevaCantidad,
+                                'precio_unitario' => $nuevoPrecio,
+                            ],
+                        ],
+                    ], JSON_UNESCAPED_UNICODE),
+                );
+
+                $cargaActualizada = CompraCarbonData::get_compra_con_detalles($id_compra_carbon);
+                return ApiResponse::success(
+                    $cargaActualizada,
+                    'Carga actualizada correctamente',
+                );
+            });
+            return $result;
+        } catch (\Throwable $e) {
+            return ApiResponse::error('Error al actualizar la carga: ' . $e->getMessage(), 500);
+        }
     }
 }

@@ -132,6 +132,104 @@ class CompraCarbonController
     }
 
     /**
+     * Edita la cabecera de una compra. Solo aplica si NO esta Pagado,
+     * Cerrado ni Anulado.
+     */
+    public function actualizar_compra(Request $request, int $id_compra_carbon): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_empresa' => 'nullable|integer|min:1',
+            'id_proveedor' => 'nullable|integer|min:1',
+            'id_tipo_carbon_prometido' => 'nullable|integer|min:1',
+            'id_tarifa_carbon' => 'nullable|integer|min:1',
+            'id_cuenta_proveedor' => 'nullable|integer|min:1',
+            'aplica_igv' => 'nullable|boolean',
+            'porcentaje_igv' => 'nullable|numeric|min:0|max:100',
+            'toneladas_prometidas' => 'nullable|numeric|min:0.01',
+            'precio_unitario_cotizado' => 'nullable|numeric|min:0',
+        ], [
+            'toneladas_prometidas.min' => 'Las toneladas prometidas deben ser mayores a 0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
+        }
+
+        $authUser = $request->attributes->get('auth_user');
+        $idEmpleadoEditor = (int) ($authUser->id_empleado ?? 0);
+        if ($idEmpleadoEditor <= 0) {
+            return response()->json(ApiResponse::error('No se pudo identificar al empleado editor'), 422);
+        }
+
+        return response()->json(
+            CompraCarbonService::actualizar_compra(
+                $id_compra_carbon,
+                $validator->validated(),
+                $idEmpleadoEditor,
+            ),
+        );
+    }
+
+    /**
+     * Edita una carga individual. Solo aplica si la carga NO esta Anulada,
+     * NO tiene comprobante / pago / comprobante de transporte asignado y la
+     * cabecera NO esta Pagado/Cerrado/Anulado.
+     */
+    public function actualizar_carga(Request $request, int $id_compra_carbon, int $id_carga_compra_carbon): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_tipo_carbon' => 'nullable|integer|min:1',
+            'id_lugar_extraccion' => 'nullable|integer|min:1',
+            'id_almacen_proveedor_recojo' => 'nullable|integer|min:1',
+            'id_almacen_empresa_llegada' => 'nullable|integer|min:1',
+            'id_almacen_cliente_llegada' => 'nullable|integer|min:1',
+            'id_tarifa_carbon' => 'nullable|integer|min:1',
+            'id_transportista' => 'nullable|integer|min:1',
+            'tipo_despacho' => 'nullable|in:Envio,Recojo,envio,recojo',
+            'placa' => 'nullable|string|max:20',
+            'fecha_hora_ingreso' => 'nullable|string',
+            'guia_remitente' => 'nullable|string|max:64',
+            'guia_transportista' => 'nullable|string|max:64',
+            'pagar_flete' => 'nullable|boolean',
+            'codigo_ticket_balanza' => 'nullable|string|max:50',
+            'cantidad' => 'nullable|numeric|min:0.01',
+            'porcentaje_ceniza' => 'nullable|numeric|min:0|max:100',
+            'porcentaje_humedad' => 'nullable|numeric|min:0|max:100',
+            'precio_unitario' => 'nullable|numeric|min:0',
+            'costo_flete_por_tonelada' => 'nullable|numeric|min:0',
+            'evidencias' => 'nullable|array',
+            'evidencias.*' => 'file',
+        ], [
+            'cantidad.min' => 'La cantidad debe ser mayor a 0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
+        }
+
+        $authUser = $request->attributes->get('auth_user');
+        $idEmpleadoEditor = (int) ($authUser->id_empleado ?? 0);
+        if ($idEmpleadoEditor <= 0) {
+            return response()->json(ApiResponse::error('No se pudo identificar al empleado editor'), 422);
+        }
+
+        $payload = $validator->validated();
+
+        // Las evidencias se manejan como archivos aparte (no se persisten en
+        // esta primera version para mantener la operacion simple; el campo
+        // existe en la tabla pero el modal de edicion no las reasignara).
+
+        return response()->json(
+            CompraCarbonService::actualizar_carga(
+                $id_compra_carbon,
+                $id_carga_compra_carbon,
+                $payload,
+                $idEmpleadoEditor,
+            ),
+        );
+    }
+
+    /**
      * Cierre de la orden de compra.
      */
     public function cerrar_compra(Request $request, int $id_compra_carbon): JsonResponse
