@@ -53,6 +53,10 @@ class CompraCarbonService
             ? (int) $payload['id_tarifa_carbon']
             : null;
 
+        $idCuentaProveedor = isset($payload['id_cuenta_proveedor']) && (int) $payload['id_cuenta_proveedor'] > 0
+            ? (int) $payload['id_cuenta_proveedor']
+            : null;
+
         $precioUnitario = isset($payload['precio_unitario_cotizado']) && (float) $payload['precio_unitario_cotizado'] > 0
             ? (float) $payload['precio_unitario_cotizado']
             : null;
@@ -80,6 +84,7 @@ class CompraCarbonService
             'id_empleado_registro' => $id_empleado_registro,
             'id_tipo_carbon_prometido' => $idTipoCarbonPrometido,
             'id_tarifa_carbon' => $idTarifaCarbon,
+            'id_cuenta_proveedor' => $idCuentaProveedor,
             'correlativo' => $correlativoData['correlativo'],
             'numero_correlativo' => $correlativoData['numero_correlativo'],
             'aplica_igv' => $aplicaIgv,

@@ -57,6 +57,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::get('/cuentas-empresa', 'get_cuentas_empresa');
             Route::post('/cuentas-empresa', 'crear_cuenta_empresa');
 
+            // cuentas bancarias de proveedores (catalogo Compra de Carbon)
+            Route::get('/cuentas-proveedor', 'get_cuentas_proveedor');
+
             // productos
             Route::get('/productos', 'get_productos');
             Route::post('/productos', 'crear_producto');

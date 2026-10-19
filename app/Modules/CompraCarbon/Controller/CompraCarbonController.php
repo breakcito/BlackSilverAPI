@@ -44,6 +44,7 @@ class CompraCarbonController
             'porcentaje_igv' => 'nullable|numeric|min:0|max:100',
             'precio_unitario_cotizado' => 'nullable|numeric|min:0',
             'id_tarifa_carbon' => 'nullable|integer|min:1',
+            'id_cuenta_proveedor' => 'nullable|integer|min:1',
         ], [
             'id_empresa.required' => 'La empresa compradora es requerida',
             'id_proveedor.required' => 'El proveedor es requerido',

@@ -11,6 +11,7 @@ use App\Services\CargosService;
 use App\Services\CategoriasService;
 use App\Services\ContratistasService;
 use App\Services\CuentasEmpresaService;
+use App\Services\CuentasProveedorService;
 use App\Services\EmpleadosService;
 use App\Services\EmpresasService;
 use App\Services\LaboresService;
@@ -452,6 +453,43 @@ class AuxController extends Controller
         return response()->json(CuentasEmpresaService::get_cuentas(
             id_empresa: $id_empresa,
             id_cuenta_bancaria: $id_cuenta_bancaria,
+            estado: $estado
+        ));
+    }
+
+    /**
+     * Catalogo de cuentas bancarias del proveedor (cuenta_bancaria_proveedor).
+     * Permite filtrar por moneda y/etras de detraccion para alimentar selects
+     * que solo requieren cuentas operativas en soles.
+     */
+    public function get_cuentas_proveedor(Request $request): JsonResponse
+    {
+        $id_proveedor = $request->input('id_proveedor');
+        $id_proveedor = is_array($id_proveedor)
+            ? array_map('intval', $id_proveedor)
+            : ($id_proveedor !== null ? (int) $id_proveedor : null);
+
+        $id_cuenta_bancaria = $request->input('id_cuenta_bancaria');
+        $id_cuenta_bancaria = is_array($id_cuenta_bancaria)
+            ? array_map('intval', $id_cuenta_bancaria)
+            : ($id_cuenta_bancaria !== null ? (int) $id_cuenta_bancaria : null);
+
+        $moneda_val = $request->input('moneda');
+        $moneda = $moneda_val ? Moneda::from($moneda_val) : null;
+
+        $detraccion_val = $request->input('es_para_detraccion');
+        $es_para_detraccion = $detraccion_val === null
+            ? null
+            : filter_var($detraccion_val, FILTER_VALIDATE_BOOLEAN);
+
+        $estado_val = $request->input('estado');
+        $estado = $estado_val ? EstadoBase::from($estado_val) : null;
+
+        return response()->json(CuentasProveedorService::get_cuentas(
+            id_proveedor: $id_proveedor,
+            id_cuenta_bancaria: $id_cuenta_bancaria,
+            moneda: $moneda,
+            es_para_detraccion: $es_para_detraccion,
             estado: $estado
         ));
     }

@@ -37,6 +37,12 @@ class CompraCarbonData
                 tc_prom.codigo AS tipo_carbon_prometido_codigo,
                 tc_prom.ficha_tecnica,
                 cc.id_tarifa_carbon,
+                cc.id_cuenta_proveedor,
+                cbp.moneda AS proveedor_cuenta_moneda,
+                cbp.numero_cuenta AS proveedor_cuenta_numero,
+                cbp.cci AS proveedor_cuenta_cci,
+                bcp.nombre AS proveedor_cuenta_banco,
+                bcp.abreviatura AS proveedor_cuenta_banco_abv,
                 cc.correlativo,
                 cc.numero_correlativo,
                 cc.aplica_igv,
@@ -76,6 +82,8 @@ class CompraCarbonData
             INNER JOIN proveedor p ON p.id = cc.id_proveedor
             INNER JOIN empleado er ON er.id = cc.id_empleado_registro
             LEFT JOIN tipo_carbon tc_prom ON tc_prom.id = cc.id_tipo_carbon_prometido
+            LEFT JOIN cuenta_bancaria_proveedor cbp ON cbp.id = cc.id_cuenta_proveedor
+            LEFT JOIN banco bcp ON bcp.id = cbp.id_banco
             LEFT JOIN empleado ec ON ec.id = cc.id_empleado_cierre
             LEFT JOIN empleado ea ON ea.id = cc.id_empleado_anula
             WHERE 1 = 1
@@ -155,6 +163,12 @@ class CompraCarbonData
                 tc_prom.nombre AS tipo_carbon_prometido,
                 tc_prom.codigo AS tipo_carbon_prometido_codigo,
                 cc.id_tarifa_carbon,
+                cc.id_cuenta_proveedor,
+                cbp.moneda AS proveedor_cuenta_moneda,
+                cbp.numero_cuenta AS proveedor_cuenta_numero,
+                cbp.cci AS proveedor_cuenta_cci,
+                bcp.nombre AS proveedor_cuenta_banco,
+                bcp.abreviatura AS proveedor_cuenta_banco_abv,
                 cc.correlativo,
                 cc.numero_correlativo,
                 cc.aplica_igv,
@@ -194,6 +208,8 @@ class CompraCarbonData
             INNER JOIN proveedor p ON p.id = cc.id_proveedor
             INNER JOIN empleado er ON er.id = cc.id_empleado_registro
             LEFT JOIN tipo_carbon tc_prom ON tc_prom.id = cc.id_tipo_carbon_prometido
+            LEFT JOIN cuenta_bancaria_proveedor cbp ON cbp.id = cc.id_cuenta_proveedor
+            LEFT JOIN banco bcp ON bcp.id = cbp.id_banco
             LEFT JOIN empleado ec ON ec.id = cc.id_empleado_cierre
             LEFT JOIN empleado ea ON ea.id = cc.id_empleado_anula
             WHERE cc.id = :id
@@ -566,7 +582,7 @@ class CompraCarbonData
      */
     public static function insert_compra(array $data): int
     {
-        return CompraCarbon::insertGetId([
+        $payload = [
             'id_empresa' => (int) $data['id_empresa'],
             'id_proveedor' => (int) $data['id_proveedor'],
             'id_empleado_registro' => (int) $data['id_empleado_registro'],
@@ -585,7 +601,15 @@ class CompraCarbonData
             'log_cambios' => null,
             'created_at' => (string) ($data['created_at'] ?? now()->toDateTimeString()),
             'estado' => EstadoCompraCarbon::Preliminar->value,
-        ]);
+        ];
+
+        if (Schema::hasColumn('compra_carbon', 'id_cuenta_proveedor')) {
+            $payload['id_cuenta_proveedor'] = isset($data['id_cuenta_proveedor']) && (int) $data['id_cuenta_proveedor'] > 0
+                ? (int) $data['id_cuenta_proveedor']
+                : null;
+        }
+
+        return CompraCarbon::insertGetId($payload);
     }
 
     /**
