@@ -46,6 +46,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Modules/AlmacenCarbonProveedor/AlmacenCarbonProveedorEndpoints.php');
                 require base_path('app/Modules/AlmacenCarbonCliente/AlmacenCarbonClienteEndpoints.php');
                 require base_path('app/Modules/AnticiposProveedor/AnticiposProveedorEndpoints.php');
+                require base_path('app/Modules/Cambista/CambistaEndpoints.php');
                 require base_path('app/Modules/LugarExtraccionCarbon/LugarExtraccionCarbonEndpoints.php');
                 require base_path('app/Modules/Clientes/ClientesEndpoints.php');
                 require base_path('app/Modules/Cotizaciones/CotizacionesEndpoints.php');

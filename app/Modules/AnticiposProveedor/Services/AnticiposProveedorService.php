@@ -51,6 +51,7 @@ class AnticiposProveedorService
         int $id_empleado_registro,
         ?int $id_cuenta_bancaria_empresa,
         ?int $id_cuenta_bancaria_proveedor,
+        ?int $id_cambista,
         ?MedioPago $medio_pago,
         ?string $fecha_hora_pago,
         ?string $numero_operacion,
@@ -67,6 +68,7 @@ class AnticiposProveedorService
         if ($medio_pago !== null) {
             $requiereBanco = $medio_pago === MedioPago::Transferencia
                 || $medio_pago === MedioPago::Deposito;
+            $requiereCambista = $medio_pago === MedioPago::Efectivo;
 
             if ($requiereBanco) {
                 if ($id_cuenta_bancaria_empresa === null) {
@@ -78,7 +80,30 @@ class AnticiposProveedorService
                 if (empty($numero_operacion)) {
                     return ApiResponse::error('Para ' . $medio_pago->value . ' debe indicar el numero de operacion');
                 }
+                // Si NO es pago a terceros, la cuenta destino del proveedor
+                // es obligatoria. Con pago a terceros se permite null.
+                if (! $pago_a_terceros && $id_cuenta_bancaria_proveedor === null) {
+                    return ApiResponse::error('Para ' . $medio_pago->value . ' debe seleccionar la cuenta destino del proveedor (o activar pago a terceros)');
+                }
             }
+
+            // Efectivo: la plata sale del bolsillo del cambista, no de una
+            // cuenta bancaria. Si viene id_cambista sin medio_pago efectivo,
+            // o si no viene siendo Efectivo, el Service lo corrige.
+            if ($requiereCambista) {
+                if ($id_cambista === null) {
+                    return ApiResponse::error('Para Efectivo debe seleccionar el cambista');
+                }
+                // Bancos al costo cero en efectivo.
+                $id_cuenta_bancaria_empresa = null;
+                $id_cuenta_bancaria_proveedor = null;
+                $numero_operacion = null;
+            } else {
+                // Cualquier otro medio de pago no usa cambista.
+                $id_cambista = null;
+            }
+        } else {
+            $id_cambista = null;
         }
 
         $evidencias = null;
@@ -95,6 +120,7 @@ class AnticiposProveedorService
             id_empleado_registro: $id_empleado_registro,
             id_cuenta_bancaria_empresa: $id_cuenta_bancaria_empresa,
             id_cuenta_bancaria_proveedor: $id_cuenta_bancaria_proveedor,
+            id_cambista: $id_cambista,
             medio_pago: $medio_pago?->value,
             fecha_hora_pago: $fecha_hora_pago,
             numero_operacion: $numero_operacion,

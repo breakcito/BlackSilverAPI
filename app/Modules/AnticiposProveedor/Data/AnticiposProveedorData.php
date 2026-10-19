@@ -33,6 +33,8 @@ class AnticiposProveedorData
                 cp.moneda AS cuenta_proveedor_moneda,
                 cp.cci AS cuenta_proveedor_cci,
                 bp.abreviatura AS cuenta_proveedor_banco,
+                a.id_cambista,
+                cm.nombre AS cambista_nombre,
                 a.medio_pago,
                 a.fecha_hora_pago,
                 a.numero_operacion,
@@ -53,6 +55,7 @@ class AnticiposProveedorData
             LEFT JOIN cuenta_bancaria_empresa ce ON ce.id = a.id_cuenta_bancaria_empresa
             LEFT JOIN cuenta_bancaria_proveedor cp ON cp.id = a.id_cuenta_bancaria_proveedor
             LEFT JOIN banco bp ON bp.id = cp.id_banco
+            LEFT JOIN cambista cm ON cm.id = a.id_cambista
     ';
 
     /**
@@ -173,6 +176,7 @@ class AnticiposProveedorData
         int $id_empleado_registro,
         ?int $id_cuenta_bancaria_empresa,
         ?int $id_cuenta_bancaria_proveedor,
+        ?int $id_cambista,
         ?string $medio_pago,
         ?string $fecha_hora_pago,
         ?string $numero_operacion,
@@ -197,6 +201,7 @@ class AnticiposProveedorData
             'id_cuenta_bancaria_proveedor' => $pago_a_terceros
                 ? null
                 : $id_cuenta_bancaria_proveedor,
+            'id_cambista' => $id_cambista,
             'medio_pago' => $medio_pago,
             'fecha_hora_pago' => $fecha_hora_pago,
             'numero_operacion' => $numero_operacion,

@@ -36,7 +36,8 @@ class AnticiposProveedorController extends Controller
      *   id_cuenta_bancaria_empresa?: int,   // cuenta ORIGEN (de la empresa)
      *   id_cuenta_bancaria_proveedor?: int, // cuenta DESTINO (del proveedor)
      *   medio_pago?: 'Transferencia' | 'Depósito' | 'Efectivo',
-     *   fecha_hora_pago?: 'YYYY-MM-DD HH:MM:SS',
+     *   fecha_hora_pago?: 'YYYY-MM-DD' (se completa a '00:00:00' al persistir)
+     *                       | 'YYYY-MM-DD HH:MM:SS',
      *   numero_operacion?: string(64),
      *   codigo_comprobante?: string(64),  // factura / comprobante que respalda el anticipo
      *   observacion?: string(500),
@@ -54,8 +55,16 @@ class AnticiposProveedorController extends Controller
             'id_empresa' => 'required|integer|min:1',
             'id_cuenta_bancaria_empresa' => 'nullable|integer|min:1',
             'id_cuenta_bancaria_proveedor' => 'nullable|integer|min:1',
+            'id_cambista' => 'nullable|integer|min:1',
             'medio_pago' => ['nullable', new Enum(MedioPago::class)],
-            'fecha_hora_pago' => 'nullable|date_format:Y-m-d H:i:s',
+            'fecha_hora_pago' => [
+                'nullable',
+                'string',
+                // Acepta `YYYY-MM-DD` o `YYYY-MM-DD HH:MM:SS`. Lo normalizamos
+                // despues: si vino solo fecha le pegamos ` 00:00:00` para
+                // satisfacer el DATETIME de MySQL.
+                'regex:/^\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2}:\d{2})?$/',
+            ],
             'numero_operacion' => 'nullable|string|max:64',
             'codigo_comprobante' => 'nullable|string|max:64',
             'observacion' => 'nullable|string|max:500',
@@ -67,7 +76,7 @@ class AnticiposProveedorController extends Controller
             'id_empresa.required' => 'La empresa es obligatoria',
             'saldo.required' => 'El saldo es obligatorio',
             'saldo.min' => 'El saldo debe ser mayor a 0',
-            'fecha_hora_pago.date_format' => 'Formato de fecha y hora invalido (YYYY-MM-DD HH:MM:SS)',
+            'fecha_hora_pago.regex' => 'Formato invalido (use YYYY-MM-DD o YYYY-MM-DD HH:MM:SS)',
             'codigo_comprobante.max' => 'El comprobante no puede superar 64 caracteres',
             'observacion.max' => 'La observacion no puede superar 500 caracteres',
             'evidencias.*.file' => 'Las evidencias deben ser archivos validos',
@@ -111,8 +120,11 @@ class AnticiposProveedorController extends Controller
             id_cuenta_bancaria_proveedor: $request->input('id_cuenta_bancaria_proveedor') !== null
                 ? (int) $request->input('id_cuenta_bancaria_proveedor')
                 : null,
+            id_cambista: $request->input('id_cambista') !== null
+                ? (int) $request->input('id_cambista')
+                : null,
             medio_pago: $medioPago,
-            fecha_hora_pago: $request->input('fecha_hora_pago') ?: null,
+            fecha_hora_pago: $this->normalizarFechaHoraPago($request->input('fecha_hora_pago')),
             numero_operacion: $this->textoOpcional($request->input('numero_operacion')),
             codigo_comprobante: $this->textoOpcional($request->input('codigo_comprobante')),
             observacion: $this->textoOpcional($request->input('observacion')),
@@ -132,6 +144,26 @@ class AnticiposProveedorController extends Controller
         }
         $trimmed = trim($valor);
         return $trimmed === '' ? null : $trimmed;
+    }
+
+    /**
+     * Acepta `YYYY-MM-DD` o `YYYY-MM-DD HH:MM:SS`; en el primer caso, le
+     * pega ` 00:00:00` para satisfacer el formato DATETIME de la columna.
+     * Devuelve `null` si el input viene vacio, null o no es string.
+     */
+    private function normalizarFechaHoraPago(mixed $valor): ?string
+    {
+        if (!is_string($valor)) {
+            return null;
+        }
+        $trimmed = trim($valor);
+        if ($trimmed === '') {
+            return null;
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $trimmed) === 1) {
+            return $trimmed . ' 00:00:00';
+        }
+        return $trimmed;
     }
 
     /**
