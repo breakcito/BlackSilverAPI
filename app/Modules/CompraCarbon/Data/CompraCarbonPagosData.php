@@ -154,7 +154,9 @@ class CompraCarbonPagosData
             $idPago = PagoCompraCarbon::insertGetId([
                 'id_compra_carbon' => $idCompra,
                 'id_comprobante_compra_carbon' => $idComprobante,
-                'id_cuenta_bancaria_empresa' => (int) $d['id_cuenta_bancaria_empresa'],
+                'id_cuenta_bancaria_empresa' => isset($d['id_cuenta_bancaria_empresa']) && (int) $d['id_cuenta_bancaria_empresa'] > 0
+                    ? (int) $d['id_cuenta_bancaria_empresa']
+                    : null,
                 'id_cuenta_bancaria_proveedor' => isset($d['id_cuenta_bancaria_proveedor']) && (int) $d['id_cuenta_bancaria_proveedor'] > 0
                     ? (int) $d['id_cuenta_bancaria_proveedor']
                     : null,

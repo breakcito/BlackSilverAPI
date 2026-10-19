@@ -107,7 +107,9 @@ class CompraCarbonPagosService
             $idPago = CompraCarbonPagosData::registrar_pago_proveedor([
                 'id_compra_carbon' => $id_compra_carbon,
                 'id_comprobante_compra_carbon' => $idComprobante,
-                'id_cuenta_bancaria_empresa' => (int) $payload['id_cuenta_bancaria_empresa'],
+                'id_cuenta_bancaria_empresa' => isset($payload['id_cuenta_bancaria_empresa']) && (int) $payload['id_cuenta_bancaria_empresa'] > 0
+                    ? (int) $payload['id_cuenta_bancaria_empresa']
+                    : null,
                 'id_cuenta_bancaria_proveedor' => isset($payload['id_cuenta_bancaria_proveedor']) && (int) $payload['id_cuenta_bancaria_proveedor'] > 0
                     ? (int) $payload['id_cuenta_bancaria_proveedor']
                     : null,

@@ -25,8 +25,10 @@ class CompraCarbonPagosController
 
         $validator = Validator::make($request->all(), [
             'id_comprobante_compra_carbon' => 'nullable|integer|min:1',
-            'id_cuenta_bancaria_empresa' => 'required|integer|min:1',
-            'id_cuenta_bancaria_proveedor' => 'nullable|integer|min:1',
+            // La cuenta de la empresa solo es obligatoria en pagos bancarios; en
+            // Efectivo no es requerida (no sale dinero de ninguna cuenta).
+            'id_cuenta_bancaria_empresa' => 'required_if:medio_pago,Transferencia,Depósito|nullable|integer|min:1',
+            'id_cuenta_bancaria_proveedor' => 'required_if:medio_pago,Transferencia,Depósito|nullable|integer|min:1',
             'medio_pago' => 'required|string|in:Transferencia,Depósito,Efectivo',
             'numero_operacion' => 'nullable|string|max:64',
             'fecha_hora_pago' => 'required|string',
@@ -41,7 +43,8 @@ class CompraCarbonPagosController
             'evidencias' => 'nullable|array',
             'evidencias.*' => 'file',
         ], [
-            'id_cuenta_bancaria_empresa.required' => 'La cuenta bancaria de la empresa es obligatoria',
+            'id_cuenta_bancaria_empresa.required_if' => 'Para transferencias o depósitos la cuenta de origen de la empresa es obligatoria',
+            'id_cuenta_bancaria_proveedor.required_if' => 'Para transferencias o depósitos la cuenta de destino del proveedor es obligatoria',
             'medio_pago.required' => 'El medio de pago es obligatorio',
             'fecha_hora_pago.required' => 'La fecha y hora de pago son obligatorias',
             'monto_pagado.required' => 'El monto pagado es obligatorio',
@@ -49,10 +52,6 @@ class CompraCarbonPagosController
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()), 422);
-        }
-
-        if ($request->input('medio_pago') !== 'Efectivo' && empty($request->input('id_cuenta_bancaria_proveedor'))) {
-            return response()->json(ApiResponse::error('Para transferencias o depósitos la cuenta del proveedor es obligatoria'), 422);
         }
 
         /** @var array<int, \Illuminate\Http\UploadedFile> $archivos */
