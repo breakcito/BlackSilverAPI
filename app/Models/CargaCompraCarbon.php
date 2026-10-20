@@ -34,6 +34,9 @@ class CargaCompraCarbon extends Model
         'id_comprobante_transporte_carbon', // si se pagara el flete de la carga
         'id_comprobante_compra_carbon', // si la compra aplica igv, cada carga o grupo de cargas estaran en un comprobante
         'id_pago_compra_carbon', // si la compra NO aplica igv y solo se hacen pagos directos de cada carga o en grupo de forma directa sin tener un comprobante
+        'id_zarandeo_carbon', // asocia el proceso de zarandeo en el que estuvo involucrada esta carga
+        //
+        'calidad', // segun el porcentaje de ceniza, Baja |Intermedia | Alta
         //
         'tipo_despacho', // Recojo/Envio
         //

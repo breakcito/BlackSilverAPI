@@ -3,8 +3,8 @@
 namespace App\Modules\TamizajeCarbon\Data;
 
 use App\Models\StockCarbon;
-use App\Models\TamizajeCarbon;
-use App\Models\VarianteTamizajeCarbon;
+use App\Models\ZarandeoCarbon;
+use App\Models\VarianteZarandeoCarbon;
 use Illuminate\Support\Facades\DB;
 
 class TamizajeCarbonData
@@ -93,7 +93,7 @@ class TamizajeCarbonData
     {
         $sql = '
             SELECT
-                tz.id AS id_tamizaje_carbon,
+                tz.id AS id_zarandeo_carbon,
                 tz.id_almacen,
                 alm.nombre AS almacen_nombre,
                 tz.id_empleado_registro,
@@ -107,13 +107,13 @@ class TamizajeCarbonData
                 c.codigo_ticket_balanza AS carga_ticket_balanza,
                 c.placa AS carga_placa,
                 cc.correlativo AS compra_correlativo,
-                tz.cantidad_tamizada,
+                tz.cantidad_zarandeada,
                 tz.cantidad_extraida,
-                tz.es_retamizaje,
-                tz.fecha_hora_tamizaje,
+                tz.es_rezarandeo,
+                tz.fecha_hora_zarandeo,
                 tz.evidencias,
                 tz.created_at
-            FROM tamizaje_carbon tz
+            FROM zarandeo_carbon tz
             INNER JOIN almacen alm ON alm.id = tz.id_almacen
             INNER JOIN empleado er ON er.id = tz.id_empleado_registro
             INNER JOIN tipo_carbon tc ON tc.id = tz.id_tipo_carbon
@@ -138,11 +138,11 @@ class TamizajeCarbonData
         $mes = isset($opts['mes']) ? (int) $opts['mes'] : 0;
         $anio = isset($opts['anio']) ? (int) $opts['anio'] : 0;
         if ($mes > 0 && $anio > 0) {
-            $sql .= ' AND MONTH(tz.fecha_hora_tamizaje) = :mes AND YEAR(tz.fecha_hora_tamizaje) = :anio';
+            $sql .= ' AND MONTH(tz.fecha_hora_zarandeo) = :mes AND YEAR(tz.fecha_hora_zarandeo) = :anio';
             $params['mes'] = $mes;
             $params['anio'] = $anio;
         } elseif ($anio > 0) {
-            $sql .= ' AND YEAR(tz.fecha_hora_tamizaje) = :anio';
+            $sql .= ' AND YEAR(tz.fecha_hora_zarandeo) = :anio';
             $params['anio'] = $anio;
         }
 
@@ -152,7 +152,7 @@ class TamizajeCarbonData
             $params['q'] = '%' . $filtros . '%';
         }
 
-        $sql .= ' ORDER BY tz.fecha_hora_tamizaje DESC, tz.id DESC';
+        $sql .= ' ORDER BY tz.fecha_hora_zarandeo DESC, tz.id DESC';
 
         $tamizajes = DB::select($sql, $params);
         foreach ($tamizajes as $tz) {
@@ -161,18 +161,18 @@ class TamizajeCarbonData
             // Variantes extraídas
             $tz->variantes = DB::select('
                 SELECT
-                    vt.id AS id_variante_tamizaje_carbon,
-                    vt.id_tamizaje_carbon,
+                    vt.id AS id_variante_zarandeo_carbon,
+                    vt.id_zarandeo_carbon,
                     vt.id_tipo_variante,
                     tcv.nombre AS tipo_variante_nombre,
                     tcv.codigo AS tipo_variante_codigo,
                     vt.cantidad_extraida,
                     vt.cambios_log
-                FROM variante_tamizaje_carbon vt
+                FROM variante_zarandeo_carbon vt
                 INNER JOIN tipo_carbon tcv ON tcv.id = vt.id_tipo_variante
-                WHERE vt.id_tamizaje_carbon = :id_tz
+                WHERE vt.id_zarandeo_carbon = :id_tz
                 ORDER BY vt.id ASC
-            ', ['id_tz' => $tz->id_tamizaje_carbon]);
+            ', ['id_tz' => $tz->id_zarandeo_carbon]);
 
             foreach ($tz->variantes as $v) {
                 $v->cambios_log = self::decode_json($v->cambios_log ?? null);
@@ -199,9 +199,9 @@ class TamizajeCarbonData
      *   id_empleado_supervisor?: int|null,
      *   id_tipo_carbon: int,
      *   id_carga_compra_carbon?: int|null,
-     *   cantidad_tamizada: float,
-     *   es_retamizaje: bool,
-     *   fecha_hora_tamizaje: string,
+     *   cantidad_zarandeada: float,
+     *   es_rezarandeo: bool,
+     *   fecha_hora_zarandeo: string,
      *   evidencias?: mixed,
      *   variantes: array<int, array{id_tipo_variante: int, cantidad_extraida: float}>
      * } $d
@@ -223,7 +223,7 @@ class TamizajeCarbonData
                 ? (is_string($d['evidencias']) ? $d['evidencias'] : json_encode($d['evidencias'], JSON_UNESCAPED_UNICODE))
                 : null;
 
-            $idTamizaje = TamizajeCarbon::insertGetId([
+            $idTamizaje = ZarandeoCarbon::insertGetId([
                 'id_almacen' => $idAlmacen,
                 'id_empleado_registro' => (int) $d['id_empleado_registro'],
                 'id_empleado_supervisor' => isset($d['id_empleado_supervisor']) && (int) $d['id_empleado_supervisor'] > 0
@@ -233,10 +233,10 @@ class TamizajeCarbonData
                 'id_carga_compra_carbon' => isset($d['id_carga_compra_carbon']) && (int) $d['id_carga_compra_carbon'] > 0
                     ? (int) $d['id_carga_compra_carbon']
                     : null,
-                'cantidad_tamizada' => (float) $d['cantidad_tamizada'],
+                'cantidad_zarandeada' => (float) $d['cantidad_zarandeada'],
                 'cantidad_extraida' => $cantidadExtraidaTotal,
-                'es_retamizaje' => !empty($d['es_retamizaje']) ? 1 : 0,
-                'fecha_hora_tamizaje' => (string) $d['fecha_hora_tamizaje'],
+                'es_rezarandeo' => !empty($d['es_rezarandeo']) ? 1 : 0,
+                'fecha_hora_zarandeo' => (string) $d['fecha_hora_zarandeo'],
                 'evidencias' => $evidenciasJson,
                 'created_at' => now()->toDateTimeString(),
             ]);
@@ -246,8 +246,8 @@ class TamizajeCarbonData
                 $idTipoVariante = (int) $v['id_tipo_variante'];
                 $cantVar = round((float) $v['cantidad_extraida'], 4);
 
-                VarianteTamizajeCarbon::insert([
-                    'id_tamizaje_carbon' => $idTamizaje,
+                VarianteZarandeoCarbon::insert([
+                    'id_zarandeo_carbon' => $idTamizaje,
                     'id_tipo_variante' => $idTipoVariante,
                     'cantidad_extraida' => $cantVar,
                     'cambios_log' => null,
@@ -316,7 +316,7 @@ class TamizajeCarbonData
             INNER JOIN compra_carbon cc ON cc.id = c.id_compra_carbon
             INNER JOIN tipo_carbon tc ON tc.id = c.id_tipo_carbon
             LEFT JOIN almacen alm ON alm.id = c.id_almacen_empresa_llegada
-            LEFT JOIN tamizaje_carbon tz ON tz.id_carga_compra_carbon = c.id
+            LEFT JOIN zarandeo_carbon tz ON tz.id_carga_compra_carbon = c.id
             WHERE tz.id IS NULL
               AND c.estado != "Anulado"
               AND c.id_almacen_empresa_llegada IS NOT NULL
@@ -338,7 +338,8 @@ class TamizajeCarbonData
      */
     public static function decode_json(mixed $val): mixed
     {
-        if (is_array($val) || is_object($val)) return $val;
+        if (is_array($val) || is_object($val))
+            return $val;
         if (is_string($val) && $val !== '') {
             $dec = json_decode($val, true);
             return json_last_error() === JSON_ERROR_NONE ? $dec : [];

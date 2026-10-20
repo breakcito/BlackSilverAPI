@@ -89,8 +89,8 @@ class TamizajeCarbonController
                 $request->merge(['variantes' => $decoded]);
             }
         }
-        if ($request->has('es_retamizaje')) {
-            $request->merge(['es_retamizaje' => $request->boolean('es_retamizaje')]);
+        if ($request->has('es_rezarandeo')) {
+            $request->merge(['es_rezarandeo' => $request->boolean('es_rezarandeo')]);
         }
 
         $validator = Validator::make($request->all(), [
@@ -98,9 +98,9 @@ class TamizajeCarbonController
             'id_tipo_carbon' => 'required|integer|min:1',
             'id_empleado_supervisor' => 'nullable|integer|min:1',
             'id_carga_compra_carbon' => 'nullable|integer|min:1',
-            'cantidad_tamizada' => 'nullable|numeric|min:0',
-            'es_retamizaje' => 'nullable|boolean',
-            'fecha_hora_tamizaje' => 'required|string',
+            'cantidad_zarandeada' => 'nullable|numeric|min:0',
+            'es_rezarandeo' => 'nullable|boolean',
+            'fecha_hora_zarandeo' => 'required|string',
             'variantes' => 'required|array|min:1',
             'variantes.*.id_tipo_variante' => 'required|integer|min:1',
             'variantes.*.cantidad_extraida' => 'required|numeric|min:0.001',
@@ -108,7 +108,7 @@ class TamizajeCarbonController
             'evidencias.*' => 'file',
         ], [
             'id_tipo_carbon.required' => 'El tipo de carbón a tamizar es requerido',
-            'fecha_hora_tamizaje.required' => 'La fecha y hora del tamizaje son requeridas',
+            'fecha_hora_zarandeo.required' => 'La fecha y hora del tamizaje son requeridas',
             'variantes.required' => 'Debe registrar al menos una variante extraída',
         ]);
 

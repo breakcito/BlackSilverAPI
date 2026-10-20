@@ -24,6 +24,7 @@ class CompraCarbon extends Model
         //
         'id_tipo_carbon_prometido', //  lo que dice el proveedor que te va a traer
         'id_tarifa_carbon', // la tarifa de costos aplicada, por defecto se toma la tarifa mas alta segun el tipo de carbon
+        'id_cuenta_proveedor', // la cuenta del proveedor elegida desde la compra
         //
         'correlativo', // <numero de correlativo>-<año>
         'numero_correlativo', // se reinicia al año

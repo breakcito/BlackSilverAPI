@@ -120,9 +120,9 @@ class TamizajeCarbonService
                 'id_carga_compra_carbon' => isset($payload['id_carga_compra_carbon']) && (int) $payload['id_carga_compra_carbon'] > 0
                     ? (int) $payload['id_carga_compra_carbon']
                     : null,
-                'cantidad_tamizada' => (float) ($payload['cantidad_tamizada'] ?? 0),
-                'es_retamizaje' => !empty($payload['es_retamizaje']),
-                'fecha_hora_tamizaje' => (string) ($payload['fecha_hora_tamizaje'] ?? now()->toDateTimeString()),
+                'cantidad_zarandeada' => (float) ($payload['cantidad_zarandeada'] ?? 0),
+                'es_rezarandeo' => !empty($payload['es_rezarandeo']),
+                'fecha_hora_zarandeo' => (string) ($payload['fecha_hora_zarandeo'] ?? now()->toDateTimeString()),
                 'evidencias' => $evidencias,
                 'variantes' => $variantes,
             ]);
@@ -130,7 +130,7 @@ class TamizajeCarbonService
             $tamizajeCreado = TamizajeCarbonData::get_tamizaje_by_id($idTamizaje);
 
             return ApiResponse::success(
-                $tamizajeCreado ?? ['id_tamizaje_carbon' => $idTamizaje],
+                $tamizajeCreado ?? ['id_zarandeo_carbon' => $idTamizaje],
                 'Tamizaje de carbón registrado y stock actualizado satisfactoriamente'
             );
         } catch (\Throwable $e) {

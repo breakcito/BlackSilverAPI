@@ -19,6 +19,7 @@ class StockCarbon extends Model
     protected $fillable = [
         'id_almacen',
         'id_tipo_carbon',
+        'calidad', // Baja (0-15% de ceniza) | Media (15-18% de ceniza) | (18-?% de ceniza) Alta
         'stock_actual', // en toneladas, para saber cuanto hay
         'cambios_log', // JSON - para guardar cuando editan el peso
     ];

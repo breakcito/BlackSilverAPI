@@ -12,14 +12,14 @@ use Illuminate\Database\Eloquent\Model;
  * se sumara al stock del tipo de carbon obtenido como variante, admeas de hacer un 
  * registro en el kardex de carbon
  */
-class VarianteTamizajeCarbon extends Model
+class VarianteZarandeoCarbon extends Model
 {
-    protected $table = 'variante_tamizaje_carbon';
+    protected $table = 'variante_zarandeo_carbon';
 
     public $timestamps = false;
 
     protected $fillable = [
-        'id_tamizaje_carbon',
+        'id_zarandeo_carbon',
         'id_tipo_variante', // el tipo de carbon resultante del tipo de carbon tamizado
         'cantidad_extraida', //  cuantas toneladas derivaron del tipo de carbon tamizado
         'cambios_log', // JSON  - para guardar cuando editan el peso del tamizaje
