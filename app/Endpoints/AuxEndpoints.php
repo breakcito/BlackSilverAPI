@@ -84,6 +84,13 @@ Route::middleware('auth.jwt.custom')->group(function () {
             Route::get('/tarifas-carbon', 'get_tarifas_carbon');
             Route::post('/tarifas-carbon', 'crear_tarifa_carbon');
 
+            // vehiculos de carbon (catalogo modulo Venta de Carbon)
+            Route::get('/vehiculos-carbon', 'get_vehiculos_carbon');
+            Route::post('/vehiculos-carbon', 'crear_vehiculo_carbon');
+
+            // stock de carbon por almacen / tipo / calidad
+            Route::get('/stock-carbon', 'get_stock_carbon');
+
             // activos fijos disponibles
             Route::get('/activos-disponibles', 'get_activos_disponibles');
 

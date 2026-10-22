@@ -12,7 +12,7 @@ class CorrelativoHelper
         string $tabla,
         string $prefijo,
         array $filtros = [],
-        int $longitudCeros = 5,
+        int $longitudCeros = 3,
         Periodo $reseteo = Periodo::Anual,
         string $columnaFecha = 'created_at',
         ?Closure $queryModifier = null,

@@ -10,8 +10,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class CargaVentaCarbon extends Model
 {
-    protected $table = 'carga_venta_carbon
-';
+    protected $table = 'carga_venta_carbon';
 
     public $timestamps = false;
 

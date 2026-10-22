@@ -24,10 +24,12 @@ use App\Services\PersonalExternoService;
 use App\Services\ProductosService;
 use App\Services\ProveedoresService;
 use App\Services\RolesService;
+use App\Services\StockCarbonService;
 use App\Services\TarifasCarbonService;
 use App\Services\TransportistasCuentasService;
 use App\Services\TransportistasService;
 use App\Services\UbicacionService;
+use App\Services\VehiculoCarbonService;
 use App\Services\UnidadesMedidaService;
 use App\Shared\Enums\_Generic\EstadoBase;
 use App\Shared\Enums\_Generic\Moneda;
@@ -38,6 +40,7 @@ use App\Shared\Enums\_Generic\TipoProducto;
 use App\Shared\Enums\ActivoFijo\EstadoActivoFijo;
 use App\Shared\Enums\Contrato\TipoContrato;
 use App\Shared\Enums\LoteMineral\EstadoLoteMineral;
+use App\Shared\Enums\VentaCarbon\TipoVehiculoCarbon;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -568,19 +571,30 @@ class AuxController extends Controller
     {
         $id_marca = $request->input('id_marca') ? (int) $request->input('id_marca') : null;
         $estado_val = $request->input('estado');
-        $estado = $estado_val ? EstadoBase::from($estado_val) : null;
+        // Sin parametro se listan solo las marcas activas (default del service).
+        $estado = $estado_val ? EstadoBase::tryFrom($estado_val) : EstadoBase::Activo;
+        // Tri-estado: null = no filtrar, true = solo marcas de vehiculos.
+        $de_vehiculos = $request->has('de_vehiculos')
+            ? $request->boolean('de_vehiculos')
+            : null;
 
-        return response()->json(MarcasService::get_marcas(id_marca: $id_marca, estado: $estado));
+        return response()->json(MarcasService::get_marcas(
+            id_marca: $id_marca,
+            estado: $estado,
+            de_vehiculos: $de_vehiculos,
+        ));
     }
 
     public function crear_marca(Request $request): JsonResponse
     {
         $request->validate([
-            'nombre' => 'required|string',
+            'nombre' => 'required|string|max:128',
+            'de_vehiculos' => 'nullable|boolean',
         ]);
 
         $result = MarcasService::crear_marca(
-            nombre: $request->input('nombre')
+            nombre: $request->input('nombre'),
+            de_vehiculos: $request->boolean('de_vehiculos'),
         );
 
         return response()->json($result);
@@ -779,6 +793,62 @@ class AuxController extends Controller
             fin_porcentaje_ceniza: (float) $request->input('fin_porcentaje_ceniza'),
             precio_unitario: (float) $request->input('precio_unitario'),
         ));
+    }
+
+    /**
+     * Catalogo de vehiculos de carbon (despacho de ventas).
+     */
+    public function get_vehiculos_carbon(Request $request): JsonResponse
+    {
+        $idVehiculo = $request->input('id_vehiculo_carbon') ? (int) $request->input('id_vehiculo_carbon') : null;
+        $filtros = $request->input('filtros');
+
+        return response()->json(VehiculoCarbonService::get_vehiculos(
+            id_vehiculo_carbon: $idVehiculo,
+            filtros: $filtros !== null ? (string) $filtros : null,
+        ));
+    }
+
+    /**
+     * Registra un vehiculo de carbon. Pensado para el boton "+" del formulario
+     * de despacho de una venta.
+     */
+    public function crear_vehiculo_carbon(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_marca' => 'nullable|integer|min:1',
+            'tipo_vehiculo' => 'required|string|in:' . implode(',', TipoVehiculoCarbon::valores()),
+            'placa' => 'required|string|max:20',
+        ], [
+            'tipo_vehiculo.required' => 'El tipo de vehiculo es requerido',
+            'tipo_vehiculo.in' => 'El tipo de vehiculo debe ser ' . implode(' o ', TipoVehiculoCarbon::valores()),
+            'placa.required' => 'La placa es requerida',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
+        }
+
+        return response()->json(VehiculoCarbonService::crear_vehiculo(
+            id_marca: (int) ($request->input('id_marca') ?? 0),
+            tipo_vehiculo: (string) $request->input('tipo_vehiculo'),
+            placa: (string) $request->input('placa'),
+        ));
+    }
+
+    /**
+     * Stock de carbon por almacen, tipo y calidad.
+     */
+    public function get_stock_carbon(Request $request): JsonResponse
+    {
+        $opts = [
+            'id_almacen' => $request->query('id_almacen'),
+            'id_tipo_carbon' => $request->query('id_tipo_carbon'),
+            'calidad' => $request->query('calidad'),
+            'filtros' => $request->query('filtros'),
+        ];
+
+        return response()->json(StockCarbonService::get_stocks($opts));
     }
 
     /**

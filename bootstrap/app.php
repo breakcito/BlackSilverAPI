@@ -63,6 +63,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Modules/CompraCarbon/CompraCarbonEndpoints.php');
                 require base_path('app/Modules/KardexCarbon/KardexCarbonEndpoints.php');
                 require base_path('app/Modules/TamizajeCarbon/TamizajeCarbonEndpoints.php');
+                require base_path('app/Modules/VentaCarbon/VentaCarbonEndpoints.php');
             });
         },
     )

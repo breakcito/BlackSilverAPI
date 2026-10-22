@@ -9,8 +9,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class VentaCarbon extends Model
 {
-    protected $table = 'venta_carbon
-';
+    protected $table = 'venta_carbon';
 
     public $timestamps = false;
 
