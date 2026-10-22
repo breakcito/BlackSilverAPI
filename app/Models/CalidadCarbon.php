@@ -11,7 +11,7 @@ class CalidadCarbon extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'nombre', // enum CalidadCarbon: Baja | Intermedia | Alta
+        'nombre', // enum TipoCalidadCarbon: Baja | Intermedia | Alta
         'porcentaje_inicio_ceniza',
         'porcentaje_fin_ceniza',
     ];

@@ -2,6 +2,7 @@
 
 namespace App\Modules\TipoCarbon\Controllers;
 
+use App\Modules\TipoCarbon\Service\CalidadCarbonService;
 use App\Modules\TipoCarbon\Service\TipoCarbonService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -87,24 +88,90 @@ class TipoCarbonController
     }
 
     /**
-     * @param Request $request 'variantes' debe ser un array de ids.
+     * @param Request $request 'variantes' es un array de
+     *   { id_tipo_variante: int, porcentaje_extraccion: number }.
      */
     public function set_variantes(Request $request, int $id_tipo_carbon): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $variantesRaw = $request->input('variantes', []);
+
+        // Se normaliza el shape: se acepta tanto un id suelto (compatibilidad)
+        // como un objeto con el porcentaje de extraccion.
+        $variantes = [];
+        foreach ((array) $variantesRaw as $item) {
+            if (is_int($item) || is_numeric($item)) {
+                $variantes[] = [
+                    'id_tipo_variante' => (int) $item,
+                    'porcentaje_extraccion' => 0,
+                ];
+                continue;
+            }
+            if (!is_array($item) || !isset($item['id_tipo_variante'])) {
+                continue;
+            }
+            $variantes[] = [
+                'id_tipo_variante' => (int) $item['id_tipo_variante'],
+                'porcentaje_extraccion' => (float) ($item['porcentaje_extraccion'] ?? 0),
+            ];
+        }
+
+        $validator = Validator::make(['variantes' => $variantes], [
             'variantes' => 'present|array',
-            'variantes.*' => 'integer',
+            'variantes.*.id_tipo_variante' => 'required|integer|min:1',
+            'variantes.*.porcentaje_extraccion' => 'required|numeric|min:0|max:100',
+        ], [
+            'variantes.*.porcentaje_extraccion.max' => 'El porcentaje de extracción no puede superar el 100%',
         ]);
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()), 422);
         }
 
-        $ids = array_map('intval', (array) $request->input('variantes', []));
-
         return response()->json(TipoCarbonService::set_variantes(
             id_tipo_carbon: $id_tipo_carbon,
-            ids_variante: $ids
+            variantes: $variantes
+        ));
+    }
+
+    /**
+     * Lista las calidades de carbón con sus rangos de % de ceniza.
+     */
+    public function get_calidades(): JsonResponse
+    {
+        return response()->json(CalidadCarbonService::get_calidades());
+    }
+
+    /**
+     * Actualiza el rango de % de ceniza de una calidad.
+     */
+    public function actualizar_calidad(Request $request, int $id_calidad_carbon): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'porcentaje_inicio_ceniza' => 'required|numeric|min:0|max:100',
+            'porcentaje_fin_ceniza' => 'required|numeric|min:0|max:100',
+        ], [
+            'porcentaje_inicio_ceniza.required' => 'El porcentaje de ceniza inicial es obligatorio',
+            'porcentaje_fin_ceniza.required' => 'El porcentaje de ceniza final es obligatorio',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
+        }
+
+        $inicio = (float) $request->input('porcentaje_inicio_ceniza');
+        $fin = (float) $request->input('porcentaje_fin_ceniza');
+
+        if ($fin <= $inicio) {
+            return response()->json(
+                ApiResponse::error('El porcentaje final de ceniza debe ser mayor al inicial'),
+                422
+            );
+        }
+
+        return response()->json(CalidadCarbonService::actualizar_calidad(
+            id_calidad_carbon: $id_calidad_carbon,
+            porcentaje_inicio_ceniza: $inicio,
+            porcentaje_fin_ceniza: $fin
         ));
     }
 }

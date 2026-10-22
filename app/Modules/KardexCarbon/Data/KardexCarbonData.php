@@ -30,6 +30,7 @@ class KardexCarbonData
                 prov.razon_social AS proveedor_razon_social,
                 k.fecha_hora_movimiento,
                 k.tipo_movimiento,
+                k.calidad,
                 k.stock_anterior,
                 k.cantidad_movimiento,
                 k.stock_resultante,

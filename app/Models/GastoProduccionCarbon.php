@@ -18,7 +18,7 @@ class GastoProduccionCarbon extends Model
         'id_zarandeo_carbon', // saber que tipo de carbon acaba de ingresar/salir
         'id_proveedor', // solo cuando es agua
         //
-        'gasto', // enum GastoZarandeoCarbon: Pala | Lanza | Agua | Escogedores | Otro
+        'gasto', // enum TipoGastoZarandeo: Pala | Lanza | Agua | Escogedores | Otro
         'otro_gasto',  // solo cuando elige 'otro'
         'descripcion', // opcional
         'fecha', // la fecha efectuada de ese gasto

@@ -21,6 +21,7 @@ class VarianteZarandeoCarbon extends Model
     protected $fillable = [
         'id_zarandeo_carbon',
         'id_tipo_variante', // el tipo de carbon resultante del tipo de carbon tamizado
+        'porcentaje_extraccion', // % de extraccion aplicado en este zarandeo (referencia de variante_carbon)
         'cantidad_extraida', //  cuantas toneladas derivaron del tipo de carbon tamizado
         'cambios_log', // JSON  - para guardar cuando editan el peso del tamizaje
     ];

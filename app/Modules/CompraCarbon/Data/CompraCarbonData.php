@@ -6,6 +6,7 @@ use App\Models\CargaCompraCarbon;
 use App\Models\CompraCarbon;
 use App\Models\KardexCarbon;
 use App\Models\StockCarbon;
+use App\Modules\TipoCarbon\Data\CalidadCarbonData;
 use App\Shared\Enums\CompraCarbon\EstadoCargaCompraCarbon;
 use App\Shared\Enums\CompraCarbon\EstadoCompraCarbon;
 use Illuminate\Support\Facades\DB;
@@ -268,6 +269,7 @@ class CompraCarbonData
                 c.codigo_ticket_balanza,
                 c.cantidad,
                 c.porcentaje_ceniza,
+                c.calidad,
                 c.porcentaje_humedad,
                 c.precio_unitario,
                 c.costo_flete_por_tonelada,
@@ -637,6 +639,11 @@ class CompraCarbonData
                 $cantidad = (float) $c['cantidad'];
                 $precioUnitario = (float) $c['precio_unitario'];
                 $costoFlete = $pagarFlete ? (float) ($c['costo_flete_por_tonelada'] ?? 0) : 0.0;
+                $porcentajeCeniza = (float) ($c['porcentaje_ceniza'] ?? 0);
+
+                // La calidad se deriva del % de ceniza segun la tabla calidad_carbon.
+                $calidad = CalidadCarbonData::resolver_por_ceniza($porcentajeCeniza);
+                $nombreCalidad = $calidad !== null ? (string) $calidad->nombre : null;
 
                 $subtotalAntes = round($cantidad * $precioUnitario, 2);
                 $descuentoFlete = $pagarFlete ? round($cantidad * $costoFlete, 2) : 0.0;
@@ -666,7 +673,7 @@ class CompraCarbonData
                     'pagar_flete' => $pagarFlete ? 1 : 0,
                     'codigo_ticket_balanza' => (string) ($c['codigo_ticket_balanza'] ?? ''),
                     'cantidad' => $cantidad,
-                    'porcentaje_ceniza' => (float) ($c['porcentaje_ceniza'] ?? 0),
+                    'porcentaje_ceniza' => $porcentajeCeniza,
                     'porcentaje_humedad' => (float) ($c['porcentaje_humedad'] ?? 0),
                     'precio_unitario' => $precioUnitario,
                     'costo_flete_por_tonelada' => $costoFlete,
@@ -677,6 +684,7 @@ class CompraCarbonData
                     'log_cambios' => null,
                     'created_at' => now()->toDateTimeString(),
                     'estado' => EstadoCargaCompraCarbon::EnLiquidacion->value,
+                    'calidad' => $nombreCalidad,
                 ];
 
                 if (Schema::hasColumn('carga_compra_carbon', 'id_comprobante_transporte_carbon')) {
@@ -694,6 +702,7 @@ class CompraCarbonData
                         idTipoCarbon: (int) $c['id_tipo_carbon'],
                         idCarga: $idCarga,
                         cantidad: $cantidad,
+                        calidad: $nombreCalidad,
                         costoTotal: $subtotalAntes,
                         fechaHoraIngreso: (string) ($c['fecha_hora_ingreso'] ?? now()->toDateTimeString())
                     );
@@ -712,18 +721,27 @@ class CompraCarbonData
 
     /**
      * Afecta StockCarbon y genera el movimiento de KardexCarbon por ingreso de carga.
+     *
+     * El stock se lleva por (almacen, tipo de carbon, calidad): una carga de 37 TN
+     * de 'Cisco' con 12% de ceniza suma al stock de calidad 'Baja', no al global.
      */
     private static function afectar_stock_ingreso_carga(
         int $idAlmacen,
         int $idTipoCarbon,
         int $idCarga,
         float $cantidad,
+        ?string $calidad,
         float $costoTotal,
         string $fechaHoraIngreso
     ): void {
         $stock = DB::table('stock_carbon')
             ->where('id_almacen', $idAlmacen)
             ->where('id_tipo_carbon', $idTipoCarbon)
+            ->where(function ($q) use ($calidad) {
+                $calidad === null
+                    ? $q->whereNull('calidad')
+                    : $q->where('calidad', $calidad);
+            })
             ->lockForUpdate()
             ->first();
 
@@ -734,6 +752,7 @@ class CompraCarbonData
             StockCarbon::insert([
                 'id_almacen' => $idAlmacen,
                 'id_tipo_carbon' => $idTipoCarbon,
+                'calidad' => $calidad,
                 'stock_actual' => $stockResultante,
                 'cambios_log' => null,
             ]);
@@ -749,6 +768,7 @@ class CompraCarbonData
             'id_carga_compra_carbon' => $idCarga,
             'fecha_hora_movimiento' => $fechaHoraIngreso,
             'tipo_movimiento' => 'Ingreso',
+            'calidad' => $calidad,
             'stock_anterior' => $stockAnterior,
             'cantidad_movimiento' => $cantidad,
             'stock_resultante' => $stockResultante,

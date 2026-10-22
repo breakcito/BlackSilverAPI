@@ -63,11 +63,33 @@ class TipoCarbonService
 
     /**
      * Set masivo de variantes. Reemplaza todas las asociaciones existentes.
-     * @param int[] $ids_variante
+     * @param array<int, array{id_tipo_variante: int, porcentaje_extraccion: float}> $variantes
      */
-    public static function set_variantes(int $id_tipo_carbon, array $ids_variante)
+    public static function set_variantes(int $id_tipo_carbon, array $variantes)
     {
-        TipoCarbonData::set_variantes(id_tipo_carbon: $id_tipo_carbon, ids_variante: $ids_variante);
+        $idsVistos = [];
+        $sumaPorcentajes = 0.0;
+
+        foreach ($variantes as $v) {
+            $idVariante = (int) ($v['id_tipo_variante'] ?? 0);
+            if ($idVariante <= 0) {
+                continue;
+            }
+            if (isset($idsVistos[$idVariante])) {
+                return ApiResponse::error('No se puede registrar dos veces la misma variante');
+            }
+            $idsVistos[$idVariante] = true;
+            $sumaPorcentajes += (float) ($v['porcentaje_extraccion'] ?? 0);
+        }
+
+        if (round($sumaPorcentajes, 4) > 100.0001) {
+            return ApiResponse::error(
+                'La suma de los porcentajes de extracción no puede superar el 100% (actual: '
+                . rtrim(rtrim(number_format($sumaPorcentajes, 2), '0'), '.') . '%)'
+            );
+        }
+
+        TipoCarbonData::set_variantes(id_tipo_carbon: $id_tipo_carbon, variantes: $variantes);
         return ApiResponse::success(
             TipoCarbonData::get_variantes_de_tipo(id_tipo_carbon: $id_tipo_carbon),
             'Variantes actualizadas'

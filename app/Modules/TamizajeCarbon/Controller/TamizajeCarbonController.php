@@ -2,6 +2,7 @@
 
 namespace App\Modules\TamizajeCarbon\Controller;
 
+use App\Modules\TamizajeCarbon\Service\GastoProduccionCarbonService;
 use App\Modules\TamizajeCarbon\Service\TamizajeCarbonService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +16,7 @@ class TamizajeCarbonController
         $opts = [
             'id_almacen' => $request->query('id_almacen'),
             'id_tipo_carbon' => $request->query('id_tipo_carbon'),
+            'calidad' => $request->query('calidad'),
             'filtros' => $request->query('filtros'),
         ];
 
@@ -65,13 +67,17 @@ class TamizajeCarbonController
         return response()->json(TamizajeCarbonService::get_tamizajes($opts));
     }
 
-    public function get_cargas_pendientes(Request $request): JsonResponse
+    /**
+     * Grupos de cargas pendientes de zarandeo (por almacén, tipo de carbón y calidad).
+     */
+    public function get_grupos_cargas(Request $request): JsonResponse
     {
         $opts = [
             'id_almacen' => $request->query('id_almacen'),
+            'id_tipo_carbon' => $request->query('id_tipo_carbon'),
         ];
 
-        return response()->json(TamizajeCarbonService::get_cargas_pendientes($opts));
+        return response()->json(TamizajeCarbonService::get_grupos_cargas($opts));
     }
 
     public function registrar_tamizaje(Request $request): JsonResponse
@@ -89,6 +95,13 @@ class TamizajeCarbonController
                 $request->merge(['variantes' => $decoded]);
             }
         }
+        $idCargasRaw = $request->input('id_cargas');
+        if (is_string($idCargasRaw)) {
+            $decoded = json_decode($idCargasRaw, true);
+            if (is_array($decoded)) {
+                $request->merge(['id_cargas' => $decoded]);
+            }
+        }
         if ($request->has('es_rezarandeo')) {
             $request->merge(['es_rezarandeo' => $request->boolean('es_rezarandeo')]);
         }
@@ -96,19 +109,22 @@ class TamizajeCarbonController
         $validator = Validator::make($request->all(), [
             'id_almacen' => 'nullable|integer|min:1',
             'id_tipo_carbon' => 'required|integer|min:1',
+            'calidad' => 'required|string|max:32',
             'id_empleado_supervisor' => 'nullable|integer|min:1',
-            'id_carga_compra_carbon' => 'nullable|integer|min:1',
+            'id_cargas' => 'nullable|array',
+            'id_cargas.*' => 'integer|min:1',
             'cantidad_zarandeada' => 'nullable|numeric|min:0',
             'es_rezarandeo' => 'nullable|boolean',
             'fecha_hora_zarandeo' => 'required|string',
             'variantes' => 'required|array|min:1',
             'variantes.*.id_tipo_variante' => 'required|integer|min:1',
-            'variantes.*.cantidad_extraida' => 'required|numeric|min:0.001',
+            'variantes.*.porcentaje_extraccion' => 'required|numeric|min:0|max:100',
             'evidencias' => 'nullable|array',
             'evidencias.*' => 'file',
         ], [
-            'id_tipo_carbon.required' => 'El tipo de carbón a tamizar es requerido',
-            'fecha_hora_zarandeo.required' => 'La fecha y hora del tamizaje son requeridas',
+            'id_tipo_carbon.required' => 'El tipo de carbón a zarandear es requerido',
+            'calidad.required' => 'La calidad del carbón es requerida',
+            'fecha_hora_zarandeo.required' => 'La fecha y hora del zarandeo son requeridas',
             'variantes.required' => 'Debe registrar al menos una variante extraída',
         ]);
 
@@ -126,6 +142,53 @@ class TamizajeCarbonController
                 $idEmpleado,
                 $archivos
             )
+        );
+    }
+
+    /**
+     * Lista los gastos de producción de un zarandeo.
+     */
+    public function get_gastos(int $id_zarandeo_carbon): JsonResponse
+    {
+        return response()->json(GastoProduccionCarbonService::get_gastos($id_zarandeo_carbon));
+    }
+
+    /**
+     * Registra un gasto de producción asociado a un zarandeo.
+     */
+    public function registrar_gasto(Request $request): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+        $idEmpleado = (int) ($authUser->id_empleado ?? 0);
+        if ($idEmpleado <= 0) {
+            return response()->json(ApiResponse::error('No se pudo identificar al empleado'), 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'id_zarandeo_carbon' => 'required|integer|min:1',
+            'gasto' => 'required|string|max:32',
+            'otro_gasto' => 'nullable|string|max:256',
+            'id_proveedor' => 'nullable|integer|min:1',
+            'descripcion' => 'nullable|string|max:512',
+            'fecha' => 'required|date',
+            'numero_reporte' => 'nullable|string|max:64',
+            'hora_inicio' => 'nullable|date_format:H:i',
+            'hora_fin' => 'nullable|date_format:H:i',
+            'cantidad' => 'nullable|numeric|min:0',
+            'precio_unitario' => 'required|numeric|min:0',
+        ], [
+            'id_zarandeo_carbon.required' => 'El zarandeo es requerido',
+            'gasto.required' => 'El tipo de gasto es obligatorio',
+            'fecha.required' => 'La fecha del gasto es obligatoria',
+            'precio_unitario.required' => 'El precio unitario es obligatorio',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
+        }
+
+        return response()->json(
+            GastoProduccionCarbonService::registrar_gasto($request->all(), $idEmpleado)
         );
     }
 }

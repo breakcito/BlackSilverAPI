@@ -112,9 +112,10 @@ class TipoCarbonData
     {
         $sql = '
             SELECT
-                v.id AS id_tipo_variante,
+                v.id_tipo_variante,
                 t.nombre,
-                t.codigo
+                t.codigo,
+                v.porcentaje_extraccion
             FROM variante_carbon v
             INNER JOIN tipo_carbon t ON t.id = v.id_tipo_variante
             WHERE v.id_tipo_carbon = :id_tipo_carbon
@@ -126,25 +127,25 @@ class TipoCarbonData
     /**
      * Set masivo de variantes: borra las existentes y crea las nuevas
      * en una sola transacción. Permite que el tipo sea variante de sí mismo.
-     * @param int $id_tipo_carbon
-     * @param int[] $ids_variante
+     * @param array<int, array{id_tipo_variante: int, porcentaje_extraccion: float}> $variantes
      */
-    public static function set_variantes(int $id_tipo_carbon, array $ids_variante): void
+    public static function set_variantes(int $id_tipo_carbon, array $variantes): void
     {
-        DB::transaction(function () use ($id_tipo_carbon, $ids_variante) {
+        DB::transaction(function () use ($id_tipo_carbon, $variantes) {
             DB::table('variante_carbon')
                 ->where('id_tipo_carbon', $id_tipo_carbon)
                 ->delete();
 
             $filas = [];
-            foreach ($ids_variante as $id_variante) {
-                $id_variante = (int) $id_variante;
-                if ($id_variante <= 0) {
+            foreach ($variantes as $v) {
+                $idVariante = (int) ($v['id_tipo_variante'] ?? 0);
+                if ($idVariante <= 0) {
                     continue;
                 }
                 $filas[] = [
                     'id_tipo_carbon' => $id_tipo_carbon,
-                    'id_tipo_variante' => $id_variante,
+                    'id_tipo_variante' => $idVariante,
+                    'porcentaje_extraccion' => round((float) ($v['porcentaje_extraccion'] ?? 0), 4),
                 ];
             }
             if (!empty($filas)) {

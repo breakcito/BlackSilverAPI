@@ -9,6 +9,10 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::post('/', 'registrar_tamizaje');
         Route::get('stocks', 'get_stocks');
         Route::put('stocks/{id_stock_carbon}', 'actualizar_stock');
-        Route::get('cargas-pendientes', 'get_cargas_pendientes');
+        Route::get('grupos-cargas', 'get_grupos_cargas');
+
+        // Gastos de produccion del zarandeo
+        Route::get('gastos/{id_zarandeo_carbon}', 'get_gastos');
+        Route::post('gastos', 'registrar_gasto');
     });
 });

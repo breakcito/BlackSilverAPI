@@ -36,7 +36,7 @@ class CargaCompraCarbon extends Model
         'id_pago_compra_carbon', // si la compra NO aplica igv y solo se hacen pagos directos de cada carga o en grupo de forma directa sin tener un comprobante
         'id_zarandeo_carbon', // asocia el proceso de zarandeo en el que estuvo involucrada esta carga
         //
-        'calidad', // segun el porcentaje de ceniza, Baja |Intermedia | Alta
+        'calidad', // segun el porcentaje de ceniza, Baja | Intermedia | Alta (rangos en calidad_carbon)
         //
         'tipo_despacho', // Recojo/Envio
         //

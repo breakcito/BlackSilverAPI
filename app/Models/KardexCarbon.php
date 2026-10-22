@@ -19,7 +19,7 @@ class KardexCarbon extends Model
         'id_carga_compra_carbon', // en que carga ingreso ese carbon
         'fecha_hora_movimiento', //  permite que sea retroactivo
         'tipo_movimiento', // Ingreso / Salida
-        'calidad', // Baja (0-15% de ceniza) | Media (15-18% de ceniza) | (18-?% de ceniza) Alta
+        'calidad', // Baja (0-15% de ceniza) | Intermedia (15-18% de ceniza) | (18-?% de ceniza) Alta
         'stock_anterior',
         'cantidad_movimiento',
         'stock_resultante',

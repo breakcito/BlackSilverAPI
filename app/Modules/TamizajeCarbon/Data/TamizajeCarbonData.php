@@ -3,15 +3,38 @@
 namespace App\Modules\TamizajeCarbon\Data;
 
 use App\Models\StockCarbon;
-use App\Models\ZarandeoCarbon;
 use App\Models\VarianteZarandeoCarbon;
+use App\Models\ZarandeoCarbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class TamizajeCarbonData
 {
     /**
-     * Lista el stock de carbón por almacén y tipo de carbón.
-     * @param array{id_almacen?: int, id_tipo_carbon?: int, filtros?: string} $opts
+     * Cache del chequeo de esquema para no consultarlo en cada fila.
+     */
+    private static ?bool $tienePorcentajeExtraccion = null;
+
+    /**
+     * La columna `porcentaje_extraccion` de variante_zarandeo_carbon se agrega
+     * con SQL plano. Se detecta en runtime para no romper si el script aun no
+     * se ejecuto.
+     */
+    private static function tienePorcentajeExtraccion(): bool
+    {
+        if (self::$tienePorcentajeExtraccion === null) {
+            self::$tienePorcentajeExtraccion = Schema::hasColumn(
+                'variante_zarandeo_carbon',
+                'porcentaje_extraccion'
+            );
+        }
+
+        return self::$tienePorcentajeExtraccion;
+    }
+
+    /**
+     * Lista el stock de carbón por almacén, tipo de carbón y calidad.
+     * @param array{id_almacen?: int, id_tipo_carbon?: int, calidad?: string, filtros?: string} $opts
      * @return array<object>
      */
     public static function get_stocks(array $opts = []): array
@@ -25,6 +48,7 @@ class TamizajeCarbonData
                 tc.nombre AS tipo_carbon_nombre,
                 tc.codigo AS tipo_carbon_codigo,
                 tc.para_compra as tipo_carbon_para_compra,
+                s.calidad,
                 s.stock_actual,
                 s.cambios_log
             FROM stock_carbon s
@@ -45,13 +69,18 @@ class TamizajeCarbonData
             $params['id_tipo_carbon'] = (int) $opts['id_tipo_carbon'];
         }
 
+        if (!empty($opts['calidad'])) {
+            $sql .= ' AND s.calidad = :calidad';
+            $params['calidad'] = (string) $opts['calidad'];
+        }
+
         $filtros = trim((string) ($opts['filtros'] ?? ''));
         if ($filtros !== '') {
             $sql .= ' AND (tc.nombre LIKE :q OR tc.codigo LIKE :q OR alm.nombre LIKE :q)';
             $params['q'] = '%' . $filtros . '%';
         }
 
-        $sql .= ' ORDER BY tc.para_compra DESC, tc.nombre ASC, alm.nombre ASC';
+        $sql .= ' ORDER BY tc.para_compra DESC, tc.nombre ASC, alm.nombre ASC, s.calidad ASC';
 
         $rows = DB::select($sql, $params);
         foreach ($rows as $row) {
@@ -85,8 +114,8 @@ class TamizajeCarbonData
     }
 
     /**
-     * Lista los tamizajes realizados con sus variantes.
-     * @param array{id_tamizaje?: int, id_almacen?: int, mes?: int, anio?: int, filtros?: string} $opts
+     * Lista los zarandeos realizados con sus variantes, cargas y gastos.
+     * @param array{id_zarandeo?: int, id_almacen?: int, mes?: int, anio?: int, filtros?: string} $opts
      * @return array<object>
      */
     public static function get_tamizajes(array $opts = []): array
@@ -103,31 +132,36 @@ class TamizajeCarbonData
                 tz.id_tipo_carbon,
                 tc.nombre AS tipo_carbon_nombre,
                 tc.codigo AS tipo_carbon_codigo,
-                tz.id_carga_compra_carbon,
-                c.codigo_ticket_balanza AS carga_ticket_balanza,
-                c.placa AS carga_placa,
-                cc.correlativo AS compra_correlativo,
+                tz.calidad,
                 tz.cantidad_zarandeada,
                 tz.cantidad_extraida,
                 tz.es_rezarandeo,
                 tz.fecha_hora_zarandeo,
                 tz.evidencias,
-                tz.created_at
+                tz.created_at,
+                (
+                    SELECT COUNT(*)
+                    FROM carga_compra_carbon c
+                    WHERE c.id_zarandeo_carbon = tz.id
+                ) AS cantidad_cargas,
+                (
+                    SELECT COALESCE(SUM(c.cantidad), 0)
+                    FROM carga_compra_carbon c
+                    WHERE c.id_zarandeo_carbon = tz.id
+                ) AS total_cargas_cantidad
             FROM zarandeo_carbon tz
             INNER JOIN almacen alm ON alm.id = tz.id_almacen
             INNER JOIN empleado er ON er.id = tz.id_empleado_registro
             INNER JOIN tipo_carbon tc ON tc.id = tz.id_tipo_carbon
             LEFT JOIN empleado es ON es.id = tz.id_empleado_supervisor
-            LEFT JOIN carga_compra_carbon c ON c.id = tz.id_carga_compra_carbon
-            LEFT JOIN compra_carbon cc ON cc.id = c.id_compra_carbon
             WHERE 1 = 1
         ';
 
         $params = [];
 
-        if (!empty($opts['id_tamizaje'])) {
-            $sql .= ' AND tz.id = :id_tamizaje';
-            $params['id_tamizaje'] = (int) $opts['id_tamizaje'];
+        if (!empty($opts['id_zarandeo'])) {
+            $sql .= ' AND tz.id = :id_zarandeo';
+            $params['id_zarandeo'] = (int) $opts['id_zarandeo'];
         }
 
         if (!empty($opts['id_almacen'])) {
@@ -148,7 +182,7 @@ class TamizajeCarbonData
 
         $filtros = trim((string) ($opts['filtros'] ?? ''));
         if ($filtros !== '') {
-            $sql .= ' AND (tc.nombre LIKE :q OR alm.nombre LIKE :q OR c.codigo_ticket_balanza LIKE :q OR c.placa LIKE :q)';
+            $sql .= ' AND (tc.nombre LIKE :q OR alm.nombre LIKE :q OR tz.calidad LIKE :q)';
             $params['q'] = '%' . $filtros . '%';
         }
 
@@ -157,8 +191,13 @@ class TamizajeCarbonData
         $tamizajes = DB::select($sql, $params);
         foreach ($tamizajes as $tz) {
             $tz->evidencias = self::decode_json($tz->evidencias ?? null);
+            $tz->es_rezarandeo = (bool) ($tz->es_rezarandeo ?? false);
 
             // Variantes extraídas
+            $colPorcentaje = self::tienePorcentajeExtraccion()
+                ? 'vt.porcentaje_extraccion'
+                : '0 AS porcentaje_extraccion';
+
             $tz->variantes = DB::select('
                 SELECT
                     vt.id AS id_variante_zarandeo_carbon,
@@ -166,6 +205,7 @@ class TamizajeCarbonData
                     vt.id_tipo_variante,
                     tcv.nombre AS tipo_variante_nombre,
                     tcv.codigo AS tipo_variante_codigo,
+                    ' . $colPorcentaje . ',
                     vt.cantidad_extraida,
                     vt.cambios_log
                 FROM variante_zarandeo_carbon vt
@@ -177,33 +217,129 @@ class TamizajeCarbonData
             foreach ($tz->variantes as $v) {
                 $v->cambios_log = self::decode_json($v->cambios_log ?? null);
             }
+
+            // Cargas que participaron en el zarandeo
+            $tz->cargas = DB::select('
+                SELECT
+                    c.id AS id_carga_compra_carbon,
+                    c.codigo_ticket_balanza,
+                    c.placa,
+                    c.cantidad,
+                    c.porcentaje_ceniza,
+                    c.calidad,
+                    c.fecha_hora_ingreso,
+                    cc.correlativo AS compra_correlativo
+                FROM carga_compra_carbon c
+                INNER JOIN compra_carbon cc ON cc.id = c.id_compra_carbon
+                WHERE c.id_zarandeo_carbon = :id_tz
+                ORDER BY c.id ASC
+            ', ['id_tz' => $tz->id_zarandeo_carbon]);
         }
 
         return $tamizajes;
     }
 
     /**
-     * Obtiene un tamizaje por su ID con sus variantes y evidencias formateadas.
+     * Obtiene un zarandeo por su ID con sus variantes, cargas y gastos.
      */
     public static function get_tamizaje_by_id(int $id_tamizaje): ?object
     {
-        $tamizajes = self::get_tamizajes(['id_tamizaje' => $id_tamizaje]);
+        $tamizajes = self::get_tamizajes(['id_zarandeo' => $id_tamizaje]);
         return $tamizajes[0] ?? null;
     }
 
     /**
-     * Registra un tamizaje de carbón y actualiza los stocks correspondientes.
+     * Agrupa las cargas de carbón aún no zarandeadas por (almacén, tipo de carbón, calidad).
+     * Cada grupo se zarea completo: el usuario elige un grupo, no cargas sueltas.
+     * @param array{id_almacen?: int, id_tipo_carbon?: int} $opts
+     * @return array<object>
+     */
+    public static function get_grupos_cargas(array $opts = []): array
+    {
+        $sql = '
+            SELECT
+                c.id_almacen_empresa_llegada AS id_almacen,
+                alm.nombre AS almacen_nombre,
+                c.id_tipo_carbon,
+                tc.nombre AS tipo_carbon_nombre,
+                tc.codigo AS tipo_carbon_codigo,
+                c.calidad,
+                COUNT(*) AS cantidad_cargas,
+                COALESCE(SUM(c.cantidad), 0) AS cantidad_total
+            FROM carga_compra_carbon c
+            INNER JOIN tipo_carbon tc ON tc.id = c.id_tipo_carbon
+            LEFT JOIN almacen alm ON alm.id = c.id_almacen_empresa_llegada
+            WHERE c.id_zarandeo_carbon IS NULL
+              AND c.estado != "Anulado"
+              AND c.id_almacen_empresa_llegada IS NOT NULL
+        ';
+
+        $params = [];
+        if (!empty($opts['id_almacen'])) {
+            $sql .= ' AND c.id_almacen_empresa_llegada = :id_almacen';
+            $params['id_almacen'] = (int) $opts['id_almacen'];
+        }
+        if (!empty($opts['id_tipo_carbon'])) {
+            $sql .= ' AND c.id_tipo_carbon = :id_tipo_carbon';
+            $params['id_tipo_carbon'] = (int) $opts['id_tipo_carbon'];
+        }
+
+        $sql .= ' GROUP BY c.id_almacen_empresa_llegada, alm.nombre, c.id_tipo_carbon, tc.nombre, tc.codigo, c.calidad';
+        $sql .= ' ORDER BY tc.nombre ASC, c.calidad ASC';
+
+        $grupos = DB::select($sql, $params);
+
+        foreach ($grupos as $g) {
+            $g->cargas = DB::select('
+                SELECT
+                    c.id AS id_carga_compra_carbon,
+                    c.codigo_ticket_balanza,
+                    c.placa,
+                    c.cantidad,
+                    c.porcentaje_ceniza,
+                    c.calidad,
+                    c.fecha_hora_ingreso,
+                    cc.correlativo AS compra_correlativo
+                FROM carga_compra_carbon c
+                INNER JOIN compra_carbon cc ON cc.id = c.id_compra_carbon
+                WHERE c.id_zarandeo_carbon IS NULL
+                  AND c.estado != "Anulado"
+                  AND c.id_almacen_empresa_llegada = :id_almacen
+                  AND c.id_tipo_carbon = :id_tipo_carbon
+                  AND ' . ($g->calidad === null ? 'c.calidad IS NULL' : 'c.calidad = :calidad') . '
+                ORDER BY c.fecha_hora_ingreso ASC, c.id ASC
+            ', array_filter([
+                'id_almacen' => (int) $g->id_almacen,
+                'id_tipo_carbon' => (int) $g->id_tipo_carbon,
+                'calidad' => $g->calidad,
+            ], fn ($v) => $v !== null));
+        }
+
+        return $grupos;
+    }
+
+    /**
+     * Registra un zarandeo de carbón y actualiza los stocks correspondientes.
+     *
+     * El stock se lleva por (almacén, tipo de carbón, calidad):
+     *  - se resta `cantidad_extraida` (suma de variantes) del tipo de carbón zarandeado,
+     *  - se suma `cantidad_extraida` de cada variante al stock de esa variante,
+     *  - todas las variantes heredan la calidad del zarandeo.
+     *
+     * No genera kardex: nada sale ni entra del almacén, es una transformación interna.
+     *
      * @param array{
      *   id_almacen: int,
      *   id_empleado_registro: int,
      *   id_empleado_supervisor?: int|null,
      *   id_tipo_carbon: int,
-     *   id_carga_compra_carbon?: int|null,
+     *   calidad: string,
      *   cantidad_zarandeada: float,
      *   es_rezarandeo: bool,
+     *   id_cargas?: int[],
      *   fecha_hora_zarandeo: string,
      *   evidencias?: mixed,
-     *   variantes: array<int, array{id_tipo_variante: int, cantidad_extraida: float}>
+     *   variantes: array<int, array{id_tipo_variante: int, porcentaje_extraccion: float, cantidad_extraida: float}>
      * } $d
      */
     public static function registrar_tamizaje(array $d): int
@@ -211,9 +347,11 @@ class TamizajeCarbonData
         return DB::transaction(function () use ($d) {
             $idAlmacen = (int) $d['id_almacen'];
             $idTipoCarbon = (int) $d['id_tipo_carbon'];
+            $calidad = (string) $d['calidad'];
             $variantes = $d['variantes'];
+            $idCargas = array_values(array_unique(array_map('intval', $d['id_cargas'] ?? [])));
+            $esRezarandeo = empty($idCargas);
 
-            // Cantidad extraída total = suma de todas las variantes
             $cantidadExtraidaTotal = 0.0;
             foreach ($variantes as $v) {
                 $cantidadExtraidaTotal += round((float) $v['cantidad_extraida'], 4);
@@ -230,48 +368,101 @@ class TamizajeCarbonData
                     ? (int) $d['id_empleado_supervisor']
                     : null,
                 'id_tipo_carbon' => $idTipoCarbon,
-                'id_carga_compra_carbon' => isset($d['id_carga_compra_carbon']) && (int) $d['id_carga_compra_carbon'] > 0
-                    ? (int) $d['id_carga_compra_carbon']
-                    : null,
+                'calidad' => $calidad,
                 'cantidad_zarandeada' => (float) $d['cantidad_zarandeada'],
                 'cantidad_extraida' => $cantidadExtraidaTotal,
-                'es_rezarandeo' => !empty($d['es_rezarandeo']) ? 1 : 0,
+                'es_rezarandeo' => $esRezarandeo ? 1 : 0,
                 'fecha_hora_zarandeo' => (string) $d['fecha_hora_zarandeo'],
                 'evidencias' => $evidenciasJson,
                 'created_at' => now()->toDateTimeString(),
             ]);
 
-            // Insertar variantes y actualizar stock de cada una
+            // Verificacion de stock con la fila bloqueada: evita que dos
+            // zarandeos simultaneos descuarten mas de lo disponible.
+            $stockDisponible = self::get_stock_disponible_bloqueado(
+                idAlmacen: $idAlmacen,
+                idTipoCarbon: $idTipoCarbon,
+                calidad: $calidad
+            );
+
+            if ($stockDisponible + 0.0001 < (float) $d['cantidad_zarandeada']) {
+                throw new \RuntimeException(
+                    'No hay stock suficiente de la calidad seleccionada (disponible: '
+                    . rtrim(rtrim(number_format($stockDisponible, 2), '0'), '.') . ' TN)'
+                );
+            }
+
+            if ($stockDisponible + 0.0001 < $cantidadExtraidaTotal) {
+                throw new \RuntimeException(
+                    'El total extraído supera el stock disponible (disponible: '
+                    . rtrim(rtrim(number_format($stockDisponible, 2), '0'), '.') . ' TN)'
+                );
+            }
+
+            // Insertar variantes y sumar al stock de cada una
+            $conPorcentaje = self::tienePorcentajeExtraccion();
+
             foreach ($variantes as $v) {
                 $idTipoVariante = (int) $v['id_tipo_variante'];
                 $cantVar = round((float) $v['cantidad_extraida'], 4);
 
-                VarianteZarandeoCarbon::insert([
+                $filaVariante = [
                     'id_zarandeo_carbon' => $idTamizaje,
                     'id_tipo_variante' => $idTipoVariante,
                     'cantidad_extraida' => $cantVar,
                     'cambios_log' => null,
-                ]);
+                ];
 
-                // Sumar al stock de la variante en ese almacén
-                self::ajustar_stock_almacen($idAlmacen, $idTipoVariante, $cantVar);
+                if ($conPorcentaje) {
+                    $filaVariante['porcentaje_extraccion'] = round((float) ($v['porcentaje_extraccion'] ?? 0), 4);
+                }
+
+                VarianteZarandeoCarbon::insert($filaVariante);
+
+                // Sumar al stock de la variante en ese almacén y calidad
+                self::ajustar_stock_almacen($idAlmacen, $idTipoVariante, $calidad, $cantVar);
             }
 
-            // Restar del stock del tipo de carbón tamizado
-            self::ajustar_stock_almacen($idAlmacen, $idTipoCarbon, -$cantidadExtraidaTotal);
+            // Restar del stock del tipo de carbón zarandeado
+            self::ajustar_stock_almacen($idAlmacen, $idTipoCarbon, $calidad, -$cantidadExtraidaTotal);
+
+            // Marcar las cargas del grupo como zarandeadas.
+            // El WHERE protege contra una asignacion concurrente: si otra
+            // transaccion ya las tomo, la fila no se toca y se revierte todo.
+            if (!empty($idCargas)) {
+                $afectadas = DB::table('carga_compra_carbon')
+                    ->whereIn('id', $idCargas)
+                    ->whereNull('id_zarandeo_carbon')
+                    ->update(['id_zarandeo_carbon' => $idTamizaje]);
+
+                if ($afectadas !== count($idCargas)) {
+                    throw new \RuntimeException(
+                        'Alguna de las cargas seleccionadas ya fue zarandeada por otra operación'
+                    );
+                }
+            }
 
             return $idTamizaje;
         });
     }
 
     /**
-     * Ajusta el stock de un tipo de carbón en un almacén (suma o resta).
+     * Ajusta el stock de un tipo de carbón en un almacén y calidad (suma o resta).
      */
-    private static function ajustar_stock_almacen(int $idAlmacen, int $idTipoCarbon, float $delta): void
-    {
+    public static function ajustar_stock_almacen(
+        int $idAlmacen,
+        int $idTipoCarbon,
+        ?string $calidad,
+        float $delta
+    ): void {
         $stock = DB::table('stock_carbon')
             ->where('id_almacen', $idAlmacen)
             ->where('id_tipo_carbon', $idTipoCarbon)
+            ->where(function ($q) use ($calidad) {
+                $calidad === null
+                    ? $q->whereNull('calidad')
+                    : $q->where('calidad', $calidad);
+            })
             ->lockForUpdate()
             ->first();
 
@@ -280,6 +471,7 @@ class TamizajeCarbonData
             StockCarbon::insert([
                 'id_almacen' => $idAlmacen,
                 'id_tipo_carbon' => $idTipoCarbon,
+                'calidad' => $calidad,
                 'stock_actual' => $nuevoStock,
                 'cambios_log' => null,
             ]);
@@ -292,45 +484,43 @@ class TamizajeCarbonData
     }
 
     /**
-     * Lista las cargas de carbón que aún no han sido tamizadas.
-     * @param array{id_almacen?: int} $opts
-     * @return array<object>
+     * Obtiene el stock disponible de un tipo de carbón en un almacén y calidad.
      */
-    public static function get_cargas_pendientes(array $opts = []): array
+    public static function get_stock_disponible(int $idAlmacen, int $idTipoCarbon, ?string $calidad): float
     {
-        $sql = '
-            SELECT 
-                c.id AS id_carga_compra_carbon,
-                c.id_compra_carbon,
-                cc.correlativo AS compra_correlativo,
-                c.id_tipo_carbon,
-                tc.nombre AS tipo_carbon_nombre,
-                tc.codigo AS tipo_carbon_codigo,
-                c.id_almacen_empresa_llegada AS id_almacen,
-                alm.nombre AS almacen_nombre,
-                c.codigo_ticket_balanza,
-                c.placa,
-                c.cantidad,
-                c.fecha_hora_ingreso
-            FROM carga_compra_carbon c
-            INNER JOIN compra_carbon cc ON cc.id = c.id_compra_carbon
-            INNER JOIN tipo_carbon tc ON tc.id = c.id_tipo_carbon
-            LEFT JOIN almacen alm ON alm.id = c.id_almacen_empresa_llegada
-            LEFT JOIN zarandeo_carbon tz ON tz.id_carga_compra_carbon = c.id
-            WHERE tz.id IS NULL
-              AND c.estado != "Anulado"
-              AND c.id_almacen_empresa_llegada IS NOT NULL
-        ';
+        $stock = DB::table('stock_carbon')
+            ->where('id_almacen', $idAlmacen)
+            ->where('id_tipo_carbon', $idTipoCarbon)
+            ->where(function ($q) use ($calidad) {
+                $calidad === null
+                    ? $q->whereNull('calidad')
+                    : $q->where('calidad', $calidad);
+            })
+            ->first();
 
-        $params = [];
-        if (!empty($opts['id_almacen'])) {
-            $sql .= ' AND c.id_almacen_empresa_llegada = :id_almacen';
-            $params['id_almacen'] = (int) $opts['id_almacen'];
-        }
+        return $stock !== null ? (float) $stock->stock_actual : 0.0;
+    }
 
-        $sql .= ' ORDER BY c.fecha_hora_ingreso DESC, c.id DESC';
+    /**
+     * Igual que get_stock_disponible pero bloqueando la fila (uso transaccional).
+     */
+    private static function get_stock_disponible_bloqueado(
+        int $idAlmacen,
+        int $idTipoCarbon,
+        ?string $calidad
+    ): float {
+        $stock = DB::table('stock_carbon')
+            ->where('id_almacen', $idAlmacen)
+            ->where('id_tipo_carbon', $idTipoCarbon)
+            ->where(function ($q) use ($calidad) {
+                $calidad === null
+                    ? $q->whereNull('calidad')
+                    : $q->where('calidad', $calidad);
+            })
+            ->lockForUpdate()
+            ->first();
 
-        return DB::select($sql, $params);
+        return $stock !== null ? (float) $stock->stock_actual : 0.0;
     }
 
     /**
