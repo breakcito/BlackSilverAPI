@@ -15,6 +15,7 @@ class Marca extends Model
 
     protected $fillable = [
         'nombre',
+        'de_vehiculos',// bool
         'estado', // Estado Base
     ];
 }

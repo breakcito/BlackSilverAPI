@@ -17,6 +17,7 @@ class KardexCarbon extends Model
         'id_almacen', // en que almacen se dio esto
         'id_tipo_carbon', // saber que tipo de carbon acaba de ingresar/salir
         'id_carga_compra_carbon', // en que carga ingreso ese carbon
+        'id_carga_venta_carbon', //  en que carga salio
         'fecha_hora_movimiento', //  permite que sea retroactivo
         'tipo_movimiento', // Ingreso / Salida
         'calidad', // Baja (0-15% de ceniza) | Intermedia (15-18% de ceniza) | (18-?% de ceniza) Alta
