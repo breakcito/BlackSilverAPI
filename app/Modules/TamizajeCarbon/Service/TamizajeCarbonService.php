@@ -14,6 +14,52 @@ class TamizajeCarbonService
     private const CARPETA_EVIDENCIAS = 'evidencias-tamizaje-carbon';
 
     /**
+     * Sube y acumula nuevas evidencias a un zarandeo existente.
+     *
+     * @param  array<int, \Illuminate\Http\UploadedFile>  $archivos
+     */
+    public static function subir_evidencias(int $idZarandeo, array $archivos)
+    {
+        $zarandeo = TamizajeCarbonData::get_tamizaje_by_id($idZarandeo);
+        if ($zarandeo === null) {
+            return ApiResponse::error('El zarandeo indicado no existe');
+        }
+
+        $existentes = is_array($zarandeo->evidencias ?? null) ? $zarandeo->evidencias : [];
+        $nuevas = ArchivoHelper::guardarArchivos(self::CARPETA_EVIDENCIAS, $archivos);
+        $todas = array_merge($existentes, $nuevas);
+
+        TamizajeCarbonData::actualizar_evidencias($idZarandeo, $todas);
+
+        return ApiResponse::success($todas, 'Evidencias agregadas correctamente');
+    }
+
+    /**
+     * Elimina una evidencia de un zarandeo: borra el archivo físico del disco
+     * y la quita del registro JSON.
+     */
+    public static function eliminar_evidencia(int $idZarandeo, string $pathRelativo)
+    {
+        $zarandeo = TamizajeCarbonData::get_tamizaje_by_id($idZarandeo);
+        if ($zarandeo === null) {
+            return ApiResponse::error('El zarandeo indicado no existe');
+        }
+
+        $existentes = is_array($zarandeo->evidencias ?? null) ? $zarandeo->evidencias : [];
+
+        ArchivoHelper::eliminarArchivo($pathRelativo);
+
+        $actualizadas = array_values(array_filter(
+            $existentes,
+            fn ($e) => ($e['path_relativo'] ?? '') !== $pathRelativo
+        ));
+
+        TamizajeCarbonData::actualizar_evidencias($idZarandeo, $actualizadas);
+
+        return ApiResponse::success($actualizadas, 'Evidencia eliminada correctamente');
+    }
+
+    /**
      * Lista stock de carbón por almacén, tipo y calidad.
      * @param array<string, mixed> $opts
      */

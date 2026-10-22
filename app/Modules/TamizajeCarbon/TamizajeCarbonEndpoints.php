@@ -14,5 +14,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
         // Gastos de produccion del zarandeo
         Route::get('gastos/{id_zarandeo_carbon}', 'get_gastos');
         Route::post('gastos', 'registrar_gasto');
+
+        // Evidencias del zarandeo
+        Route::post('evidencias', 'subir_evidencias');
+        Route::delete('evidencias', 'eliminar_evidencia');
     });
 });

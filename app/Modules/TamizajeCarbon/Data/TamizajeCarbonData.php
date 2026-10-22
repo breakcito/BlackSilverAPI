@@ -148,7 +148,17 @@ class TamizajeCarbonData
                     SELECT COALESCE(SUM(c.cantidad), 0)
                     FROM carga_compra_carbon c
                     WHERE c.id_zarandeo_carbon = tz.id
-                ) AS total_cargas_cantidad
+                ) AS total_cargas_cantidad,
+                (
+                    SELECT COUNT(*)
+                    FROM gasto_produccion_carbon g
+                    WHERE g.id_zarandeo_carbon = tz.id
+                ) AS gastos_cantidad,
+                (
+                    SELECT COALESCE(SUM(g.total), 0)
+                    FROM gasto_produccion_carbon g
+                    WHERE g.id_zarandeo_carbon = tz.id
+                ) AS gastos_total
             FROM zarandeo_carbon tz
             INNER JOIN almacen alm ON alm.id = tz.id_almacen
             INNER JOIN empleado er ON er.id = tz.id_empleado_registro
@@ -521,6 +531,21 @@ class TamizajeCarbonData
             ->first();
 
         return $stock !== null ? (float) $stock->stock_actual : 0.0;
+    }
+
+    /**
+     * Actualiza las evidencias (columna JSON) de un zarandeo.
+     * @param array<int, array<string, mixed>> $evidencias
+     */
+    public static function actualizar_evidencias(int $id_zarandeo_carbon, array $evidencias): void
+    {
+        $json = !empty($evidencias)
+            ? json_encode($evidencias, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+            : null;
+
+        DB::table('zarandeo_carbon')
+            ->where('id', $id_zarandeo_carbon)
+            ->update(['evidencias' => $json]);
     }
 
     /**

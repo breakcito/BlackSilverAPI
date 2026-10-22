@@ -11,6 +11,57 @@ use Illuminate\Support\Facades\Validator;
 
 class TamizajeCarbonController
 {
+    /**
+     * Sube y acumula nuevas evidencias a un zarandeo existente.
+     */
+    public function subir_evidencias(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_zarandeo_carbon' => 'required|integer|min:1',
+            'evidencias' => 'required|array|min:1',
+            'evidencias.*' => 'file|max:10240',
+        ], [
+            'id_zarandeo_carbon.required' => 'El zarandeo es requerido',
+            'evidencias.required' => 'Debe adjuntar al menos un archivo',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
+        }
+
+        $idZarandeo = (int) $request->input('id_zarandeo_carbon');
+        $archivos = $request->file('evidencias', []);
+
+        try {
+            return response()->json(TamizajeCarbonService::subir_evidencias($idZarandeo, $archivos));
+        } catch (\Exception $e) {
+            return response()->json(ApiResponse::error('Error al subir evidencias: ' . $e->getMessage()), 500);
+        }
+    }
+
+    /**
+     * Elimina una evidencia de un zarandeo por su path_relativo.
+     */
+    public function eliminar_evidencia(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_zarandeo_carbon' => 'required|integer|min:1',
+            'path_relativo' => 'required|string',
+        ], [
+            'id_zarandeo_carbon.required' => 'El zarandeo es requerido',
+            'path_relativo.required' => 'La ruta del archivo es requerida',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
+        }
+
+        $idZarandeo = (int) $request->input('id_zarandeo_carbon');
+        $pathRelativo = (string) $request->input('path_relativo');
+
+        return response()->json(TamizajeCarbonService::eliminar_evidencia($idZarandeo, $pathRelativo));
+    }
+
     public function get_stocks(Request $request): JsonResponse
     {
         $opts = [
