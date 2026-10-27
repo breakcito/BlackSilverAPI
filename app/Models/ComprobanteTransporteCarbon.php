@@ -25,14 +25,14 @@ class ComprobanteTransporteCarbon extends Model
         'observacion',
         'evidencias',
         //
-        'total', //  suma del descuento de flete de cada carga
-        'con_detraccion', // bool - Dejarle a libertad del usuario esta eleccion
-        'porcentaje_detraccion', // el porcentaje que sera aplicado para la detraccion
-        'monto_detraccion', //  Se calcula a partir del total y el porcentaje de detraccion estipulado. Sera pagado mediante el banco de la nacion
-        'total_neto', // total - monto de detraccion . es lo que se le pagara al transportista
+        'subtotal', // suma del campo flete_subtotal de las cargas seleccionadas
+        'monto_igv', //   subtotal * porcentaje_igv_flete de la compra
+        'importe_total', // subtotal + monto_igv
+        'monto_detraccion', // importe_total * porcentaje_detraccion_flete de la compra
+        'monto_neto', // importe_total - monto_detraccion
         //
-        'avance_pago_detraccion', // suma del monto en los pagos de detracccion. debe llegar a ser igual al monto de detraccion
-        'avance_pago_neto', // suma del monto en los pagos netos, debe llegar al mismo monto de total_neto
+        'avance_pago_detraccion', // ssuma del monto en los pagos de detracccion. debe llegar a ser igual al monto de detraccion
+        'avance_pago_neto', // suma del monto en los pagos netos, debe llegar al mismo monto de monto_neto
         //
         'created_at',
         'estado' // enum: Pendiente de Pago / En proceso de Pago  / Pagado

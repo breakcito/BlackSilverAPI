@@ -13,6 +13,19 @@ class CompraCarbonService
     private const CARPETA_EVIDENCIAS_CARGAS = 'evidencias-cargas-carbon';
 
     /**
+     * Detraccion SUNAT sobre el carbon: solo aplica si la compra emite IGV.
+     * Valor por defecto cuando el registro no lo envia; el porcentaje que
+     * llega desde el formulario es el que queda guardado en la compra.
+     */
+    private const PORCENTAJE_DETRACCION = 10.0;
+
+    /** IGV del flete: el transporte es un servicio facturado aparte, siempre 18%. */
+    private const PORCENTAJE_IGV_FLETE = 18.0;
+
+    /** Detraccion SUNAT sobre el flete: se aplica siempre. */
+    private const PORCENTAJE_DETRACCION_FLETE = 4.0;
+
+    /**
      * Lista compras con filtros.
      * @param array<string, mixed> $opts
      */
@@ -71,9 +84,24 @@ class CompraCarbonService
             }
         }
 
-        $totalCotizado = round($toneladasPrometidas * $precioUnitario, 2);
-        // Si aplica IGV se calcula el 18% del total cotizado (solo para referencia, no se suma ni resta)
-        $montoIgvCotizado = $aplicaIgv ? round($totalCotizado * ($porcentajeIgv / 100), 2) : 0.0;
+        // Cascada cotizada: subtotal -> IGV -> total -> detraccion -> neto.
+        $subtotalCotizado = round($toneladasPrometidas * $precioUnitario, 2);
+        // El IGV se calcula sobre el subtotal y solo si la compra lo aplica.
+        $montoIgvCotizado = $aplicaIgv ? round($subtotalCotizado * ($porcentajeIgv / 100), 2) : 0.0;
+        $totalCotizado = round($subtotalCotizado + $montoIgvCotizado, 2);
+        // La detraccion del carbon solo aplica cuando la compra emite IGV. El
+        // porcentaje llega desde el formulario y queda guardado en la compra.
+        $porcentajeDetraccion = 0.0;
+        if ($aplicaIgv) {
+            $pct = isset($payload['porcentaje_detraccion'])
+                ? (float) $payload['porcentaje_detraccion']
+                : self::PORCENTAJE_DETRACCION;
+            $porcentajeDetraccion = $pct > 0 ? $pct : self::PORCENTAJE_DETRACCION;
+        }
+        $montoDetraccionCotizado = $porcentajeDetraccion > 0
+            ? round($totalCotizado * ($porcentajeDetraccion / 100), 2)
+            : 0.0;
+        $netoAPagarCotizado = round($totalCotizado - $montoDetraccionCotizado, 2);
 
         $anio = (int) date('Y');
         $correlativoData = CompraCarbonData::generar_correlativo($anio);
@@ -89,10 +117,16 @@ class CompraCarbonService
             'numero_correlativo' => $correlativoData['numero_correlativo'],
             'aplica_igv' => $aplicaIgv,
             'porcentaje_igv' => $porcentajeIgv,
+            'porcentaje_detraccion' => $porcentajeDetraccion,
+            'porcentaje_igv_flete' => self::PORCENTAJE_IGV_FLETE,
+            'porcentaje_detraccion_flete' => self::PORCENTAJE_DETRACCION_FLETE,
             'toneladas_prometidas' => $toneladasPrometidas,
             'precio_unitario_cotizado' => $precioUnitario,
-            'total_cotizado' => $totalCotizado,
+            'subtotal_cotizado' => $subtotalCotizado,
             'monto_igv_cotizado' => $montoIgvCotizado,
+            'total_cotizado' => $totalCotizado,
+            'monto_detraccion_cotizado' => $montoDetraccionCotizado,
+            'neto_a_pagar_cotizado' => $netoAPagarCotizado,
         ]);
 
         $nuevaCompra = CompraCarbonData::get_compra_by_id($idCompra);

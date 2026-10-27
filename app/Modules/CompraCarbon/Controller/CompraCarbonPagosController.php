@@ -85,7 +85,9 @@ class CompraCarbonPagosController
 
         $validator = Validator::make($request->all(), [
             'id_comprobante_transporte_carbon' => 'required|integer|min:1',
-            'id_cuenta_bancaria_empresa' => 'required|integer|min:1',
+            // La cuenta de la empresa solo es obligatoria en pagos bancarios; en
+            // Efectivo no sale dinero de ninguna cuenta.
+            'id_cuenta_bancaria_empresa' => 'required_if:medio_pago,Transferencia,Depósito|nullable|integer|min:1',
             'id_cuenta_bancaria_transportista' => 'nullable|integer|min:1',
             'medio_pago' => 'required|string|in:Transferencia,Depósito,Efectivo',
             'numero_operacion' => 'nullable|string|max:64',
@@ -97,7 +99,7 @@ class CompraCarbonPagosController
             'evidencias.*' => 'file',
         ], [
             'id_comprobante_transporte_carbon.required' => 'El comprobante de flete es obligatorio',
-            'id_cuenta_bancaria_empresa.required' => 'La cuenta bancaria de la empresa es obligatoria',
+            'id_cuenta_bancaria_empresa.required_if' => 'Para transferencias o depósitos la cuenta de origen de la empresa es obligatoria',
             'monto_pagado.required' => 'El monto pagado es obligatorio',
         ]);
 

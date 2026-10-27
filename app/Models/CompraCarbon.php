@@ -33,12 +33,19 @@ class CompraCarbon extends Model
         // comprobante. Si es TRUE, entonces los pagos estaran asociados a 
         // un comprobante
         'aplica_igv', // bool 
-        'porcentaje_igv', // 0 si no aplica igv, si si aplica por defecto 18 pero el usuario lo puede cambiar
+        'porcentaje_igv', // 0 si no aplica igv, si si aplica por defecto 18
+        'porcentaje_detraccion', // el porcentaje que sera aplicado para la detraccion, por defecto 10%. Solo si aplica igv sino es 0
+        //
+        'porcentaje_igv_flete', // 18% siempre
+        'porcentaje_detraccion_flete', // el porcentaje que sera aplicado para la detraccion, por defecto 4% siempre. 
         //
         'toneladas_prometidas', // cantidad de toneladas que dice el proveedor que va a traer
         'precio_unitario_cotizado', // se autocompleta con la tarifa pero el usuario puede modificar
-        'total_cotizado', // precio por tonelada * cantidad de toneladas prometidas
-        'monto_igv_cotizado', // representa el 18% del total cotizado si aplica igv. Si no aplica IGV este es 0.
+        'subtotal_cotizado', // precio por tonelada * cantidad de toneladas prometidas
+        'monto_igv_cotizado', // representa el 18% del subtotal_cotizado si aplica igv. Si no aplica IGV este es 0.
+        'total_cotizado', // subtotal_cotizado + monto_igv_cotizado
+        'monto_detraccion_cotizado', //  total_cotizado * porcentaje_detraccion
+        'neto_a_pagar_cotizado', // total_cotizado - monto_detraccion_cotizado
         //
         'log_cambios', // json, para guardar las ediciones de esta compra
         'created_at', // cuando se registro en el sistema

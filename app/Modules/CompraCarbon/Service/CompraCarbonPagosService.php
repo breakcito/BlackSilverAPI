@@ -53,8 +53,6 @@ class CompraCarbonPagosService
                 'fecha_emision' => (string) $payload['fecha_emision'],
                 'observacion' => $payload['observacion'] ?? null,
                 'evidencias' => $evidencias,
-                'con_detraccion' => !empty($payload['con_detraccion']),
-                'porcentaje_detraccion' => isset($payload['porcentaje_detraccion']) ? (float) $payload['porcentaje_detraccion'] : 10.0,
                 'ids_cargas' => array_map('intval', $idsCargas),
                 'anticipos' => $payload['anticipos'] ?? [],
             ]);
@@ -169,8 +167,6 @@ class CompraCarbonPagosService
                 'fecha_emision' => (string) $payload['fecha_emision'],
                 'observacion' => $payload['observacion'] ?? null,
                 'evidencias' => $evidencias,
-                'con_detraccion' => !empty($payload['con_detraccion']),
-                'porcentaje_detraccion' => isset($payload['porcentaje_detraccion']) ? (float) $payload['porcentaje_detraccion'] : 4.0,
                 'ids_cargas' => array_map('intval', $idsCargas),
             ]);
 

@@ -7,7 +7,7 @@ namespace App\Shared\Enums\CompraCarbon;
  *
  * Enum dedicado al proceso de pagos de carbon. El estado es derivado: lo
  * recalcula `CompraCarbonPagosService` cada vez que se registra un pago,
- * comparando el avance pagado contra `total_neto` y `monto_detraccion`.
+ * comparando el avance pagado contra `monto_neto` y `monto_detraccion`.
  *
  * - PendienteDePago: no tiene pagos registrados.
  * - EnProcesoPago: tiene pagos, pero queda saldo en el total neto, en la
@@ -24,7 +24,8 @@ enum EstadoComprobanteCarbon: string
     /**
      * Traduce el avance real del comprobante al estado que corresponde.
      *
-     * @param float $totalNeto      Monto que se paga al proveedor/transportista.
+     * @param float $totalNeto      Monto que se paga al proveedor/transportista
+     *                               (`monto_neto` del comprobante).
      * @param float $montoDetraccion Monto retenido que se deposita en la cuenta
      *                               de detraccion designada por SUNAT.
      * @param float $netoPagado     Suma de pagos con es_para_detraccion = 0.

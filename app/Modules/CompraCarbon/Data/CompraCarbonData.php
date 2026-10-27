@@ -50,8 +50,14 @@ class CompraCarbonData
                 cc.porcentaje_igv,
                 cc.toneladas_prometidas,
                 cc.precio_unitario_cotizado,
+                cc.subtotal_cotizado,
                 cc.total_cotizado,
                 cc.monto_igv_cotizado,
+                cc.porcentaje_detraccion,
+                cc.monto_detraccion_cotizado,
+                cc.neto_a_pagar_cotizado,
+                cc.porcentaje_igv_flete,
+                cc.porcentaje_detraccion_flete,
                 cc.id_empleado_registro,
                 CONCAT(er.nombre, " ", er.apellido) AS empleado_registro,
                 cc.id_empleado_cierre,
@@ -69,15 +75,32 @@ class CompraCarbonData
                     WHERE c.id_compra_carbon = cc.id
                 ) AS cantidad_cargas,
                 (
+                    SELECT COUNT(*)
+                    FROM carga_compra_carbon c
+                    WHERE c.id_compra_carbon = cc.id
+                      AND c.pagar_flete = 1
+                      AND c.estado <> "Anulado"
+                ) AS cantidad_cargas_con_flete,
+                (
                     SELECT COALESCE(SUM(c.cantidad), 0)
                     FROM carga_compra_carbon c
                     WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
                 ) AS total_toneladas_reales,
                 (
-                    SELECT COALESCE(SUM(c.subtotal_con_descuento), 0)
+                    SELECT COALESCE(SUM(c.subtotal), 0)
                     FROM carga_compra_carbon c
                     WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
-                ) AS total_real_con_descuento
+                ) AS total_real_subtotal,
+                (
+                    SELECT COALESCE(SUM(c.neto_a_pagar), 0)
+                    FROM carga_compra_carbon c
+                    WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
+                ) AS total_real_neto,
+                (
+                    SELECT COALESCE(SUM(c.flete_neto_a_pagar), 0)
+                    FROM carga_compra_carbon c
+                    WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
+                ) AS total_real_flete_neto
             FROM compra_carbon cc
             INNER JOIN empresa e ON e.id = cc.id_empresa
             INNER JOIN proveedor p ON p.id = cc.id_proveedor
@@ -163,6 +186,7 @@ class CompraCarbonData
                 cc.id_tipo_carbon_prometido,
                 tc_prom.nombre AS tipo_carbon_prometido,
                 tc_prom.codigo AS tipo_carbon_prometido_codigo,
+                tc_prom.ficha_tecnica,
                 cc.id_tarifa_carbon,
                 cc.id_cuenta_proveedor,
                 cbp.moneda AS proveedor_cuenta_moneda,
@@ -176,8 +200,14 @@ class CompraCarbonData
                 cc.porcentaje_igv,
                 cc.toneladas_prometidas,
                 cc.precio_unitario_cotizado,
+                cc.subtotal_cotizado,
                 cc.total_cotizado,
                 cc.monto_igv_cotizado,
+                cc.porcentaje_detraccion,
+                cc.monto_detraccion_cotizado,
+                cc.neto_a_pagar_cotizado,
+                cc.porcentaje_igv_flete,
+                cc.porcentaje_detraccion_flete,
                 cc.id_empleado_registro,
                 CONCAT(er.nombre, " ", er.apellido) AS empleado_registro,
                 cc.id_empleado_cierre,
@@ -195,15 +225,32 @@ class CompraCarbonData
                     WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
                 ) AS cantidad_cargas,
                 (
+                    SELECT COUNT(*)
+                    FROM carga_compra_carbon c
+                    WHERE c.id_compra_carbon = cc.id
+                      AND c.pagar_flete = 1
+                      AND c.estado <> "Anulado"
+                ) AS cantidad_cargas_con_flete,
+                (
                     SELECT COALESCE(SUM(c.cantidad), 0)
                     FROM carga_compra_carbon c
                     WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
                 ) AS total_toneladas_reales,
                 (
-                    SELECT COALESCE(SUM(c.subtotal_con_descuento), 0)
+                    SELECT COALESCE(SUM(c.subtotal), 0)
                     FROM carga_compra_carbon c
                     WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
-                ) AS total_real_con_descuento
+                ) AS total_real_subtotal,
+                (
+                    SELECT COALESCE(SUM(c.neto_a_pagar), 0)
+                    FROM carga_compra_carbon c
+                    WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
+                ) AS total_real_neto,
+                (
+                    SELECT COALESCE(SUM(c.flete_neto_a_pagar), 0)
+                    FROM carga_compra_carbon c
+                    WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
+                ) AS total_real_flete_neto
             FROM compra_carbon cc
             INNER JOIN empresa e ON e.id = cc.id_empresa
             INNER JOIN proveedor p ON p.id = cc.id_proveedor
@@ -220,12 +267,13 @@ class CompraCarbonData
         $cabecera = DB::selectOne($sqlCabecera, ['id' => $id_compra_carbon]);
         if ($cabecera !== null) {
             $cabecera->log_cambios = self::decode_json($cabecera->log_cambios ?? null);
+            $cabecera->ficha_tecnica = self::decode_json($cabecera->ficha_tecnica ?? null);
         }
 
         $hasColCompTrans = Schema::hasColumn('carga_compra_carbon', 'id_comprobante_transporte_carbon');
         $colCompTrans = $hasColCompTrans
-            ? "c.id_comprobante_transporte_carbon,\n                com_tr.codigo_comprobante AS comprobante_transporte_codigo,"
-            : "NULL AS id_comprobante_transporte_carbon,\n                NULL AS comprobante_transporte_codigo,";
+            ? "c.id_comprobante_transporte_carbon,\n                com_tr.codigo_comprobante AS comprobante_transporte_codigo,\n                com_tr.fecha_emision AS comprobante_transporte_fecha_emision,"
+            : "NULL AS id_comprobante_transporte_carbon,\n                NULL AS comprobante_transporte_codigo,\n                NULL AS comprobante_transporte_fecha_emision,";
         $joinCompTrans = $hasColCompTrans
             ? "LEFT JOIN comprobante_transporte_carbon com_tr ON com_tr.id = c.id_comprobante_transporte_carbon"
             : "";
@@ -255,6 +303,8 @@ class CompraCarbonData
                 tar.precio_unitario AS tarifa_precio_unitario,
                 c.id_transportista,
                 tr.razon_social AS transportista_razon_social,
+                tr.ruc AS transportista_ruc,
+                tr.dni AS transportista_dni,
                 ' . $colCompTrans . '
                 c.id_comprobante_compra_carbon,
                 com_pr.codigo_comprobante AS comprobante_compra_codigo,
@@ -273,9 +323,17 @@ class CompraCarbonData
                 c.porcentaje_humedad,
                 c.precio_unitario,
                 c.costo_flete_por_tonelada,
-                c.subtotal_antes_descuento,
-                c.descuento_flete,
-                c.subtotal_con_descuento,
+                c.precio_materia_prima,
+                c.subtotal,
+                c.monto_igv,
+                c.total,
+                c.monto_detraccion,
+                c.neto_a_pagar,
+                c.flete_subtotal,
+                c.flete_igv,
+                c.flete_total,
+                c.flete_monto_detraccion,
+                c.flete_neto_a_pagar,
                 c.evidencias,
                 c.log_cambios,
                 c.created_at,
@@ -314,13 +372,13 @@ class CompraCarbonData
                 cmp.fecha_emision,
                 cmp.observacion,
                 cmp.evidencias,
-                cmp.total,
-                cmp.con_detraccion,
-                cmp.porcentaje_detraccion,
-                cmp.monto_detraccion,
-                cmp.total_sin_detraccion,
+                cmp.subtotal,
                 cmp.monto_pagado_anticipos,
-                cmp.total_neto,
+                cmp.base_imponible,
+                cmp.monto_igv,
+                cmp.importe_total,
+                cmp.monto_detraccion,
+                cmp.monto_neto,
                 cmp.avance_pago_detraccion,
                 cmp.avance_pago_neto,
                 cmp.created_at,
@@ -446,11 +504,11 @@ class CompraCarbonData
                 ct.fecha_emision,
                 ct.observacion,
                 ct.evidencias,
-                ct.total,
-                ct.con_detraccion,
-                ct.porcentaje_detraccion,
+                ct.subtotal,
+                ct.monto_igv,
+                ct.importe_total,
                 ct.monto_detraccion,
-                ct.total_neto,
+                ct.monto_neto,
                 ct.avance_pago_detraccion,
                 ct.avance_pago_neto,
                 ct.created_at,
@@ -519,6 +577,40 @@ class CompraCarbonData
         ';
         $anticiposConsolidados = DB::select($sqlAnticiposConsolidados, ['id' => $id_compra_carbon]);
 
+        // Transportistas con flete en esta compra, con la primera cuenta
+        // bancaria en soles que NO es de detracción (la que recibe el flete).
+        $sqlTransportistasFlete = '
+            SELECT
+                t.id AS id_transportista,
+                t.razon_social,
+                t.ruc,
+                t.dni,
+                cbt.numero_cuenta,
+                cbt.cci,
+                b.nombre AS banco
+            FROM transportista t
+            INNER JOIN (
+                SELECT DISTINCT c.id_transportista
+                FROM carga_compra_carbon c
+                WHERE c.id_compra_carbon = :id
+                  AND c.pagar_flete = 1
+                  AND c.id_transportista IS NOT NULL
+                  AND c.estado <> "Anulado"
+            ) dt ON dt.id_transportista = t.id
+            LEFT JOIN cuenta_bancaria_transportista cbt ON cbt.id = (
+                SELECT c2.id
+                FROM cuenta_bancaria_transportista c2
+                WHERE c2.id_transportista = t.id
+                  AND c2.es_para_detraccion = 0
+                  AND c2.moneda = "Soles"
+                ORDER BY c2.id ASC
+                LIMIT 1
+            )
+            LEFT JOIN banco b ON b.id = cbt.id_banco
+            ORDER BY t.razon_social ASC
+        ';
+        $transportistasFlete = DB::select($sqlTransportistasFlete, ['id' => $id_compra_carbon]);
+
         return [
             'cabecera' => $cabecera,
             'cargas' => $cargas,
@@ -526,6 +618,7 @@ class CompraCarbonData
             'pagos_directos' => $pagosDirectos,
             'comprobantes_transporte' => $comprobantesTransporte,
             'anticipos_utilizados' => $anticiposConsolidados,
+            'transportistas_flete' => $transportistasFlete,
         ];
     }
 
@@ -584,6 +677,7 @@ class CompraCarbonData
      */
     public static function insert_compra(array $data): int
     {
+        $aplica_igv = !empty($data['aplica_igv']) ? 1 : 0;
         $payload = [
             'id_empresa' => (int) $data['id_empresa'],
             'id_proveedor' => (int) $data['id_proveedor'],
@@ -594,12 +688,21 @@ class CompraCarbonData
                 : null,
             'correlativo' => (string) $data['correlativo'],
             'numero_correlativo' => (int) $data['numero_correlativo'],
-            'aplica_igv' => !empty($data['aplica_igv']) ? 1 : 0,
+            'aplica_igv' => $aplica_igv,
             'porcentaje_igv' => (float) ($data['porcentaje_igv'] ?? 0),
+            // La detracción del carbón solo aplica cuando la compra emite IGV.
+            'porcentaje_detraccion' => (float) ($data['porcentaje_detraccion'] ?? ($aplica_igv == 1 ? 10.0 : 0.0)),
+            // El flete es un servicio facturado aparte: su IGV y su detracción
+            // se aplican siempre, con independencia de que la compra aplique IGV.
+            'porcentaje_igv_flete' => (float) ($data['porcentaje_igv_flete'] ?? 18.0),
+            'porcentaje_detraccion_flete' => (float) ($data['porcentaje_detraccion_flete'] ?? 4.0),
             'toneladas_prometidas' => (float) $data['toneladas_prometidas'],
             'precio_unitario_cotizado' => (float) $data['precio_unitario_cotizado'],
-            'total_cotizado' => (float) $data['total_cotizado'],
+            'subtotal_cotizado' => (float) ($data['subtotal_cotizado'] ?? 0),
             'monto_igv_cotizado' => (float) ($data['monto_igv_cotizado'] ?? 0),
+            'total_cotizado' => (float) ($data['total_cotizado'] ?? 0),
+            'monto_detraccion_cotizado' => (float) ($data['monto_detraccion_cotizado'] ?? 0),
+            'neto_a_pagar_cotizado' => (float) ($data['neto_a_pagar_cotizado'] ?? 0),
             'log_cambios' => null,
             'created_at' => (string) ($data['created_at'] ?? now()->toDateTimeString()),
             'estado' => EstadoCompraCarbon::Preliminar->value,
@@ -624,6 +727,23 @@ class CompraCarbonData
         return DB::transaction(function () use ($id_compra_carbon, $cargas, $id_empleado) {
             $idsInsertados = [];
 
+            // Porcentajes de la compra: gobiernan el IGV y la detracción del
+            // carbón y los del flete. Sin compra no hay carga.
+            $compra = DB::table('compra_carbon')
+                ->where('id', $id_compra_carbon)
+                ->first();
+
+            if ($compra === null) {
+                throw new \RuntimeException(
+                    'No se puede registrar una carga sin una orden de compra de carbón'
+                );
+            }
+
+            $porcentajeIgv = (float) $compra->porcentaje_igv;
+            $porcentajeDetraccion = (float) $compra->porcentaje_detraccion;
+            $porcentajeIgvFlete = (float) $compra->porcentaje_igv_flete;
+            $porcentajeDetraccionFlete = (float) $compra->porcentaje_detraccion_flete;
+
             foreach ($cargas as $c) {
                 $idAlmacenEmpresa = isset($c['id_almacen_empresa_llegada']) && (int) $c['id_almacen_empresa_llegada'] > 0
                     ? (int) $c['id_almacen_empresa_llegada']
@@ -645,9 +765,25 @@ class CompraCarbonData
                 $calidad = CalidadCarbonData::resolver_por_ceniza($porcentajeCeniza);
                 $nombreCalidad = $calidad !== null ? (string) $calidad->nombre : null;
 
-                $subtotalAntes = round($cantidad * $precioUnitario, 2);
-                $descuentoFlete = $pagarFlete ? round($cantidad * $costoFlete, 2) : 0.0;
-                $subtotalConDesc = round($subtotalAntes - $descuentoFlete, 2);
+                // ── COSTOS DEL CARBON ──────────────────────────────────────
+                // El flete lo asume la empresa, asi que sale del precio unitario
+                // que se le reconoce al proveedor por el carbon.
+                $precioMateriaPrima = max(0.0, round($precioUnitario - $costoFlete, 6));
+                $subtotal = round($precioMateriaPrima * $cantidad, 2);
+                $montoIgv = $porcentajeIgv > 0 ? round($subtotal * ($porcentajeIgv / 100), 2) : 0.0;
+                $total = round($subtotal + $montoIgv, 2);
+                $montoDetraccion = $porcentajeDetraccion > 0 ? round($total * ($porcentajeDetraccion / 100), 2) : 0.0;
+                $netoAPagar = round($total - $montoDetraccion, 2);
+
+                // ── COSTOS DE TRANSPORTE ────────────────────────────────────
+                $fleteSubtotal = $pagarFlete ? round($cantidad * $costoFlete, 2) : 0.0;
+                $fleteIgv = $porcentajeIgvFlete > 0 ? round($fleteSubtotal * ($porcentajeIgvFlete / 100), 2) : 0.0;
+                $fleteTotal = round($fleteSubtotal + $fleteIgv, 2);
+                $fleteMontoDetraccion = $porcentajeDetraccionFlete > 0 ? round($fleteTotal * ($porcentajeDetraccionFlete / 100), 2) : 0.0;
+                $fleteNetoAPagar = round($fleteTotal - $fleteMontoDetraccion, 2);
+
+                // Costo del material ingresado a almacen: carbon + flete, sin IGV.
+                $costoTotal = round($subtotal + $fleteSubtotal, 2);
 
                 $evidenciasJson = isset($c['evidencias']) && $c['evidencias'] !== null
                     ? (is_string($c['evidencias']) ? $c['evidencias'] : json_encode($c['evidencias'], JSON_UNESCAPED_UNICODE))
@@ -677,9 +813,19 @@ class CompraCarbonData
                     'porcentaje_humedad' => (float) ($c['porcentaje_humedad'] ?? 0),
                     'precio_unitario' => $precioUnitario,
                     'costo_flete_por_tonelada' => $costoFlete,
-                    'subtotal_antes_descuento' => $subtotalAntes,
-                    'descuento_flete' => $descuentoFlete,
-                    'subtotal_con_descuento' => $subtotalConDesc,
+                    // COSTOS DEL CARBON
+                    'precio_materia_prima' => $precioMateriaPrima,
+                    'subtotal' => $subtotal,
+                    'monto_igv' => $montoIgv,
+                    'total' => $total,
+                    'monto_detraccion' => $montoDetraccion,
+                    'neto_a_pagar' => $netoAPagar,
+                    // COSTOS DE TRANSPORTE
+                    'flete_subtotal' => $fleteSubtotal,
+                    'flete_igv' => $fleteIgv,
+                    'flete_total' => $fleteTotal,
+                    'flete_monto_detraccion' => $fleteMontoDetraccion,
+                    'flete_neto_a_pagar' => $fleteNetoAPagar,
                     'evidencias' => $evidenciasJson,
                     'log_cambios' => null,
                     'created_at' => now()->toDateTimeString(),
@@ -703,7 +849,7 @@ class CompraCarbonData
                         idCarga: $idCarga,
                         cantidad: $cantidad,
                         calidad: $nombreCalidad,
-                        costoTotal: $subtotalAntes,
+                        costoTotal: $costoTotal,
                         fechaHoraIngreso: (string) ($c['fecha_hora_ingreso'] ?? now()->toDateTimeString())
                     );
                 }
@@ -878,13 +1024,13 @@ class CompraCarbonData
                 cmp.fecha_emision,
                 cmp.observacion,
                 cmp.evidencias,
-                cmp.total,
-                cmp.con_detraccion,
-                cmp.porcentaje_detraccion,
-                cmp.monto_detraccion,
-                cmp.total_sin_detraccion,
+                cmp.subtotal,
                 cmp.monto_pagado_anticipos,
-                cmp.total_neto,
+                cmp.base_imponible,
+                cmp.monto_igv,
+                cmp.importe_total,
+                cmp.monto_detraccion,
+                cmp.monto_neto,
                 cmp.avance_pago_detraccion,
                 cmp.avance_pago_neto,
                 cmp.created_at,
@@ -968,11 +1114,11 @@ class CompraCarbonData
                 ct.fecha_emision,
                 ct.observacion,
                 ct.evidencias,
-                ct.total,
-                ct.con_detraccion,
-                ct.porcentaje_detraccion,
+                ct.subtotal,
+                ct.monto_igv,
+                ct.importe_total,
                 ct.monto_detraccion,
-                ct.total_neto,
+                ct.monto_neto,
                 ct.avance_pago_detraccion,
                 ct.avance_pago_neto,
                 ct.created_at,

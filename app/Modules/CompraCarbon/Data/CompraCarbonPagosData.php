@@ -18,6 +18,11 @@ class CompraCarbonPagosData
 {
     /**
      * Registra un comprobante del proveedor (cuando la compra aplica IGV).
+     *
+     * Cascada contable: subtotal -> base imponible -> IGV -> importe total ->
+     * detraccion -> monto neto. Los porcentajes (IGV y detraccion) los
+     * gobierna la compra, no el comprobante.
+     *
      * @param array{
      *   id_compra_carbon: int,
      *   id_empleado_registro: int,
@@ -25,8 +30,6 @@ class CompraCarbonPagosData
      *   fecha_emision: string,
      *   observacion?: string|null,
      *   evidencias?: mixed,
-     *   con_detraccion: bool,
-     *   porcentaje_detraccion?: float,
      *   ids_cargas: array<int>,
      *   anticipos?: array<int, array{id_anticipo_proveedor: int, monto_retirado: float}>
      * } $d
@@ -37,16 +40,18 @@ class CompraCarbonPagosData
             $idCompra = (int) $d['id_compra_carbon'];
             $idsCargas = $d['ids_cargas'];
 
-            // Calcular total de subtotal_con_descuento de las cargas seleccionadas
+            $compra = DB::table('compra_carbon')->where('id', $idCompra)->first();
+            if ($compra === null) {
+                throw new \RuntimeException('Compra no encontrada');
+            }
+            $porcentajeIgv = (float) $compra->porcentaje_igv;
+            $porcentajeDetraccion = (float) $compra->porcentaje_detraccion;
+
+            // Subtotal: suma del subtotal de las cargas seleccionadas.
             $totalCargas = (float) DB::table('carga_compra_carbon')
                 ->where('id_compra_carbon', $idCompra)
                 ->whereIn('id', $idsCargas)
-                ->sum('subtotal_con_descuento');
-
-            $conDetraccion = !empty($d['con_detraccion']);
-            $porcentajeDetraccion = $conDetraccion ? (float) ($d['porcentaje_detraccion'] ?? 10.0) : 0.0;
-            $montoDetraccion = $conDetraccion ? round($totalCargas * ($porcentajeDetraccion / 100), 2) : 0.0;
-            $totalSinDetraccion = round($totalCargas - $montoDetraccion, 2);
+                ->sum('subtotal');
 
             // Procesar anticipos si se proporcionaron
             $anticipos = $d['anticipos'] ?? [];
@@ -86,7 +91,14 @@ class CompraCarbonPagosData
                 ];
             }
 
-            $totalNeto = max(0.0, round($totalSinDetraccion - $totalAnticipos, 2));
+            // Los anticipos amortizados reducen la base imponible.
+            $baseImponible = max(0.0, round($totalCargas - $totalAnticipos, 2));
+            $montoIgv = $porcentajeIgv > 0 ? round($baseImponible * ($porcentajeIgv / 100), 2) : 0.0;
+            $importeTotal = round($baseImponible + $montoIgv, 2);
+            $montoDetraccion = $porcentajeDetraccion > 0
+                ? round($importeTotal * ($porcentajeDetraccion / 100), 2)
+                : 0.0;
+            $montoNeto = round($importeTotal - $montoDetraccion, 2);
 
             $evidenciasJson = isset($d['evidencias']) && $d['evidencias'] !== null
                 ? (is_string($d['evidencias']) ? $d['evidencias'] : json_encode($d['evidencias'], JSON_UNESCAPED_UNICODE))
@@ -99,13 +111,13 @@ class CompraCarbonPagosData
                 'fecha_emision' => (string) $d['fecha_emision'],
                 'observacion' => $d['observacion'] ?? null,
                 'evidencias' => $evidenciasJson,
-                'total' => $totalCargas,
-                'con_detraccion' => $conDetraccion ? 1 : 0,
-                'porcentaje_detraccion' => $porcentajeDetraccion,
-                'monto_detraccion' => $montoDetraccion,
-                'total_sin_detraccion' => $totalSinDetraccion,
+                'subtotal' => round($totalCargas, 2),
                 'monto_pagado_anticipos' => $totalAnticipos,
-                'total_neto' => $totalNeto,
+                'base_imponible' => $baseImponible,
+                'monto_igv' => $montoIgv,
+                'importe_total' => $importeTotal,
+                'monto_detraccion' => $montoDetraccion,
+                'monto_neto' => $montoNeto,
                 'avance_pago_detraccion' => 0.0,
                 'avance_pago_neto' => 0.0,
                 'created_at' => now()->toDateTimeString(),
@@ -151,6 +163,46 @@ class CompraCarbonPagosData
                 ? (is_string($d['evidencias']) ? $d['evidencias'] : json_encode($d['evidencias'], JSON_UNESCAPED_UNICODE))
                 : null;
 
+            // Comprobante (compra con IGV): el pago no puede exceder el saldo
+            // pendiente, ni en la parte neta ni en la de detraccion.
+            $cmp = null;
+            if ($idComprobante !== null) {
+                $cmp = DB::table('comprobante_compra_carbon')->where('id', $idComprobante)->lockForUpdate()->first();
+                if ($cmp === null) {
+                    throw new \RuntimeException('Comprobante no encontrado');
+                }
+                $pendiente = $esDetraccion
+                    ? (float) $cmp->monto_detraccion - (float) $cmp->avance_pago_detraccion
+                    : (float) $cmp->monto_neto - (float) $cmp->avance_pago_neto;
+                $pendiente = max(0.0, round($pendiente, 2));
+                if (round($montoPagado - $pendiente, 2) > 0.01) {
+                    throw new \RuntimeException(
+                        'El monto a pagar supera el saldo pendiente del comprobante (S/ ' . number_format($pendiente, 2) . ')'
+                    );
+                }
+            } else {
+                // Pago directo (compra sin IGV): el efectivo pagado mas los
+                // anticipos amortizados no puede superar el importe de las
+                // cargas seleccionadas.
+                $idsCargas = $d['ids_cargas'] ?? [];
+                $totalAnticipos = 0.0;
+                foreach (($d['anticipos'] ?? []) as $ant) {
+                    $totalAnticipos += round((float) ($ant['monto_retirado'] ?? 0), 2);
+                }
+                if (!empty($idsCargas)) {
+                    $totalCobrar = (float) DB::table('carga_compra_carbon')
+                        ->where('id_compra_carbon', $idCompra)
+                        ->whereIn('id', $idsCargas)
+                        ->sum('neto_a_pagar');
+                    $totalCobrar = round($totalCobrar, 2);
+                    if ($totalCobrar > 0 && round($montoPagado + $totalAnticipos - $totalCobrar, 2) > 0.01) {
+                        throw new \RuntimeException(
+                            'El monto a pagar mas los anticipos aplicados supera el importe de las cargas seleccionadas (S/ ' . number_format($totalCobrar, 2) . ')'
+                        );
+                    }
+                }
+            }
+
             $idPago = PagoCompraCarbon::insertGetId([
                 'id_compra_carbon' => $idCompra,
                 'id_comprobante_compra_carbon' => $idComprobante,
@@ -173,11 +225,6 @@ class CompraCarbonPagosData
 
             // Si es con comprobante: actualizar avances del comprobante
             if ($idComprobante !== null) {
-                $cmp = DB::table('comprobante_compra_carbon')->where('id', $idComprobante)->lockForUpdate()->first();
-                if ($cmp === null) {
-                    throw new \RuntimeException('Comprobante no encontrado');
-                }
-
                 $nuevoAvanceDetraccion = (float) $cmp->avance_pago_detraccion;
                 $nuevoAvanceNeto = (float) $cmp->avance_pago_neto;
 
@@ -188,7 +235,7 @@ class CompraCarbonPagosData
                 }
 
                 $estadoCmp = EstadoComprobanteCarbon::resolver(
-                    totalNeto: (float) $cmp->total_neto,
+                    totalNeto: (float) $cmp->monto_neto,
                     montoDetraccion: (float) $cmp->monto_detraccion,
                     netoPagado: $nuevoAvanceNeto,
                     detraccionPagada: $nuevoAvanceDetraccion
@@ -226,7 +273,8 @@ class CompraCarbonPagosData
                 foreach ($anticipos as $ant) {
                     $idAnt = (int) $ant['id_anticipo_proveedor'];
                     $montoRet = round((float) $ant['monto_retirado'], 2);
-                    if ($montoRet <= 0) continue;
+                    if ($montoRet <= 0)
+                        continue;
 
                     $antDb = DB::table('anticipo_proveedor')->where('id', $idAnt)->lockForUpdate()->first();
                     if ($antDb !== null) {
@@ -256,6 +304,11 @@ class CompraCarbonPagosData
 
     /**
      * Registra un comprobante de transporte/flete.
+     *
+     * Cascada contable del flete: subtotal -> IGV del flete -> importe total
+     * -> detraccion del flete -> monto neto. Los porcentajes los gobierna la
+     * compra de carbon.
+     *
      * @param array<string, mixed> $d
      */
     public static function registrar_comprobante_transporte(array $d): int
@@ -265,15 +318,25 @@ class CompraCarbonPagosData
             $idTransportista = (int) $d['id_transportista'];
             $idsCargas = $d['ids_cargas'];
 
-            $totalFlete = (float) DB::table('carga_compra_carbon')
+            $compra = DB::table('compra_carbon')->where('id', $idCompra)->first();
+            if ($compra === null) {
+                throw new \RuntimeException('Compra no encontrada');
+            }
+            $porcentajeIgvFlete = (float) $compra->porcentaje_igv_flete;
+            $porcentajeDetraccionFlete = (float) $compra->porcentaje_detraccion_flete;
+
+            // Subtotal: suma del flete subtotal de las cargas seleccionadas.
+            $subtotal = (float) DB::table('carga_compra_carbon')
                 ->where('id_compra_carbon', $idCompra)
                 ->whereIn('id', $idsCargas)
-                ->sum('descuento_flete');
+                ->sum('flete_subtotal');
 
-            $conDetraccion = !empty($d['con_detraccion']);
-            $porcentajeDetraccion = $conDetraccion ? (float) ($d['porcentaje_detraccion'] ?? 4.0) : 0.0;
-            $montoDetraccion = $conDetraccion ? round($totalFlete * ($porcentajeDetraccion / 100), 2) : 0.0;
-            $totalNeto = round($totalFlete - $montoDetraccion, 2);
+            $montoIgv = $porcentajeIgvFlete > 0 ? round($subtotal * ($porcentajeIgvFlete / 100), 2) : 0.0;
+            $importeTotal = round($subtotal + $montoIgv, 2);
+            $montoDetraccion = $porcentajeDetraccionFlete > 0
+                ? round($importeTotal * ($porcentajeDetraccionFlete / 100), 2)
+                : 0.0;
+            $montoNeto = round($importeTotal - $montoDetraccion, 2);
 
             $evidenciasJson = isset($d['evidencias']) && $d['evidencias'] !== null
                 ? (is_string($d['evidencias']) ? $d['evidencias'] : json_encode($d['evidencias'], JSON_UNESCAPED_UNICODE))
@@ -287,11 +350,11 @@ class CompraCarbonPagosData
                 'fecha_emision' => (string) $d['fecha_emision'],
                 'observacion' => $d['observacion'] ?? null,
                 'evidencias' => $evidenciasJson,
-                'total' => $totalFlete,
-                'con_detraccion' => $conDetraccion ? 1 : 0,
-                'porcentaje_detraccion' => $porcentajeDetraccion,
+                'subtotal' => round($subtotal, 2),
+                'monto_igv' => $montoIgv,
+                'importe_total' => $importeTotal,
                 'monto_detraccion' => $montoDetraccion,
-                'total_neto' => $totalNeto,
+                'monto_neto' => $montoNeto,
                 'avance_pago_detraccion' => 0.0,
                 'avance_pago_neto' => 0.0,
                 'created_at' => now()->toDateTimeString(),
@@ -326,7 +389,9 @@ class CompraCarbonPagosData
             $idPago = PagoTransporteCarbon::insertGetId([
                 'id_compra_carbon' => $idCompra,
                 'id_comprobante_transporte_carbon' => $idComprobanteTransporte,
-                'id_cuenta_bancaria_empresa' => (int) $d['id_cuenta_bancaria_empresa'],
+                'id_cuenta_bancaria_empresa' => isset($d['id_cuenta_bancaria_empresa']) && (int) $d['id_cuenta_bancaria_empresa'] > 0
+                    ? (int) $d['id_cuenta_bancaria_empresa']
+                    : null,
                 'id_cuenta_bancaria_transportista' => isset($d['id_cuenta_bancaria_transportista']) && (int) $d['id_cuenta_bancaria_transportista'] > 0
                     ? (int) $d['id_cuenta_bancaria_transportista']
                     : null,
@@ -346,6 +411,17 @@ class CompraCarbonPagosData
                 throw new \RuntimeException('Comprobante de transporte no encontrado');
             }
 
+            // El pago no puede exceder el saldo pendiente del comprobante.
+            $pendiente = $esDetraccion
+                ? (float) $cmp->monto_detraccion - (float) $cmp->avance_pago_detraccion
+                : (float) $cmp->monto_neto - (float) $cmp->avance_pago_neto;
+            $pendiente = max(0.0, round($pendiente, 2));
+            if (round($montoPagado - $pendiente, 2) > 0.01) {
+                throw new \RuntimeException(
+                    'El monto a pagar supera el saldo pendiente del comprobante de transporte (S/ ' . number_format($pendiente, 2) . ')'
+                );
+            }
+
             $nuevoAvanceDetraccion = (float) $cmp->avance_pago_detraccion;
             $nuevoAvanceNeto = (float) $cmp->avance_pago_neto;
 
@@ -356,7 +432,7 @@ class CompraCarbonPagosData
             }
 
             $estadoCmp = EstadoComprobanteCarbon::resolver(
-                totalNeto: (float) $cmp->total_neto,
+                totalNeto: (float) $cmp->monto_neto,
                 montoDetraccion: (float) $cmp->monto_detraccion,
                 netoPagado: $nuevoAvanceNeto,
                 detraccionPagada: $nuevoAvanceDetraccion

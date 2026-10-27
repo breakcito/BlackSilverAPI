@@ -37,25 +37,38 @@ class CargaCompraCarbon extends Model
         'id_zarandeo_carbon', // asocia el proceso de zarandeo en el que estuvo involucrada esta carga
         //
         'calidad', // segun el porcentaje de ceniza, Baja | Intermedia | Alta (rangos en calidad_carbon)
-        //
         'tipo_despacho', // Recojo/Envio
-        //
         'placa', // del vehiculo en el que llego
         'fecha_hora_ingreso', // fecha y hora en la que ingreso el vehiculo al almacen de llegada
+        'codigo_ticket_balanza', // el codigo emitido al pesar el carro
         // guias que trajo el vehiculo
         'guia_remitente',
         'guia_transportista', // opcional
         //
-        'pagar_flete', //  bool - si es TRUE, debe indicar la empresa de transporte y el costo del flete por tonelada
-        'codigo_ticket_balanza', // el codigo emitido al pesar el carro
-        'cantidad', // en toneladas, es la cantidad de carbon que trae el carrro
         'porcentaje_ceniza', // cuanto hay de ceniza en la carga
         'porcentaje_humedad', // cuanta humedad trae la carga
+        //
+        'cantidad', // en toneladas, es la cantidad de carbon que trae el carrro
         'precio_unitario', // precio por tonelada, se autocompleta segun la tarifa aplicada pero el usuario lo puede modificar
+        //
+        'pagar_flete', //  bool - si es TRUE, debe indicar la empresa de transporte y el costo del flete por tonelada
         'costo_flete_por_tonelada', // 0 por defecto, solo se habilita si se va a pagar el flete
-        'subtotal_antes_descuento', // cantidad * precio unitario
-        'descuento_flete', // cantidad * costo de flete por tonelada
-        'subtotal_con_descuento', // subtotal sin descuento - descuento de flete
+        //
+        // COSTOS DEL CARBON
+        'precio_materia_prima', // precio unitario - costo_flete_por_tonelada
+        'subtotal', // precio_materia_prima * cantidad
+        'monto_igv', // subtotal * porcentaje_igv de la compra de carbon
+        'total', // subtotal + monto igv
+        'monto_detraccion', // total * porcentaje_detraccion de la compra
+        'neto_a_pagar', // total - monto de detraccion
+        //
+        // COSTOS DE TRANSPORTE
+        'flete_subtotal', // cantidad de toneladas * costo_flete_por_tonelada
+        'flete_igv', // flete_subtotal * porcentaje_igv_flete de la compra de carbon
+        'flete_total', // flete_subtotal + flete_igv
+        'flete_monto_detraccion', // total del flete * porcentaje_detraccion_flete de la compra
+        'flete_neto_a_pagar', // flete_total - flete_monto_detraccion
+        //
         'evidencias',
         //
         'log_cambios', // json

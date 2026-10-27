@@ -27,8 +27,6 @@ class CompraCarbonComprobantesController
             'codigo_comprobante' => 'required|string|max:64',
             'fecha_emision' => 'required|date',
             'observacion' => 'nullable|string|max:500',
-            'con_detraccion' => 'nullable|boolean',
-            'porcentaje_detraccion' => 'nullable|numeric|min:0|max:30',
             'ids_cargas' => 'required|array|min:1',
             'ids_cargas.*' => 'integer|min:1',
             'anticipos' => 'nullable|array',
@@ -78,8 +76,6 @@ class CompraCarbonComprobantesController
             'codigo_comprobante' => 'required|string|max:64',
             'fecha_emision' => 'required|date',
             'observacion' => 'nullable|string|max:500',
-            'con_detraccion' => 'nullable|boolean',
-            'porcentaje_detraccion' => 'nullable|numeric|min:0|max:30',
             'ids_cargas' => 'required|array|min:1',
             'ids_cargas.*' => 'integer|min:1',
             'evidencias' => 'nullable|array',
@@ -119,9 +115,6 @@ class CompraCarbonComprobantesController
                     $request->merge([$field => $decoded]);
                 }
             }
-        }
-        if ($request->has('con_detraccion')) {
-            $request->merge(['con_detraccion' => $request->boolean('con_detraccion')]);
         }
     }
 }

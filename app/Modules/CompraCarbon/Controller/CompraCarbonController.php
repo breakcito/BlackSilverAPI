@@ -42,6 +42,7 @@ class CompraCarbonController
             'toneladas_prometidas' => 'required|numeric|min:0.01',
             'aplica_igv' => 'nullable|boolean',
             'porcentaje_igv' => 'nullable|numeric|min:0|max:100',
+            'porcentaje_detraccion' => 'nullable|numeric|min:0|max:30',
             'precio_unitario_cotizado' => 'nullable|numeric|min:0',
             'id_tarifa_carbon' => 'nullable|integer|min:1',
             'id_cuenta_proveedor' => 'nullable|integer|min:1',
