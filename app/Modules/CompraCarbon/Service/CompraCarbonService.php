@@ -3,6 +3,7 @@
 namespace App\Modules\CompraCarbon\Service;
 
 use App\Modules\CompraCarbon\Data\CompraCarbonData;
+use App\Modules\TipoCarbon\Data\CalidadCarbonData;
 use App\Shared\Enums\CompraCarbon\EstadoCompraCarbon;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
@@ -35,6 +36,23 @@ class CompraCarbonService
     private const PORCENTAJE_DETRACCION_FLETE = 4.0;
 
     /**
+     * Etiquetas legibles de los campos editables de la cabecera, para que el
+     * historial de cambios se entienda.
+     */
+    private const ETIQUETAS_CAMPO_COMPRA = [
+        'id_empresa' => 'Empresa',
+        'id_proveedor' => 'Proveedor',
+        'id_tipo_carbon_prometido' => 'Tipo de carbón prometido',
+        'id_tarifa_carbon' => 'Tarifa de carbón',
+        'id_cuenta_proveedor' => 'Cuenta bancaria del proveedor',
+        'aplica_igv' => 'Aplica IGV',
+        'porcentaje_igv' => 'Porcentaje IGV',
+        'porcentaje_detraccion' => 'Porcentaje de detracción',
+        'toneladas_prometidas' => 'Toneladas prometidas',
+        'precio_unitario_cotizado' => 'Precio unitario cotizado',
+    ];
+
+    /**
      * Lista compras con filtros.
      * @param array<string, mixed> $opts
      */
@@ -54,8 +72,12 @@ class CompraCarbonService
      *
      * @param array<string, mixed> $payload
      */
-    public static function actualizar_compra(int $id_compra_carbon, array $payload, int $id_empleado_editor): array
-    {
+    public static function actualizar_compra(
+        int $id_compra_carbon,
+        array $payload,
+        int $id_empleado_editor,
+        ?string $nombre_empleado = null,
+    ): array {
         $actual = CompraCarbonData::get_compra_by_id($id_compra_carbon);
         if ($actual === null) {
             return ApiResponse::error('Compra de carbon no encontrada', 404);
@@ -69,56 +91,99 @@ class CompraCarbonService
         }
 
         $cambios = [];
+        // Campo => admite null. Solo la cuenta del proveedor se puede
+        // limpiar (mandar null); el resto con null se ignora.
         $camposEditables = [
-            'id_empresa',
-            'id_proveedor',
-            'id_tipo_carbon_prometido',
-            'id_tarifa_carbon',
-            'id_cuenta_proveedor',
-            'aplica_igv',
-            'porcentaje_igv',
-            'toneladas_prometidas',
-            'precio_unitario_cotizado',
+            'id_empresa' => false,
+            'id_proveedor' => false,
+            'id_tipo_carbon_prometido' => false,
+            'id_tarifa_carbon' => false,
+            'id_cuenta_proveedor' => true,
+            'aplica_igv' => false,
+            'porcentaje_igv' => false,
+            'porcentaje_detraccion' => false,
+            'toneladas_prometidas' => false,
+            'precio_unitario_cotizado' => false,
         ];
-        foreach ($camposEditables as $campo) {
-            if (array_key_exists($campo, $payload) && $payload[$campo] !== null) {
-                $cambios[$campo] = [
-                    'antes' => $actual->{$campo} ?? null,
-                    'despues' => is_bool($payload[$campo])
-                        ? ($payload[$campo] ? 1 : 0)
-                        : (int) $payload[$campo],
-                ];
+        foreach ($camposEditables as $campo => $admiteNull) {
+            if (!array_key_exists($campo, $payload)) {
+                continue;
             }
+            if ($payload[$campo] === null && !$admiteNull) {
+                continue;
+            }
+            $cambios[$campo] = [
+                'antes' => $actual->{$campo} ?? null,
+                'despues' => $payload[$campo],
+            ];
         }
 
         if (empty($cambios)) {
             return ApiResponse::success($actual, 'Sin cambios');
         }
 
-        // Recalcular totales derivados cuando cambian toneladas / precio / igv.
+        // Recalcular la cascada de totales cuando cambian toneladas / precio /
+        // igv / detraccion. Son las MISMAS formulas que usa el registro
+        // (crear_compra): subtotal -> IGV -> total -> detraccion -> neto.
         $toneladas = (float) ($cambios['toneladas_prometidas']['despues'] ?? $actual->toneladas_prometidas);
         $precio = (float) ($cambios['precio_unitario_cotizado']['despues'] ?? $actual->precio_unitario_cotizado);
         $aplicaIgv = (bool) ($cambios['aplica_igv']['despues'] ?? ((int) $actual->aplica_igv === 1));
-        $porcentajeIgv = (float) ($cambios['porcentaje_igv']['despues'] ?? $actual->porcentaje_igv);
-        $totalCotizado = round($toneladas * $precio, 2);
-        $montoIgvCotizado = $aplicaIgv ? round($totalCotizado * ($porcentajeIgv / 100), 2) : 0.0;
+        $porcentajeIgv = $aplicaIgv
+            ? (float) ($cambios['porcentaje_igv']['despues'] ?? $actual->porcentaje_igv)
+            : 0.0;
+
+        $subtotalCotizado = round($toneladas * $precio, 2);
+        $montoIgvCotizado = $aplicaIgv ? round($subtotalCotizado * ($porcentajeIgv / 100), 2) : 0.0;
+        $totalCotizado = round($subtotalCotizado + $montoIgvCotizado, 2);
+
+        // La detraccion del carbon solo aplica cuando la compra emite IGV.
+        $porcentajeDetraccion = 0.0;
+        if ($aplicaIgv) {
+            $pct = (float) ($cambios['porcentaje_detraccion']['despues'] ?? $actual->porcentaje_detraccion);
+            $porcentajeDetraccion = $pct > 0 ? $pct : self::PORCENTAJE_DETRACCION;
+        }
+        $montoDetraccionCotizado = $porcentajeDetraccion > 0
+            ? round($totalCotizado * ($porcentajeDetraccion / 100), 2)
+            : 0.0;
+        $netoAPagarCotizado = round($totalCotizado - $montoDetraccionCotizado, 2);
 
         $update = [];
         foreach ($cambios as $campo => $val) {
             $update[$campo] = $val['despues'];
         }
-        $update['total_cotizado'] = $totalCotizado;
+        $update['aplica_igv'] = $aplicaIgv ? 1 : 0;
+        $update['porcentaje_igv'] = $porcentajeIgv;
+        $update['porcentaje_detraccion'] = $porcentajeDetraccion;
+        $update['subtotal_cotizado'] = $subtotalCotizado;
         $update['monto_igv_cotizado'] = $montoIgvCotizado;
+        $update['total_cotizado'] = $totalCotizado;
+        $update['monto_detraccion_cotizado'] = $montoDetraccionCotizado;
+        $update['neto_a_pagar_cotizado'] = $netoAPagarCotizado;
+
+        // Log de cambios en la misma forma que usa el resto de modulos:
+        // lista de {campo_bd, campo, valor_anterior, valor_nuevo}.
+        $cambiosLog = [];
+        foreach ($cambios as $campo => $val) {
+            $cambiosLog[] = [
+                'campo_bd' => $campo,
+                'campo' => self::ETIQUETAS_CAMPO_COMPRA[$campo] ?? $campo,
+                'valor_anterior' => $val['antes'],
+                'valor_nuevo' => $val['despues'],
+            ];
+        }
 
         CompraCarbonData::update_compra($id_compra_carbon, $update);
 
         CompraCarbonData::append_log_cambio_compra(
             $id_compra_carbon,
             json_encode([
-                'evento' => 'edicion_cabecera',
                 'id_empleado' => $id_empleado_editor,
-                'fecha_hora' => now()->toDateTimeString(),
-                'cambios' => $cambios,
+                'nombre_empleado' => $nombre_empleado,
+                'motivo' => null,
+                'update_at' => now()->toDateTimeString(),
+                // Misma forma que usa el resto de modulos: lista de
+                // {campo_bd, campo, valor_anterior, valor_nuevo}.
+                'cambios' => $cambiosLog,
             ], JSON_UNESCAPED_UNICODE),
         );
 
@@ -349,10 +414,11 @@ class CompraCarbonService
         int $id_carga_compra_carbon,
         array $payload,
         int $id_empleado_editor,
+        ?string $nombre_empleado = null,
         ?int $id_empleado_registro_reasignado = null,
     ): array {
         try {
-            $result = DB::transaction(function () use ($id_compra_carbon, $id_carga_compra_carbon, $payload, $id_empleado_editor, $id_empleado_registro_reasignado) {
+            $result = DB::transaction(function () use ($id_compra_carbon, $id_carga_compra_carbon, $payload, $id_empleado_editor, $nombre_empleado, $id_empleado_registro_reasignado) {
                 $compra = CompraCarbonData::get_compra_by_id($id_compra_carbon);
                 if ($compra === null) {
                     return ApiResponse::error('Compra de carbon no encontrada', 404);
@@ -403,36 +469,79 @@ class CompraCarbonService
                 $nuevaFechaHora = array_key_exists('fecha_hora_ingreso', $payload)
                     ? (string) $payload['fecha_hora_ingreso']
                     : (string) $carga->fecha_hora_ingreso;
+                $nuevoPorcentajeCeniza = array_key_exists('porcentaje_ceniza', $payload)
+                    ? (float) $payload['porcentaje_ceniza']
+                    : (float) $carga->porcentaje_ceniza;
 
                 $viejoAlmacen = $carga->id_almacen_empresa_llegada ? (int) $carga->id_almacen_empresa_llegada : null;
                 $viejoTipo = (int) $carga->id_tipo_carbon;
                 $viejaCantidad = (float) $carga->cantidad;
                 $viejoPrecio = (float) $carga->precio_unitario;
+                $viejoPagarFlete = (bool) $carga->pagar_flete;
+                $viejoCostoFlete = (float) $carga->costo_flete_por_tonelada;
+
+                // El stock esta segmentado por (almacen, tipo de carbon, calidad).
+                // La calidad VIEJA es la con la que la carga ingreso al stock
+                // (queda guardada en la carga); la nueva se deriva del % de
+                // ceniza final.
+                $viejaCalidad = $carga->calidad !== null ? (string) $carga->calidad : null;
+                $calidadResuelta = CalidadCarbonData::resolver_por_ceniza($nuevoPorcentajeCeniza);
+                $nuevaCalidad = $calidadResuelta !== null ? (string) $calidadResuelta->nombre : null;
 
                 $stockAplicadoOriginal = $viejoAlmacen !== null && $viejaCantidad > 0;
 
-                // Calcular subtotales nuevos (mismas formulas que insert_cargas).
-                $subtotalAntes = round($nuevaCantidad * $nuevoPrecio, 2);
-                $pagarFleteNuevo = !empty($payload['pagar_flete'])
-                    || (array_key_exists('pagar_flete', $payload) ? (bool) $payload['pagar_flete'] : false);
+                // ── COSTOS DEL CARBON ──────────────────────────────────────
+                // Mismas formulas que usa el registro (insert_cargas): el
+                // flete lo asume la empresa, asi que sale del precio unitario
+                // que se le reconoce al proveedor por el carbon.
+                $porcentajeIgv = (float) $compra->porcentaje_igv;
+                $porcentajeDetraccion = (float) $compra->porcentaje_detraccion;
+                $porcentajeIgvFlete = (float) $compra->porcentaje_igv_flete;
+                $porcentajeDetraccionFlete = (float) $compra->porcentaje_detraccion_flete;
+
+                $pagarFleteNuevo = array_key_exists('pagar_flete', $payload)
+                    ? (bool) $payload['pagar_flete']
+                    : $viejoPagarFlete;
                 $costoFleteNuevo = array_key_exists('costo_flete_por_tonelada', $payload)
                     ? (float) $payload['costo_flete_por_tonelada']
-                    : 0.0;
-                $descuentoFlete = $pagarFleteNuevo ? round($nuevaCantidad * $costoFleteNuevo, 2) : 0.0;
-                $subtotalConDesc = round($subtotalAntes - $descuentoFlete, 2);
+                    : $viejoCostoFlete;
+                $costoFlete = $pagarFleteNuevo ? $costoFleteNuevo : 0.0;
+
+                $precioMateriaPrima = max(0.0, round($nuevoPrecio - $costoFlete, 6));
+                $subtotal = round($precioMateriaPrima * $nuevaCantidad, 2);
+                $montoIgv = $porcentajeIgv > 0 ? round($subtotal * ($porcentajeIgv / 100), 2) : 0.0;
+                $total = round($subtotal + $montoIgv, 2);
+                $montoDetraccion = $porcentajeDetraccion > 0 ? round($total * ($porcentajeDetraccion / 100), 2) : 0.0;
+                $netoAPagar = round($total - $montoDetraccion, 2);
+
+                // ── COSTOS DE TRANSPORTE ────────────────────────────────────
+                $fleteSubtotal = $pagarFleteNuevo ? round($nuevaCantidad * $costoFlete, 2) : 0.0;
+                $fleteIgv = $porcentajeIgvFlete > 0 ? round($fleteSubtotal * ($porcentajeIgvFlete / 100), 2) : 0.0;
+                $fleteTotal = round($fleteSubtotal + $fleteIgv, 2);
+                $fleteMontoDetraccion = $porcentajeDetraccionFlete > 0 ? round($fleteTotal * ($porcentajeDetraccionFlete / 100), 2) : 0.0;
+                $fleteNetoAPagar = round($fleteTotal - $fleteMontoDetraccion, 2);
+
+                // Costo del material ingresado a almacen: carbon + flete, sin IGV.
+                $costoTotal = round($subtotal + $fleteSubtotal, 2);
 
                 // 1) Revertir movimiento de stock previo, si aplica y si algo cambia.
                 $stockAplicaNuevo = $nuevoAlmacen !== null && $nuevaCantidad > 0;
-                if ($stockAplicadoOriginal && (
-                    $nuevoAlmacen !== $viejoAlmacen
+                $cambioStock = $nuevoAlmacen !== $viejoAlmacen
                     || $nuevoTipo !== $viejoTipo
                     || abs($nuevaCantidad - $viejaCantidad) > 0.0001
-                    || !$stockAplicaNuevo
-                )) {
-                    $costoTotalViejo = round($viejaCantidad * $viejoPrecio, 2);
+                    || $nuevaCalidad !== $viejaCalidad
+                    || !$stockAplicaNuevo;
+
+                if ($stockAplicadoOriginal && $cambioStock) {
+                    // Costo total viejo: carbon (sin flete) + flete, sin IGV.
+                    $costoFleteViejo = $viejoPagarFlete ? $viejoCostoFlete : 0.0;
+                    $subtotalViejo = round(max(0.0, round($viejoPrecio - $costoFleteViejo, 6)) * $viejaCantidad, 2);
+                    $fleteSubtotalViejo = $viejoPagarFlete ? round($viejaCantidad * $costoFleteViejo, 2) : 0.0;
+                    $costoTotalViejo = round($subtotalViejo + $fleteSubtotalViejo, 2);
                     CompraCarbonData::revertir_stock_ingreso_carga(
                         idAlmacen: $viejoAlmacen,
                         idTipoCarbon: $viejoTipo,
+                        calidad: $viejaCalidad,
                         idCarga: $id_carga_compra_carbon,
                         cantidad: $viejaCantidad,
                         costoTotal: $costoTotalViejo,
@@ -441,19 +550,14 @@ class CompraCarbonService
                 }
 
                 // 2) Aplicar nuevo movimiento de stock, si corresponde.
-                if ($stockAplicaNuevo && (
-                    $nuevoAlmacen !== $viejoAlmacen
-                    || $nuevoTipo !== $viejoTipo
-                    || abs($nuevaCantidad - $viejaCantidad) > 0.0001
-                    || !$stockAplicadoOriginal
-                )) {
-                    $costoTotalNuevo = round($nuevaCantidad * $nuevoPrecio, 2);
+                if ($stockAplicaNuevo && ($cambioStock || !$stockAplicadoOriginal)) {
                     CompraCarbonData::afectar_stock_ingreso_carga(
                         idAlmacen: $nuevoAlmacen,
                         idTipoCarbon: $nuevoTipo,
                         idCarga: $id_carga_compra_carbon,
                         cantidad: $nuevaCantidad,
-                        costoTotal: $costoTotalNuevo,
+                        calidad: $nuevaCalidad,
+                        costoTotal: $costoTotal,
                         fechaHoraIngreso: $nuevaFechaHora,
                     );
                 }
@@ -487,30 +591,68 @@ class CompraCarbonService
                         $update[$c] = $payload[$c];
                     }
                 }
-                $update['subtotal_antes_descuento'] = $subtotalAntes;
-                $update['descuento_flete'] = $descuentoFlete;
-                $update['subtotal_con_descuento'] = $subtotalConDesc;
+                // Montos derivados: se recalculan con las mismas formulas del
+                // registro para que la carga no quede con montos viejos.
+                $update['calidad'] = $nuevaCalidad;
+                $update['precio_materia_prima'] = $precioMateriaPrima;
+                $update['subtotal'] = $subtotal;
+                $update['monto_igv'] = $montoIgv;
+                $update['total'] = $total;
+                $update['monto_detraccion'] = $montoDetraccion;
+                $update['neto_a_pagar'] = $netoAPagar;
+                $update['flete_subtotal'] = $fleteSubtotal;
+                $update['flete_igv'] = $fleteIgv;
+                $update['flete_total'] = $fleteTotal;
+                $update['flete_monto_detraccion'] = $fleteMontoDetraccion;
+                $update['flete_neto_a_pagar'] = $fleteNetoAPagar;
 
                 CompraCarbonData::update_carga($id_carga_compra_carbon, $update);
 
                 CompraCarbonData::append_log_cambio_carga(
                     $id_carga_compra_carbon,
                     json_encode([
-                        'evento' => 'edicion_carga',
-                        'id_empleado_editor' => $id_empleado_editor,
-                        'fecha_hora' => now()->toDateTimeString(),
-                        'cambios_stock' => [
-                            'antes' => [
-                                'id_almacen' => $viejoAlmacen,
-                                'id_tipo_carbon' => $viejoTipo,
-                                'cantidad' => $viejaCantidad,
-                                'precio_unitario' => $viejoPrecio,
+                        'id_empleado' => $id_empleado_editor,
+                        'nombre_empleado' => $nombre_empleado,
+                        'motivo' => null,
+                        'update_at' => now()->toDateTimeString(),
+                        // Misma forma que usa el resto de modulos: lista de
+                        // {campo_bd, campo, valor_anterior, valor_nuevo}.
+                        'cambios' => [
+                            [
+                                'campo_bd' => 'id_almacen_empresa_llegada',
+                                'campo' => 'Almacén de llegada',
+                                'valor_anterior' => $viejoAlmacen,
+                                'valor_nuevo' => $nuevoAlmacen,
                             ],
-                            'despues' => [
-                                'id_almacen' => $nuevoAlmacen,
-                                'id_tipo_carbon' => $nuevoTipo,
-                                'cantidad' => $nuevaCantidad,
-                                'precio_unitario' => $nuevoPrecio,
+                            [
+                                'campo_bd' => 'id_tipo_carbon',
+                                'campo' => 'Tipo de carbón',
+                                'valor_anterior' => $viejoTipo,
+                                'valor_nuevo' => $nuevoTipo,
+                            ],
+                            [
+                                'campo_bd' => 'cantidad',
+                                'campo' => 'Toneladas',
+                                'valor_anterior' => $viejaCantidad,
+                                'valor_nuevo' => $nuevaCantidad,
+                            ],
+                            [
+                                'campo_bd' => 'precio_unitario',
+                                'campo' => 'Precio unitario',
+                                'valor_anterior' => $viejoPrecio,
+                                'valor_nuevo' => $nuevoPrecio,
+                            ],
+                            [
+                                'campo_bd' => 'porcentaje_ceniza',
+                                'campo' => '% ceniza',
+                                'valor_anterior' => (float) $carga->porcentaje_ceniza,
+                                'valor_nuevo' => $nuevoPorcentajeCeniza,
+                            ],
+                            [
+                                'campo_bd' => 'calidad',
+                                'campo' => 'Calidad',
+                                'valor_anterior' => $viejaCalidad,
+                                'valor_nuevo' => $nuevaCalidad,
                             ],
                         ],
                     ], JSON_UNESCAPED_UNICODE),

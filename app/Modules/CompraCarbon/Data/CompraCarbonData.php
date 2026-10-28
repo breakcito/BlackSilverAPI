@@ -939,14 +939,23 @@ class CompraCarbonData
     public static function revertir_stock_ingreso_carga(
         int $idAlmacen,
         int $idTipoCarbon,
+        ?string $calidad,
         int $idCarga,
         float $cantidad,
         float $costoTotal,
         string $fechaHoraMovimiento
     ): void {
+        // El stock se lleva por (almacen, tipo de carbon, calidad): hay que
+        // reversar EXACTAMENTE la fila que se sumo al ingresar la carga, por
+        // eso se filtra tambien por calidad.
         $stock = DB::table('stock_carbon')
             ->where('id_almacen', $idAlmacen)
             ->where('id_tipo_carbon', $idTipoCarbon)
+            ->where(function ($q) use ($calidad) {
+                $calidad === null
+                    ? $q->whereNull('calidad')
+                    : $q->where('calidad', $calidad);
+            })
             ->lockForUpdate()
             ->first();
 
@@ -971,6 +980,7 @@ class CompraCarbonData
             'id_carga_compra_carbon' => $idCarga,
             'fecha_hora_movimiento' => $fechaHoraMovimiento,
             'tipo_movimiento' => 'Salida',
+            'calidad' => $calidad,
             'stock_anterior' => $stockAnterior,
             'cantidad_movimiento' => $cantidad,
             'stock_resultante' => $stockResultante,
@@ -1306,10 +1316,16 @@ class CompraCarbonData
             'id_cuenta_proveedor',
             'aplica_igv',
             'porcentaje_igv',
+            'porcentaje_detraccion',
             'toneladas_prometidas',
             'precio_unitario_cotizado',
-            'total_cotizado',
+            // Montos derivados: los recalcula el caller con las mismas formulas
+            // que usa el registro (crear_compra).
+            'subtotal_cotizado',
             'monto_igv_cotizado',
+            'total_cotizado',
+            'monto_detraccion_cotizado',
+            'neto_a_pagar_cotizado',
         ];
 
         foreach ($camposPermitidos as $campo) {
@@ -1367,7 +1383,10 @@ class CompraCarbonData
                 c.id_pago_compra_carbon,
                 c.id_comprobante_transporte_carbon,
                 c.fecha_hora_ingreso,
-                c.subtotal_antes_descuento
+                c.porcentaje_ceniza,
+                c.calidad,
+                c.pagar_flete,
+                c.costo_flete_por_tonelada
             FROM carga_compra_carbon c
             WHERE c.id = :id
             LIMIT 1
@@ -1407,9 +1426,20 @@ class CompraCarbonData
             'porcentaje_humedad',
             'precio_unitario',
             'costo_flete_por_tonelada',
-            'subtotal_antes_descuento',
-            'descuento_flete',
-            'subtotal_con_descuento',
+            // Montos derivados: los recalcula el caller con las mismas formulas
+            // que usa el registro (insert_cargas).
+            'calidad',
+            'precio_materia_prima',
+            'subtotal',
+            'monto_igv',
+            'total',
+            'monto_detraccion',
+            'neto_a_pagar',
+            'flete_subtotal',
+            'flete_igv',
+            'flete_total',
+            'flete_monto_detraccion',
+            'flete_neto_a_pagar',
             'evidencias',
         ];
 
