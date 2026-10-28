@@ -146,6 +146,7 @@ class CompraCarbonController
             'id_cuenta_proveedor' => 'nullable|integer|min:1',
             'aplica_igv' => 'nullable|boolean',
             'porcentaje_igv' => 'nullable|numeric|min:0|max:100',
+            'porcentaje_detraccion' => 'nullable|numeric|min:0|max:30',
             'toneladas_prometidas' => 'nullable|numeric|min:0.01',
             'precio_unitario_cotizado' => 'nullable|numeric|min:0',
         ], [
@@ -161,12 +162,16 @@ class CompraCarbonController
         if ($idEmpleadoEditor <= 0) {
             return response()->json(ApiResponse::error('No se pudo identificar al empleado editor'), 422);
         }
+        $nombreEmpleado = is_object($authUser)
+            ? trim(($authUser->nombre ?? '') . ' ' . ($authUser->apellido ?? '')) ?: null
+            : null;
 
         return response()->json(
             CompraCarbonService::actualizar_compra(
                 $id_compra_carbon,
                 $validator->validated(),
                 $idEmpleadoEditor,
+                $nombreEmpleado,
             ),
         );
     }
@@ -213,6 +218,9 @@ class CompraCarbonController
         if ($idEmpleadoEditor <= 0) {
             return response()->json(ApiResponse::error('No se pudo identificar al empleado editor'), 422);
         }
+        $nombreEmpleado = is_object($authUser)
+            ? trim(($authUser->nombre ?? '') . ' ' . ($authUser->apellido ?? '')) ?: null
+            : null;
 
         $payload = $validator->validated();
 
@@ -226,6 +234,7 @@ class CompraCarbonController
                 $id_carga_compra_carbon,
                 $payload,
                 $idEmpleadoEditor,
+                $nombreEmpleado,
             ),
         );
     }
