@@ -3,9 +3,17 @@
 use App\Modules\CompraCarbon\Controller\CompraCarbonComprobantesController;
 use App\Modules\CompraCarbon\Controller\CompraCarbonController;
 use App\Modules\CompraCarbon\Controller\CompraCarbonPagosController;
+use App\Modules\CompraCarbon\Controller\CompraCarbonReporteController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.jwt.custom')->group(function () {
+    // Reporte de "Registro de Compras" (Control de Compras) por anio.
+    // Se declara ANTES del grupo con `{id_compra_carbon}` para que "reporte"
+    // no se interprete como un id de compra.
+    Route::prefix('compras-carbon')->controller(CompraCarbonReporteController::class)->group(function () {
+        Route::get('/reporte', 'get_reporte');
+    });
+
     Route::prefix('compras-carbon')->controller(CompraCarbonController::class)->group(function () {
         Route::get('/', 'get_compras');
         Route::post('/', 'crear_compra');
