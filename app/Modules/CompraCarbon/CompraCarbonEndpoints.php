@@ -10,7 +10,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
         Route::get('/', 'get_compras');
         Route::post('/', 'crear_compra');
         Route::get('{id_compra_carbon}', 'get_compra_con_detalles');
+        Route::put('{id_compra_carbon}', 'actualizar_compra');
         Route::post('{id_compra_carbon}/cargas', 'registrar_cargas');
+        Route::put('{id_compra_carbon}/cargas/{id_carga_compra_carbon}', 'actualizar_carga');
         Route::post('{id_compra_carbon}/cerrar', 'cerrar_compra');
         Route::post('{id_compra_carbon}/anular', 'anular_compra');
     });
