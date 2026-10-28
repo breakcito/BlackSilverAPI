@@ -3,6 +3,7 @@
 namespace App\Modules\TamizajeCarbon\Service;
 
 use App\Modules\TamizajeCarbon\Data\TamizajeCarbonData;
+use App\Services\StockCarbonService;
 use App\Shared\Enums\Carbon\TipoCalidadCarbon;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
@@ -12,6 +13,13 @@ use Illuminate\Support\Facades\DB;
 class TamizajeCarbonService
 {
     private const CARPETA_EVIDENCIAS = 'evidencias-tamizaje-carbon';
+
+    /**
+     * Supervisor fijo del zarandeo. El reporte de planta lo firma siempre el
+     * mismo empleado (Dember Michael), asi que el valor no se toma del
+     * request: se ignora el que envien.
+     */
+    private const ID_EMPLEADO_SUPERVISOR = 8;
 
     /**
      * Sube y acumula nuevas evidencias a un zarandeo existente.
@@ -65,6 +73,10 @@ class TamizajeCarbonService
      */
     public static function get_stocks(array $opts = []): array
     {
+        // La matriz de stock se completa antes de listar: si falta alguna
+        // combinacion (almacen x tipo x calidad) se inserta con stock 0.
+        StockCarbonService::asegurar_filas_stock();
+
         $rows = TamizajeCarbonData::get_stocks($opts);
         return ApiResponse::success($rows);
     }
@@ -282,9 +294,7 @@ class TamizajeCarbonService
             $idTamizaje = TamizajeCarbonData::registrar_tamizaje([
                 'id_almacen' => $idAlmacen,
                 'id_empleado_registro' => $id_empleado,
-                'id_empleado_supervisor' => isset($payload['id_empleado_supervisor']) && (int) $payload['id_empleado_supervisor'] > 0
-                    ? (int) $payload['id_empleado_supervisor']
-                    : null,
+                'id_empleado_supervisor' => self::ID_EMPLEADO_SUPERVISOR,
                 'id_tipo_carbon' => (int) $payload['id_tipo_carbon'],
                 'calidad' => $calidad,
                 'cantidad_zarandeada' => $cantidadZarandeada,

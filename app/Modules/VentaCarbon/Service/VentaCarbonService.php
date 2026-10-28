@@ -166,7 +166,7 @@ class VentaCarbonService
         try {
             VentaCarbonData::confirmar_llegada($id_venta_carbon, $id_carga_venta_carbon, [
                 'id_tipo_carbon_confirmado' => $idTipoConfirmado,
-                'cantidad_confirmada' => (float) $payload['cantidad_confirmada'],
+                'cantidad_toneladas' => (float) $payload['cantidad_toneladas'],
                 'fecha_hora_ingreso' => (string) $payload['fecha_hora_ingreso'],
                 'guia_remitente' => $payload['guia_remitente'] ?? null,
                 'guia_transportista' => $payload['guia_transportista'] ?? null,
@@ -265,7 +265,7 @@ class VentaCarbonService
                 return "Carga #{$n}: debe seleccionar el tipo de carbon";
             }
 
-            $cantidad = (float) ($carga['cantidad_estimada'] ?? 0);
+            $cantidad = (float) ($carga['cantidad_toneladas'] ?? 0);
             if ($cantidad <= 0) {
                 return "Carga #{$n}: la cantidad estimada debe ser mayor a 0";
             }

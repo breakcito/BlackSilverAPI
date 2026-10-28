@@ -23,7 +23,6 @@ class CargaVentaCarbon extends Model
         'id_comprobante_venta_carbon',
         // DATOS QUE PONE AL SALIR/REGISTRAR
         'calidad', // enum: Baja |Intermedia | Alta
-        'cantidad_estimada',
         'segunda_placa', // si el tipo de vehiculo es Tolva
         'fecha_hora_salida',
         // DATOS QUE PONE AL LLEGAR
@@ -46,7 +45,8 @@ class CargaVentaCarbon extends Model
             }
          */
         'porcentaje_pizarra',
-        'cantidad_confirmada',
+        'cantidad_toneladas',
+        'cantidad_toneladas',
         'precio_base',
         'subtotal_sin_descuento', // cantidad x precio unitario
         'descuento', // opcional

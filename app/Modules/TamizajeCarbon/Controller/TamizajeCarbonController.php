@@ -161,7 +161,6 @@ class TamizajeCarbonController
             'id_almacen' => 'nullable|integer|min:1',
             'id_tipo_carbon' => 'required|integer|min:1',
             'calidad' => 'required|string|max:32',
-            'id_empleado_supervisor' => 'nullable|integer|min:1',
             'id_cargas' => 'nullable|array',
             'id_cargas.*' => 'integer|min:1',
             'cantidad_zarandeada' => 'nullable|numeric|min:0',

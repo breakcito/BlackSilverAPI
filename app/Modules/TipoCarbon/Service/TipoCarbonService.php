@@ -3,6 +3,7 @@
 namespace App\Modules\TipoCarbon\Service;
 
 use App\Modules\TipoCarbon\Data\TipoCarbonData;
+use App\Services\StockCarbonService;
 use App\Shared\Responses\ApiResponse;
 
 class TipoCarbonService
@@ -25,6 +26,11 @@ class TipoCarbonService
     public static function crear_tipo(string $nombre, ?string $codigo, bool $para_compra = false)
     {
         $id = TipoCarbonData::crear_tipo(nombre: $nombre, codigo: $codigo, para_compra: $para_compra);
+
+        // Un tipo de carbon nuevo necesita su fila de stock para cada almacen
+        // de carbon y cada calidad.
+        StockCarbonService::asegurar_filas_stock();
+
         return ApiResponse::success(TipoCarbonData::get_tipo_by_id(id_tipo_carbon: $id), 'Tipo de carbon registrado');
     }
 

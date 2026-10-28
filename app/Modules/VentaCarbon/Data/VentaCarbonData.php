@@ -78,16 +78,11 @@ class VentaCarbonData
                       AND cv.estado = :estado_confirmada
                 ) AS cantidad_cargas_confirmadas,
                 (
-                    SELECT COALESCE(SUM(cv.cantidad_estimada), 0)
-                    FROM carga_venta_carbon cv
-                    WHERE cv.id_venta_carbon = vc.id
-                ) AS total_toneladas_estimadas,
-                (
-                    SELECT COALESCE(SUM(cv.cantidad_confirmada), 0)
+                    SELECT COALESCE(SUM(cv.cantidad_toneladas), 0)
                     FROM carga_venta_carbon cv
                     WHERE cv.id_venta_carbon = vc.id
                       AND cv.estado = :estado_confirmada_2
-                ) AS total_toneladas_confirmadas,
+                ) AS total_toneladas,
                 (
                     SELECT COALESCE(SUM(cv.subtotal), 0)
                     FROM carga_venta_carbon cv
@@ -213,8 +208,8 @@ class VentaCarbonData
                 veh.tipo_vehiculo AS vehiculo_tipo,
                 m.nombre AS vehiculo_marca,
                 cv.calidad,
-                cv.cantidad_estimada,
-                cv.cantidad_confirmada,
+                cv.cantidad_toneladas,
+                cv.cantidad_toneladas,
                 cv.segunda_placa,
                 cv.fecha_hora_salida,
                 cv.fecha_hora_ingreso,
@@ -395,7 +390,7 @@ class VentaCarbonData
     private static function insert_carga(int $id_venta_carbon, int $id_almacen_salida, array $c, int $id_empleado): int
     {
         $idTipoCarbon = (int) $c['id_tipo_carbon'];
-        $cantidad = round((float) $c['cantidad_estimada'], 4);
+        $cantidad = round((float) $c['cantidad_toneladas'], 4);
         $calidad = (string) $c['calidad'];
 
         $evidenciasJson = isset($c['evidencias']) && $c['evidencias'] !== null
@@ -410,8 +405,8 @@ class VentaCarbonData
             'id_vehiculo_carbon' => isset($c['id_vehiculo_carbon']) && (int) $c['id_vehiculo_carbon'] > 0 ? (int) $c['id_vehiculo_carbon'] : null,
             'id_comprobante_venta_carbon' => null,
             'calidad' => $calidad,
-            'cantidad_estimada' => $cantidad,
-            'cantidad_confirmada' => 0,
+            'cantidad_toneladas' => $cantidad,
+            'cantidad_toneladas' => 0,
             'segunda_placa' => isset($c['segunda_placa']) && $c['segunda_placa'] !== '' ? strtoupper((string) $c['segunda_placa']) : null,
             'fecha_hora_salida' => (string) $c['fecha_hora_salida'],
             'fecha_hora_ingreso' => null,
@@ -543,7 +538,7 @@ class VentaCarbonData
                 throw new \RuntimeException('La llegada de esta carga ya fue confirmada');
             }
 
-            $cantidadConfirmada = round((float) $d['cantidad_confirmada'], 4);
+            $cantidadConfirmada = round((float) $d['cantidad_toneladas'], 4);
             $precioBase = round((float) $d['precio_base'], 6);
             $descuento = round((float) ($d['descuento'] ?? 0), 2);
             $bono = round((float) ($d['bono'] ?? 0), 2);
@@ -582,7 +577,7 @@ class VentaCarbonData
                 ->where('id', $id_carga_venta_carbon)
                 ->update([
                     'id_tipo_carbon_confirmado' => $idTipoConfirmado,
-                    'cantidad_confirmada' => $cantidadConfirmada,
+                    'cantidad_toneladas' => $cantidadConfirmada,
                     'fecha_hora_ingreso' => (string) $d['fecha_hora_ingreso'],
                     'guia_remitente' => isset($d['guia_remitente']) && $d['guia_remitente'] !== '' ? (string) $d['guia_remitente'] : null,
                     'guia_transportista' => isset($d['guia_transportista']) && $d['guia_transportista'] !== '' ? (string) $d['guia_transportista'] : null,

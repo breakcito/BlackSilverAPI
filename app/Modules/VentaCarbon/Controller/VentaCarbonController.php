@@ -66,7 +66,7 @@ class VentaCarbonController
             'id_almacen_cliente_llegada' => 'required|integer|min:1',
             'cargas' => 'nullable|array',
             'cargas.*.id_tipo_carbon' => 'required|integer|min:1',
-            'cargas.*.cantidad_estimada' => 'required|numeric|min:0.0001',
+            'cargas.*.cantidad_toneladas' => 'required|numeric|min:0.0001',
             'cargas.*.calidad' => 'required|in:Baja,Intermedia,Alta',
             'cargas.*.fecha_hora_salida' => 'required|string|max:30',
             'cargas.*.id_vehiculo_carbon' => 'required|integer|min:1',
@@ -78,7 +78,7 @@ class VentaCarbonController
             'id_almacen_empresa_salida.required' => 'El almacen de salida es requerido',
             'id_almacen_cliente_llegada.required' => 'El almacen de llegada es requerido',
             'cargas.*.id_tipo_carbon.required' => 'El tipo de carbon es obligatorio en cada carga',
-            'cargas.*.cantidad_estimada.required' => 'La cantidad estimada es obligatoria en cada carga',
+            'cargas.*.cantidad_toneladas.required' => 'La cantidad estimada es obligatoria en cada carga',
             'cargas.*.calidad.required' => 'La calidad del carbon es obligatoria en cada carga',
             'cargas.*.calidad.in' => 'La calidad debe ser Baja, Intermedia o Alta',
             'cargas.*.fecha_hora_salida.required' => 'La fecha y hora de salida es obligatoria en cada carga',
@@ -118,14 +118,14 @@ class VentaCarbonController
 
         $validator = Validator::make(['cargas' => $cargas], [
             'cargas.*.id_tipo_carbon' => 'required|integer|min:1',
-            'cargas.*.cantidad_estimada' => 'required|numeric|min:0.0001',
+            'cargas.*.cantidad_toneladas' => 'required|numeric|min:0.0001',
             'cargas.*.calidad' => 'required|in:Baja,Intermedia,Alta',
             'cargas.*.fecha_hora_salida' => 'required|string|max:30',
             'cargas.*.id_vehiculo_carbon' => 'required|integer|min:1',
             'cargas.*.segunda_placa' => 'nullable|string|max:20',
         ], [
             'cargas.*.id_tipo_carbon.required' => 'El tipo de carbon es obligatorio en cada carga',
-            'cargas.*.cantidad_estimada.required' => 'La cantidad estimada es obligatoria en cada carga',
+            'cargas.*.cantidad_toneladas.required' => 'La cantidad estimada es obligatoria en cada carga',
             'cargas.*.calidad.required' => 'La calidad del carbon es obligatoria en cada carga',
             'cargas.*.calidad.in' => 'La calidad debe ser Baja, Intermedia o Alta',
             'cargas.*.fecha_hora_salida.required' => 'La fecha y hora de salida es obligatoria en cada carga',
@@ -164,7 +164,7 @@ class VentaCarbonController
 
         $validator = Validator::make([
             'id_tipo_carbon_confirmado' => $request->input('id_tipo_carbon_confirmado'),
-            'cantidad_confirmada' => $request->input('cantidad_confirmada'),
+            'cantidad_toneladas' => $request->input('cantidad_toneladas'),
             'fecha_hora_ingreso' => $request->input('fecha_hora_ingreso'),
             'precio_base' => $request->input('precio_base'),
             'descuento' => $request->input('descuento'),
@@ -182,7 +182,7 @@ class VentaCarbonController
             'analisis_granulometria' => $analisis,
         ], [
             'id_tipo_carbon_confirmado' => 'required|integer|min:1',
-            'cantidad_confirmada' => 'required|numeric|min:0.0001',
+            'cantidad_toneladas' => 'required|numeric|min:0.0001',
             'fecha_hora_ingreso' => 'required|string|max:30',
             'precio_base' => 'required|numeric|min:0',
             'descuento' => 'nullable|numeric|min:0',
@@ -203,7 +203,7 @@ class VentaCarbonController
             'analisis_granulometria.un_medio' => 'nullable|numeric|min:0|max:100',
         ], [
             'id_tipo_carbon_confirmado.required' => 'Debe indicar el tipo de carbon confirmado',
-            'cantidad_confirmada.required' => 'Debe indicar la cantidad confirmada',
+            'cantidad_toneladas.required' => 'Debe indicar la cantidad confirmada',
             'fecha_hora_ingreso.required' => 'Debe indicar la fecha y hora de ingreso',
             'precio_base.required' => 'Debe indicar el precio base',
         ]);

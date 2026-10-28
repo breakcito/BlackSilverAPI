@@ -4,6 +4,7 @@ namespace App\Modules\Almacenes\Service;
 
 use App\Shared\Responses\ApiResponse;
 use App\Modules\Almacenes\Data\AlmacenesData;
+use App\Services\StockCarbonService;
 
 class AlmacenesService
 {
@@ -52,6 +53,12 @@ class AlmacenesService
             direccion: $direccion
         );
         $nuevoAlmacen = AlmacenesData::get_almacen_by_id($id_almacen);
+
+        // Un almacen de carbon nuevo necesita su fila de stock para cada tipo
+        // de carbon y cada calidad.
+        if ($para_carbon) {
+            StockCarbonService::asegurar_filas_stock();
+        }
 
         return ApiResponse::success($nuevoAlmacen, 'Almacén creado correctamente');
     }
