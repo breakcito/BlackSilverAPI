@@ -49,6 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Modules/Cambista/CambistaEndpoints.php');
                 require base_path('app/Modules/LugarExtraccionCarbon/LugarExtraccionCarbonEndpoints.php');
                 require base_path('app/Modules/Clientes/ClientesEndpoints.php');
+                require base_path('app/Modules/AnticiposCliente/AnticiposClienteEndpoints.php');
                 require base_path('app/Modules/Cotizaciones/CotizacionesEndpoints.php');
                 require base_path('app/Modules/OrdenesCompra/OrdenCompraEndpoints.php');
                 require base_path('app/Modules/OrdenesCompraRecepcionTransferencias/OCRecepcionTransferenciasEndpoints.php');

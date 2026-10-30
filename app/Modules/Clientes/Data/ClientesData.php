@@ -41,7 +41,25 @@ class ClientesData
                 WHERE
                     ac.id_cliente = cl.id AND
                     IFNULL(ac.estado, "Activo") = "Activo"
-            ) as cantidad_almacenes_carbon
+            ) as cantidad_almacenes_carbon,
+            (
+                SELECT
+                    COUNT(*)
+                FROM
+                    anticipo_cliente ac
+                WHERE
+                    ac.id_cliente = cl.id AND
+                    IFNULL(ac.esta_anulado, 0) = 0
+            ) as cantidad_anticipos,
+            (
+                SELECT
+                    COALESCE(SUM(ac.saldo_actual), 0)
+                FROM
+                    anticipo_cliente ac
+                WHERE
+                    ac.id_cliente = cl.id AND
+                    IFNULL(ac.esta_anulado, 0) = 0
+            ) as suma_saldo_anticipos
         FROM
             cliente cl
         WHERE 1 = 1

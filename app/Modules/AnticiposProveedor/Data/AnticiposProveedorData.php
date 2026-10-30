@@ -28,6 +28,8 @@ class AnticiposProveedorData
                 a.id_cuenta_bancaria_empresa,
                 ce.numero_cuenta AS cuenta_bancaria_numero,
                 ce.moneda AS cuenta_bancaria_moneda,
+                bc.nombre AS cuenta_bancaria_banco,
+                bc.abreviatura AS cuenta_bancaria_banco_abv,
                 a.id_cuenta_bancaria_proveedor,
                 cp.numero_cuenta AS cuenta_proveedor_numero,
                 cp.moneda AS cuenta_proveedor_moneda,
@@ -53,6 +55,7 @@ class AnticiposProveedorData
             INNER JOIN empleado er ON er.id = a.id_empleado_registro
             LEFT JOIN empleado ea ON ea.id = a.id_empleado_anulacion
             LEFT JOIN cuenta_bancaria_empresa ce ON ce.id = a.id_cuenta_bancaria_empresa
+            LEFT JOIN banco bc ON bc.id = ce.id_banco
             LEFT JOIN cuenta_bancaria_proveedor cp ON cp.id = a.id_cuenta_bancaria_proveedor
             LEFT JOIN banco bp ON bp.id = cp.id_banco
             LEFT JOIN cambista cm ON cm.id = a.id_cambista
