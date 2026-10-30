@@ -12,13 +12,14 @@ class ComprobanteVentaCarbon extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_empleado_registro', // 
-        'id_venta_carbon', // 
+        'id_empleado_registro', //
+        'id_venta_carbon', //
+        'id_liquidacion_venta_carbon', // de que liquidacion es
         //
-        'codigo_comprobante', // 
-        'fecha_emision', // 
-        'observacion', // 
-        'evidencias', // 
+        'codigo_comprobante', //
+        'fecha_emision', //
+        'observacion', //
+        'evidencias', //
         //
         'subtotal', // es el mismo subtotal que la liquidacion
         'monto_pagado_anticipos', // suma del total de anticipos aplicados, no debe superar al subtotal

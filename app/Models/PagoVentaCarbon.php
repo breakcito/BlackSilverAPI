@@ -6,12 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class PagoVentaCarbon extends Model
 {
-    protected $table = 'distrito';
+    protected $table = 'pago_venta_carbon';
 
     public $timestamps = false;
 
     protected $fillable = [
-        'id_empleado_registro', // 
+        'id_empleado_registro', //
+        'id_venta_carbon', // de que venta es
         'id_comprobante_venta_carbon', // a que comprobante esta sujeto
         'id_cuenta_bancaria_empresa', // donde se recibe, opcional si es en efectivo
         //

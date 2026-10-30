@@ -49,7 +49,7 @@ class CargaVentaCarbon extends Model
         'observacion',
         //
         // DATOS QUE PONE AL ARMAR LIQUIDACION
-        'precio_base',
+        'precio_base', // precio unitario por tonelada pactado con el cliente
         'descuento', // opcional - por defecto es 0
         'bono', // opcional - por defecto es 0
         'precio_materia_prima', // precio_base unitario - descuento + bono
@@ -61,7 +61,7 @@ class CargaVentaCarbon extends Model
         //
         'evidencias',
         'created_at',
-        'estado', // enum En Camino | Llegada Confirmada | En Liquidación
+        'estado', // enum En Camino | Llegada Confirmada | En Liquidación | Pagado
 
     ];
 }

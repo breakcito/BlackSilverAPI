@@ -22,6 +22,8 @@ class VentaCarbon extends Model
         'id_almacen_cliente_llegada', // a donde va a llegar
         'correlativo', // VC-
         'numero_correlativo',
+        'porcentaje_igv', // % de IGV que se aplica a esta venta
+        'porcentaje_detraccion', // % de detraccion que se aplica a esta venta
         'created_at',
     ];
 }

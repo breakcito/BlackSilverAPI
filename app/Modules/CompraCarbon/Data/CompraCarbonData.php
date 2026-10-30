@@ -782,9 +782,6 @@ class CompraCarbonData
                 $fleteMontoDetraccion = $porcentajeDetraccionFlete > 0 ? round($fleteTotal * ($porcentajeDetraccionFlete / 100), 2) : 0.0;
                 $fleteNetoAPagar = round($fleteTotal - $fleteMontoDetraccion, 2);
 
-                // Costo del material ingresado a almacen: carbon + flete, sin IGV.
-                $costoTotal = round($subtotal + $fleteSubtotal, 2);
-
                 $evidenciasJson = isset($c['evidencias']) && $c['evidencias'] !== null
                     ? (is_string($c['evidencias']) ? $c['evidencias'] : json_encode($c['evidencias'], JSON_UNESCAPED_UNICODE))
                     : null;
@@ -849,7 +846,8 @@ class CompraCarbonData
                         idCarga: $idCarga,
                         cantidad: $cantidad,
                         calidad: $nombreCalidad,
-                        costoTotal: $costoTotal,
+                        // El asiento se valoriza con el total de la carga.
+                        costoTotal: $total,
                         fechaHoraIngreso: (string) ($c['fecha_hora_ingreso'] ?? now()->toDateTimeString())
                     );
                 }
@@ -987,6 +985,20 @@ class CompraCarbonData
             'costo_total' => $costoTotal,
             'created_at' => now()->toDateTimeString(),
         ]);
+    }
+
+    /**
+     * Revalora el asiento de Kardex de una carga de compra.
+     *
+     * Solo se toca el movimiento de Ingreso: los movimientos compensatorios
+     * (Salida) conservan su valor porque el Kardex es inmutable.
+     */
+    public static function actualizar_costo_kardex_carga(int $idCarga, float $costoTotal): void
+    {
+        DB::table('kardex_carbon')
+            ->where('id_carga_compra_carbon', $idCarga)
+            ->where('tipo_movimiento', 'Ingreso')
+            ->update(['costo_total' => $costoTotal]);
     }
 
     /**

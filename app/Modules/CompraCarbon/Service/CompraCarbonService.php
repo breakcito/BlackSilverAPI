@@ -521,8 +521,8 @@ class CompraCarbonService
                 $fleteMontoDetraccion = $porcentajeDetraccionFlete > 0 ? round($fleteTotal * ($porcentajeDetraccionFlete / 100), 2) : 0.0;
                 $fleteNetoAPagar = round($fleteTotal - $fleteMontoDetraccion, 2);
 
-                // Costo del material ingresado a almacen: carbon + flete, sin IGV.
-                $costoTotal = round($subtotal + $fleteSubtotal, 2);
+                // El asiento de Kardex se valoriza con el total de la carga.
+                $costoTotal = $total;
 
                 // 1) Revertir movimiento de stock previo, si aplica y si algo cambia.
                 $stockAplicaNuevo = $nuevoAlmacen !== null && $nuevaCantidad > 0;
@@ -533,11 +533,9 @@ class CompraCarbonService
                     || !$stockAplicaNuevo;
 
                 if ($stockAplicadoOriginal && $cambioStock) {
-                    // Costo total viejo: carbon (sin flete) + flete, sin IGV.
-                    $costoFleteViejo = $viejoPagarFlete ? $viejoCostoFlete : 0.0;
-                    $subtotalViejo = round(max(0.0, round($viejoPrecio - $costoFleteViejo, 6)) * $viejaCantidad, 2);
-                    $fleteSubtotalViejo = $viejoPagarFlete ? round($viejaCantidad * $costoFleteViejo, 2) : 0.0;
-                    $costoTotalViejo = round($subtotalViejo + $fleteSubtotalViejo, 2);
+                    // El movimiento compensatorio usa el MISMO valor que el
+                    // ingreso que revierte: el total que tenia la carga.
+                    $costoTotalViejo = (float) $carga->total;
                     CompraCarbonData::revertir_stock_ingreso_carga(
                         idAlmacen: $viejoAlmacen,
                         idTipoCarbon: $viejoTipo,
@@ -563,6 +561,16 @@ class CompraCarbonService
                 }
 
                 // 3) Aplicar update de los campos editables + subtotales recalculados.
+                // Si el movimiento de stock NO se reescribio (solo cambio el
+                // precio), el asiento de Kardex existente se revalora con el
+                // total nuevo para que no quede con el monto viejo.
+                if ($stockAplicadoOriginal && !$cambioStock) {
+                    CompraCarbonData::actualizar_costo_kardex_carga(
+                        $id_carga_compra_carbon,
+                        $total
+                    );
+                }
+
                 $update = [];
                 $campos = [
                     'id_tipo_carbon',

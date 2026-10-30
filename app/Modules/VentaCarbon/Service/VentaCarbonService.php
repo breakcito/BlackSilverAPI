@@ -3,7 +3,6 @@
 namespace App\Modules\VentaCarbon\Service;
 
 use App\Modules\VentaCarbon\Data\VentaCarbonData;
-use App\Shared\Enums\Carbon\TipoCalidadCarbon;
 use App\Shared\Enums\VentaCarbon\EstadoCargaVentaCarbon;
 use App\Shared\Enums\VentaCarbon\TipoVehiculoCarbon;
 use App\Shared\Helpers\ArchivoHelper;
@@ -15,7 +14,9 @@ class VentaCarbonService
     private const CARPETA_EVIDENCIAS_VENTA = 'evidencias-venta-carbon';
 
     /**
-     * Lista las ventas de carbon con sus cargas.
+     * Lista las ventas de carbon con el arbol completo de cargas,
+     * liquidaciones, comprobantes y pagos.
+     *
      * @param array<string, mixed> $opts
      */
     public static function get_ventas(array $opts = []): array
@@ -24,7 +25,7 @@ class VentaCarbonService
     }
 
     /**
-     * Obtiene una venta con el detalle de sus cargas.
+     * Obtiene una venta con el detalle de sus cargas y su liquidacion.
      */
     public static function get_venta(int $id_venta_carbon): array
     {
@@ -57,6 +58,11 @@ class VentaCarbonService
         $errorCargas = self::validar_cargas($cargas);
         if ($errorCargas !== null) {
             return ApiResponse::error($errorCargas);
+        }
+
+        $errorStock = self::validar_stock_cargas((int) $payload['id_almacen_empresa_salida'], $cargas);
+        if ($errorStock !== null) {
+            return ApiResponse::error($errorStock);
         }
 
         $cargas = self::adjuntar_evidencias($cargas, $archivosPorCarga);
@@ -96,6 +102,11 @@ class VentaCarbonService
         $error = self::validar_cargas($cargas);
         if ($error !== null) {
             return ApiResponse::error($error);
+        }
+
+        $errorStock = self::validar_stock_cargas((int) $venta->id_almacen_empresa_salida, $cargas);
+        if ($errorStock !== null) {
+            return ApiResponse::error($errorStock);
         }
 
         $cargas = self::adjuntar_evidencias($cargas, $archivosPorCarga);
@@ -143,7 +154,7 @@ class VentaCarbonService
             return ApiResponse::error('La carga no pertenece a la venta indicada');
         }
 
-        if ($carga->estado === EstadoCargaVentaCarbon::LlegadaConfirmada->value) {
+        if ($carga->estado !== EstadoCargaVentaCarbon::EnCamino->value) {
             return ApiResponse::error('La llegada de esta carga ya fue confirmada');
         }
 
@@ -152,9 +163,30 @@ class VentaCarbonService
             return ApiResponse::error('Debe indicar el tipo de carbon confirmado');
         }
 
-        $existeTipo = VentaCarbonData::get_tipo_carbon($idTipoConfirmado) !== null;
-        if (!$existeTipo) {
+        $tipoCarbon = VentaCarbonData::get_tipo_carbon($idTipoConfirmado);
+        if ($tipoCarbon === null) {
             return ApiResponse::error('El tipo de carbon confirmado no existe');
+        }
+
+        $calidad = (string) ($payload['calidad'] ?? '');
+        if (!in_array($calidad, VentaCarbonData::get_calidades(), true)) {
+            return ApiResponse::error('Debe indicar la calidad del carbon que llego');
+        }
+
+        $idVehiculo = (int) ($payload['id_vehiculo_carbon'] ?? 0);
+        if ($idVehiculo <= 0) {
+            return ApiResponse::error('Debe indicar el vehiculo que transporto la carga');
+        }
+
+        $vehiculo = VentaCarbonData::get_vehiculo_carbon($idVehiculo);
+        if ($vehiculo === null) {
+            return ApiResponse::error('El vehiculo seleccionado no existe');
+        }
+
+        $tipoVehiculo = TipoVehiculoCarbon::tryFrom((string) $vehiculo->tipo_vehiculo);
+        $segundaPlaca = trim((string) ($payload['segunda_placa'] ?? ''));
+        if ($tipoVehiculo !== null && $tipoVehiculo->exige_segunda_placa() && $segundaPlaca === '') {
+            return ApiResponse::error("El vehiculo es {$tipoVehiculo->value}, debe ingresar la segunda placa");
         }
 
         if (empty($archivos)) {
@@ -166,22 +198,22 @@ class VentaCarbonService
         try {
             VentaCarbonData::confirmar_llegada($id_venta_carbon, $id_carga_venta_carbon, [
                 'id_tipo_carbon' => $idTipoConfirmado,
+                'nombre_tipo_carbon' => (string) $tipoCarbon->nombre,
+                'calidad' => $calidad,
                 'cantidad_toneladas' => (float) $payload['cantidad_toneladas'],
                 'fecha_hora_ingreso' => (string) $payload['fecha_hora_ingreso'],
+                'id_vehiculo_carbon' => $idVehiculo,
+                'segunda_placa' => $segundaPlaca,
                 'guia_remitente' => $payload['guia_remitente'] ?? null,
                 'guia_transportista' => $payload['guia_transportista'] ?? null,
                 'codigo_ticket_balanza' => $payload['codigo_ticket_balanza'] ?? null,
-                'codigo_reporte' => $payload['codigo_reporte'] ?? null,
                 'observacion' => $payload['observacion'] ?? null,
                 'porcentaje_ceniza' => $payload['porcentaje_ceniza'] ?? 0,
                 'porcentaje_humedad' => $payload['porcentaje_humedad'] ?? 0,
                 'porcentaje_azufre' => $payload['porcentaje_azufre'] ?? 0,
                 'porcentaje_pizarra' => $payload['porcentaje_pizarra'] ?? 0,
                 'analisis_granulometria' => $payload['analisis_granulometria'] ?? null,
-                'precio_base' => (float) ($payload['precio_base'] ?? 0),
-                'descuento' => (float) ($payload['descuento'] ?? 0),
-                'bono' => (float) ($payload['bono'] ?? 0),
-                'codigo_venta' => $payload['codigo_venta'] ?? null,
+                'fue_aceptado' => $payload['fue_aceptado'] ?? false,
                 'evidencias' => $evidencias,
             ]);
         } catch (\Throwable $e) {
@@ -191,6 +223,39 @@ class VentaCarbonService
         $ventaActualizada = VentaCarbonData::get_venta_por_id($id_venta_carbon);
 
         return ApiResponse::success($ventaActualizada, 'Llegada confirmada correctamente');
+    }
+
+    /**
+     * Stock disponible de carbon en un almacen de salida.
+     *
+     * Considera las cargas ya despachadas y pendientes de confirmar: esas
+     * toneladas estan comprometidas y no se pueden volver a despachar.
+     */
+    public static function get_stock_disponible(int $id_almacen): array
+    {
+        $stocks = \App\Data\StockCarbonData::get_stocks(['id_almacen' => $id_almacen]);
+
+        $salida = [];
+        foreach ($stocks as $stock) {
+            $idTipo = (int) ($stock->id_tipo_carbon ?? 0);
+            $calidad = (string) ($stock->calidad ?? '');
+            if ($idTipo <= 0 || $calidad === '') {
+                continue;
+            }
+
+            $salida[] = [
+                'id_tipo_carbon' => $idTipo,
+                'calidad' => $calidad,
+                'stock_actual' => (float) ($stock->stock_actual ?? 0),
+                'disponible' => VentaCarbonData::calcular_stock_disponible(
+                    $id_almacen,
+                    $idTipo,
+                    $calidad
+                ),
+            ];
+        }
+
+        return $salida;
     }
 
     /**
@@ -248,15 +313,34 @@ class VentaCarbonService
             return 'El almacen de llegada no pertenece al cliente de destino';
         }
 
+        $porcentajeIgv = (float) ($payload['porcentaje_igv'] ?? 0);
+        if ($porcentajeIgv < 0 || $porcentajeIgv > 100) {
+            return 'El porcentaje de IGV debe estar entre 0 y 100';
+        }
+
+        $porcentajeDetraccion = (float) ($payload['porcentaje_detraccion'] ?? 0);
+        if ($porcentajeDetraccion < 0 || $porcentajeDetraccion > 100) {
+            return 'El porcentaje de detraccion debe estar entre 0 y 100';
+        }
+
         return null;
     }
 
     /**
      * Valida el arreglo de cargas a despachar.
+     *
+     * Al despachar solo se indica el tipo de carbon, la calidad, la fecha y
+     * hora de salida, las toneladas y las evidencias. El vehiculo y la
+     * segunda placa se registran al confirmar la llegada.
+     *
      * @param array<int, array<string, mixed>> $cargas
      */
     private static function validar_cargas(array $cargas): ?string
     {
+        // El catalogo de calidades es el fuente de verdad: puede tener mas
+        // calidades que el enum `TipoCalidadCarbon`.
+        $valoresCalidad = VentaCarbonData::get_calidades();
+
         foreach ($cargas as $i => $carga) {
             $n = $i + 1;
 
@@ -267,11 +351,10 @@ class VentaCarbonService
 
             $cantidad = (float) ($carga['cantidad_toneladas'] ?? 0);
             if ($cantidad <= 0) {
-                return "Carga #{$n}: la cantidad estimada debe ser mayor a 0";
+                return "Carga #{$n}: la cantidad de toneladas debe ser mayor a 0";
             }
 
             $calidad = (string) ($carga['calidad'] ?? '');
-            $valoresCalidad = array_map(fn ($c) => $c->value, TipoCalidadCarbon::cases());
             if (!in_array($calidad, $valoresCalidad, true)) {
                 return "Carga #{$n}: debe indicar la calidad del carbon a despachar";
             }
@@ -279,22 +362,50 @@ class VentaCarbonService
             if (empty($carga['fecha_hora_salida'])) {
                 return "Carga #{$n}: debe indicar la fecha y hora de salida";
             }
+        }
 
-            $idVehiculo = (int) ($carga['id_vehiculo_carbon'] ?? 0);
-            if ($idVehiculo <= 0) {
-                return "Carga #{$n}: debe seleccionar el vehiculo que transporta la carga";
+        return null;
+    }
+
+    /**
+     * Verifica que el almacen de salida tenga stock suficiente para las cargas.
+     *
+     * El stock no se descuenta al despachar (el asiento se escribe al
+     * confirmar la llegada), asi que se valida contra el stock fisico menos
+     * las cargas que ya salieron y siguen pendientes de confirmar.
+     *
+     * @param array<int, array<string, mixed>> $cargas
+     */
+    private static function validar_stock_cargas(int $id_almacen_salida, array $cargas): ?string
+    {
+        if ($id_almacen_salida <= 0) {
+            return null;
+        }
+
+        $reservado = [];
+
+        foreach ($cargas as $i => $carga) {
+            $n = $i + 1;
+            $idTipo = (int) ($carga['id_tipo_carbon'] ?? 0);
+            $calidad = (string) ($carga['calidad'] ?? '');
+            $cantidad = (float) ($carga['cantidad_toneladas'] ?? 0);
+
+            $clave = $idTipo . '|' . $calidad;
+
+            $disponible = VentaCarbonData::calcular_stock_disponible(
+                $id_almacen_salida,
+                $idTipo,
+                $calidad
+            );
+            $disponible -= (float) ($reservado[$clave] ?? 0);
+
+            if ($disponible + 0.0001 < $cantidad) {
+                return "Carga #{$n}: no hay stock suficiente de la calidad {$calidad} en el almacen de salida "
+                    . '(disponible: '
+                    . rtrim(rtrim(number_format($disponible, 2), '0'), '.') . ' TN)';
             }
 
-            $vehiculo = VentaCarbonData::get_vehiculo_carbon($idVehiculo);
-            if ($vehiculo === null) {
-                return "Carga #{$n}: el vehiculo seleccionado no existe";
-            }
-
-            $tipoVehiculo = TipoVehiculoCarbon::tryFrom((string) $vehiculo->tipo_vehiculo);
-            $segundaPlaca = trim((string) ($carga['segunda_placa'] ?? ''));
-            if ($tipoVehiculo !== null && $tipoVehiculo->exige_segunda_placa() && $segundaPlaca === '') {
-                return "Carga #{$n}: el vehiculo es {$tipoVehiculo->value}, debe ingresar la segunda placa";
-            }
+            $reservado[$clave] = (float) ($reservado[$clave] ?? 0) + $cantidad;
         }
 
         return null;
