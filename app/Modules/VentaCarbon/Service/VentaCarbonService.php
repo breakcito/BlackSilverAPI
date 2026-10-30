@@ -147,7 +147,7 @@ class VentaCarbonService
             return ApiResponse::error('La llegada de esta carga ya fue confirmada');
         }
 
-        $idTipoConfirmado = (int) ($payload['id_tipo_carbon_confirmado'] ?? 0);
+        $idTipoConfirmado = (int) ($payload['id_tipo_carbon'] ?? 0);
         if ($idTipoConfirmado <= 0) {
             return ApiResponse::error('Debe indicar el tipo de carbon confirmado');
         }
@@ -165,7 +165,7 @@ class VentaCarbonService
 
         try {
             VentaCarbonData::confirmar_llegada($id_venta_carbon, $id_carga_venta_carbon, [
-                'id_tipo_carbon_confirmado' => $idTipoConfirmado,
+                'id_tipo_carbon' => $idTipoConfirmado,
                 'cantidad_toneladas' => (float) $payload['cantidad_toneladas'],
                 'fecha_hora_ingreso' => (string) $payload['fecha_hora_ingreso'],
                 'guia_remitente' => $payload['guia_remitente'] ?? null,

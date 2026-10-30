@@ -22,7 +22,6 @@ class VentaCarbon extends Model
         'id_almacen_cliente_llegada', // a donde va a llegar
         'correlativo', // VC-
         'numero_correlativo',
-        'codigo', // opcional, es el codigo de la oc que da el cliente, recien se coloca cuando la primera carga le llega al cliente
         'created_at',
     ];
 }

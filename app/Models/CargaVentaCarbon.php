@@ -17,21 +17,21 @@ class CargaVentaCarbon extends Model
     protected $fillable = [
         'id_venta_carbon',
         'id_empleado_registro',
-        'id_tipo_carbon_estimado', // el que se dice que se esta enviando
-        'id_tipo_carbon_confirmado', // el que dice el cliente que le ha llegado 
-        'id_vehiculo_carbon',
-        'id_comprobante_venta_carbon',
-        // DATOS QUE PONE AL SALIR/REGISTRAR
+        'id_tipo_carbon', // el que se esta enviando
+        'id_vehiculo_carbon', // se indica cuando llega
+        'id_liquidacion_venta_carbon', // se llena cuando se arma la liquidacion
+        //
+        // DATOS QUE PONE AL SALIR/REGISTRAR, ademas del tipo de carbon
         'calidad', // enum: Baja |Intermedia | Alta
-        'segunda_placa', // si el tipo de vehiculo es Tolva
         'fecha_hora_salida',
+        //
         // DATOS QUE PONE AL LLEGAR
         'fecha_hora_ingreso',
+        'segunda_placa', // si el tipo de vehiculo es Tolva
         'guia_remitente',
         'guia_transportista', // opcional
         'codigo_ticket_balanza',
-        'codigo_reporte',
-        'observacion',
+        'cantidad_toneladas',
         'porcentaje_ceniza',
         'porcentaje_humedad',
         'porcentaje_azufre',
@@ -45,16 +45,23 @@ class CargaVentaCarbon extends Model
             }
          */
         'porcentaje_pizarra',
-        'cantidad_toneladas',
-        'cantidad_toneladas',
+        'fue_aceptado', // bool
+        'observacion',
+        //
+        // DATOS QUE PONE AL ARMAR LIQUIDACION
         'precio_base',
-        'subtotal_sin_descuento', // cantidad x precio unitario
-        'descuento', // opcional
-        'bono', // opcional
-        'subtotal', // subtotal_sin_descuento - descuento + bono
+        'descuento', // opcional - por defecto es 0
+        'bono', // opcional - por defecto es 0
+        'precio_materia_prima', // precio_base unitario - descuento + bono
+        'subtotal', // precio_materia_prima * cantidad_toneladas
+        'monto_igv', // subtotal * porcentaje_igv de la venta
+        'total', // subtotal + monto igv
+        'monto_detraccion', // total * porcentaje_detraccion de la venta
+        'neto_a_pagar', // total - monto de detraccion
+        //
         'evidencias',
         'created_at',
-        'estado', // enum En Camino | Llegada Confirmada
+        'estado', // enum En Camino | Llegada Confirmada | En Liquidación
 
     ];
 }

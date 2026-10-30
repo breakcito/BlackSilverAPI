@@ -197,12 +197,9 @@ class VentaCarbonData
                 cv.id_venta_carbon,
                 cv.id_empleado_registro,
                 CONCAT(e.nombre, " ", e.apellido) AS empleado_registro,
-                cv.id_tipo_carbon_estimado,
-                tce.nombre AS tipo_carbon_estimado,
-                tce.codigo AS tipo_carbon_estimado_codigo,
-                cv.id_tipo_carbon_confirmado,
-                tcc.nombre AS tipo_carbon_confirmado,
-                tcc.codigo AS tipo_carbon_confirmado_codigo,
+                cv.id_tipo_carbon,
+                tce.nombre AS tipo_carbon,
+                tce.codigo AS tipo_carbon_codigo,
                 cv.id_vehiculo_carbon,
                 veh.placa AS vehiculo_placa,
                 veh.tipo_vehiculo AS vehiculo_tipo,
@@ -233,8 +230,7 @@ class VentaCarbonData
                 cv.created_at
             FROM carga_venta_carbon cv
             LEFT JOIN empleado e ON e.id = cv.id_empleado_registro
-            LEFT JOIN tipo_carbon tce ON tce.id = cv.id_tipo_carbon_estimado
-            LEFT JOIN tipo_carbon tcc ON tcc.id = cv.id_tipo_carbon_confirmado
+            LEFT JOIN tipo_carbon tce ON tce.id = cv.id_tipo_carbon
             LEFT JOIN vehiculo_carbon veh ON veh.id = cv.id_vehiculo_carbon
             LEFT JOIN marca m ON m.id = veh.id_marca
             WHERE cv.id_venta_carbon IN (' . $inClause . ')
@@ -400,13 +396,11 @@ class VentaCarbonData
         $idCarga = CargaVentaCarbon::insertGetId([
             'id_venta_carbon' => $id_venta_carbon,
             'id_empleado_registro' => $id_empleado,
-            'id_tipo_carbon_estimado' => $idTipoCarbon,
-            'id_tipo_carbon_confirmado' => null,
+            'id_tipo_carbon' => $idTipoCarbon,
             'id_vehiculo_carbon' => isset($c['id_vehiculo_carbon']) && (int) $c['id_vehiculo_carbon'] > 0 ? (int) $c['id_vehiculo_carbon'] : null,
             'id_comprobante_venta_carbon' => null,
             'calidad' => $calidad,
             'cantidad_toneladas' => $cantidad,
-            'cantidad_toneladas' => 0,
             'segunda_placa' => isset($c['segunda_placa']) && $c['segunda_placa'] !== '' ? strtoupper((string) $c['segunda_placa']) : null,
             'fecha_hora_salida' => (string) $c['fecha_hora_salida'],
             'fecha_hora_ingreso' => null,
@@ -546,7 +540,7 @@ class VentaCarbonData
             $subtotalSinDescuento = round($cantidadConfirmada * $precioBase, 2);
             $subtotal = round($subtotalSinDescuento - $descuento + $bono, 2);
 
-            $idTipoConfirmado = (int) $d['id_tipo_carbon_confirmado'];
+            $idTipoConfirmado = (int) $d['id_tipo_carbon'];
             $esTipoA = self::es_tipo_a($idTipoConfirmado);
 
             $analisis = null;
@@ -576,7 +570,7 @@ class VentaCarbonData
             DB::table('carga_venta_carbon')
                 ->where('id', $id_carga_venta_carbon)
                 ->update([
-                    'id_tipo_carbon_confirmado' => $idTipoConfirmado,
+                    'id_tipo_carbon' => $idTipoConfirmado,
                     'cantidad_toneladas' => $cantidadConfirmada,
                     'fecha_hora_ingreso' => (string) $d['fecha_hora_ingreso'],
                     'guia_remitente' => isset($d['guia_remitente']) && $d['guia_remitente'] !== '' ? (string) $d['guia_remitente'] : null,

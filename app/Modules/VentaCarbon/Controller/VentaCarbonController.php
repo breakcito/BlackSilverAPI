@@ -163,7 +163,7 @@ class VentaCarbonController
         }
 
         $validator = Validator::make([
-            'id_tipo_carbon_confirmado' => $request->input('id_tipo_carbon_confirmado'),
+            'id_tipo_carbon' => $request->input('id_tipo_carbon'),
             'cantidad_toneladas' => $request->input('cantidad_toneladas'),
             'fecha_hora_ingreso' => $request->input('fecha_hora_ingreso'),
             'precio_base' => $request->input('precio_base'),
@@ -181,7 +181,7 @@ class VentaCarbonController
             'codigo_venta' => $request->input('codigo_venta'),
             'analisis_granulometria' => $analisis,
         ], [
-            'id_tipo_carbon_confirmado' => 'required|integer|min:1',
+            'id_tipo_carbon' => 'required|integer|min:1',
             'cantidad_toneladas' => 'required|numeric|min:0.0001',
             'fecha_hora_ingreso' => 'required|string|max:30',
             'precio_base' => 'required|numeric|min:0',
@@ -202,7 +202,7 @@ class VentaCarbonController
             'analisis_granulometria.menor_a_uno' => 'nullable|numeric|min:0|max:100',
             'analisis_granulometria.un_medio' => 'nullable|numeric|min:0|max:100',
         ], [
-            'id_tipo_carbon_confirmado.required' => 'Debe indicar el tipo de carbon confirmado',
+            'id_tipo_carbon.required' => 'Debe indicar el tipo de carbon confirmado',
             'cantidad_toneladas.required' => 'Debe indicar la cantidad confirmada',
             'fecha_hora_ingreso.required' => 'Debe indicar la fecha y hora de ingreso',
             'precio_base.required' => 'Debe indicar el precio base',

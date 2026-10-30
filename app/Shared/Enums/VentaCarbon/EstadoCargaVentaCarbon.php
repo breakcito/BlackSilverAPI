@@ -14,4 +14,5 @@ enum EstadoCargaVentaCarbon: string
 {
     case EnCamino = 'En Camino';
     case LlegadaConfirmada = 'Llegada Confirmada';
+    case EnLiquidacion = 'En Liquidación';
 }
