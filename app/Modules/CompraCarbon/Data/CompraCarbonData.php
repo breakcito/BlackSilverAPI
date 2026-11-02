@@ -772,6 +772,9 @@ class CompraCarbonData
                 $subtotal = round($precioMateriaPrima * $cantidad, 2);
                 $montoIgv = $porcentajeIgv > 0 ? round($subtotal * ($porcentajeIgv / 100), 2) : 0.0;
                 $total = round($subtotal + $montoIgv, 2);
+                // La detraccion de la carga se guarda con 2 decimales: es el
+                // detalle por carga. El redondeo a entero ocurre despues, en
+                // la liquidacion (comprobante), que es lo que se paga.
                 $montoDetraccion = $porcentajeDetraccion > 0 ? round($total * ($porcentajeDetraccion / 100), 2) : 0.0;
                 $netoAPagar = round($total - $montoDetraccion, 2);
 

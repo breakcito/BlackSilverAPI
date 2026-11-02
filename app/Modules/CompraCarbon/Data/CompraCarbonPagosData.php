@@ -95,8 +95,10 @@ class CompraCarbonPagosData
             $baseImponible = max(0.0, round($totalCargas - $totalAnticipos, 2));
             $montoIgv = $porcentajeIgv > 0 ? round($baseImponible * ($porcentajeIgv / 100), 2) : 0.0;
             $importeTotal = round($baseImponible + $montoIgv, 2);
+            // La detracción se redondea a entero (sin decimales), igual que
+            // en el registro de cargas.
             $montoDetraccion = $porcentajeDetraccion > 0
-                ? round($importeTotal * ($porcentajeDetraccion / 100), 2)
+                ? round($importeTotal * ($porcentajeDetraccion / 100))
                 : 0.0;
             $montoNeto = round($importeTotal - $montoDetraccion, 2);
 
@@ -334,7 +336,7 @@ class CompraCarbonPagosData
             $montoIgv = $porcentajeIgvFlete > 0 ? round($subtotal * ($porcentajeIgvFlete / 100), 2) : 0.0;
             $importeTotal = round($subtotal + $montoIgv, 2);
             $montoDetraccion = $porcentajeDetraccionFlete > 0
-                ? round($importeTotal * ($porcentajeDetraccionFlete / 100), 2)
+                ? round($importeTotal * ($porcentajeDetraccionFlete / 100))
                 : 0.0;
             $montoNeto = round($importeTotal - $montoDetraccion, 2);
 
