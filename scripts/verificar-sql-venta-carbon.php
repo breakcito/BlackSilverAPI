@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Verificacion de sintaxis SQL de las consultas nuevas de VentaCarbon.
+ * Verificacion de sintaxis SQL de las consultas de VentaCarbon y Blending.
  *
  * - `DB::pretend()` captura el SQL exacto que el codigo ejecutaria, sin
  *   tocar la base de datos.
@@ -91,8 +91,63 @@ $casos['get_cargas_por_venta'] = function () {
     App\Modules\VentaCarbon\Data\VentaCarbonData::get_cargas_por_venta([1]);
 };
 
-$casos['stock_disponible'] = function () {
-    App\Modules\VentaCarbon\Data\VentaCarbonData::calcular_stock_disponible(1, 1, 'Baja');
+$casos['stock_disponible_blending'] = function () {
+    App\Modules\VentaCarbon\Data\VentaCarbonData::calcular_stock_disponible_blending(1, 4);
+};
+
+$casos['blendings_despachables'] = function () {
+    App\Modules\VentaCarbon\Data\VentaCarbonData::get_blendings_despachables(4);
+};
+
+$casos['calidad_por_ceniza'] = function () {
+    App\Modules\VentaCarbon\Data\VentaCarbonData::calidad_por_porcentaje_ceniza(12.5);
+};
+
+$casos['blendings_listado'] = function () {
+    App\Modules\TamizajeCarbon\Data\BlendingCarbonData::get_blendings(['mes' => 11, 'anio' => 2026]);
+};
+
+$casos['blendings_detalles'] = function () {
+    App\Modules\TamizajeCarbon\Data\BlendingCarbonData::get_detalles(1);
+};
+
+$casos['blending_registro'] = function () {
+    App\Modules\TamizajeCarbon\Data\BlendingCarbonData::insert_blending([
+        'id_almacen' => 4,
+        'id_empleado_registro' => 1,
+        'id_empleado_supervisor' => 8,
+        'id_tipo_carbon' => 2,
+        'porcentaje_ceniza' => 12.5,
+        'fecha_hora_blending' => '2026-11-03 10:00:00',
+        'evidencias' => null,
+        'detalles' => [
+            ['id_stock_carbon' => 1, 'cantidad_tomada' => 10],
+        ],
+    ]);
+};
+
+$casos['blending_actualizacion'] = function () {
+    App\Modules\TamizajeCarbon\Data\BlendingCarbonData::update_blending([
+        'id_blending_carbon' => 1,
+        'id_empleado_supervisor' => 8,
+        'id_tipo_carbon' => 2,
+        'porcentaje_ceniza' => 12.5,
+        'fecha_hora_blending' => '2026-11-03 10:00:00',
+        'evidencias' => null,
+        'detalles' => [
+            ['id_stock_carbon' => 1, 'cantidad_tomada' => 10],
+        ],
+    ]);
+};
+
+$casos['blending_agregar_detalles'] = function () {
+    App\Modules\TamizajeCarbon\Data\BlendingCarbonData::agregar_detalles(1, [
+        ['id_stock_carbon' => 1, 'cantidad_tomada' => 5],
+    ]);
+};
+
+$casos['gastos_blending'] = function () {
+    App\Modules\TamizajeCarbon\Data\GastoProduccionCarbonData::get_gastos(id_blending_carbon: 1);
 };
 
 $casos['kardex_costo_compra'] = function () {
@@ -105,6 +160,12 @@ $casos['kardex_listado'] = function () {
 
 $conexion = DB::connection();
 $pdo = $conexion->getPdo();
+
+// Calienta el cache de esquema ANTES de los casos: dentro de
+// `DB::pretend()` las consultas a information_schema NO se ejecutan, asi que
+// `Schema::hasColumn` responderia false y el SQL capturado seria el de
+// reserva en vez del real.
+App\Modules\VentaCarbon\Data\VentaCarbonData::resolver_esquema_carga();
 
 foreach ($casos as $nombre => $caso) {
     echo "── {$nombre}\n";

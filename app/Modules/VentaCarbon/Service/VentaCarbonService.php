@@ -4,7 +4,6 @@ namespace App\Modules\VentaCarbon\Service;
 
 use App\Modules\VentaCarbon\Data\VentaCarbonData;
 use App\Shared\Enums\VentaCarbon\EstadoCargaVentaCarbon;
-use App\Shared\Enums\VentaCarbon\TipoVehiculoCarbon;
 use App\Shared\Helpers\ArchivoHelper;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\UploadedFile;
@@ -25,7 +24,7 @@ class VentaCarbonService
     }
 
     /**
-     * Obtiene una venta con el detalle de sus cargas y su liquidacion.
+     * Obtiene una venta con el arbol completo de cargas y su liquidacion.
      */
     public static function get_venta(int $id_venta_carbon): array
     {
@@ -158,36 +157,32 @@ class VentaCarbonService
             return ApiResponse::error('La llegada de esta carga ya fue confirmada');
         }
 
-        $idTipoConfirmado = (int) ($payload['id_tipo_carbon'] ?? 0);
-        if ($idTipoConfirmado <= 0) {
-            return ApiResponse::error('Debe indicar el tipo de carbon confirmado');
+        // El tipo de carbon lo hereda el blending de la carga: no se puede
+        // corregir al confirmar la llegada.
+        $idBlending = (int) ($carga->id_blending_carbon ?? 0);
+        if ($idBlending <= 0) {
+            return ApiResponse::error('La carga no tiene un blending asignado');
         }
 
-        $tipoCarbon = VentaCarbonData::get_tipo_carbon($idTipoConfirmado);
+        $blending = VentaCarbonData::get_blending($idBlending);
+        if ($blending === null) {
+            return ApiResponse::error('El blending de la carga no existe');
+        }
+
+        $tipoCarbon = VentaCarbonData::get_tipo_carbon((int) $blending->id_tipo_carbon);
         if ($tipoCarbon === null) {
-            return ApiResponse::error('El tipo de carbon confirmado no existe');
+            return ApiResponse::error('El tipo de carbon del blending no existe');
         }
 
-        $calidad = (string) ($payload['calidad'] ?? '');
-        if (!in_array($calidad, VentaCarbonData::get_calidades(), true)) {
-            return ApiResponse::error('Debe indicar la calidad del carbon que llego');
-        }
-
+        // El vehiculo es opcional: se pudo elegir al despachar. Si llega se
+        // valida que exista.
         $idVehiculo = (int) ($payload['id_vehiculo_carbon'] ?? 0);
-        if ($idVehiculo <= 0) {
-            return ApiResponse::error('Debe indicar el vehiculo que transporto la carga');
-        }
-
-        $vehiculo = VentaCarbonData::get_vehiculo_carbon($idVehiculo);
-        if ($vehiculo === null) {
+        if ($idVehiculo > 0 && VentaCarbonData::get_vehiculo_carbon($idVehiculo) === null) {
             return ApiResponse::error('El vehiculo seleccionado no existe');
         }
 
-        $tipoVehiculo = TipoVehiculoCarbon::tryFrom((string) $vehiculo->tipo_vehiculo);
+        // La segunda placa SIEMPRE es opcional (tambien para las tolvas).
         $segundaPlaca = trim((string) ($payload['segunda_placa'] ?? ''));
-        if ($tipoVehiculo !== null && $tipoVehiculo->exige_segunda_placa() && $segundaPlaca === '') {
-            return ApiResponse::error("El vehiculo es {$tipoVehiculo->value}, debe ingresar la segunda placa");
-        }
 
         if (empty($archivos)) {
             $evidencias = $payload['evidencias'] ?? null;
@@ -197,12 +192,10 @@ class VentaCarbonService
 
         try {
             VentaCarbonData::confirmar_llegada($id_venta_carbon, $id_carga_venta_carbon, [
-                'id_tipo_carbon' => $idTipoConfirmado,
                 'nombre_tipo_carbon' => (string) $tipoCarbon->nombre,
-                'calidad' => $calidad,
                 'cantidad_toneladas' => (float) $payload['cantidad_toneladas'],
                 'fecha_hora_ingreso' => (string) $payload['fecha_hora_ingreso'],
-                'id_vehiculo_carbon' => $idVehiculo,
+                'id_vehiculo_carbon' => $idVehiculo > 0 ? $idVehiculo : null,
                 'segunda_placa' => $segundaPlaca,
                 'guia_remitente' => $payload['guia_remitente'] ?? null,
                 'guia_transportista' => $payload['guia_transportista'] ?? null,
@@ -226,36 +219,19 @@ class VentaCarbonService
     }
 
     /**
-     * Stock disponible de carbon en un almacen de salida.
+     * Blendings despachables desde un almacen de salida.
      *
-     * Considera las cargas ya despachadas y pendientes de confirmar: esas
-     * toneladas estan comprometidas y no se pueden volver a despachar.
+     * Cada uno trae su stock ya descontando lo que salio y sigue en camino.
      */
-    public static function get_stock_disponible(int $id_almacen): array
+    public static function get_blendings(int $id_almacen): array
     {
-        $stocks = \App\Data\StockCarbonData::get_stocks(['id_almacen' => $id_almacen]);
-
-        $salida = [];
-        foreach ($stocks as $stock) {
-            $idTipo = (int) ($stock->id_tipo_carbon ?? 0);
-            $calidad = (string) ($stock->calidad ?? '');
-            if ($idTipo <= 0 || $calidad === '') {
-                continue;
-            }
-
-            $salida[] = [
-                'id_tipo_carbon' => $idTipo,
-                'calidad' => $calidad,
-                'stock_actual' => (float) ($stock->stock_actual ?? 0),
-                'disponible' => VentaCarbonData::calcular_stock_disponible(
-                    $id_almacen,
-                    $idTipo,
-                    $calidad
-                ),
-            ];
+        if ($id_almacen <= 0) {
+            return ApiResponse::error('Debe indicar el almacen de salida');
         }
 
-        return $salida;
+        return ApiResponse::success(
+            VentaCarbonData::get_blendings_despachables($id_almacen)
+        );
     }
 
     /**
@@ -329,24 +305,25 @@ class VentaCarbonService
     /**
      * Valida el arreglo de cargas a despachar.
      *
-     * Al despachar solo se indica el tipo de carbon, la calidad, la fecha y
-     * hora de salida, las toneladas y las evidencias. El vehiculo y la
-     * segunda placa se registran al confirmar la llegada.
+     * Cada carga apunta a un BLENDING (el lote de carbon que sale del
+     * almacen). El vehiculo y la segunda placa son opcionales y se registran
+     * en el despacho: ya no hace falta esperarlos para confirmar la llegada.
      *
      * @param array<int, array<string, mixed>> $cargas
      */
     private static function validar_cargas(array $cargas): ?string
     {
-        // El catalogo de calidades es el fuente de verdad: puede tener mas
-        // calidades que el enum `TipoCalidadCarbon`.
-        $valoresCalidad = VentaCarbonData::get_calidades();
-
         foreach ($cargas as $i => $carga) {
             $n = $i + 1;
 
-            $idTipo = (int) ($carga['id_tipo_carbon'] ?? 0);
-            if ($idTipo <= 0) {
-                return "Carga #{$n}: debe seleccionar el tipo de carbon";
+            $idBlending = (int) ($carga['id_blending_carbon'] ?? 0);
+            if ($idBlending <= 0) {
+                return "Carga #{$n}: debe seleccionar el blending a despachar";
+            }
+
+            $blending = VentaCarbonData::get_blending($idBlending);
+            if ($blending === null) {
+                return "Carga #{$n}: el blending seleccionado no existe";
             }
 
             $cantidad = (float) ($carga['cantidad_toneladas'] ?? 0);
@@ -354,13 +331,18 @@ class VentaCarbonService
                 return "Carga #{$n}: la cantidad de toneladas debe ser mayor a 0";
             }
 
-            $calidad = (string) ($carga['calidad'] ?? '');
-            if (!in_array($calidad, $valoresCalidad, true)) {
-                return "Carga #{$n}: debe indicar la calidad del carbon a despachar";
-            }
-
             if (empty($carga['fecha_hora_salida'])) {
                 return "Carga #{$n}: debe indicar la fecha y hora de salida";
+            }
+
+            $idVehiculo = (int) ($carga['id_vehiculo_carbon'] ?? 0);
+            if ($idVehiculo > 0 && VentaCarbonData::get_vehiculo_carbon($idVehiculo) === null) {
+                return "Carga #{$n}: el vehiculo seleccionado no existe";
+            }
+
+            $segundaPlaca = trim((string) ($carga['segunda_placa'] ?? ''));
+            if ($segundaPlaca !== '' && mb_strlen($segundaPlaca) > 20) {
+                return "Carga #{$n}: la segunda placa es demasiado larga";
             }
         }
 
@@ -371,8 +353,8 @@ class VentaCarbonService
      * Verifica que el almacen de salida tenga stock suficiente para las cargas.
      *
      * El stock no se descuenta al despachar (el asiento se escribe al
-     * confirmar la llegada), asi que se valida contra el stock fisico menos
-     * las cargas que ya salieron y siguen pendientes de confirmar.
+     * confirmar la llegada), asi que se valida contra el stock del blending
+     * menos las cargas que ya salieron y siguen pendientes de confirmar.
      *
      * @param array<int, array<string, mixed>> $cargas
      */
@@ -386,26 +368,31 @@ class VentaCarbonService
 
         foreach ($cargas as $i => $carga) {
             $n = $i + 1;
-            $idTipo = (int) ($carga['id_tipo_carbon'] ?? 0);
-            $calidad = (string) ($carga['calidad'] ?? '');
+            $idBlending = (int) ($carga['id_blending_carbon'] ?? 0);
             $cantidad = (float) ($carga['cantidad_toneladas'] ?? 0);
 
-            $clave = $idTipo . '|' . $calidad;
+            $blending = VentaCarbonData::get_blending($idBlending);
 
-            $disponible = VentaCarbonData::calcular_stock_disponible(
-                $id_almacen_salida,
-                $idTipo,
-                $calidad
+            // El blending se despacha desde SU almacen: si el lote esta en
+            // otro almacen no se puede sacar de este.
+            if ($blending !== null && (int) $blending->id_almacen !== $id_almacen_salida) {
+                return "Carga #{$n}: el blending {$blending->correlativo} pertenece a otro almacen";
+            }
+
+            $disponible = VentaCarbonData::calcular_stock_disponible_blending(
+                $idBlending,
+                $id_almacen_salida
             );
-            $disponible -= (float) ($reservado[$clave] ?? 0);
+            $disponible -= (float) ($reservado[$idBlending] ?? 0);
 
             if ($disponible + 0.0001 < $cantidad) {
-                return "Carga #{$n}: no hay stock suficiente de la calidad {$calidad} en el almacen de salida "
+                return "Carga #{$n}: no hay stock suficiente del blending "
+                    . ($blending->correlativo ?? $idBlending) . ' en el almacen de salida '
                     . '(disponible: '
                     . rtrim(rtrim(number_format($disponible, 2), '0'), '.') . ' TN)';
             }
 
-            $reservado[$clave] = (float) ($reservado[$clave] ?? 0) + $cantidad;
+            $reservado[$idBlending] = (float) ($reservado[$idBlending] ?? 0) + $cantidad;
         }
 
         return null;

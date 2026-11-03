@@ -465,7 +465,6 @@ class VentaCarbonPagosData
         // }
 
         $porcentajeIgv = self::porcentaje_igv_venta($idVenta);
-        $porcentajeDetraccion = self::porcentaje_detraccion_venta($idVenta);
 
         foreach ($cargas as $c) {
             $idCarga = (int) $c['id_carga_venta_carbon'];
@@ -483,10 +482,12 @@ class VentaCarbonPagosData
             $subtotal = round($precioMateriaPrima * (float) $cantidad, 2);
             $montoIgv = $porcentajeIgv > 0 ? round($subtotal * ($porcentajeIgv / 100), 2) : 0.0;
             $total = round($subtotal + $montoIgv, 2);
-            $montoDetraccion = $porcentajeDetraccion > 0
-                ? round($total * ($porcentajeDetraccion / 100), 2)
-                : 0.0;
-            $netoAPagar = round($total - $montoDetraccion, 2);
+
+            // La detraccion NO se calcula aqui: se calcula una sola vez sobre
+            // el TOTAL de la liquidacion y se reparte entre sus cargas (ver
+            // `recalcular_liquidacion`). Asi la suma de las detracciones de las
+            // cargas es exactamente la de la liquidacion.
+            $netoAPagar = 0.0;
 
             DB::table('carga_venta_carbon')
                 ->where('id', $idCarga)
@@ -499,7 +500,7 @@ class VentaCarbonPagosData
                     'subtotal' => $subtotal,
                     'monto_igv' => $montoIgv,
                     'total' => $total,
-                    'monto_detraccion' => $montoDetraccion,
+                    'monto_detraccion' => 0,
                     'neto_a_pagar' => $netoAPagar,
                     'estado' => EstadoCargaVentaCarbon::EnLiquidacion->value,
                 ]);
@@ -508,31 +509,141 @@ class VentaCarbonPagosData
 
     /**
      * Recalcula los totales de la liquidacion a partir de sus cargas.
+     *
+     * REGLA DE NEGOCIO: la detraccion se calcula sobre el TOTAL de la
+     * liquidacion y se redondea a ENTROS (por ejemplo: 48953 x 10% = 4895.3
+     * se guarda como 4895). El neto a pagar cambia en céntimos respecto del
+     * total exacto: esa diferencia ES la regla.
+     *
+     * El monto entero se reparte entre las cargas en proporcion a su total
+     * (metodo del residuo mayor), de modo que la suma de las detracciones de
+     * las cargas es EXACTAMENTE la de la liquidacion y todos los importes
+     * cuadran entre si.
      */
     public static function recalcular_liquidacion(int $id_liquidacion): void
     {
-        $totales = DB::table('carga_venta_carbon')
+        $cargas = DB::table('carga_venta_carbon')
             ->where('id_liquidacion_venta_carbon', $id_liquidacion)
-            ->selectRaw('COALESCE(SUM(subtotal), 0) AS subtotal')
-            ->selectRaw('COALESCE(SUM(monto_igv), 0) AS monto_igv')
-            ->selectRaw('COALESCE(SUM(total), 0) AS total')
-            ->selectRaw('COALESCE(SUM(monto_detraccion), 0) AS monto_detraccion')
-            ->selectRaw('COALESCE(SUM(neto_a_pagar), 0) AS neto_a_pagar')
-            ->first();
+            ->orderBy('id', 'asc')
+            ->get();
 
-        if ($totales === null) {
+        if ($cargas->isEmpty()) {
             return;
+        }
+
+        $subtotal = 0.0;
+        $montoIgv = 0.0;
+        $total = 0.0;
+        $totalesPorCarga = [];
+
+        foreach ($cargas as $carga) {
+            $subtotal += (float) $carga->subtotal;
+            $montoIgv += (float) $carga->monto_igv;
+            $total += (float) $carga->total;
+            $totalesPorCarga[(int) $carga->id] = (float) $carga->total;
+        }
+
+        $subtotal = round($subtotal, 2);
+        $montoIgv = round($montoIgv, 2);
+        $total = round($total, 2);
+
+        $porcentajeDetraccion = self::porcentaje_detraccion_de_liquidacion($id_liquidacion);
+        $montoDetraccion = $porcentajeDetraccion > 0
+            ? round($total * ($porcentajeDetraccion / 100))
+            : 0.0;
+        $netoAPagar = round($total - $montoDetraccion, 2);
+
+        // Se reparte la detraccion entre las cargas y se escribe en cada una.
+        $reparto = self::repartir_detraccion($totalesPorCarga, $montoDetraccion);
+
+        foreach ($cargas as $carga) {
+            $parte = $reparto[(int) $carga->id] ?? 0.0;
+
+            DB::table('carga_venta_carbon')
+                ->where('id', $carga->id)
+                ->update([
+                    'monto_detraccion' => $parte,
+                    'neto_a_pagar' => round((float) $carga->total - $parte, 2),
+                ]);
         }
 
         DB::table('liquidacion_venta_carbon')
             ->where('id', $id_liquidacion)
             ->update([
-                'subtotal' => round((float) $totales->subtotal, 2),
-                'monto_igv' => round((float) $totales->monto_igv, 2),
-                'total' => round((float) $totales->total, 2),
-                'monto_detraccion' => round((float) $totales->monto_detraccion, 2),
-                'neto_a_pagar' => round((float) $totales->neto_a_pagar, 2),
+                'subtotal' => $subtotal,
+                'monto_igv' => $montoIgv,
+                'total' => $total,
+                'monto_detraccion' => $montoDetraccion,
+                'neto_a_pagar' => $netoAPagar,
             ]);
+    }
+
+    /**
+     * Reparte un monto entero entre las cargas de una liquidacion en funcion
+     * del total de cada carga.
+     *
+     * Metodo del residuo mayor: se reparte la parte entera de cada cuota
+     * proporcional y los soles que sobran (siempre un numero entero, porque el
+     * monto a repartir ya viene redondeado) se entregan a las cargas con mayor
+     * parte decimal. Asi la suma de las partes es EXACTAMENTE el monto.
+     *
+     * @param array<int, float> $totalesPorCarga id de carga => total de la carga
+     * @return array<int, float> id de carga => parte asignada
+     */
+    private static function repartir_detraccion(array $totalesPorCarga, float $monto): array
+    {
+        $reparto = [];
+        $fracciones = [];
+
+        $sumaTotal = array_sum($totalesPorCarga);
+
+        if ($monto <= 0 || $sumaTotal <= 0) {
+            foreach (array_keys($totalesPorCarga) as $id) {
+                $reparto[$id] = 0.0;
+            }
+
+            return $reparto;
+        }
+
+        $asignado = 0.0;
+
+        foreach ($totalesPorCarga as $id => $totalCarga) {
+            $cuota = ($totalCarga / $sumaTotal) * $monto;
+            $entero = floor($cuota);
+            $reparto[$id] = $entero;
+            $fracciones[$id] = $cuota - $entero;
+            $asignado += $entero;
+        }
+
+        // Los soles que sobran van a las cargas con mayor parte decimal.
+        // `arsort` es estable en PHP 8: los empates conservan el orden de
+        // entrada (por id de carga), asi el reparto es determinista.
+        arsort($fracciones);
+
+        $ids = array_keys($fracciones);
+        $resto = (int) round($monto - $asignado);
+        $i = 0;
+
+        while ($resto > 0 && count($ids) > 0) {
+            $reparto[$ids[$i % count($ids)]] += 1;
+            $resto--;
+            $i++;
+        }
+
+        return $reparto;
+    }
+
+    /**
+     * Porcentaje de detraccion de la VENTA a la que pertenece la liquidacion.
+     */
+    private static function porcentaje_detraccion_de_liquidacion(int $id_liquidacion): float
+    {
+        $valor = DB::table('liquidacion_venta_carbon')
+            ->join('venta_carbon', 'venta_carbon.id', '=', 'liquidacion_venta_carbon.id_venta_carbon')
+            ->where('liquidacion_venta_carbon.id', $id_liquidacion)
+            ->value('venta_carbon.porcentaje_detraccion');
+
+        return $valor !== null ? (float) $valor : 0.0;
     }
 
     /**
@@ -569,19 +680,18 @@ class VentaCarbonPagosData
             }
 
             $idVenta = (int) $liquidacion->id_venta_carbon;
-            $porcentajeIgv = self::porcentaje_igv_venta($idVenta);
-            $porcentajeDetraccion = self::porcentaje_detraccion_venta($idVenta);
 
+            // Los importes del comprobante son LOS MISMOS de la liquidacion,
+            // tal cual: no se recalculan. Asi el comprobante nunca discrepa de
+            // la liquidacion que lo respalda.
             $subtotal = round((float) $liquidacion->subtotal, 2);
             // Por ahora no se aplican anticipos: el campo queda en 0.
             $montoAnticipos = 0.0;
             $baseImponible = max(0.0, round($subtotal - $montoAnticipos, 2));
-            $montoIgv = $porcentajeIgv > 0 ? round($baseImponible * ($porcentajeIgv / 100), 2) : 0.0;
-            $importeTotal = round($baseImponible + $montoIgv, 2);
-            $montoDetraccion = $porcentajeDetraccion > 0
-                ? round($importeTotal * ($porcentajeDetraccion / 100), 2)
-                : 0.0;
-            $montoNeto = round($importeTotal - $montoDetraccion, 2);
+            $montoIgv = round((float) $liquidacion->monto_igv, 2);
+            $importeTotal = round((float) $liquidacion->total, 2);
+            $montoDetraccion = round((float) $liquidacion->monto_detraccion, 2);
+            $montoNeto = round((float) $liquidacion->neto_a_pagar, 2);
 
             return ComprobanteVentaCarbon::insertGetId([
                 'id_empleado_registro' => (int) $d['id_empleado_registro'],
@@ -718,19 +828,16 @@ class VentaCarbonPagosData
             return;
         }
 
-        $idVenta = (int) $comprobante->id_venta_carbon;
-        $porcentajeIgv = self::porcentaje_igv_venta($idVenta);
-        $porcentajeDetraccion = self::porcentaje_detraccion_venta($idVenta);
-
+        // Igual que al crear el comprobante: los importes se COPIAN de la
+        // liquidacion. Si la liquidacion se edito, el comprobante se
+        // realinea con ella sin recalcular nada.
         $subtotal = round((float) $liquidacion->subtotal, 2);
         $montoAnticipos = (float) $comprobante->monto_pagado_anticipos;
         $baseImponible = max(0.0, round($subtotal - $montoAnticipos, 2));
-        $montoIgv = $porcentajeIgv > 0 ? round($baseImponible * ($porcentajeIgv / 100), 2) : 0.0;
-        $importeTotal = round($baseImponible + $montoIgv, 2);
-        $montoDetraccion = $porcentajeDetraccion > 0
-            ? round($importeTotal * ($porcentajeDetraccion / 100), 2)
-            : 0.0;
-        $montoNeto = round($importeTotal - $montoDetraccion, 2);
+        $montoIgv = round((float) $liquidacion->monto_igv, 2);
+        $importeTotal = round((float) $liquidacion->total, 2);
+        $montoDetraccion = round((float) $liquidacion->monto_detraccion, 2);
+        $montoNeto = round((float) $liquidacion->neto_a_pagar, 2);
 
         DB::table('comprobante_venta_carbon')
             ->where('id', $id_comprobante)

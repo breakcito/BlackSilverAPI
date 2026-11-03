@@ -11,20 +11,48 @@ class GastoProduccionCarbonService
     /**
      * Lista los gastos de producción de un zarandeo.
      */
-    public static function get_gastos(int $id_zarandeo_carbon): array
+    public static function get_gastos_zarandeo(int $id_zarandeo_carbon): array
     {
-        return ApiResponse::success(GastoProduccionCarbonData::get_gastos($id_zarandeo_carbon));
+        return ApiResponse::success(
+            GastoProduccionCarbonData::get_gastos(id_zarandeo_carbon: $id_zarandeo_carbon)
+        );
     }
 
     /**
-     * Registra un gasto de producción asociado a un zarandeo.
+     * Lista los gastos de producción de un blending.
+     */
+    public static function get_gastos_blending(int $id_blending_carbon): array
+    {
+        return ApiResponse::success(
+            GastoProduccionCarbonData::get_gastos(id_blending_carbon: $id_blending_carbon)
+        );
+    }
+
+    /**
+     * Registra un gasto de producción asociado a un zarandeo o a un blending.
+     *
      * @param array<string, mixed> $payload
      */
     public static function registrar_gasto(array $payload, int $id_empleado): array
     {
         $idZarandeo = (int) ($payload['id_zarandeo_carbon'] ?? 0);
-        if (!GastoProduccionCarbonData::existe_zarandeo($idZarandeo)) {
+        $idBlending = (int) ($payload['id_blending_carbon'] ?? 0);
+
+        // Un gasto tiene UN destino: el zarandeo o el blending.
+        if ($idZarandeo <= 0 && $idBlending <= 0) {
+            return ApiResponse::error('Debe indicar el zarandeo o el blending del gasto');
+        }
+
+        if ($idZarandeo > 0 && $idBlending > 0) {
+            return ApiResponse::error('El gasto no puede apuntar a un zarandeo y a un blending a la vez');
+        }
+
+        if ($idZarandeo > 0 && !GastoProduccionCarbonData::existe_zarandeo($idZarandeo)) {
             return ApiResponse::error('El zarandeo indicado no existe');
+        }
+
+        if ($idBlending > 0 && !GastoProduccionCarbonData::existe_blending($idBlending)) {
+            return ApiResponse::error('El blending indicado no existe');
         }
 
         $tipoGasto = TipoGastoZarandeo::tryFrom((string) ($payload['gasto'] ?? ''));
@@ -58,7 +86,8 @@ class GastoProduccionCarbonService
 
         $idGasto = GastoProduccionCarbonData::insert_gasto([
             'id_empleado_registro' => $id_empleado,
-            'id_zarandeo_carbon' => $idZarandeo,
+            'id_zarandeo_carbon' => $idZarandeo > 0 ? $idZarandeo : null,
+            'id_blending_carbon' => $idBlending > 0 ? $idBlending : null,
             'id_proveedor' => $payload['id_proveedor'] ?? null,
             'gasto' => $tipoGasto->value,
             'otro_gasto' => $otroGasto !== '' ? $otroGasto : null,
@@ -74,7 +103,11 @@ class GastoProduccionCarbonService
 
         // Se devuelve el gasto ya persistido con la misma forma que el listado,
         // para que el front lo inserte en su lista sin volver a consultar.
-        $nuevoGasto = GastoProduccionCarbonData::get_gasto_by_id($idZarandeo, $idGasto);
+        $nuevoGasto = GastoProduccionCarbonData::get_gasto_by_id(
+            $idZarandeo > 0 ? $idZarandeo : null,
+            $idBlending > 0 ? $idBlending : null,
+            $idGasto
+        );
 
         return ApiResponse::success(
             $nuevoGasto,

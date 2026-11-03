@@ -5,6 +5,7 @@ namespace App\Modules\VentaCarbon\Data;
 use App\Models\CargaVentaCarbon;
 use App\Models\KardexCarbon;
 use App\Models\VentaCarbon;
+use App\Modules\TamizajeCarbon\Data\BlendingCarbonData;
 use App\Shared\Enums\Kardex\KardexTipoMovimiento;
 use App\Shared\Enums\VentaCarbon\EstadoCargaVentaCarbon;
 use App\Shared\Enums\VentaCarbon\EstadoVentaCarbon;
@@ -46,6 +47,8 @@ class VentaCarbonData
             return self::$columnasCarga;
         }
 
+        $existentes = array_flip(self::listado_columnas_carga());
+
         $nuevas = [
             'id_liquidacion_venta_carbon' => 'NULL AS id_liquidacion_venta_carbon',
             'fue_aceptado' => '0 AS fue_aceptado',
@@ -54,11 +57,12 @@ class VentaCarbonData
             'total' => '0 AS total',
             'monto_detraccion' => '0 AS monto_detraccion',
             'neto_a_pagar' => '0 AS neto_a_pagar',
+            'id_blending_carbon' => 'NULL AS id_blending_carbon',
         ];
 
         $resueltas = [];
         foreach ($nuevas as $columna => $alternativa) {
-            $resueltas[$columna] = Schema::hasColumn('carga_venta_carbon', $columna)
+            $resueltas[$columna] = isset($existentes[$columna])
                 ? 'cv.' . $columna
                 : $alternativa;
         }
@@ -79,16 +83,52 @@ class VentaCarbonData
             return self::$columnasCargaExistentes;
         }
 
-        $existentes = [];
-        foreach (array_keys(self::columnas_carga()) as $columna) {
-            if (Schema::hasColumn('carga_venta_carbon', $columna)) {
-                $existentes[] = $columna;
+        $existentes = array_flip(self::listado_columnas_carga());
+
+        $nuevas = [
+            'id_liquidacion_venta_carbon',
+            'fue_aceptado',
+            'precio_materia_prima',
+            'monto_igv',
+            'total',
+            'monto_detraccion',
+            'neto_a_pagar',
+            'id_blending_carbon',
+        ];
+
+        $resultado = [];
+        foreach ($nuevas as $columna) {
+            if (isset($existentes[$columna])) {
+                $resultado[] = $columna;
             }
         }
 
-        self::$columnasCargaExistentes = $existentes;
+        self::$columnasCargaExistentes = $resultado;
 
-        return $existentes;
+        return $resultado;
+    }
+
+    /**
+     * Listado de columnas de `carga_venta_carbon` (una sola consulta).
+     *
+     * @return string[]
+     */
+    private static function listado_columnas_carga(): array
+    {
+        return Schema::getColumnListing('carga_venta_carbon');
+    }
+
+    /**
+     * Fuerza la resolucion del esquema de `carga_venta_carbon`.
+     *
+     * Se llama una vez por proceso: asi el resto de las consultas no vuelve
+     * a preguntar por el esquema.
+     */
+    public static function resolver_esquema_carga(): void
+    {
+        self::columnas_carga();
+        self::columnas_carga_existentes();
+        self::kardex_tiene_carga_venta();
     }
 
     /**
@@ -113,9 +153,10 @@ class VentaCarbonData
     private static function kardex_tiene_carga_venta(): bool
     {
         if (self::$kardexTieneCargaVenta === null) {
-            self::$kardexTieneCargaVenta = Schema::hasColumn(
-                'kardex_carbon',
-                'id_carga_venta_carbon'
+            self::$kardexTieneCargaVenta = in_array(
+                'id_carga_venta_carbon',
+                Schema::getColumnListing('kardex_carbon'),
+                true
             );
         }
 
@@ -123,15 +164,14 @@ class VentaCarbonData
     }
 
     /**
-     * Lista las ventas de carbon con su cabecera y, si se pide el detalle,
-     * el arbol completo (cargas, liquidaciones, comprobantes y pagos).
-     *
-     * El listado se pide SIN detalle: la cabecera y los contadores vienen en
-     * una sola consulta y el arbol se carga recien cuando el usuario despliega
-     * una venta. Asi el listado no arrastra 10 arboles completos.
+     * Lista las ventas de carbon con el arbol completo: cabecera, cargas,
+     * liquidaciones, comprobantes y pagos.
      *
      * El arbol se arma con un numero fijo de consultas (independiente de
-     * cuantas ventas se listan) para no caer en N+1.
+     * cuantas ventas se listan) para no caer en N+1: una para las cargas,
+     * una para las liquidaciones, una para los comprobantes y una para los
+     * pagos. Asi el listado muestra todo desde el primer momento, sin que
+     * el usuario tenga que esperar una segunda consulta al desplegar.
      *
      * @param array{
      *   filtros?: string,
@@ -140,15 +180,12 @@ class VentaCarbonData
      *   id_cliente_destino?: int,
      *   id_almacen_empresa_salida?: int,
      *   mes?: int,
-     *   anio?: int,
-     *   detalle?: bool
+     *   anio?: int
      * } $opts
      * @return array<object>
      */
     public static function get_ventas(array $opts = []): array
     {
-        $conDetalle = !empty($opts['detalle']);
-
         // El contador de liquidaciones solo existe si la tabla ya fue creada.
         $contadorLiquidaciones = Schema::hasTable('liquidacion_venta_carbon')
             ? '(SELECT COUNT(*) FROM liquidacion_venta_carbon lv WHERE lv.id_venta_carbon = vc.id) AS cantidad_liquidaciones'
@@ -244,12 +281,21 @@ class VentaCarbonData
 
         $filtros = trim((string) ($opts['filtros'] ?? ''));
         if ($filtros !== '') {
+            // Los prepares nativos de PDO no admiten reutilizar un marcador
+            // con nombre: cada LIKE lleva el suyo.
+            $q = '%' . $filtros . '%';
+
             $condiciones = [
-                'vc.correlativo LIKE :q',
-                'c.razon_social LIKE :q',
-                'cd.razon_social LIKE :q',
-                'e.razon_social LIKE :q',
+                'vc.correlativo LIKE :q1',
+                'c.razon_social LIKE :q2',
+                'cd.razon_social LIKE :q3',
+                'e.razon_social LIKE :q4',
             ];
+
+            $params['q1'] = $q;
+            $params['q2'] = $q;
+            $params['q3'] = $q;
+            $params['q4'] = $q;
 
             // El codigo de la orden de compra vive en la liquidacion: se
             // busca ahi solo si la tabla ya existe.
@@ -258,12 +304,13 @@ class VentaCarbonData
                     SELECT 1
                     FROM liquidacion_venta_carbon lv
                     WHERE lv.id_venta_carbon = vc.id
-                      AND (lv.codigo_orden_compra LIKE :q OR lv.numero_reporte LIKE :q)
+                      AND (lv.codigo_orden_compra LIKE :q5 OR lv.numero_reporte LIKE :q6)
                 )';
+                $params['q5'] = $q;
+                $params['q6'] = $q;
             }
 
             $sql .= ' AND (' . implode(' OR ', $condiciones) . ')';
-            $params['q'] = '%' . $filtros . '%';
         }
 
         $mes = isset($opts['mes']) ? (int) $opts['mes'] : 0;
@@ -285,21 +332,6 @@ class VentaCarbonData
         }
 
         $ids = array_map(fn ($r) => (int) $r->id_venta_carbon, $rows);
-
-        // Listado liviano: solo cabecera y contadores. El arbol se carga
-        // bajo demanda con `get_venta_por_id`.
-        if (!$conDetalle) {
-            foreach ($rows as $row) {
-                $row->cargas = [];
-                $row->liquidaciones = [];
-                $row->estado = self::resolver_estado_venta_resumen(
-                    (int) $row->cantidad_cargas,
-                    (int) $row->cantidad_cargas_confirmadas
-                );
-            }
-
-            return $rows;
-        }
 
         $cargasPorVenta = self::get_cargas_por_venta($ids);
         $liquidacionesPorVenta = VentaCarbonPagosData::get_liquidaciones_por_venta($ids);
@@ -342,7 +374,6 @@ class VentaCarbonData
     {
         $rows = self::get_ventas([
             'id_venta_carbon' => $id_venta_carbon,
-            'detalle' => true,
         ]);
 
         return $rows[0] ?? null;
@@ -361,7 +392,7 @@ class VentaCarbonData
 
         $placeholders = [];
         $params = [];
-        foreach ($ids_venta as $i => $id) {
+        foreach (array_values($ids_venta) as $i => $id) {
             $key = 'id_venta_' . $i;
             $placeholders[] = ':' . $key;
             $params[$key] = (int) $id;
@@ -369,12 +400,37 @@ class VentaCarbonData
         $inClause = implode(',', $placeholders);
         $cols = self::columnas_carga();
 
+        // Columna de enlace al blending: si todavia no existe (SQL plano
+        // pendiente) las cargas salen sin blending y sin el JOIN.
+        $colBlending = $cols['id_blending_carbon'];
+        $tieneBlending = $colBlending !== 'NULL AS id_blending_carbon';
+        $joinBlending = $tieneBlending
+            ? 'LEFT JOIN blending_carbon bc ON bc.id = ' . $colBlending
+            : '';
+        $selBlending = $tieneBlending ? $colBlending : 'NULL AS id_blending_carbon';
+
+        // Las columnas del blending solo se piden si el JOIN existe: si no,
+        // MySQL no encontraria la tabla `bc`.
+        $selBlendingCorrelativo = $tieneBlending
+            ? 'bc.correlativo AS blending_correlativo'
+            : 'NULL AS blending_correlativo';
+        $selBlendingCeniza = $tieneBlending
+            ? 'bc.porcentaje_ceniza AS blending_porcentaje_ceniza'
+            : 'NULL AS blending_porcentaje_ceniza';
+        $selBlendingStock = $tieneBlending
+            ? 'bc.stock_actual AS blending_stock_actual'
+            : 'NULL AS blending_stock_actual';
+
         $sql = '
             SELECT
                 cv.id AS id_carga_venta_carbon,
                 cv.id_venta_carbon,
                 cv.id_empleado_registro,
                 CONCAT(e.nombre, " ", e.apellido) AS empleado_registro,
+                ' . $selBlending . ',
+                ' . $selBlendingCorrelativo . ',
+                ' . $selBlendingCeniza . ',
+                ' . $selBlendingStock . ',
                 cv.id_tipo_carbon,
                 tce.nombre AS tipo_carbon,
                 tce.codigo AS tipo_carbon_codigo,
@@ -382,7 +438,6 @@ class VentaCarbonData
                 veh.placa AS vehiculo_placa,
                 veh.tipo_vehiculo AS vehiculo_tipo,
                 m.nombre AS vehiculo_marca,
-                cv.calidad,
                 cv.cantidad_toneladas,
                 cv.segunda_placa,
                 cv.fecha_hora_salida,
@@ -415,6 +470,7 @@ class VentaCarbonData
             LEFT JOIN tipo_carbon tce ON tce.id = cv.id_tipo_carbon
             LEFT JOIN vehiculo_carbon veh ON veh.id = cv.id_vehiculo_carbon
             LEFT JOIN marca m ON m.id = veh.id_marca
+            ' . $joinBlending . '
             WHERE cv.id_venta_carbon IN (' . $inClause . ')
             ORDER BY cv.id ASC
         ';
@@ -426,29 +482,13 @@ class VentaCarbonData
             $row->evidencias = self::decode_json($row->evidencias ?? null);
             $row->analisis_granulometria = self::decode_json($row->analisis_granulometria ?? null);
             $row->fue_aceptado = (int) ($row->fue_aceptado ?? 0) === 1;
+            $row->id_blending_carbon = $row->id_blending_carbon !== null
+                ? (int) $row->id_blending_carbon
+                : null;
             $resultado[(int) $row->id_venta_carbon][] = $row;
         }
 
         return $resultado;
-    }
-
-    /**
-     * Estado derivado de la venta a partir de los contadores.
-     *
-     * Es el que usa el listado liviano: sin las cargas a mano, solo se sabe
-     * cuantas hay y cuantas ya confirmaron su llegada.
-     */
-    private static function resolver_estado_venta_resumen(
-        int $cantidadCargas,
-        int $cantidadConfirmadas
-    ): string {
-        if ($cantidadCargas === 0) {
-            return EstadoVentaCarbon::SinCargas->value;
-        }
-
-        return $cantidadConfirmadas >= $cantidadCargas
-            ? EstadoVentaCarbon::Completada->value
-            : EstadoVentaCarbon::EnCurso->value;
     }
 
     /**
@@ -587,11 +627,17 @@ class VentaCarbonData
     /**
      * Inserta una carga en estado "En Camino".
      *
+     * La carga apunta a un BLENDING: el tipo de carbon y el porcentaje de
+     * ceniza se heredan de el (el usuario puede ajustar el porcentaje).
+     *
      * @param array<string, mixed> $c
      */
     private static function insert_carga(int $id_venta_carbon, array $c, int $id_empleado): int
     {
         $cantidad = round((float) $c['cantidad_toneladas'], 4);
+
+        $idBlending = (int) ($c['id_blending_carbon'] ?? 0);
+        $blending = $idBlending > 0 ? BlendingCarbonData::get_blending($idBlending) : null;
 
         $evidenciasJson = isset($c['evidencias']) && $c['evidencias'] !== null
             ? (is_string($c['evidencias']) ? $c['evidencias'] : json_encode($c['evidencias'], JSON_UNESCAPED_UNICODE))
@@ -600,18 +646,23 @@ class VentaCarbonData
         $datos = [
             'id_venta_carbon' => $id_venta_carbon,
             'id_empleado_registro' => $id_empleado,
-            'id_tipo_carbon' => (int) $c['id_tipo_carbon'],
-            'id_vehiculo_carbon' => null,
-            'calidad' => (string) $c['calidad'],
+            'id_tipo_carbon' => $blending !== null ? (int) $blending->id_tipo_carbon : null,
+            'id_vehiculo_carbon' => isset($c['id_vehiculo_carbon']) && (int) $c['id_vehiculo_carbon'] > 0
+                ? (int) $c['id_vehiculo_carbon']
+                : null,
             'cantidad_toneladas' => $cantidad,
-            'segunda_placa' => null,
+            'segunda_placa' => isset($c['segunda_placa']) && $c['segunda_placa'] !== ''
+                ? strtoupper((string) $c['segunda_placa'])
+                : null,
             'fecha_hora_salida' => (string) $c['fecha_hora_salida'],
             'fecha_hora_ingreso' => null,
             'guia_remitente' => null,
             'guia_transportista' => null,
             'codigo_ticket_balanza' => null,
             'observacion' => null,
-            'porcentaje_ceniza' => 0,
+            'porcentaje_ceniza' => isset($c['porcentaje_ceniza'])
+                ? round((float) $c['porcentaje_ceniza'], 4)
+                : ($blending !== null ? round((float) $blending->porcentaje_ceniza, 4) : 0),
             'porcentaje_humedad' => 0,
             'porcentaje_azufre' => 0,
             'porcentaje_pizarra' => 0,
@@ -625,8 +676,10 @@ class VentaCarbonData
             'estado' => EstadoCargaVentaCarbon::EnCamino->value,
         ];
 
-        // Columnas de la liquidacion: solo se escriben si ya existen.
+        // Columnas de la liquidacion y del blending: solo se escriben si ya
+        // existen.
         $datos = array_merge($datos, self::solo_columnas_existentes([
+            'id_blending_carbon' => $idBlending > 0 ? $idBlending : null,
             'id_liquidacion_venta_carbon' => null,
             'fue_aceptado' => 0,
             'precio_materia_prima' => 0,
@@ -640,34 +693,31 @@ class VentaCarbonData
     }
 
     /**
-     * Stock realmente disponible de un tipo/calidad en un almacen de salida.
+     * Stock realmente despachable de un blending en un almacen de salida.
      *
-     * Descuenta del stock fisico las cargas que ya salieron del patio pero
-     * todavia no confirmaron su llegada: esas toneladas estan comprometidas
-     * y no se pueden volver a despachar.
+     * Descuenta del stock del blending las cargas que ya salieron del patio
+     * pero todavia no confirmaron su llegada: esas toneladas estan
+     * comprometidas y no se pueden volver a despachar.
      *
      * @param int $idCargaExcluir Carga que se esta evaluando (para no contarse a si misma).
      */
-    public static function calcular_stock_disponible(
+    public static function calcular_stock_disponible_blending(
+        int $id_blending,
         int $id_almacen,
-        int $id_tipo_carbon,
-        string $calidad,
         int $idCargaExcluir = 0
     ): float {
-        $stock = DB::table('stock_carbon')
-            ->where('id_almacen', $id_almacen)
-            ->where('id_tipo_carbon', $id_tipo_carbon)
-            ->where('calidad', $calidad)
-            ->first();
+        $blending = BlendingCarbonData::get_blending($id_blending);
+        if ($blending === null) {
+            return 0.0;
+        }
 
-        $stockActual = $stock !== null ? (float) $stock->stock_actual : 0.0;
+        $stockActual = (float) $blending->stock_actual;
 
         $comprometido = (float) DB::table('carga_venta_carbon')
             ->selectRaw('COALESCE(SUM(carga_venta_carbon.cantidad_toneladas), 0) AS total')
             ->join('venta_carbon', 'venta_carbon.id', '=', 'carga_venta_carbon.id_venta_carbon')
             ->where('venta_carbon.id_almacen_empresa_salida', $id_almacen)
-            ->where('carga_venta_carbon.id_tipo_carbon', $id_tipo_carbon)
-            ->where('carga_venta_carbon.calidad', $calidad)
+            ->where('carga_venta_carbon.id_blending_carbon', $id_blending)
             ->where('carga_venta_carbon.estado', EstadoCargaVentaCarbon::EnCamino->value)
             ->when($idCargaExcluir > 0, fn ($q) => $q->where('carga_venta_carbon.id', '!=', $idCargaExcluir))
             ->value('total');
@@ -676,7 +726,8 @@ class VentaCarbonData
     }
 
     /**
-     * Descuenta el stock del almacen de salida y escribe el asiento de Kardex.
+     * Descuenta el stock del blending despachado y escribe el asiento de
+     * Kardex.
      *
      * Se ejecuta al CONFIRMAR LA LLEGADA: el asiento queda fechado en
      * `fecha_hora_ingreso` y enlazado a la carga via
@@ -686,38 +737,34 @@ class VentaCarbonData
         int $idAlmacen,
         int $idTipoCarbon,
         int $idCarga,
+        int $idBlending,
         float $cantidad,
-        string $calidad,
+        float $porcentajeCeniza,
         string $fechaHoraIngreso
     ): void {
-        $stock = DB::table('stock_carbon')
-            ->where('id_almacen', $idAlmacen)
-            ->where('id_tipo_carbon', $idTipoCarbon)
-            ->where('calidad', $calidad)
+        $blending = DB::table('blending_carbon')
+            ->where('id', $idBlending)
             ->lockForUpdate()
             ->first();
 
-        if ($stock === null) {
-            throw new \RuntimeException(
-                'No hay stock registrado de la calidad ' . $calidad
-                . ' para ese tipo de carbon en el almacen de salida'
-            );
+        if ($blending === null) {
+            throw new \RuntimeException('El blending de la carga no existe');
         }
 
-        $stockAnterior = (float) $stock->stock_actual;
+        $stockAnterior = (float) $blending->stock_actual;
 
         if ($stockAnterior + 0.0001 < $cantidad) {
             throw new \RuntimeException(
-                'No hay stock suficiente de la calidad ' . $calidad
-                . ' en el almacen de salida (disponible: '
+                'No hay stock suficiente del blending ' . $blending->correlativo
+                . ' (disponible: '
                 . rtrim(rtrim(number_format($stockAnterior, 2), '0'), '.') . ' TN)'
             );
         }
 
         $stockResultante = round($stockAnterior - $cantidad, 4);
 
-        DB::table('stock_carbon')
-            ->where('id', $stock->id)
+        DB::table('blending_carbon')
+            ->where('id', $idBlending)
             ->update(['stock_actual' => max(0.0, $stockResultante)]);
 
         $movimiento = [
@@ -725,7 +772,7 @@ class VentaCarbonData
             'id_tipo_carbon' => $idTipoCarbon,
             'fecha_hora_movimiento' => $fechaHoraIngreso,
             'tipo_movimiento' => KardexTipoMovimiento::Salida->value,
-            'calidad' => $calidad,
+            'calidad' => self::calidad_por_porcentaje_ceniza($porcentajeCeniza),
             'stock_anterior' => $stockAnterior,
             'cantidad_movimiento' => $cantidad,
             'stock_resultante' => max(0.0, $stockResultante),
@@ -750,11 +797,33 @@ class VentaCarbonData
     }
 
     /**
+     * Traduce un porcentaje de ceniza a la calidad de carbon que le
+     * corresponde segun los rangos de `calidad_carbon`.
+     *
+     * El catalogo es el fuente de verdad (puede tener mas filas que el enum
+     * `TipoCalidadCarbon`).
+     */
+    public static function calidad_por_porcentaje_ceniza(float $porcentaje): ?string
+    {
+        if ($porcentaje <= 0) {
+            return null;
+        }
+
+        $fila = DB::table('calidad_carbon')
+            ->where('porcentaje_inicio_ceniza', '<=', $porcentaje)
+            ->where('porcentaje_fin_ceniza', '>', $porcentaje)
+            ->orderBy('porcentaje_inicio_ceniza', 'asc')
+            ->first();
+
+        return $fila !== null ? (string) $fila->nombre : null;
+    }
+
+    /**
      * Confirma la llegada de una carga al almacen del cliente.
      *
      * Aqui se cierra el ciclo del carbon: se registra la recepcion en destino,
      * el analisis de calidad, el peso confirmado, el vehiculo y se descuenta
-     * el stock del almacen de salida con su asiento de Kardex.
+     * el stock del blending con su asiento de Kardex.
      *
      * @param array<string, mixed> $d
      */
@@ -786,28 +855,36 @@ class VentaCarbonData
             }
 
             $cantidadConfirmada = round((float) $d['cantidad_toneladas'], 4);
-            $calidad = (string) $d['calidad'];
-            $idTipoConfirmado = (int) $d['id_tipo_carbon'];
             $idAlmacenSalida = (int) $venta->id_almacen_empresa_salida;
 
-            // El tipo o la calidad pueden corregirse al confirmar: en ese caso
-            // el stock a descontar es el del tipo/calidad final.
-            $disponible = self::calcular_stock_disponible(
+            $idBlending = (int) ($carga->id_blending_carbon ?? 0);
+            if ($idBlending <= 0) {
+                throw new \RuntimeException('La carga no tiene blending asignado');
+            }
+
+            // El stock a descontar es el del blending: se valida que alcance
+            // para la cantidad confirmada.
+            $disponible = self::calcular_stock_disponible_blending(
+                $idBlending,
                 $idAlmacenSalida,
-                $idTipoConfirmado,
-                $calidad,
                 $id_carga_venta_carbon
             );
 
             if ($disponible + 0.0001 < $cantidadConfirmada) {
                 throw new \RuntimeException(
-                    'No hay stock suficiente de la calidad ' . $calidad
-                    . ' en el almacen de salida (disponible: '
+                    'No hay stock suficiente del blending para confirmar la llegada (disponible: '
                     . rtrim(rtrim(number_format($disponible, 2), '0'), '.') . ' TN)'
                 );
             }
 
-            $esTipoA = self::es_tipo_a($idTipoConfirmado);
+            // El tipo de carbon lo hereda el blending: no se corrige al
+            // confirmar la llegada (eso romperia el vinculo con el lote).
+            $blending = BlendingCarbonData::get_blending($idBlending);
+            $idTipoCarbon = $blending !== null
+                ? (int) $blending->id_tipo_carbon
+                : (int) ($carga->id_tipo_carbon ?? 0);
+
+            $esTipoA = self::es_tipo_a($idTipoCarbon);
 
             $analisis = null;
             if ($esTipoA && isset($d['analisis_granulometria']) && is_array($d['analisis_granulometria'])) {
@@ -820,9 +897,16 @@ class VentaCarbonData
 
             $fueAceptado = !empty($d['fue_aceptado']);
 
+            // El % de ceniza: si al confirmar no se digita, se conserva el que
+            // la carga trae del blending (no se pierde la informacion).
+            $porcentajeCeniza = isset($d['porcentaje_ceniza']) && (float) $d['porcentaje_ceniza'] > 0
+                ? round((float) $d['porcentaje_ceniza'], 4)
+                : round((float) ($carga->porcentaje_ceniza ?? 0), 4);
+
             // Si la carga fue aceptada, la observacion se arma sola.
+            $nombreTipo = (string) ($d['nombre_tipo_carbon'] ?? '');
             $observacion = $fueAceptado
-                ? 'ACEPTADO COMO ' . (string) $d['nombre_tipo_carbon']
+                ? 'ACEPTADO COMO ' . $nombreTipo
                 : (isset($d['observacion']) && $d['observacion'] !== '' ? (string) $d['observacion'] : null);
 
             // Las evidencias se acumulan: se conservan las del despacho y se
@@ -841,21 +925,20 @@ class VentaCarbonData
             }
 
             $actualizacion = [
-                'id_tipo_carbon' => $idTipoConfirmado,
-                'calidad' => $calidad,
+                'id_tipo_carbon' => $idTipoCarbon,
                 'cantidad_toneladas' => $cantidadConfirmada,
                 'fecha_hora_ingreso' => (string) $d['fecha_hora_ingreso'],
                 'id_vehiculo_carbon' => isset($d['id_vehiculo_carbon']) && (int) $d['id_vehiculo_carbon'] > 0
                     ? (int) $d['id_vehiculo_carbon']
-                    : null,
+                    : $carga->id_vehiculo_carbon,
                 'segunda_placa' => isset($d['segunda_placa']) && $d['segunda_placa'] !== ''
                     ? strtoupper((string) $d['segunda_placa'])
-                    : null,
+                    : $carga->segunda_placa,
                 'guia_remitente' => isset($d['guia_remitente']) && $d['guia_remitente'] !== '' ? (string) $d['guia_remitente'] : null,
                 'guia_transportista' => isset($d['guia_transportista']) && $d['guia_transportista'] !== '' ? (string) $d['guia_transportista'] : null,
                 'codigo_ticket_balanza' => isset($d['codigo_ticket_balanza']) && $d['codigo_ticket_balanza'] !== '' ? (string) $d['codigo_ticket_balanza'] : null,
                 'observacion' => $observacion,
-                'porcentaje_ceniza' => round((float) ($d['porcentaje_ceniza'] ?? 0), 4),
+                'porcentaje_ceniza' => $porcentajeCeniza,
                 'porcentaje_humedad' => round((float) ($d['porcentaje_humedad'] ?? 0), 4),
                 'porcentaje_azufre' => round((float) ($d['porcentaje_azufre'] ?? 0), 4),
                 'porcentaje_pizarra' => $esTipoA ? round((float) ($d['porcentaje_pizarra'] ?? 0), 4) : 0,
@@ -879,10 +962,11 @@ class VentaCarbonData
             // El asiento de Kardex se escribe al confirmar la llegada.
             self::afectar_stock_salida(
                 idAlmacen: $idAlmacenSalida,
-                idTipoCarbon: $idTipoConfirmado,
+                idTipoCarbon: $idTipoCarbon,
                 idCarga: $id_carga_venta_carbon,
+                idBlending: $idBlending,
                 cantidad: $cantidadConfirmada,
-                calidad: $calidad,
+                porcentajeCeniza: $porcentajeCeniza,
                 fechaHoraIngreso: (string) $d['fecha_hora_ingreso'],
             );
         });
@@ -972,34 +1056,24 @@ class VentaCarbonData
     }
 
     /**
-     * Catalogo de calidades de carbon.
+     * Blendings despachables de un almacen.
      *
-     * La tabla `calidad_carbon` es el fuente de verdad: puede tener mas
-     * calidades que el enum `TipoCalidadCarbon` (por ejemplo `Calidad`, para
-     * el carbon con mas de 30% de ceniza).
-     *
-     * @return array<int, string>
+     * @return array<object>
      */
-    public static function get_calidades(): array
+    public static function get_blendings_despachables(int $id_almacen): array
     {
-        return DB::table('calidad_carbon')
-            ->pluck('nombre')
-            ->map(fn ($n) => (string) $n)
-            ->all();
+        return BlendingCarbonData::get_blendings_despachables($id_almacen);
     }
 
     /**
-     * Devuelve la cantidad de stock disponible de un tipo/calidad en un almacen.
+     * Blending por su id.
+     *
+     * Vive en la capa Data de VentaCarbon para que el Service no tenga que
+     * Reach dentro del modulo de Produccion de Carbon.
      */
-    public static function get_stock_disponible(int $id_almacen, int $id_tipo_carbon, string $calidad): float
+    public static function get_blending(int $id_blending): ?object
     {
-        $stock = DB::table('stock_carbon')
-            ->where('id_almacen', $id_almacen)
-            ->where('id_tipo_carbon', $id_tipo_carbon)
-            ->where('calidad', $calidad)
-            ->first();
-
-        return $stock !== null ? (float) $stock->stock_actual : 0.0;
+        return BlendingCarbonData::get_blending($id_blending);
     }
 
     /**

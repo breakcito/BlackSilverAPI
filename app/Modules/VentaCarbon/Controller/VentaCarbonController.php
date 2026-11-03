@@ -11,7 +11,8 @@ use Illuminate\Support\Facades\Validator;
 class VentaCarbonController
 {
     /**
-     * Lista las ventas de carbon con sus cargas.
+     * Lista las ventas de carbon con su arbol completo (cargas,
+     * liquidaciones, comprobantes y pagos).
      */
     public function get_ventas(Request $request): JsonResponse
     {
@@ -69,10 +70,12 @@ class VentaCarbonController
             'porcentaje_igv' => 'nullable|numeric|min:0|max:100',
             'porcentaje_detraccion' => 'nullable|numeric|min:0|max:100',
             'cargas' => 'nullable|array',
-            'cargas.*.id_tipo_carbon' => 'required|integer|min:1',
+            'cargas.*.id_blending_carbon' => 'required|integer|min:1',
             'cargas.*.cantidad_toneladas' => 'required|numeric|min:0.0001',
-            'cargas.*.calidad' => 'required|string|max:64',
             'cargas.*.fecha_hora_salida' => 'required|string|max:30',
+            'cargas.*.id_vehiculo_carbon' => 'nullable|integer|min:1',
+            'cargas.*.segunda_placa' => 'nullable|string|max:20',
+            'cargas.*.porcentaje_ceniza' => 'nullable|numeric|min:0|max:100',
         ], [
             'id_empresa.required' => 'La empresa vendedora es requerida',
             'id_cliente.required' => 'El cliente es requerido',
@@ -81,10 +84,8 @@ class VentaCarbonController
             'id_almacen_cliente_llegada.required' => 'El almacen de llegada es requerido',
             'porcentaje_igv.max' => 'El porcentaje de IGV no puede superar el 100%',
             'porcentaje_detraccion.max' => 'El porcentaje de detraccion no puede superar el 100%',
-            'cargas.*.id_tipo_carbon.required' => 'El tipo de carbon es obligatorio en cada carga',
+            'cargas.*.id_blending_carbon.required' => 'El blending es obligatorio en cada carga',
             'cargas.*.cantidad_toneladas.required' => 'La cantidad de toneladas es obligatoria en cada carga',
-            'cargas.*.calidad.required' => 'La calidad del carbon es obligatoria en cada carga',
-            'cargas.*.calidad.max' => 'La calidad del carbon no es valida',
             'cargas.*.fecha_hora_salida.required' => 'La fecha y hora de salida es obligatoria en cada carga',
         ]);
 
@@ -120,15 +121,15 @@ class VentaCarbonController
         }
 
         $validator = Validator::make(['cargas' => $cargas], [
-            'cargas.*.id_tipo_carbon' => 'required|integer|min:1',
+            'cargas.*.id_blending_carbon' => 'required|integer|min:1',
             'cargas.*.cantidad_toneladas' => 'required|numeric|min:0.0001',
-            'cargas.*.calidad' => 'required|string|max:64',
             'cargas.*.fecha_hora_salida' => 'required|string|max:30',
+            'cargas.*.id_vehiculo_carbon' => 'nullable|integer|min:1',
+            'cargas.*.segunda_placa' => 'nullable|string|max:20',
+            'cargas.*.porcentaje_ceniza' => 'nullable|numeric|min:0|max:100',
         ], [
-            'cargas.*.id_tipo_carbon.required' => 'El tipo de carbon es obligatorio en cada carga',
+            'cargas.*.id_blending_carbon.required' => 'El blending es obligatorio en cada carga',
             'cargas.*.cantidad_toneladas.required' => 'La cantidad de toneladas es obligatoria en cada carga',
-            'cargas.*.calidad.required' => 'La calidad del carbon es obligatoria en cada carga',
-            'cargas.*.calidad.max' => 'La calidad del carbon no es valida',
             'cargas.*.fecha_hora_salida.required' => 'La fecha y hora de salida es obligatoria en cada carga',
         ]);
 
@@ -147,9 +148,9 @@ class VentaCarbonController
     }
 
     /**
-     * Stock disponible de carbon en un almacen de salida.
+     * Blendings despachables desde un almacen de salida.
      */
-    public function get_stock_disponible(Request $request): JsonResponse
+    public function get_blendings(Request $request): JsonResponse
     {
         $idAlmacen = (int) $request->query('id_almacen');
 
@@ -157,13 +158,15 @@ class VentaCarbonController
             return response()->json(ApiResponse::error('Debe indicar el almacen de salida'), 422);
         }
 
-        return response()->json(
-            ApiResponse::success(VentaCarbonService::get_stock_disponible($idAlmacen))
-        );
+        return response()->json(VentaCarbonService::get_blendings($idAlmacen));
     }
 
     /**
      * Confirma la llegada de una carga al almacen del cliente destino.
+     *
+     * El tipo de carbon lo hereda el blending de la carga: aqui ya no se
+     * elige. El vehiculo y la segunda placa son opcionales (se pudieron
+     * registrar al despachar).
      */
     public function confirmar_llegada(
         Request $request,
@@ -179,8 +182,6 @@ class VentaCarbonController
         }
 
         $validator = Validator::make([
-            'id_tipo_carbon' => $request->input('id_tipo_carbon'),
-            'calidad' => $request->input('calidad'),
             'cantidad_toneladas' => $request->input('cantidad_toneladas'),
             'fecha_hora_ingreso' => $request->input('fecha_hora_ingreso'),
             'id_vehiculo_carbon' => $request->input('id_vehiculo_carbon'),
@@ -196,11 +197,9 @@ class VentaCarbonController
             'fue_aceptado' => $request->boolean('fue_aceptado'),
             'analisis_granulometria' => $analisis,
         ], [
-            'id_tipo_carbon' => 'required|integer|min:1',
-            'calidad' => 'required|string|max:64',
             'cantidad_toneladas' => 'required|numeric|min:0.0001',
             'fecha_hora_ingreso' => 'required|string|max:30',
-            'id_vehiculo_carbon' => 'required|integer|min:1',
+            'id_vehiculo_carbon' => 'nullable|integer|min:1',
             'segunda_placa' => 'nullable|string|max:20',
             'porcentaje_ceniza' => 'nullable|numeric|min:0|max:100',
             'porcentaje_humedad' => 'nullable|numeric|min:0|max:100',
@@ -216,12 +215,8 @@ class VentaCarbonController
             'analisis_granulometria.menor_a_uno' => 'nullable|numeric|min:0|max:100',
             'analisis_granulometria.un_medio' => 'nullable|numeric|min:0|max:100',
         ], [
-            'id_tipo_carbon.required' => 'Debe indicar el tipo de carbon confirmado',
-            'calidad.required' => 'Debe indicar la calidad del carbon que llego',
-            'calidad.max' => 'La calidad del carbon no es valida',
             'cantidad_toneladas.required' => 'Debe indicar la cantidad confirmada',
             'fecha_hora_ingreso.required' => 'Debe indicar la fecha y hora de ingreso',
-            'id_vehiculo_carbon.required' => 'Debe indicar el vehiculo que transporto la carga',
         ]);
 
         if ($validator->fails()) {

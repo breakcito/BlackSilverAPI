@@ -17,12 +17,13 @@ class CargaVentaCarbon extends Model
     protected $fillable = [
         'id_venta_carbon',
         'id_empleado_registro',
-        'id_tipo_carbon', // el que se esta enviando
+        'id_blending_carbon', // el lote/blending que se va a despachar
+        'id_tipo_carbon', // el que se esta enviando, autoelegir segun el blend
         'id_vehiculo_carbon', // se indica cuando llega
         'id_liquidacion_venta_carbon', // se llena cuando se arma la liquidacion
         //
         // DATOS QUE PONE AL SALIR/REGISTRAR, ademas del tipo de carbon
-        'calidad', // enum: Baja |Intermedia | Alta
+
         'fecha_hora_salida',
         //
         // DATOS QUE PONE AL LLEGAR

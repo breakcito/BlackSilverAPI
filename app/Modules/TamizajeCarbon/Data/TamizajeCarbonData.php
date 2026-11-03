@@ -76,8 +76,11 @@ class TamizajeCarbonData
 
         $filtros = trim((string) ($opts['filtros'] ?? ''));
         if ($filtros !== '') {
-            $sql .= ' AND (tc.nombre LIKE :q OR tc.codigo LIKE :q OR alm.nombre LIKE :q)';
-            $params['q'] = '%' . $filtros . '%';
+            $sql .= ' AND (tc.nombre LIKE :q1 OR tc.codigo LIKE :q2 OR alm.nombre LIKE :q3)';
+            $like = '%' . $filtros . '%';
+            $params['q1'] = $like;
+            $params['q2'] = $like;
+            $params['q3'] = $like;
         }
 
         $sql .= ' ORDER BY tc.para_compra DESC, tc.nombre ASC, alm.nombre ASC, s.calidad ASC';
@@ -192,8 +195,11 @@ class TamizajeCarbonData
 
         $filtros = trim((string) ($opts['filtros'] ?? ''));
         if ($filtros !== '') {
-            $sql .= ' AND (tc.nombre LIKE :q OR alm.nombre LIKE :q OR tz.calidad LIKE :q)';
-            $params['q'] = '%' . $filtros . '%';
+            $sql .= ' AND (tc.nombre LIKE :q1 OR alm.nombre LIKE :q2 OR tz.calidad LIKE :q3)';
+            $like = '%' . $filtros . '%';
+            $params['q1'] = $like;
+            $params['q2'] = $like;
+            $params['q3'] = $like;
         }
 
         $sql .= ' ORDER BY tz.fecha_hora_zarandeo DESC, tz.id DESC';

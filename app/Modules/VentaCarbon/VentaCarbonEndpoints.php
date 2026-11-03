@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
  *
  * - GET  /api/ventas-carbon                       -> listar ventas con el arbol completo
  * - POST /api/ventas-carbon                       -> registrar venta (cargas opcionales)
- * - GET  /api/ventas-carbon/stock-disponible      -> stock disponible por tipo/calidad
+ * - GET  /api/ventas-carbon/blendings             -> blendings despachables del almacen
  * - GET  /api/ventas-carbon/{id_venta_carbon}      -> detalle de la venta
  * - POST /api/ventas-carbon/{id}/cargas           -> despachar cargas de una venta
  * - POST /api/ventas-carbon/{id}/cargas/{id_carga}/confirmar-llegada
@@ -23,9 +23,9 @@ Route::middleware('auth.jwt.custom')->group(function () {
     Route::prefix('ventas-carbon')->controller(VentaCarbonController::class)->group(function () {
         Route::get('/', 'get_ventas');
         Route::post('/', 'registrar_venta');
-        // Ruta estatica antes que las dinamicas: si no, "stock-disponible"
-        // se interpretaria como un id de venta.
-        Route::get('stock-disponible', 'get_stock_disponible');
+        // Rutas estaticas antes que las dinamicas: si no, "blendings" se
+        // interpretaria como un id de venta.
+        Route::get('blendings', 'get_blendings');
         Route::get('{id_venta_carbon}', 'get_venta');
         Route::post('{id_venta_carbon}/cargas', 'registrar_cargas');
         Route::post(

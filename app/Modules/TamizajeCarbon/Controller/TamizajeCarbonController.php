@@ -198,13 +198,25 @@ class TamizajeCarbonController
     /**
      * Lista los gastos de producción de un zarandeo.
      */
-    public function get_gastos(int $id_zarandeo_carbon): JsonResponse
+    public function get_gastos_zarandeo(int $id_zarandeo_carbon): JsonResponse
     {
-        return response()->json(GastoProduccionCarbonService::get_gastos($id_zarandeo_carbon));
+        return response()->json(
+            GastoProduccionCarbonService::get_gastos_zarandeo($id_zarandeo_carbon)
+        );
     }
 
     /**
-     * Registra un gasto de producción asociado a un zarandeo.
+     * Lista los gastos de producción de un blending.
+     */
+    public function get_gastos_blending(int $id_blending_carbon): JsonResponse
+    {
+        return response()->json(
+            GastoProduccionCarbonService::get_gastos_blending($id_blending_carbon)
+        );
+    }
+
+    /**
+     * Registra un gasto de producción asociado a un zarandeo o a un blending.
      */
     public function registrar_gasto(Request $request): JsonResponse
     {
@@ -215,7 +227,8 @@ class TamizajeCarbonController
         }
 
         $validator = Validator::make($request->all(), [
-            'id_zarandeo_carbon' => 'required|integer|min:1',
+            'id_zarandeo_carbon' => 'nullable|integer|min:1',
+            'id_blending_carbon' => 'nullable|integer|min:1',
             'gasto' => 'required|string|max:32',
             'otro_gasto' => 'nullable|string|max:256',
             'id_proveedor' => 'nullable|integer|min:1',
@@ -227,7 +240,6 @@ class TamizajeCarbonController
             'cantidad' => 'nullable|numeric|min:0',
             'precio_unitario' => 'required|numeric|min:0',
         ], [
-            'id_zarandeo_carbon.required' => 'El zarandeo es requerido',
             'gasto.required' => 'El tipo de gasto es obligatorio',
             'fecha.required' => 'La fecha del gasto es obligatoria',
             'precio_unitario.required' => 'El precio unitario es obligatorio',

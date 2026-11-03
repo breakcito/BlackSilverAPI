@@ -15,7 +15,11 @@ class GastoProduccionCarbon extends Model
 
     protected $fillable = [
         'id_empleado_registro', // en que almacen se dio esto
-        'id_zarandeo_carbon', // saber que tipo de carbon acaba de ingresar/salir
+        //
+        // o uno u otro
+        'id_zarandeo_carbon', // saber en que zarandeo se hizo este gasto
+        'id_blending_carbon', // saber en que blending se hizo este gasto
+        // 
         'id_proveedor', // solo cuando es agua
         //
         'gasto', // enum TipoGastoZarandeo: Pala | Lanza | Agua | Escogedores | Otro
