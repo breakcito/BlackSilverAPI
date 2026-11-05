@@ -596,6 +596,7 @@ class BlendingCarbonData
             LEFT JOIN tipo_carbon tc ON tc.id = b.id_tipo_carbon
             WHERE b.id_almacen = :id_almacen
               AND (b.estado IS NULL OR b.estado = "Activo")
+              AND b.stock_actual > 0
             ORDER BY b.id DESC
         ', [
             'id_almacen' => $id_almacen,
@@ -605,14 +606,23 @@ class BlendingCarbonData
             'estado_en_camino' => \App\Shared\Enums\VentaCarbon\EstadoCargaVentaCarbon::EnCamino->value,
         ]);
 
+        $despachables = [];
+
         foreach ($rows as $row) {
             $row->disponible = max(
                 0.0,
                 round((float) $row->stock_actual - (float) ($row->comprometido ?? 0), 4)
             );
+
+            // Solo se devuelven los blendings que AUN tienen stock: si lo
+            // que ya salio y sigue en camino se lo comio, no hay nada mas
+            // que despachar de ese lote.
+            if ($row->disponible > 0) {
+                $despachables[] = $row;
+            }
         }
 
-        return $rows;
+        return $despachables;
     }
 
     /**

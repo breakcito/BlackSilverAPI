@@ -739,8 +739,7 @@ class VentaCarbonData
         int $idCarga,
         int $idBlending,
         float $cantidad,
-        float $porcentajeCeniza,
-        string $fechaHoraIngreso
+        string $fechaHoraSalida
     ): void {
         $blending = DB::table('blending_carbon')
             ->where('id', $idBlending)
@@ -770,9 +769,13 @@ class VentaCarbonData
         $movimiento = [
             'id_almacen' => $idAlmacen,
             'id_tipo_carbon' => $idTipoCarbon,
-            'fecha_hora_movimiento' => $fechaHoraIngreso,
+            // El asiento se fecha con la SALIDA de la carga: el carbon salio
+            // del almacen en ese momento, no cuando llego al cliente.
+            'fecha_hora_movimiento' => $fechaHoraSalida,
             'tipo_movimiento' => KardexTipoMovimiento::Salida->value,
-            'calidad' => self::calidad_por_porcentaje_ceniza($porcentajeCeniza),
+            // La calidad no se indica en la salida de carbon: el blending es
+            // una mezcla de varias calidades y no tiene una sola.
+            'calidad' => null,
             'stock_anterior' => $stockAnterior,
             'cantidad_movimiento' => $cantidad,
             'stock_resultante' => max(0.0, $stockResultante),
@@ -959,15 +962,15 @@ class VentaCarbonData
                 ->where('id', $id_carga_venta_carbon)
                 ->update($actualizacion);
 
-            // El asiento de Kardex se escribe al confirmar la llegada.
+            // El asiento de Kardex se escribe al confirmar la llegada y se
+            // fecha con la SALIDA de la carga.
             self::afectar_stock_salida(
                 idAlmacen: $idAlmacenSalida,
                 idTipoCarbon: $idTipoCarbon,
                 idCarga: $id_carga_venta_carbon,
                 idBlending: $idBlending,
                 cantidad: $cantidadConfirmada,
-                porcentajeCeniza: $porcentajeCeniza,
-                fechaHoraIngreso: (string) $d['fecha_hora_ingreso'],
+                fechaHoraSalida: (string) ($carga->fecha_hora_salida ?? $d['fecha_hora_ingreso']),
             );
         });
     }
