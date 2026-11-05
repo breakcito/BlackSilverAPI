@@ -205,6 +205,7 @@ class VentaCarbonData
                 vc.id_cliente_destino,
                 cd.razon_social AS cliente_destino,
                 cd.ruc AS cliente_destino_ruc,
+                cd.dni AS cliente_destino_dni,
                 vc.id_almacen_empresa_salida,
                 ae.nombre AS almacen_empresa_salida,
                 vc.id_almacen_cliente_llegada,

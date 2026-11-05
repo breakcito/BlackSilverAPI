@@ -11,7 +11,7 @@ class TransaccionAnticipoCliente extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_anticipo',
+        'id_anticipo_cliente',
         'id_comprobante_venta_carbon',
         'monto_retirado', // cuanto se uso del anticipo
     ];

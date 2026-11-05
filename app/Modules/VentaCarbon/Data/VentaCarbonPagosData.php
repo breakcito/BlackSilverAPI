@@ -81,10 +81,12 @@ class VentaCarbonPagosData
 
         $idsComprobante = array_map(fn ($c) => (int) $c->id_comprobante_venta_carbon, $comprobantes);
         $pagosPorComprobante = self::get_pagos_por_comprobante($idsComprobante);
+        $anticiposPorComprobante = self::get_anticipos_por_comprobante($idsComprobante);
 
         foreach ($comprobantes as $comprobante) {
             $idComprobante = (int) $comprobante->id_comprobante_venta_carbon;
             $comprobante->pagos = $pagosPorComprobante[$idComprobante] ?? [];
+            $comprobante->anticipos_utilizados = $anticiposPorComprobante[$idComprobante] ?? [];
         }
 
         $comprobantesPorLiquidacion = [];
@@ -244,6 +246,7 @@ class VentaCarbonPagosData
                 p.id_comprobante_venta_carbon,
                 p.id_cuenta_bancaria_empresa,
                 cbe.numero_cuenta AS empresa_numero_cuenta,
+                cbe.cci AS empresa_cci,
                 be.nombre AS empresa_banco,
                 be.abreviatura AS empresa_banco_abv,
                 p.medio_pago,
@@ -268,6 +271,57 @@ class VentaCarbonPagosData
         foreach ($rows as $row) {
             $row->evidencias = VentaCarbonData::decode_json($row->evidencias ?? null);
             $row->es_para_detraccion = (int) ($row->es_para_detraccion ?? 0) === 1;
+            $resultado[(int) $row->id_comprobante_venta_carbon][] = $row;
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * Anticipos del cliente aplicados a cada comprobante.
+     *
+     * `transaccion_anticipo_cliente` es la tabla puente: cada fila es el uso
+     * de un anticipo (`anticipo_cliente`) en un comprobante de venta, con el
+     * monto que se tomo de ese anticipo (`monto_retirado`).
+     *
+     * @param int[] $ids_comprobante
+     * @return array<int, array<object>> Indexado por id de comprobante.
+     */
+    private static function get_anticipos_por_comprobante(array $ids_comprobante): array
+    {
+        if (empty($ids_comprobante) || !Schema::hasTable('transaccion_anticipo_cliente')) {
+            return [];
+        }
+
+        $placeholders = [];
+        $params = [];
+        foreach (array_values($ids_comprobante) as $i => $id) {
+            $key = 'id_cmp_anticipo_' . $i;
+            $placeholders[] = ':' . $key;
+            $params[$key] = (int) $id;
+        }
+
+        $sql = '
+            SELECT
+                tac.id AS id_transaccion,
+                tac.id_anticipo_cliente,
+                tac.id_comprobante_venta_carbon,
+                tac.monto_retirado,
+                ac.medio_pago,
+                ac.numero_operacion,
+                ac.fecha_hora_pago,
+                ac.codigo_comprobante,
+                ac.observacion
+            FROM transaccion_anticipo_cliente tac
+            INNER JOIN anticipo_cliente ac ON ac.id = tac.id_anticipo_cliente
+            WHERE tac.id_comprobante_venta_carbon IN (' . implode(',', $placeholders) . ')
+            ORDER BY tac.id ASC
+        ';
+
+        $rows = DB::select($sql, $params);
+
+        $resultado = [];
+        foreach ($rows as $row) {
             $resultado[(int) $row->id_comprobante_venta_carbon][] = $row;
         }
 

@@ -2,6 +2,7 @@
 
 use App\Modules\VentaCarbon\Controller\VentaCarbonController;
 use App\Modules\VentaCarbon\Controller\VentaCarbonPagosController;
+use App\Modules\VentaCarbon\Controller\VentaCarbonReporteController;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -9,6 +10,7 @@ use Illuminate\Support\Facades\Route;
  *
  * - GET  /api/ventas-carbon                       -> listar ventas con el arbol completo
  * - POST /api/ventas-carbon                       -> registrar venta (cargas opcionales)
+ * - GET  /api/ventas-carbon/reporte               -> "Registro de Ventas" por anio
  * - GET  /api/ventas-carbon/blendings             -> blendings despachables del almacen
  * - GET  /api/ventas-carbon/{id_venta_carbon}      -> detalle de la venta
  * - POST /api/ventas-carbon/{id}/cargas           -> despachar cargas de una venta
@@ -20,6 +22,13 @@ use Illuminate\Support\Facades\Route;
  * - POST /api/ventas-carbon/{id}/comprobantes/{id_comprobante}/pagos
  */
 Route::middleware('auth.jwt.custom')->group(function () {
+    // Reporte de "Registro de Ventas" por anio.
+    // Se declara ANTES del grupo con `{id_venta_carbon}` para que "reporte"
+    // no se interprete como un id de venta.
+    Route::prefix('ventas-carbon')->controller(VentaCarbonReporteController::class)->group(function () {
+        Route::get('reporte', 'get_reporte');
+    });
+
     Route::prefix('ventas-carbon')->controller(VentaCarbonController::class)->group(function () {
         Route::get('/', 'get_ventas');
         Route::post('/', 'registrar_venta');
