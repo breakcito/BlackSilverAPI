@@ -42,6 +42,20 @@ class KardexCarbonData
                 cli.razon_social AS cliente_razon_social,
                 lv.codigo_orden_compra AS venta_codigo_orden_compra,
                 lv.numero_reporte AS venta_numero_reporte,
+                -- Socio comercial del movimiento: la venta trae al cliente y
+                -- la compra al proveedor. Se decide por la carga de origen,
+                -- no por el tipo de movimiento: una compra tambien genera
+                -- salidas (reversion por edicion de la carga).
+                CASE
+                    WHEN k.id_carga_venta_carbon IS NOT NULL THEN \'Cliente\'
+                    WHEN k.id_carga_compra_carbon IS NOT NULL THEN \'Proveedor\'
+                    ELSE NULL
+                END AS socio_tipo,
+                CASE
+                    WHEN k.id_carga_venta_carbon IS NOT NULL THEN cli.razon_social
+                    WHEN k.id_carga_compra_carbon IS NOT NULL THEN prov.razon_social
+                    ELSE NULL
+                END AS socio_razon_social,
                 k.fecha_hora_movimiento,
                 k.tipo_movimiento,
                 k.calidad,
@@ -96,7 +110,7 @@ class KardexCarbonData
 
         $filtros = trim((string) ($opts['filtros'] ?? ''));
         if ($filtros !== '') {
-            $sql .= ' AND (tc.nombre LIKE :q OR tc.codigo LIKE :q OR c.codigo_ticket_balanza LIKE :q OR c.placa LIKE :q OR cc.correlativo LIKE :q OR cv.codigo_ticket_balanza LIKE :q OR veh.placa LIKE :q OR lv.codigo_orden_compra LIKE :q OR lv.numero_reporte LIKE :q OR cli.razon_social LIKE :q)';
+            $sql .= ' AND (tc.nombre LIKE :q OR tc.codigo LIKE :q OR c.codigo_ticket_balanza LIKE :q OR c.placa LIKE :q OR cc.correlativo LIKE :q OR cv.codigo_ticket_balanza LIKE :q OR veh.placa LIKE :q OR lv.codigo_orden_compra LIKE :q OR lv.numero_reporte LIKE :q OR cli.razon_social LIKE :q OR prov.razon_social LIKE :q)';
             $params['q'] = '%' . $filtros . '%';
         }
 
