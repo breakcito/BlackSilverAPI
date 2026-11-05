@@ -5,6 +5,8 @@ namespace App\Modules\VentaCarbon\Data;
 use App\Models\ComprobanteVentaCarbon;
 use App\Models\LiquidacionVentaCarbon;
 use App\Models\PagoVentaCarbon;
+use App\Models\TransaccionAnticipoCliente;
+use App\Shared\Enums\AnticipoCliente\EstadoAnticipo as EstadoAnticipoCliente;
 use App\Shared\Enums\VentaCarbon\EstadoCargaVentaCarbon;
 use App\Shared\Enums\VentaCarbon\EstadoComprobanteVentaCarbon;
 use App\Shared\Enums\VentaCarbon\EstadoLiquidacionVentaCarbon;
@@ -213,6 +215,16 @@ class VentaCarbonPagosData
 
         foreach ($rows as $row) {
             $row->evidencias = VentaCarbonData::decode_json($row->evidencias ?? null);
+        }
+
+        // Anticipos del cliente amortizados contra cada comprobante.
+        $anticiposPorComprobante = self::get_anticipos_por_comprobante(
+            array_map(fn ($c) => (int) $c->id_comprobante_venta_carbon, $rows)
+        );
+
+        foreach ($rows as $row) {
+            $row->anticipos_aplicados =
+                $anticiposPorComprobante[(int) $row->id_comprobante_venta_carbon] ?? [];
         }
 
         return $rows;
@@ -703,7 +715,18 @@ class VentaCarbonPagosData
     /**
      * Registra el comprobante de una liquidacion confirmada.
      *
-     * @param array<string, mixed> $d
+     * Los anticipos del cliente se amortizan contra este comprobante: se
+     * descuenta su saldo y queda el asiento en `transaccion_anticipo_cliente`.
+     *
+     * @param array{
+     *   id_liquidacion_venta_carbon: int,
+     *   id_empleado_registro: int,
+     *   codigo_comprobante: string,
+     *   fecha_emision: string,
+     *   observacion?: string|null,
+     *   evidencias?: mixed,
+     *   anticipos?: array<int, array{id_anticipo: int, monto_retirado: float}>
+     * } $d
      */
     public static function registrar_comprobante(array $d): int
     {
@@ -735,19 +758,19 @@ class VentaCarbonPagosData
 
             $idVenta = (int) $liquidacion->id_venta_carbon;
 
-            // Los importes del comprobante son LOS MISMOS de la liquidacion,
-            // tal cual: no se recalculan. Asi el comprobante nunca discrepa de
-            // la liquidacion que lo respalda.
-            $subtotal = round((float) $liquidacion->subtotal, 2);
-            // Por ahora no se aplican anticipos: el campo queda en 0.
-            $montoAnticipos = 0.0;
-            $baseImponible = max(0.0, round($subtotal - $montoAnticipos, 2));
-            $montoIgv = round((float) $liquidacion->monto_igv, 2);
-            $importeTotal = round((float) $liquidacion->total, 2);
-            $montoDetraccion = round((float) $liquidacion->monto_detraccion, 2);
-            $montoNeto = round((float) $liquidacion->neto_a_pagar, 2);
+            // Anticipos del cliente que se amortizan contra este comprobante.
+            [$montoAnticipos, $transaccionesAnticipos] = self::aplicar_anticipos(
+                idVenta: $idVenta,
+                anticipos: $d['anticipos'] ?? [],
+            );
 
-            return ComprobanteVentaCarbon::insertGetId([
+            $importes = self::calcular_importes_comprobante(
+                liquidacion: $liquidacion,
+                idVenta: $idVenta,
+                montoAnticipos: $montoAnticipos,
+            );
+
+            $idComprobante = ComprobanteVentaCarbon::insertGetId([
                 'id_empleado_registro' => (int) $d['id_empleado_registro'],
                 'id_venta_carbon' => $idVenta,
                 'id_liquidacion_venta_carbon' => $idLiquidacion,
@@ -757,19 +780,182 @@ class VentaCarbonPagosData
                     ? (string) $d['observacion']
                     : null,
                 'evidencias' => self::encode_json($d['evidencias'] ?? null),
-                'subtotal' => $subtotal,
+                'subtotal' => round((float) $liquidacion->subtotal, 2),
                 'monto_pagado_anticipos' => $montoAnticipos,
-                'base_imponible' => $baseImponible,
-                'monto_igv' => $montoIgv,
-                'importe_total' => $importeTotal,
-                'monto_detraccion' => $montoDetraccion,
-                'monto_neto' => $montoNeto,
+                'base_imponible' => $importes['base_imponible'],
+                'monto_igv' => $importes['monto_igv'],
+                'importe_total' => $importes['importe_total'],
+                'monto_detraccion' => $importes['monto_detraccion'],
+                'monto_neto' => $importes['monto_neto'],
                 'avance_pago_neto' => 0.0,
                 'avance_pago_detraccion' => 0.0,
                 'created_at' => now()->toDateTimeString(),
                 'estado' => EstadoComprobanteVentaCarbon::PendienteDePago->value,
             ]);
+
+            // Asiento de cada anticipo amortizado contra este comprobante.
+            foreach ($transaccionesAnticipos as $transaccion) {
+                TransaccionAnticipoCliente::insert([
+                    'id_anticipo_cliente' => $transaccion['id_anticipo'],
+                    'id_comprobante_venta_carbon' => $idComprobante,
+                    'monto_retirado' => $transaccion['monto_retirado'],
+                ]);
+            }
+
+            return $idComprobante;
         });
+    }
+
+    /**
+     * Amortiza anticipos del cliente contra la venta.
+     *
+     * Cada anticipo se bloquea (`lockForUpdate`), se le descuenta del saldo
+     * el monto retirado y se actualiza su estado (Con Saldo / Sin Saldo).
+     *
+     * El anticipo debe pertenecer al cliente facturado de la venta: un
+     * anticipo de otro cliente no puede amortizar esta factura. Tampoco
+     * puede estar anulado.
+     *
+     * @param array<int, array{id_anticipo: int, monto_retirado: float}> $anticipos
+     * @return array{0: float, 1: array<int, array{id_anticipo: int, monto_retirado: float}>}
+     *   Total aplicado y el detalle de los anticipos consumidos.
+     */
+    private static function aplicar_anticipos(int $idVenta, array $anticipos): array
+    {
+        if (empty($anticipos)) {
+            return [0.0, []];
+        }
+
+        // El asiento de la amortizacion es obligatorio: sin el, el saldo del
+        // anticipo se descuenta sin dejar rastro de en que comprobante se
+        // consumio.
+        if (!Schema::hasTable('transaccion_anticipo_cliente')) {
+            throw new \RuntimeException(
+                'Falta la tabla transaccion_anticipo_cliente: '
+                . 'aplica el script SQL de los anticipos del cliente'
+            );
+        }
+
+        $idCliente = (int) DB::table('venta_carbon')
+            ->where('id', $idVenta)
+            ->value('id_cliente');
+
+        $total = 0.0;
+        $transacciones = [];
+
+        foreach ($anticipos as $anticipo) {
+            $idAnticipo = (int) ($anticipo['id_anticipo'] ?? 0);
+            $montoRetirado = round((float) ($anticipo['monto_retirado'] ?? 0), 2);
+
+            if ($idAnticipo <= 0 || $montoRetirado <= 0) {
+                continue;
+            }
+
+            $fila = DB::table('anticipo_cliente')
+                ->where('id', $idAnticipo)
+                ->lockForUpdate()
+                ->first();
+
+            if ($fila === null) {
+                throw new \RuntimeException("El anticipo {$idAnticipo} no existe");
+            }
+
+            if ((int) $fila->id_cliente !== $idCliente) {
+                throw new \RuntimeException(
+                    "El anticipo {$idAnticipo} no pertenece al cliente facturado de la venta"
+                );
+            }
+
+            if ((int) ($fila->esta_anulado ?? 0) === 1) {
+                throw new \RuntimeException("El anticipo {$idAnticipo} esta anulado");
+            }
+
+            $saldoActual = round((float) $fila->saldo_actual, 2);
+            if ($saldoActual + 0.01 < $montoRetirado) {
+                throw new \RuntimeException(
+                    "El anticipo {$idAnticipo} no tiene saldo suficiente (disponible: S/ "
+                    . number_format($saldoActual, 2) . ')'
+                );
+            }
+
+            $nuevoSaldo = max(0.0, round($saldoActual - $montoRetirado, 2));
+
+            DB::table('anticipo_cliente')
+                ->where('id', $idAnticipo)
+                ->update([
+                    'saldo_actual' => $nuevoSaldo,
+                    'estado' => $nuevoSaldo <= 0.001
+                        ? EstadoAnticipoCliente::SinSaldo->value
+                        : EstadoAnticipoCliente::ConSaldo->value,
+                ]);
+
+            $total += $montoRetirado;
+            $transacciones[] = [
+                'id_anticipo' => $idAnticipo,
+                'monto_retirado' => $montoRetirado,
+            ];
+        }
+
+        return [round($total, 2), $transacciones];
+    }
+
+    /**
+     * Calcula los importes del comprobante.
+     *
+     * REGLA DE NEGOCIO:
+     * - Sin anticipos, los importes se COPIAN de la liquidacion: el
+     *   comprobante nunca discrepa de la liquidacion que lo respalda.
+     * - Con anticipos, la cascada se RECALCULA sobre la base imponible
+     *   restante: base imponible -> IGV -> importe total -> detraccion
+     *   (redondeada a ENTEROS) -> neto. Los porcentajes son los de la venta.
+     *
+     * @return array{
+     *   base_imponible: float,
+     *   monto_igv: float,
+     *   importe_total: float,
+     *   monto_detraccion: float,
+     *   monto_neto: float
+     * }
+     */
+    private static function calcular_importes_comprobante(
+        object $liquidacion,
+        int $idVenta,
+        float $montoAnticipos
+    ): array {
+        $subtotal = round((float) $liquidacion->subtotal, 2);
+        $montoAnticipos = round($montoAnticipos, 2);
+
+        if ($montoAnticipos <= 0) {
+            return [
+                'base_imponible' => max(0.0, $subtotal),
+                'monto_igv' => round((float) $liquidacion->monto_igv, 2),
+                'importe_total' => round((float) $liquidacion->total, 2),
+                'monto_detraccion' => round((float) $liquidacion->monto_detraccion, 2),
+                'monto_neto' => round((float) $liquidacion->neto_a_pagar, 2),
+            ];
+        }
+
+        $porcentajeIgv = self::porcentaje_igv_venta($idVenta);
+        $porcentajeDetraccion = self::porcentaje_detraccion_venta($idVenta);
+
+        $baseImponible = max(0.0, round($subtotal - $montoAnticipos, 2));
+        $montoIgv = $porcentajeIgv > 0
+            ? round($baseImponible * $porcentajeIgv / 100, 2)
+            : 0.0;
+        $importeTotal = round($baseImponible + $montoIgv, 2);
+        // La detraccion se redondea a ENTEROS: es el monto que se retiene.
+        $montoDetraccion = $porcentajeDetraccion > 0
+            ? round($importeTotal * $porcentajeDetraccion / 100)
+            : 0.0;
+        $montoNeto = round($importeTotal - $montoDetraccion, 2);
+
+        return [
+            'base_imponible' => $baseImponible,
+            'monto_igv' => $montoIgv,
+            'importe_total' => $importeTotal,
+            'monto_detraccion' => $montoDetraccion,
+            'monto_neto' => $montoNeto,
+        ];
     }
 
     /**
@@ -883,25 +1069,24 @@ class VentaCarbonPagosData
         }
 
         // Igual que al crear el comprobante: los importes se COPIAN de la
-        // liquidacion. Si la liquidacion se edito, el comprobante se
-        // realinea con ella sin recalcular nada.
-        $subtotal = round((float) $liquidacion->subtotal, 2);
-        $montoAnticipos = (float) $comprobante->monto_pagado_anticipos;
-        $baseImponible = max(0.0, round($subtotal - $montoAnticipos, 2));
-        $montoIgv = round((float) $liquidacion->monto_igv, 2);
-        $importeTotal = round((float) $liquidacion->total, 2);
-        $montoDetraccion = round((float) $liquidacion->monto_detraccion, 2);
-        $montoNeto = round((float) $liquidacion->neto_a_pagar, 2);
+        // liquidacion si no hay anticipos aplicados. Si los hay, la cascada
+        // se recalcula sobre la base imponible restante (los anticipos ya
+        // consumidos no se devuelven).
+        $importes = self::calcular_importes_comprobante(
+            liquidacion: $liquidacion,
+            idVenta: (int) $comprobante->id_venta_carbon,
+            montoAnticipos: (float) $comprobante->monto_pagado_anticipos,
+        );
 
         DB::table('comprobante_venta_carbon')
             ->where('id', $id_comprobante)
             ->update([
-                'subtotal' => $subtotal,
-                'base_imponible' => $baseImponible,
-                'monto_igv' => $montoIgv,
-                'importe_total' => $importeTotal,
-                'monto_detraccion' => $montoDetraccion,
-                'monto_neto' => $montoNeto,
+                'subtotal' => round((float) $liquidacion->subtotal, 2),
+                'base_imponible' => $importes['base_imponible'],
+                'monto_igv' => $importes['monto_igv'],
+                'importe_total' => $importes['importe_total'],
+                'monto_detraccion' => $importes['monto_detraccion'],
+                'monto_neto' => $importes['monto_neto'],
             ]);
     }
 

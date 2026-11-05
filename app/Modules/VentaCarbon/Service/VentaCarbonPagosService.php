@@ -178,6 +178,11 @@ class VentaCarbonPagosService
     /**
      * Registra el comprobante de una liquidacion confirmada.
      *
+     * Los anticipos del cliente (si los hay) se amortizan contra el
+     * comprobante: reducen la base imponible y, con ella, cambian el IGV,
+     * el importe total, la detraccion (redondeada a enteros) y el neto a
+     * pagar.
+     *
      * @param array<string, mixed> $payload
      * @param array<int, UploadedFile> $archivos
      */
@@ -208,6 +213,23 @@ class VentaCarbonPagosService
             return ApiResponse::error('La liquidacion ya tiene un comprobante registrado');
         }
 
+        // Los anticipos amortizados no pueden superar el subtotal de la
+        // liquidacion: es el tope de la base imponible.
+        $totalAnticipos = 0.0;
+        foreach (($payload['anticipos'] ?? []) as $anticipo) {
+            $totalAnticipos += round((float) ($anticipo['monto_retirado'] ?? 0), 2);
+        }
+        $totalAnticipos = round($totalAnticipos, 2);
+
+        $subtotalLiquidacion = round((float) $liquidacion->subtotal, 2);
+        if ($totalAnticipos > $subtotalLiquidacion) {
+            return ApiResponse::error(
+                'El total de anticipos aplicados (S/ ' . number_format($totalAnticipos, 2)
+                . ') no puede superar el subtotal de la liquidacion (S/ '
+                . number_format($subtotalLiquidacion, 2) . ')'
+            );
+        }
+
         $evidencias = !empty($archivos)
             ? ArchivoHelper::guardarArchivos(self::CARPETA_EVIDENCIAS_COMPROBANTE, $archivos)
             : null;
@@ -220,6 +242,7 @@ class VentaCarbonPagosService
                 'fecha_emision' => (string) $payload['fecha_emision'],
                 'observacion' => $payload['observacion'] ?? null,
                 'evidencias' => $evidencias,
+                'anticipos' => $payload['anticipos'] ?? [],
             ]);
         } catch (\Throwable $e) {
             return ApiResponse::error($e->getMessage());

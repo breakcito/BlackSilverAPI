@@ -159,6 +159,10 @@ class VentaCarbonPagosController
 
     /**
      * Registra el comprobante de una liquidacion confirmada.
+     *
+     * `anticipos` llega como JSON string (el request es multipart por los
+     * adjuntos): cada elemento indica que anticipo del cliente se amortiza
+     * y cuanto se usa de el.
      */
     public function registrar_comprobante(
         Request $request,
@@ -170,28 +174,43 @@ class VentaCarbonPagosController
             return response()->json(ApiResponse::error('No se pudo identificar al empleado que registra'), 422);
         }
 
+        $anticipos = $this->anticipos_from_request($request);
+        if ($anticipos === null) {
+            return response()->json(ApiResponse::error('El arreglo de anticipos no tiene un formato valido'), 422);
+        }
+
         $validator = Validator::make([
             'codigo_comprobante' => $request->input('codigo_comprobante'),
             'fecha_emision' => $request->input('fecha_emision'),
             'observacion' => $request->input('observacion'),
+            'anticipos' => $anticipos,
         ], [
             'codigo_comprobante' => 'required|string|max:128',
             'fecha_emision' => 'required|date',
             'observacion' => 'nullable|string|max:512',
+            'anticipos' => 'nullable|array',
+            'anticipos.*.id_anticipo' => 'required_with:anticipos|integer|min:1',
+            'anticipos.*.monto_retirado' => 'required_with:anticipos|numeric|min:0.01',
         ], [
             'codigo_comprobante.required' => 'El codigo del comprobante es obligatorio',
             'fecha_emision.required' => 'La fecha de emision es obligatoria',
+            'anticipos.*.id_anticipo.required' => 'Cada anticipo debe indicar su id',
+            'anticipos.*.monto_retirado.required' => 'Cada anticipo debe indicar el monto que se usa',
+            'anticipos.*.monto_retirado.min' => 'El monto del anticipo debe ser mayor a 0',
         ]);
 
         if ($validator->fails()) {
             return response()->json(ApiResponse::error($validator->errors()->first()), 422);
         }
 
+        $payload = $validator->validated();
+        $payload['anticipos'] = $anticipos;
+
         return response()->json(
             VentaCarbonPagosService::registrar_comprobante(
                 $id_venta_carbon,
                 $id_liquidacion_venta_carbon,
-                $validator->validated(),
+                $payload,
                 $idEmpleado,
                 $this->archivos($request)
             )
@@ -268,6 +287,36 @@ class VentaCarbonPagosController
     private function cargas_from_request(Request $request): ?array
     {
         $raw = $request->input('cargas');
+
+        if ($raw === null || $raw === '') {
+            return [];
+        }
+
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            if (!is_array($decoded)) {
+                return null;
+            }
+            $raw = $decoded;
+        }
+
+        if (!is_array($raw)) {
+            return null;
+        }
+
+        return array_values($raw);
+    }
+
+    /**
+     * Extrae el arreglo de anticipos del request (JSON string o array).
+     *
+     * Cada elemento: {id_anticipo: int, monto_retirado: float}.
+     *
+     * @return array<int, array<string, mixed>>|null
+     */
+    private function anticipos_from_request(Request $request): ?array
+    {
+        $raw = $request->input('anticipos');
 
         if ($raw === null || $raw === '') {
             return [];
