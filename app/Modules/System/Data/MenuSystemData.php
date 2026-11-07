@@ -5,6 +5,7 @@ use App\Models\Menu;
 use App\Models\Submenu;
 use App\Models\Modulo;
 use App\Models\ModuloRol;
+use Illuminate\Support\Facades\DB;
 
 class MenuSystemData
 {
@@ -46,7 +47,9 @@ class MenuSystemData
     // Menu
     public static function menu_tiene_submenus(int $id): bool
     {
-        return Submenu::where('id_menu', $id)->where('estado', 'Activo')->exists();
+        // Se consideran TODOS los submenus (activos o inactivos): eliminar un
+        // menu con submenus dejaria nodos huerfanos.
+        return Submenu::where('id_menu', $id)->exists();
     }
 
     public static function crear_menu(string $nombre, ?string $path, int $numero_orden, bool $es_desplegable): int
@@ -70,15 +73,25 @@ class MenuSystemData
         ]) > 0;
     }
 
+    /**
+     * Elimina el menu y limpia sus permisos: el permiso directo del menu, los
+     * de sus submenus y los de los modulos de esos submenus.
+     */
     public static function eliminar_menu(int $id): bool
     {
-        return Menu::where('id', $id)->delete() > 0;
+        return DB::transaction(function () use ($id) {
+            ModuloRol::limpiar_permisos_de_menu($id);
+
+            return Menu::where('id', $id)->delete() > 0;
+        });
     }
 
     // Submenu
     public static function submenu_tiene_modulos(int $id): bool
     {
-        return Modulo::where('id_submenu', $id)->where('estado', 'Activo')->exists();
+        // Se consideran TODOS los modulos (activos o inactivos): eliminar un
+        // submenu con modulos dejaria vistas huerfanas.
+        return Modulo::where('id_submenu', $id)->exists();
     }
 
     public static function crear_submenu(int $id_menu, string $nombre, ?string $path, int $numero_orden, bool $es_desplegable): int
@@ -103,9 +116,17 @@ class MenuSystemData
         ]) > 0;
     }
 
+    /**
+     * Elimina el submenu y limpia sus permisos: el permiso directo del submenu
+     * y los de todos sus modulos hijos.
+     */
     public static function eliminar_submenu(int $id): bool
     {
-        return Submenu::where('id', $id)->delete() > 0;
+        return DB::transaction(function () use ($id) {
+            ModuloRol::limpiar_permisos_de_submenu($id);
+
+            return Submenu::where('id', $id)->delete() > 0;
+        });
     }
 
     // Modulo
@@ -114,6 +135,10 @@ class MenuSystemData
         return ModuloRol::where('id_modulo', $id)->exists();
     }
 
+    /**
+     * Los modulos son siempre hojas: no admiten `es_desplegable` (la tabla
+     * `modulo` no tiene esa columna) y su path es obligatorio.
+     */
     public static function crear_modulo(int $id_submenu, string $nombre, string $path, int $numero_orden): int
     {
         return Modulo::insertGetId([
@@ -121,7 +146,6 @@ class MenuSystemData
             'nombre' => $nombre,
             'path' => $path,
             'numero_orden' => $numero_orden,
-            'es_desplegable' => false,
             'estado' => 'Activo',
         ]);
     }
@@ -135,9 +159,16 @@ class MenuSystemData
         ]) > 0;
     }
 
+    /**
+     * Elimina el modulo y limpia sus permisos (evita filas huerfanas en
+     * modulo_rol que apuntan a un modulo inexistente).
+     */
     public static function eliminar_modulo(int $id): bool
     {
-        ModuloRol::where('id_modulo', $id)->delete();
-        return Modulo::where('id', $id)->delete() > 0;
+        return DB::transaction(function () use ($id) {
+            ModuloRol::limpiar_permisos_de_modulo($id);
+
+            return Modulo::where('id', $id)->delete() > 0;
+        });
     }
 }

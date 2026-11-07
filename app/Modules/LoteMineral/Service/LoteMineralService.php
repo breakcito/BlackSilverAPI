@@ -68,4 +68,35 @@ class LoteMineralService
             return ApiResponse::success($lote, 'Lote de mineral registrado correctamente');
         });
     }
+
+    /**
+     * Editar la cantidad de sacos de un lote de mineral.
+     *
+     * No se permite editar un lote ya finalizado: sus sacos ya fueron
+     * despachados a molienda.
+     */
+    public static function actualizar_cantidad_sacos(
+        int $id_lote_mineral,
+        int $cantidad_sacos
+    ) {
+        $lote = LoteMineralData::get_lotes(id_lote_mineral: $id_lote_mineral);
+        if ($lote === null) {
+            return ApiResponse::error('Lote de mineral no encontrado.', 404);
+        }
+        if ($lote->estado === EstadoLoteMineral::Finalizado->value) {
+            return ApiResponse::error(
+                'No se puede editar la cantidad de sacos de un lote finalizado.',
+                409,
+            );
+        }
+
+        LoteMineralData::actualizar_cantidad_sacos($id_lote_mineral, $cantidad_sacos);
+
+        $loteActualizado = LoteMineralData::get_lotes(id_lote_mineral: $id_lote_mineral);
+
+        return ApiResponse::success(
+            $loteActualizado,
+            'Cantidad de sacos actualizada correctamente',
+        );
+    }
 }

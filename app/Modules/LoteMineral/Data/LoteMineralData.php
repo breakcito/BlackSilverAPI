@@ -39,11 +39,12 @@ class LoteMineralData
             CONCAT(e.nombre, " ", COALESCE(e.apellido, "")) as empleado_registro,
 
             lm.estado,
+            lm.cantidad_sacos,
             lm.created_at
         FROM lote_mineral lm
         INNER JOIN empleado c ON lm.id_contratista = c.id
         INNER JOIN mina m ON lm.id_mina = m.id
-        INNER JOIN labor l ON lm.id_labor = l.id
+        LEFT JOIN labor l ON lm.id_labor = l.id
         INNER JOIN empleado e ON lm.id_empleado_registro = e.id
         WHERE 1=1
         ';
@@ -94,6 +95,20 @@ class LoteMineralData
             'created_at' => now(),
             'estado' => $estado->value,
         ]);
+    }
+
+    /**
+     * Actualizar la cantidad de sacos de un lote de mineral.
+     */
+    public static function actualizar_cantidad_sacos(
+        int $id_lote_mineral,
+        int $cantidad_sacos
+    ): bool {
+        $affected = DB::table('lote_mineral')
+            ->where('id', $id_lote_mineral)
+            ->update(['cantidad_sacos' => $cantidad_sacos]);
+
+        return $affected > 0;
     }
 
     /**

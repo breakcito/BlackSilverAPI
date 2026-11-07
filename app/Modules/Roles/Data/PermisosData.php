@@ -11,8 +11,11 @@ class PermisosData
 {
     /**
      * Asigna un permiso a un rol a cualquier nivel (menu|submenu|modulo).
-     * Valida que el nodo exista y que es_desplegable=false (no se otorgan
+     * Valida que el nodo exista y que no sea un contenedor (no se otorgan
      * permisos a contenedores — los permisos se otorgan a las hojas).
+     *
+     * Los MODULOS son siempre hojas: la tabla `modulo` no tiene columna
+     * `es_desplegable`, asi que el flag solo se consulta en menu y submenu.
      */
     public static function asignar_permiso_a_rol(int $id_rol, int $id_nodo, string $tipo_nodo): void
     {
@@ -20,22 +23,39 @@ class PermisosData
             throw new \InvalidArgumentException("tipo_nodo debe ser menu|submenu|modulo");
         }
 
-        $esDesplegable = match ($tipo_nodo) {
-            'menu'    => Menu::where('id', $id_nodo)->value('es_desplegable'),
-            'submenu' => Submenu::where('id', $id_nodo)->value('es_desplegable'),
-            'modulo'  => Modulo::where('id', $id_nodo)->value('es_desplegable'),
+        $existe = match ($tipo_nodo) {
+            'menu'    => Menu::where('id', $id_nodo)->exists(),
+            'submenu' => Submenu::where('id', $id_nodo)->exists(),
+            'modulo'  => Modulo::where('id', $id_nodo)->exists(),
         };
+
+        if (!$existe) {
+            throw new \DomainException("El nodo indicado no existe.");
+        }
+
+        $esDesplegable = false;
+        if ($tipo_nodo === 'menu') {
+            $esDesplegable = (bool) Menu::where('id', $id_nodo)->value('es_desplegable');
+        } elseif ($tipo_nodo === 'submenu') {
+            $esDesplegable = (bool) Submenu::where('id', $id_nodo)->value('es_desplegable');
+        }
 
         if ($esDesplegable) {
             throw new \DomainException("No se puede asignar permiso a un nodo desplegable (es contenedor)");
         }
 
-        $attrs = ['id_rol' => $id_rol];
-        if ($tipo_nodo === 'menu')       $attrs['id_menu']    = $id_nodo;
-        elseif ($tipo_nodo === 'submenu') $attrs['id_submenu'] = $id_nodo;
-        else                              $attrs['id_modulo']  = $id_nodo;
+        $col = match ($tipo_nodo) {
+            'menu'    => 'id_menu',
+            'submenu' => 'id_submenu',
+            'modulo'  => 'id_modulo',
+        };
 
-        ModuloRol::create($attrs);
+        // Evita duplicados: si el permiso ya existe para ese nodo y rol, no se inserta otra vez.
+        if (ModuloRol::where('id_rol', $id_rol)->where($col, $id_nodo)->exists()) {
+            return;
+        }
+
+        ModuloRol::create(['id_rol' => $id_rol, $col => $id_nodo]);
     }
 
     /** Compatibilidad: delega a asignar_permiso_a_rol. */
@@ -91,25 +111,26 @@ class PermisosData
 
     /**
      * Estructura completa menu -> submenu -> modulo para el selector de
-     * permisos. Incluye es_desplegable en cada nivel.
+     * permisos. Incluye es_desplegable en menu y submenu; los modulos son
+     * siempre hojas y no lo exponen.
      */
     public static function get_estructura_permisos()
     {
         $menus = Menu::where('estado', 'Activo')
             ->orderBy('numero_orden')
-            ->get(['id', 'nombre', 'path', 'numero_orden', 'es_desplegable']);
+            ->get(['id', 'nombre', 'path', 'numero_orden', 'es_desplegable', 'estado']);
 
         foreach ($menus as $menu) {
             $submenus = Submenu::where('id_menu', $menu->id)
                 ->where('estado', 'Activo')
                 ->orderBy('numero_orden')
-                ->get(['id', 'id_menu', 'nombre', 'path', 'numero_orden', 'es_desplegable']);
+                ->get(['id', 'id_menu', 'nombre', 'path', 'numero_orden', 'es_desplegable', 'estado']);
 
             foreach ($submenus as $submenu) {
                 $submenu->modulos = Modulo::where('id_submenu', $submenu->id)
                     ->where('estado', 'Activo')
                     ->orderBy('numero_orden')
-                    ->get(['id', 'id_submenu', 'nombre', 'path', 'numero_orden']);
+                    ->get(['id', 'id_submenu', 'nombre', 'path', 'numero_orden', 'estado']);
             }
 
             $menu->submenus = $submenus;

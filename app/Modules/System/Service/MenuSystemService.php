@@ -28,7 +28,7 @@ class MenuSystemService
 
 
         if (!$es_desplegable && MenuSystemData::menu_tiene_submenus($id)) {
-            return ApiResponse::error('No se puede marcar como no-desplegable: el menu tiene submenus activos.');
+            return ApiResponse::error('No se puede marcar como no-desplegable: el menu tiene submenus.');
         }
         if (MenuSystemData::path_en_uso($path, $id, 'menu')) {
             return ApiResponse::error('Ya existe otro nodo con ese path.');
@@ -41,7 +41,7 @@ class MenuSystemService
     public static function eliminar_menu(int $id)
     {
         if (MenuSystemData::menu_tiene_submenus($id)) {
-            return ApiResponse::error('No se puede eliminar: tiene submenus activos.');
+            return ApiResponse::error('No se puede eliminar: tiene submenus. Elimínalos primero.');
         }
         MenuSystemData::eliminar_menu($id);
         return ApiResponse::success(null, 'Menu eliminado.');
@@ -61,7 +61,7 @@ class MenuSystemService
     {
 
         if (!$es_desplegable && MenuSystemData::submenu_tiene_modulos($id)) {
-            return ApiResponse::error('No se puede marcar como no-desplegable: tiene modulos activos.');
+            return ApiResponse::error('No se puede marcar como no-desplegable: tiene modulos.');
         }
         if (MenuSystemData::path_en_uso($path, $id, 'submenu')) {
             return ApiResponse::error('Ya existe otro nodo con ese path.');
@@ -74,7 +74,7 @@ class MenuSystemService
     public static function eliminar_submenu(int $id)
     {
         if (MenuSystemData::submenu_tiene_modulos($id)) {
-            return ApiResponse::error('No se puede eliminar: tiene modulos activos.');
+            return ApiResponse::error('No se puede eliminar: tiene modulos. Elimínalos primero.');
         }
         MenuSystemData::eliminar_submenu($id);
         return ApiResponse::success(null, 'Submenu eliminado.');

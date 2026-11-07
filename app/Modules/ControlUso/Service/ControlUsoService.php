@@ -7,6 +7,7 @@ use App\Models\RequerimientoAlmacenEntregaDetalleConsumo;
 use App\Models\TarifaUsoActivo;
 use App\Models\TipoMaterial;
 use App\Modules\ControlUso\Data\ControlUsoData;
+use App\Services\LotesMineralService;
 use App\Services\LotesProductosService;
 use App\Shared\Enums\ControlUso\EstadoControlUso;
 use App\Shared\Enums\Kardex\KardexOrigenMovimiento;
@@ -125,8 +126,14 @@ class ControlUsoService
                 'id_tarifa' => $id_tarifa,
                 'observacion' => $observacion,
                 'uuid_grupo' => $uuidGrupo,
+                'estado' => EstadoControlUso::Activo->value,
                 'created_at' => now()->toDateTimeString()
             ]);
+
+            // Suma los sacos registrados en este uso al acumulado del lote.
+            if ($id_lote_mineral !== null && $cantidad_sacos !== null && $cantidad_sacos > 0) {
+                LotesMineralService::sumar_sacos($id_lote_mineral, $cantidad_sacos);
+            }
 
 
 
@@ -484,6 +491,7 @@ class ControlUsoService
             $uuidGrupo = (string) Str::uuid();
             $created = [];
             $suma_total_vueltas = 0;
+            $suma_total_sacos = 0;
 
             foreach ($items as $idx => $it) {
                 $idTarifaItem = isset($it['id_tarifa']) && $it['id_tarifa'] !== '' && $it['id_tarifa'] !== null
@@ -571,6 +579,14 @@ class ControlUsoService
 
                 $created[] = $log;
                 $suma_total_vueltas += $cantidadVueltas;
+                if ($cantidadSacos !== null && $cantidadSacos > 0) {
+                    $suma_total_sacos += $cantidadSacos;
+                }
+            }
+
+            // Suma los sacos retirados en los viajes al acumulado del lote.
+            if ($id_lote_mineral !== null && $suma_total_sacos > 0) {
+                LotesMineralService::sumar_sacos($id_lote_mineral, $suma_total_sacos);
             }
 
             if ($suma_total_vueltas > 0) {
@@ -688,6 +704,12 @@ class ControlUsoService
                 $log->estado = EstadoControlUso::Anulado;
                 $log->save();
 
+                // 2.1) Un control anulado ya no aporta sacos: se restan del
+                // acumulado del lote de mineral.
+                if ($log->id_lote_mineral !== null && $log->cantidad_sacos !== null && $log->cantidad_sacos > 0) {
+                    LotesMineralService::sumar_sacos((int) $log->id_lote_mineral, -((int) $log->cantidad_sacos));
+                }
+
                 // 3) Determinar si queda ALGUN otro item del mismo grupo
                 //    todavia en estado 'Activo'.
                 $uuidGrupo = $log->uuid_grupo;
@@ -779,6 +801,12 @@ class ControlUsoService
 
         try {
             return DB::transaction(function () use ($log, $request) {
+                // Valores previos: sirven para detectar si el control cambio
+                // de cantidad de sacos o de lote de mineral (en ese caso hay
+                // que recalcular el acumulado de los lotes afectados).
+                $loteMineralAnterior = $log->id_lote_mineral !== null ? (int) $log->id_lote_mineral : null;
+                $sacosAnterior = $log->cantidad_sacos !== null ? (int) $log->cantidad_sacos : 0;
+
                 // Campos directos (strings / numericos simples)
                 if ($request->has('fecha_hora_inicio_control')) {
                     $log->fecha_hora_inicio_control = $request->input('fecha_hora_inicio_control');
@@ -862,6 +890,28 @@ class ControlUsoService
                 }
 
                 $log->save();
+
+                // Ajusta los sacos del lote de mineral segun el cambio:
+                //  - Si el control sigue en el mismo lote: se aplica la
+                //    diferencia entre la cantidad nueva y la anterior.
+                //  - Si cambio de lote: se restan los sacos anteriores del
+                //    lote viejo y se suman los nuevos al lote nuevo.
+                $loteMineralActual = $log->id_lote_mineral !== null ? (int) $log->id_lote_mineral : null;
+                $sacosActual = $log->cantidad_sacos !== null ? (int) $log->cantidad_sacos : 0;
+
+                if ($loteMineralAnterior !== null) {
+                    $delta = $loteMineralActual === $loteMineralAnterior
+                        ? ($sacosActual - $sacosAnterior)
+                        : -$sacosAnterior;
+
+                    if ($delta !== 0) {
+                        LotesMineralService::sumar_sacos($loteMineralAnterior, $delta);
+                    }
+                }
+
+                if ($loteMineralActual !== null && $loteMineralActual !== $loteMineralAnterior && $sacosActual !== 0) {
+                    LotesMineralService::sumar_sacos($loteMineralActual, $sacosActual);
+                }
 
                 return ApiResponse::success(
                     $log,

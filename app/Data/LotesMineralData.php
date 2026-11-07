@@ -29,7 +29,10 @@ class LotesMineralData
 
             lt.codigo,
             lt.fecha_inicio_produccion,
-            lt.descripcion
+            lt.descripcion,
+
+            -- sacos acumulados del lote (se recalcula desde los controles de uso)
+            lt.cantidad_sacos
         FROM lote_mineral lt
         INNER JOIN mina mna on mna.id = lt.id_mina
         INNER JOIN labor lb on lb.id = lt.id_labor
@@ -65,4 +68,30 @@ class LotesMineralData
         return DB::select($sql, $params);
     }
 
+    /**
+     * Sumar (o restar) sacos al acumulado de un lote de mineral.
+     *
+     * El delta se aplica sobre el valor actual de `lote_mineral.cantidad_sacos`.
+     * Los deltas provienen de los controles de uso: alta (+), edicion (diferencia
+     * entre el valor nuevo y el anterior) y anulacion (-).
+     */
+    public static function sumar_sacos(int $id_lote_mineral, int $delta): void
+    {
+        if ($delta === 0) {
+            return;
+        }
+
+        // sprintf con %d: el delta entra como entero literal, sin
+        // placeholders (un binding en un Expression no se enlaza en
+        // un UPDATE y desalinearia los placeholders).
+        $operador = $delta >= 0 ? '+' : '-';
+
+        DB::table('lote_mineral')
+            ->where('id', $id_lote_mineral)
+            ->update([
+                'cantidad_sacos' => DB::raw(
+                    sprintf('COALESCE(cantidad_sacos, 0) %s %d', $operador, abs($delta))
+                ),
+            ]);
+    }
 }

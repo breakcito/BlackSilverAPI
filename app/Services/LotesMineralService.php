@@ -26,4 +26,15 @@ class LotesMineralService
 
         return ApiResponse::success($lotes);
     }
+
+    /**
+     * Sumar (o restar) sacos al acumulado de un lote de mineral.
+     *
+     * Punto de entrada de la capa compartida para los flujos que registran,
+     * editan o anulan controles de uso con sacos asociados a un lote.
+     */
+    public static function sumar_sacos(int $id_lote_mineral, int $delta): void
+    {
+        LotesMineralData::sumar_sacos($id_lote_mineral, $delta);
+    }
 }

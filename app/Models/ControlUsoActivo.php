@@ -32,7 +32,7 @@ class ControlUsoActivo extends Model
         'tipo_carga',
         'id_tarifa',
         'cantidad_vueltas',
-        'cantidad_sacos',
+        'cantidad_sacos', // cantidad de sacos de mineral retirado del lote señalado
         'odometro_inicio',
         'odometro_fin',
         'observacion',
@@ -54,6 +54,7 @@ class ControlUsoActivo extends Model
         'costo_total' => 'decimal:2',
         'es_para_mina' => 'boolean',
         'cantidad_vueltas' => 'integer',
+        'cantidad_sacos' => 'integer',
         'fecha_hora_inicio_control' => 'datetime',
         'fecha_hora_fin_control' => 'datetime',
         'estado' => EstadoControlUso::class,

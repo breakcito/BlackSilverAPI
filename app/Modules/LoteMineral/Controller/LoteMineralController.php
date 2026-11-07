@@ -59,4 +59,29 @@ class LoteMineralController extends Controller
 
         return response()->json($result);
     }
+
+    /**
+     * Editar la cantidad de sacos de un lote de mineral.
+     */
+    public function actualizar_cantidad_sacos(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'cantidad_sacos' => 'required|integer|min:0',
+        ], [
+            'cantidad_sacos.required' => 'La cantidad de sacos es requerida',
+            'cantidad_sacos.integer' => 'La cantidad de sacos debe ser un numero entero',
+            'cantidad_sacos.min' => 'La cantidad de sacos no puede ser negativa',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 400);
+        }
+
+        $result = LoteMineralService::actualizar_cantidad_sacos(
+            id_lote_mineral: $id,
+            cantidad_sacos: (int) $request->input('cantidad_sacos'),
+        );
+
+        return response()->json($result);
+    }
 }

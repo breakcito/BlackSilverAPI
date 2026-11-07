@@ -123,6 +123,11 @@ class MenuSystemController extends Controller
             'nombre' => 'required|string|min:2|max:64',
             'path' => 'required|string|max:128',
             'numero_orden' => 'required|integer|min:0',
+        ], [
+            'id_submenu.required' => 'El submenú es obligatorio.',
+            'nombre.required' => 'El nombre es obligatorio.',
+            'path.required' => 'El path es obligatorio: un módulo siempre es una vista con ruta.',
+            'path.max' => 'El path no puede tener más de 128 caracteres.',
         ]);
         if ($v->fails()) return response()->json(ApiResponse::error($v->errors()->first()));
 
@@ -140,6 +145,10 @@ class MenuSystemController extends Controller
             'nombre' => 'required|string|min:2|max:64',
             'path' => 'required|string|max:128',
             'numero_orden' => 'required|integer|min:0',
+        ], [
+            'nombre.required' => 'El nombre es obligatorio.',
+            'path.required' => 'El path es obligatorio: un módulo siempre es una vista con ruta.',
+            'path.max' => 'El path no puede tener más de 128 caracteres.',
         ]);
         if ($v->fails()) return response()->json(ApiResponse::error($v->errors()->first()));
 

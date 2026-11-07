@@ -18,6 +18,7 @@ class LoteMineral extends Model
         //
         'codigo',
         'descripcion',
+        'cantidad_sacos', // suma de la  cantidad de sacos registrados en el uso
         //
         'created_at',
         'estado',
