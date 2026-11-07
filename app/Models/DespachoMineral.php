@@ -20,4 +20,10 @@ class DespachoMineral extends Model
         'created_at',
         'estado',
     ];
+
+    protected $casts = [
+        'cantidad_sacos' => 'decimal:6',
+        'fecha_despacho' => 'date',
+        'created_at' => 'datetime',
+    ];
 }

@@ -14,6 +14,7 @@ class FleteDespacho extends Model
         'id_despacho_mineral',
         'id_transportista_mineral',
         'id_comprobante_flete_despacho',
+        'id_empleado_registro',
         //
         'placa',
         'licencia_conductor',
@@ -31,5 +32,18 @@ class FleteDespacho extends Model
         'alto',
         //
         'evidencias',
+        'created_at',
+    ];
+
+    protected $casts = [
+        'peso_guia' => 'decimal:6',
+        'peso_bruto' => 'decimal:6',
+        'tara' => 'decimal:6',
+        'peso_neto' => 'decimal:6',
+        'largo' => 'decimal:6',
+        'ancho' => 'decimal:6',
+        'alto' => 'decimal:6',
+        'fecha_hora_pesaje' => 'datetime',
+        'created_at' => 'datetime',
     ];
 }

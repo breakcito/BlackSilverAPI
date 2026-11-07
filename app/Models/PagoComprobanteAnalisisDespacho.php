@@ -11,10 +11,10 @@ class PagoComprobanteAnalisisDespacho extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_comprobante_molienda_despacho',
+        'id_comprobante_analisis_despacho',
         'id_cuenta_bancaria_empresa',
         'id_empleado_registro',
-        'medio_pago', // enum: Transferencia / Depósito / Efectivo
+        'medio_pago', // enum: Transferencia | Depósito | Efectivo
         'numero_operacion', // Obligatorio si es transferencia o deposito
         'fecha_hora_pago',
         'es_para_detraccion',
@@ -22,5 +22,12 @@ class PagoComprobanteAnalisisDespacho extends Model
         'evidencias',
         'monto_pagado',
         'created_at',
+    ];
+
+    protected $casts = [
+        'es_para_detraccion' => 'boolean',
+        'monto_pagado' => 'decimal:2',
+        'fecha_hora_pago' => 'datetime',
+        'created_at' => 'datetime',
     ];
 }

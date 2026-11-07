@@ -14,7 +14,9 @@ class AnalisisLaboratorio extends Model
         'id_lote_mineral',
         'id_despacho_mineral',
         'id_comprobante_analisis_despacho',
+        'id_laboratorio',
         'id_cliente',
+        'id_empleado_registro',
         //
         'asumido_por', // enum: Propio | Cliente
         'codigo_laboratorio',
@@ -31,5 +33,17 @@ class AnalisisLaboratorio extends Model
         //
         'costo_servicio',
         'created_at',
+    ];
+
+    protected $casts = [
+        'porcentaje_humedad' => 'decimal:6',
+        'ley_oro' => 'decimal:6',
+        'ley_plata' => 'decimal:6',
+        'ley_cobre' => 'decimal:6',
+        'ley_zinc' => 'decimal:6',
+        'ley_arsenico' => 'decimal:6',
+        'costo_servicio' => 'decimal:2',
+        'fecha_analisis' => 'date',
+        'created_at' => 'datetime',
     ];
 }
