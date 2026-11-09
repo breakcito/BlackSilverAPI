@@ -270,20 +270,20 @@ class TamizajeCarbonService
             calidad: $calidad
         );
 
-        if ($stockDisponible + 0.0001 < $cantidadZarandeada) {
-            return ApiResponse::error(
-                'No hay stock suficiente de la calidad seleccionada para zarandear '
-                . rtrim(rtrim(number_format($cantidadZarandeada, 2), '0'), '.') . ' TN (disponible: '
-                . rtrim(rtrim(number_format($stockDisponible, 2), '0'), '.') . ' TN)'
-            );
-        }
+        // if ($stockDisponible + 0.0001 < $cantidadZarandeada) {
+        //     return ApiResponse::error(
+        //         'No hay stock suficiente de la calidad seleccionada para zarandear '
+        //         . rtrim(rtrim(number_format($cantidadZarandeada, 2), '0'), '.') . ' TN (disponible: '
+        //         . rtrim(rtrim(number_format($stockDisponible, 2), '0'), '.') . ' TN)'
+        //     );
+        // }
 
-        if ($stockDisponible + 0.0001 < $cantidadExtraidaTotal) {
-            return ApiResponse::error(
-                'El total extraído supera el stock disponible (disponible: '
-                . rtrim(rtrim(number_format($stockDisponible, 2), '0'), '.') . ' TN)'
-            );
-        }
+        // if ($stockDisponible + 0.0001 < $cantidadExtraidaTotal) {
+        //     return ApiResponse::error(
+        //         'El total extraído supera el stock disponible (disponible: '
+        //         . rtrim(rtrim(number_format($stockDisponible, 2), '0'), '.') . ' TN)'
+        //     );
+        // }
 
         $evidencias = [];
         if (!empty($archivos)) {

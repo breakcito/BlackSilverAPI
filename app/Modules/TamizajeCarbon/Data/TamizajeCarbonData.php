@@ -401,19 +401,19 @@ class TamizajeCarbonData
                 calidad: $calidad
             );
 
-            if ($stockDisponible + 0.0001 < (float) $d['cantidad_zarandeada']) {
-                throw new \RuntimeException(
-                    'No hay stock suficiente de la calidad seleccionada (disponible: '
-                    . rtrim(rtrim(number_format($stockDisponible, 2), '0'), '.') . ' TN)'
-                );
-            }
+            // if ($stockDisponible + 0.0001 < (float) $d['cantidad_zarandeada']) {
+            //     throw new \RuntimeException(
+            //         'No hay stock suficiente de la calidad seleccionada (disponible: '
+            //         . rtrim(rtrim(number_format($stockDisponible, 2), '0'), '.') . ' TN)'
+            //     );
+            // }
 
-            if ($stockDisponible + 0.0001 < $cantidadExtraidaTotal) {
-                throw new \RuntimeException(
-                    'El total extraído supera el stock disponible (disponible: '
-                    . rtrim(rtrim(number_format($stockDisponible, 2), '0'), '.') . ' TN)'
-                );
-            }
+            // if ($stockDisponible + 0.0001 < $cantidadExtraidaTotal) {
+            //     throw new \RuntimeException(
+            //         'El total extraído supera el stock disponible (disponible: '
+            //         . rtrim(rtrim(number_format($stockDisponible, 2), '0'), '.') . ' TN)'
+            //     );
+            // }
 
             // Insertar variantes y sumar al stock de cada una
             $conPorcentaje = self::tienePorcentajeExtraccion();
