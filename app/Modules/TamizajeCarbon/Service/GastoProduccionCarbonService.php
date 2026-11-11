@@ -29,6 +29,58 @@ class GastoProduccionCarbonService
     }
 
     /**
+     * Gastos de producción listos para exportar.
+     *
+     * Sin destino: los gastos del tipo pedido (blending o zarandeo) cuyo
+     * destino cae en el rango de fechas. Con destino: solo los de ese
+     * registro.
+     *
+     * @param ?string $fecha_inicio Rango por la fecha inicio del destino.
+     * @param ?string $fecha_fin Rango por la fecha inicio del destino.
+     * @param ?string $tipo "blending" o "zarandeo". Null = de los dos.
+     */
+    public static function get_gastos_exportar(
+        ?int $id_zarandeo_carbon = null,
+        ?int $id_blending_carbon = null,
+        ?string $fecha_inicio = null,
+        ?string $fecha_fin = null,
+        ?string $tipo = null
+    ): array
+    {
+        $gastos = GastoProduccionCarbonData::get_gastos_exportar(
+            id_zarandeo_carbon: $id_zarandeo_carbon,
+            id_blending_carbon: $id_blending_carbon,
+            fecha_inicio: $fecha_inicio,
+            fecha_fin: $fecha_fin,
+            tipo: $tipo
+        );
+
+        return ApiResponse::success($gastos);
+    }
+
+    /**
+     * Confirma el pago de un gasto de producción.
+     *
+     * La fecha de pago puede ser retroactiva.
+     */
+    public static function confirmar_pago_gasto(int $id_gasto, string $fecha_pago): array
+    {
+        if (!GastoProduccionCarbonData::existe_gasto($id_gasto)) {
+            return ApiResponse::error('El gasto indicado no existe');
+        }
+
+        $actualizado = GastoProduccionCarbonData::actualizar_pago_gasto($id_gasto, $fecha_pago);
+
+        if (!$actualizado) {
+            return ApiResponse::error('No se pudo registrar el pago del gasto');
+        }
+
+        $gasto = GastoProduccionCarbonData::get_gastos(id_gasto: $id_gasto);
+
+        return ApiResponse::success($gasto, 'Pago del gasto registrado');
+    }
+
+    /**
      * Registra un gasto de producción asociado a un zarandeo o a un blending.
      *
      * @param array<string, mixed> $payload

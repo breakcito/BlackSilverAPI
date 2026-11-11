@@ -219,8 +219,7 @@ class TamizajeCarbonController
      * Registra un gasto de producción asociado a un zarandeo o a un blending.
      */
     public function registrar_gasto(Request $request): JsonResponse
-    {
-        $authUser = $request->attributes->get('auth_user');
+    {        $authUser = $request->attributes->get('auth_user');
         $idEmpleado = (int) ($authUser->id_empleado ?? 0);
         if ($idEmpleado <= 0) {
             return response()->json(ApiResponse::error('No se pudo identificar al empleado'), 422);
@@ -251,6 +250,86 @@ class TamizajeCarbonController
 
         return response()->json(
             GastoProduccionCarbonService::registrar_gasto($request->all(), $idEmpleado)
+        );
+    }
+
+    /**
+     * Gastos de producción de un zarandeo, listos para exportar.
+     */
+    public function get_gastos_exportar_zarandeo(int $id_zarandeo_carbon): JsonResponse
+    {
+        return response()->json(
+            GastoProduccionCarbonService::get_gastos_exportar(
+                id_zarandeo_carbon: $id_zarandeo_carbon
+            )
+        );
+    }
+
+    /**
+     * Gastos de producción de un blending, listos para exportar.
+     */
+    public function get_gastos_exportar_blending(int $id_blending_carbon): JsonResponse
+    {
+        return response()->json(
+            GastoProduccionCarbonService::get_gastos_exportar(
+                id_blending_carbon: $id_blending_carbon
+            )
+        );
+    }
+
+    /**
+     * Gastos de producción de un rango de fechas, listos para exportar.
+     *
+     * El rango se aplica sobre la fecha inicio del destino (zarandeo o
+     * blending). El parametro `tipo` acota a una sola vista: "blending"
+     * o "zarandeo" (sin el, trae de los dos).
+     */
+    public function get_gastos_exportar_rango(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'fecha_inicio' => 'nullable|date',
+            'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+            'tipo' => 'nullable|in:blending,zarandeo',
+        ], [
+            'fecha_fin.after_or_equal' => 'La fecha final no puede ser anterior a la inicial',
+            'tipo.in' => 'El tipo debe ser blending o zarandeo',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        $v = $validator->validated();
+
+        return response()->json(
+            GastoProduccionCarbonService::get_gastos_exportar(
+                fecha_inicio: isset($v['fecha_inicio']) ? (string) $v['fecha_inicio'] : null,
+                fecha_fin: isset($v['fecha_fin']) ? (string) $v['fecha_fin'] : null,
+                tipo: isset($v['tipo']) ? (string) $v['tipo'] : null
+            )
+        );
+    }
+
+    /**
+     * Confirma el pago de un gasto de producción.
+     */
+    public function confirmar_pago_gasto(Request $request, int $id_gasto): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'fecha_pago' => 'required|date',
+        ], [
+            'fecha_pago.required' => 'La fecha de pago es obligatoria',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()));
+        }
+
+        return response()->json(
+            GastoProduccionCarbonService::confirmar_pago_gasto(
+                $id_gasto,
+                (string) $request->input('fecha_pago')
+            )
         );
     }
 }

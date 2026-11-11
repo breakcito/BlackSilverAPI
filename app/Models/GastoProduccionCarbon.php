@@ -35,6 +35,9 @@ class GastoProduccionCarbon extends Model
         'precio_unitario', // precio por hora
         'total', //  precio unitario * cantidad
         //
+        'esta_pagado', // el gasto ya fue pagado al proveedor
+        'fecha_pago', // cuando se pago (puede ser retroactiva)
+        //
         'created_at', // cuando se registra en el sistema
     ];
 }

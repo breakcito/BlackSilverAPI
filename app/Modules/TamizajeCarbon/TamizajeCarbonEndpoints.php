@@ -18,8 +18,17 @@ Route::middleware('auth.jwt.custom')->group(function () {
         // Gastos de produccion: del zarandeo o del blending.
         // La ruta estatica va antes de la dinamica.
         Route::get('gastos/blending/{id_blending_carbon}', 'get_gastos_blending');
+
+        // Exportacion de gastos de produccion.
+        Route::get('gastos/exportar/rango', 'get_gastos_exportar_rango');
+        Route::get('gastos/exportar/zarandeo/{id_zarandeo_carbon}', 'get_gastos_exportar_zarandeo');
+        Route::get('gastos/exportar/blending/{id_blending_carbon}', 'get_gastos_exportar_blending');
+
         Route::get('gastos/{id_zarandeo_carbon}', 'get_gastos_zarandeo');
         Route::post('gastos', 'registrar_gasto');
+
+        // Confirmacion del pago de un gasto.
+        Route::post('gastos/{id_gasto}/pagar', 'confirmar_pago_gasto');
 
         // Evidencias del zarandeo
         Route::post('evidencias', 'subir_evidencias');
