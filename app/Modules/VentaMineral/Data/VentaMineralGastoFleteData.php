@@ -340,7 +340,7 @@ class VentaMineralGastoFleteData
 
         $resultado = [];
         foreach ($rows as $row) {
-            $row->id_flete_despacho = (int) $row->id_flete_despacho;
+            $row->id = (int) $row->id;
             $resultado[(int) $row->id_comprobante_flete_despacho][] = $row;
         }
 
