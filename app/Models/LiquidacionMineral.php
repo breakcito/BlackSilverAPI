@@ -16,7 +16,7 @@ class LiquidacionMineral extends Model
         'id_empleado_registro',
         //
         'codigo_liquidacion',
-        'elemento_quimico', // enum: Oro | Plata
+        'elemento_quimico', // enum: Oro | Plata | Cobre | Zinc | Arsenico | Hierro | Plomo
         'fecha_liquidacion',
         //
         'peso_humedo',
@@ -28,8 +28,7 @@ class LiquidacionMineral extends Model
         //
         'ley_elemento', // en oz
         'porcentaje_recuperacion',
-        'maquila',
-        'penalidad',
+        'total_deducciones',
         //
         'valor_por_tonelada',
         //
@@ -55,8 +54,7 @@ class LiquidacionMineral extends Model
         'peso_neto' => 'decimal:6',
         'ley_elemento' => 'decimal:6',
         'porcentaje_recuperacion' => 'decimal:6',
-        'maquila' => 'decimal:2',
-        'penalidad' => 'decimal:2',
+        'total_deducciones' => 'decimal:2',
         'valor_por_tonelada' => 'decimal:2',
         'porcentaje_igv' => 'decimal:6',
         'porcentaje_detraccion' => 'decimal:6',

@@ -12,6 +12,11 @@ enum ElementoQuimicoMineral: string
 {
     case Oro = 'Oro';
     case Plata = 'Plata';
+    case Cobre = 'Cobre';
+    case Zinc = 'Zinc';
+    case Arsenico = 'Arsenico';
+    case Hierro = 'Hierro';
+    case Plomo = 'Plomo';
 
     /**
      * Valores permitidos, para usarlos en reglas de validacion.

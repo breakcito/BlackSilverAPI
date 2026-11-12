@@ -89,10 +89,10 @@ class VentaMineralComprobanteData
         'liquidacion' => '
             NULL AS id_transportista_mineral,
             NULL AS toneladas_cobradas,
-            NULL AS moneda,
-            NULL AS tipo_cambio,
+            \'Dólares\' AS moneda,
+            c.tipo_cambio,
             NULL AS precio_por_tonelada,
-            c.monto_detraccion AS monto_detraccion_soles,
+            c.monto_detraccion_soles,
             NULL AS transportista,
             c.id_liquidacion_mineral,
             li.codigo_liquidacion,
@@ -186,6 +186,8 @@ class VentaMineralComprobanteData
             $row->id_liquidacion_mineral = $row->id_liquidacion_mineral !== null
                 ? (int) $row->id_liquidacion_mineral
                 : null;
+            $row->tipo_cambio = (float) ($row->tipo_cambio ?? 1);
+            $row->monto_detraccion_soles = (float) ($row->monto_detraccion_soles ?? 0);
         }
 
         return $row;
@@ -341,6 +343,8 @@ class VentaMineralComprobanteData
         if ($tipo === 'liquidacion') {
             return [
                 'id_liquidacion_mineral' => (int) $d['id_liquidacion_mineral'],
+                'tipo_cambio' => round((float) $d['tipo_cambio'], 6),
+                'monto_detraccion_soles' => round((float) $d['monto_detraccion_soles'], 6),
             ];
         }
 

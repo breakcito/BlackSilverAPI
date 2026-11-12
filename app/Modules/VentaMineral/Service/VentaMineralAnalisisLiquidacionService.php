@@ -191,8 +191,7 @@ class VentaMineralAnalisisLiquidacionService
             'peso_neto' => $importes['peso_neto'],
             'ley_elemento' => (float) $payload['ley_elemento'],
             'porcentaje_recuperacion' => (float) $payload['porcentaje_recuperacion'],
-            'maquila' => (float) ($payload['maquila'] ?? 0),
-            'penalidad' => (float) ($payload['penalidad'] ?? 0),
+            'total_deducciones' => $importes['total_deducciones'],
             'valor_por_tonelada' => (float) $payload['valor_por_tonelada'],
             'porcentaje_igv' => $importes['porcentaje_igv'],
             'porcentaje_detraccion' => $importes['porcentaje_detraccion'],
@@ -259,8 +258,7 @@ class VentaMineralAnalisisLiquidacionService
             'peso_neto' => $importes['peso_neto'],
             'ley_elemento' => (float) $payload['ley_elemento'],
             'porcentaje_recuperacion' => (float) $payload['porcentaje_recuperacion'],
-            'maquila' => (float) ($payload['maquila'] ?? 0),
-            'penalidad' => (float) ($payload['penalidad'] ?? 0),
+            'total_deducciones' => $importes['total_deducciones'],
             'valor_por_tonelada' => (float) $payload['valor_por_tonelada'],
             'porcentaje_igv' => $importes['porcentaje_igv'],
             'porcentaje_detraccion' => $importes['porcentaje_detraccion'],
@@ -384,6 +382,7 @@ class VentaMineralAnalisisLiquidacionService
             'id_comprobante' => $id_comprobante,
             'codigo_comprobante' => (string) $comprobante->codigo_comprobante,
             'fecha_emision' => (string) $comprobante->fecha_emision,
+            'tipo_cambio' => (float) ($comprobante->tipo_cambio ?? 1),
             'con_detraccion' => $comprobante->con_detraccion,
             'porcentaje_detraccion' => (float) $comprobante->porcentaje_detraccion,
             'porcentaje_igv' => (float) $comprobante->porcentaje_igv,
@@ -391,6 +390,10 @@ class VentaMineralAnalisisLiquidacionService
             'igv' => $importes['igv'],
             'total' => $importes['total'],
             'monto_detraccion' => $importes['monto_detraccion'],
+            'monto_detraccion_soles' => CalculosDespacho::monto_detraccion_soles(
+                $importes['monto_detraccion'],
+                (float) ($comprobante->tipo_cambio ?? 1)
+            ),
             'neto_a_pagar' => $importes['neto_a_pagar'],
             'id_liquidacion_mineral' => (int) $liquidacion->id_liquidacion_mineral,
         ]);
@@ -426,11 +429,8 @@ class VentaMineralAnalisisLiquidacionService
         $pesoNetoMil = max(0, $pesoSecoMil - $mermaMil);
         $pesoNeto = $pesoNetoMil / 1000;
 
-        $maquila = round((float) ($payload['maquila'] ?? 0), 2);
-        $penalidad = round((float) ($payload['penalidad'] ?? 0), 2);
-        $maquilaCentavos = CalculosDespacho::a_centavos($maquila);
-        $penalidadCentavos = CalculosDespacho::a_centavos($penalidad);
-        $totalDeducciones = ($maquilaCentavos + $penalidadCentavos) / 100;
+        $totalDeducciones = round((float) ($payload['total_deducciones'] ?? 0), 2);
+        $deduccionesCentavos = CalculosDespacho::a_centavos($totalDeducciones);
 
         $valorPorTonelada = round((float) ($payload['valor_por_tonelada'] ?? 0), 2);
 
@@ -440,7 +440,7 @@ class VentaMineralAnalisisLiquidacionService
         $valorCentavos = CalculosDespacho::a_centavos($valorPorTonelada);
         $productoCentavos = (int) round(($pesoNetoMil * $valorCentavos) / 1000);
 
-        $subtotalCentavos = max(0, $productoCentavos - $maquilaCentavos - $penalidadCentavos);
+        $subtotalCentavos = max(0, $productoCentavos - $deduccionesCentavos);
         $subtotal = $subtotalCentavos / 100;
 
         $porcentajeIgv = (float) ($payload['porcentaje_igv'] ?? CalculosDespacho::IGV_POR_DEFECTO);

@@ -421,8 +421,16 @@ class VentaMineralComprobanteService
                 ? (float) $liquidacion->porcentaje_detraccion
                 : 0.0;
 
+            // La comprobante de liquidacion es SIEMPRE en dolares: el tipo de
+            // cambio dice a cuanto se cobra la detraccion en soles.
+            $tipoCambio = (float) ($payload['tipo_cambio'] ?? 1);
+            if ($tipoCambio <= 0) {
+                return self::calculo_vacio('Debe indicar el tipo de cambio');
+            }
+
             $extras = [
                 'id_liquidacion_mineral' => $idLiquidacion,
+                'tipo_cambio' => $tipoCambio,
             ];
         }
 
@@ -430,7 +438,7 @@ class VentaMineralComprobanteService
 
         // La detraccion se cobra en soles: si el comprobante esta en dolares,
         // se guarda tambien su equivalente en soles.
-        if ($tipo === 'flete') {
+        if ($tipo === 'flete' || $tipo === 'liquidacion') {
             $extras['monto_detraccion_soles'] = CalculosDespacho::monto_detraccion_soles(
                 $importes['monto_detraccion'],
                 $tipoCambio
@@ -558,6 +566,10 @@ class VentaMineralComprobanteService
             return 'Debe indicar el monto de la molienda';
         }
 
+        if ($tipo === 'liquidacion' && (float) ($payload['tipo_cambio'] ?? 1) <= 0) {
+            return 'Debe indicar el tipo de cambio';
+        }
+
         return null;
     }
 
@@ -674,8 +686,15 @@ class VentaMineralComprobanteService
         }
 
         if ($tipo === 'liquidacion') {
+            $tipoCambio = (float) ($comprobante->tipo_cambio ?? 1);
+
             return [
                 'id_liquidacion_mineral' => (int) $comprobante->id_liquidacion_mineral,
+                'tipo_cambio' => $tipoCambio,
+                'monto_detraccion_soles' => CalculosDespacho::monto_detraccion_soles(
+                    (float) $comprobante->monto_detraccion,
+                    $tipoCambio
+                ),
             ];
         }
 
