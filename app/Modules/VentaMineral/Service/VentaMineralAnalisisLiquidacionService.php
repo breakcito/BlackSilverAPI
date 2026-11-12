@@ -51,6 +51,8 @@ class VentaMineralAnalisisLiquidacionService
             'ley_cobre' => $payload['ley_cobre'] ?? 0,
             'ley_zinc' => $payload['ley_zinc'] ?? 0,
             'ley_arsenico' => $payload['ley_arsenico'] ?? 0,
+            'ley_hierro' => $payload['ley_hierro'] ?? 0,
+            'ley_plomo' => $payload['ley_plomo'] ?? 0,
             'costo_servicio' => $payload['costo_servicio'] ?? 0,
         ]);
 
@@ -107,6 +109,8 @@ class VentaMineralAnalisisLiquidacionService
             'ley_cobre' => $payload['ley_cobre'] ?? 0,
             'ley_zinc' => $payload['ley_zinc'] ?? 0,
             'ley_arsenico' => $payload['ley_arsenico'] ?? 0,
+            'ley_hierro' => $payload['ley_hierro'] ?? 0,
+            'ley_plomo' => $payload['ley_plomo'] ?? 0,
             'costo_servicio' => $payload['costo_servicio'] ?? 0,
         ] + (array_key_exists('evidencias', $payload) ? ['evidencias' => $payload['evidencias']] : []));
 

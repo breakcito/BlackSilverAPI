@@ -37,6 +37,8 @@ class VentaMineralAnalisisLiquidacionController extends Controller
             'ley_cobre'           => 'nullable|numeric|min:0',
             'ley_zinc'            => 'nullable|numeric|min:0',
             'ley_arsenico'        => 'nullable|numeric|min:0',
+            'ley_hierro'          => 'nullable|numeric|min:0',
+            'ley_plomo'           => 'nullable|numeric|min:0',
             'costo_servicio'      => 'nullable|numeric|min:0',
         ], [
             'id_laboratorio.required' => 'Debe seleccionar el laboratorio',
@@ -60,6 +62,8 @@ class VentaMineralAnalisisLiquidacionController extends Controller
             'ley_cobre'          => (float) ($request->input('ley_cobre') ?? 0),
             'ley_zinc'           => (float) ($request->input('ley_zinc') ?? 0),
             'ley_arsenico'       => (float) ($request->input('ley_arsenico') ?? 0),
+            'ley_hierro'         => (float) ($request->input('ley_hierro') ?? 0),
+            'ley_plomo'          => (float) ($request->input('ley_plomo') ?? 0),
             'costo_servicio'     => (float) ($request->input('costo_servicio') ?? 0),
         ];
 
@@ -97,6 +101,8 @@ class VentaMineralAnalisisLiquidacionController extends Controller
             'ley_cobre'          => 'nullable|numeric|min:0',
             'ley_zinc'           => 'nullable|numeric|min:0',
             'ley_arsenico'       => 'nullable|numeric|min:0',
+            'ley_hierro'         => 'nullable|numeric|min:0',
+            'ley_plomo'          => 'nullable|numeric|min:0',
             'costo_servicio'     => 'nullable|numeric|min:0',
         ], [
             'id_laboratorio.required' => 'Debe seleccionar el laboratorio',
@@ -120,6 +126,8 @@ class VentaMineralAnalisisLiquidacionController extends Controller
             'ley_cobre'          => (float) ($request->input('ley_cobre') ?? 0),
             'ley_zinc'           => (float) ($request->input('ley_zinc') ?? 0),
             'ley_arsenico'       => (float) ($request->input('ley_arsenico') ?? 0),
+            'ley_hierro'         => (float) ($request->input('ley_hierro') ?? 0),
+            'ley_plomo'          => (float) ($request->input('ley_plomo') ?? 0),
             'costo_servicio'     => (float) ($request->input('costo_servicio') ?? 0),
         ];
 

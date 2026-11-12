@@ -30,6 +30,8 @@ class AnalisisLaboratorio extends Model
         'ley_cobre',
         'ley_zinc',
         'ley_arsenico',
+        'ley_hierro',
+        'ley_plomo',
         //
         'costo_servicio',
         'created_at',
@@ -42,6 +44,8 @@ class AnalisisLaboratorio extends Model
         'ley_cobre' => 'decimal:6',
         'ley_zinc' => 'decimal:6',
         'ley_arsenico' => 'decimal:6',
+        'ley_hierro' => 'decimal:6',
+        'ley_plomo' => 'decimal:6',
         'costo_servicio' => 'decimal:2',
         'fecha_analisis' => 'date',
         'created_at' => 'datetime',

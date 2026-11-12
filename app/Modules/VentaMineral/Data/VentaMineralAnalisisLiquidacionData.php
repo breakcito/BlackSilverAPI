@@ -39,6 +39,8 @@ class VentaMineralAnalisisLiquidacionData
             a.ley_cobre,
             a.ley_zinc,
             a.ley_arsenico,
+            a.ley_hierro,
+            a.ley_plomo,
             a.costo_servicio,
             a.created_at,
             lab.razon_social AS laboratorio,
@@ -61,6 +63,8 @@ class VentaMineralAnalisisLiquidacionData
                 ? (int) $row->id_comprobante_analisis_despacho
                 : null;
             $row->id_laboratorio = $row->id_laboratorio !== null ? (int) $row->id_laboratorio : null;
+            $row->ley_hierro = (float) ($row->ley_hierro ?? 0);
+            $row->ley_plomo = (float) ($row->ley_plomo ?? 0);
             $row->evidencias = VentaMineralData::decode_json($row->evidencias ?? null);
         }
 
@@ -84,6 +88,8 @@ class VentaMineralAnalisisLiquidacionData
         $row->id_comprobante_analisis_despacho = $row->id_comprobante_analisis_despacho !== null
             ? (int) $row->id_comprobante_analisis_despacho
             : null;
+        $row->ley_hierro = (float) ($row->ley_hierro ?? 0);
+        $row->ley_plomo = (float) ($row->ley_plomo ?? 0);
         $row->evidencias = VentaMineralData::decode_json($row->evidencias ?? null);
 
         return $row;
@@ -126,6 +132,8 @@ class VentaMineralAnalisisLiquidacionData
             'ley_cobre' => (float) ($d['ley_cobre'] ?? 0),
             'ley_zinc' => (float) ($d['ley_zinc'] ?? 0),
             'ley_arsenico' => (float) ($d['ley_arsenico'] ?? 0),
+            'ley_hierro' => (float) ($d['ley_hierro'] ?? 0),
+            'ley_plomo' => (float) ($d['ley_plomo'] ?? 0),
             'costo_servicio' => round((float) ($d['costo_servicio'] ?? 0), 2),
             'created_at' => now()->toDateTimeString(),
         ]);
@@ -161,6 +169,8 @@ class VentaMineralAnalisisLiquidacionData
             'ley_cobre' => (float) ($d['ley_cobre'] ?? 0),
             'ley_zinc' => (float) ($d['ley_zinc'] ?? 0),
             'ley_arsenico' => (float) ($d['ley_arsenico'] ?? 0),
+            'ley_hierro' => (float) ($d['ley_hierro'] ?? 0),
+            'ley_plomo' => (float) ($d['ley_plomo'] ?? 0),
             'costo_servicio' => round((float) ($d['costo_servicio'] ?? 0), 2),
         ];
 
@@ -228,7 +238,23 @@ class VentaMineralAnalisisLiquidacionData
 
         $resultado = [];
         foreach ($rows as $row) {
-            $row->id_analisis_laboratorio = (int) $row->id_analisis_laboratorio;
+            $row->id_analisis_laboratorio = (int) $row->id;
+            $row->id_comprobante_analisis_despacho = $row->id_comprobante_analisis_despacho !== null
+                ? (int) $row->id_comprobante_analisis_despacho
+                : null;
+            $row->id_laboratorio = $row->id_laboratorio !== null ? (int) $row->id_laboratorio : null;
+            $row->id_cliente = $row->id_cliente !== null ? (int) $row->id_cliente : null;
+            $row->porcentaje_humedad = (float) ($row->porcentaje_humedad ?? 0);
+            $row->ley_oro = (float) ($row->ley_oro ?? 0);
+            $row->ley_plata = (float) ($row->ley_plata ?? 0);
+            $row->ley_cobre = (float) ($row->ley_cobre ?? 0);
+            $row->ley_zinc = (float) ($row->ley_zinc ?? 0);
+            $row->ley_arsenico = (float) ($row->ley_arsenico ?? 0);
+            $row->ley_hierro = (float) ($row->ley_hierro ?? 0);
+            $row->ley_plomo = (float) ($row->ley_plomo ?? 0);
+            $row->costo_servicio = (float) ($row->costo_servicio ?? 0);
+            $row->evidencias = VentaMineralData::decode_json($row->evidencias ?? null);
+
             $resultado[(int) $row->id_comprobante_analisis_despacho][] = $row;
         }
 
