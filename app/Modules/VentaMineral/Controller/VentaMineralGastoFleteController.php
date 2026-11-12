@@ -156,6 +156,7 @@ class VentaMineralGastoFleteController extends Controller
 
         $validator = Validator::make($request->all(), [
             'codigo_ticket_balanza' => 'required|string|max:50',
+            'segunda_guia_remitente' => 'nullable|string|max:50',
             'peso_bruto'            => 'required|numeric|min:0.000001',
             'tara'                  => 'required|numeric|min:0.000001',
             'fecha_hora_pesaje'     => 'required|date',
@@ -172,6 +173,7 @@ class VentaMineralGastoFleteController extends Controller
 
         $payload = [
             'codigo_ticket_balanza' => (string) $request->input('codigo_ticket_balanza'),
+            'segunda_guia_remitente' => $request->input('segunda_guia_remitente'),
             'peso_bruto'            => (float) $request->input('peso_bruto'),
             'tara'                  => (float) $request->input('tara'),
             'fecha_hora_pesaje'     => (string) $request->input('fecha_hora_pesaje'),

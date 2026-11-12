@@ -183,6 +183,7 @@ class VentaMineralGastoFleteService
         VentaMineralGastoFleteData::actualizar_balanza([
             'id_flete_despacho' => $id_flete_despacho,
             'codigo_ticket_balanza' => $payload['codigo_ticket_balanza'] ?? null,
+            'segunda_guia_remitente' => $payload['segunda_guia_remitente'] ?? null,
             'peso_bruto' => (float) ($payload['peso_bruto'] ?? 0),
             'tara' => (float) ($payload['tara'] ?? 0),
             'peso_neto' => self::calcular_peso_neto($payload),

@@ -130,6 +130,7 @@ class VentaMineralGastoFleteData
             f.placa,
             f.licencia_conductor,
             f.guia_remitente,
+            f.segunda_guia_remitente,
             f.peso_guia,
             f.codigo_ticket_balanza,
             f.peso_bruto,
@@ -205,6 +206,8 @@ class VentaMineralGastoFleteData
             'guia_remitente' => isset($d['guia_remitente']) && $d['guia_remitente'] !== ''
                 ? (string) $d['guia_remitente']
                 : null,
+            // La segunda guia se digita cuando el vehiculo llega al molino.
+            'segunda_guia_remitente' => null,
             'peso_guia' => (float) ($d['peso_guia'] ?? 0),
             // La balanza se registra despues: el flete nace sin ella.
             'codigo_ticket_balanza' => null,
@@ -267,6 +270,9 @@ class VentaMineralGastoFleteData
         $actualizaciones = [
             'codigo_ticket_balanza' => isset($d['codigo_ticket_balanza']) && $d['codigo_ticket_balanza'] !== ''
                 ? (string) $d['codigo_ticket_balanza']
+                : null,
+            'segunda_guia_remitente' => isset($d['segunda_guia_remitente']) && $d['segunda_guia_remitente'] !== ''
+                ? (string) $d['segunda_guia_remitente']
                 : null,
             'peso_bruto' => (float) ($d['peso_bruto'] ?? 0),
             'tara' => (float) ($d['tara'] ?? 0),

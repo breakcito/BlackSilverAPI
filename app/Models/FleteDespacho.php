@@ -19,6 +19,7 @@ class FleteDespacho extends Model
         'placa',
         'licencia_conductor',
         'guia_remitente',
+        'segunda_guia_remitente',
         'peso_guia',
         // balanza
         'codigo_ticket_balanza',
