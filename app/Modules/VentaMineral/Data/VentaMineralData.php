@@ -57,6 +57,9 @@ class VentaMineralData
             COALESCE(cf.total_neto, 0) AS total_neto,
             COALESCE(cf.total_pagado, 0) AS total_pagado,
             COALESCE(cf.total_detraccion, 0) AS total_detraccion,
+            COALESCE(cf.total_facturado_dolares, 0) AS total_facturado_dolares,
+            COALESCE(cf.total_neto_dolares, 0) AS total_neto_dolares,
+            COALESCE(cf.total_pagado_dolares, 0) AS total_pagado_dolares,
 
             COALESCE(cm.total_facturado, 0) AS total_facturado_molienda,
             COALESCE(cm.total_neto, 0) AS total_neto_molienda,
@@ -91,10 +94,18 @@ class VentaMineralData
         ) gs ON gs.id_despacho_mineral = d.id
         LEFT JOIN (
             SELECT id_despacho_mineral,
-                   COALESCE(SUM(total), 0) AS total_facturado,
-                   COALESCE(SUM(neto_a_pagar), 0) AS total_neto,
-                   COALESCE(SUM(avance_neto + avance_detraccion), 0) AS total_pagado,
-                   COALESCE(SUM(monto_detraccion), 0) AS total_detraccion
+                   -- Los importes se separan por MONEDA: los de soles (que es
+                   -- la moneda de referencia) y los de dolares. Un
+                   -- comprobante en dolares nunca se suma en soles.
+                   COALESCE(SUM(CASE WHEN COALESCE(moneda, \'Soles\') = \'Soles\' THEN total ELSE 0 END), 0) AS total_facturado,
+                   COALESCE(SUM(CASE WHEN COALESCE(moneda, \'Soles\') = \'Soles\' THEN neto_a_pagar ELSE 0 END), 0) AS total_neto,
+                   -- El avance de la detraccion SIEMPRE esta en soles.
+                   COALESCE(SUM(CASE WHEN COALESCE(moneda, \'Soles\') = \'Soles\' THEN avance_neto ELSE 0 END), 0)
+                     + COALESCE(SUM(avance_detraccion), 0) AS total_pagado,
+                   COALESCE(SUM(monto_detraccion_soles), 0) AS total_detraccion,
+                   COALESCE(SUM(CASE WHEN moneda = \'Dólares\' THEN total ELSE 0 END), 0) AS total_facturado_dolares,
+                   COALESCE(SUM(CASE WHEN moneda = \'Dólares\' THEN neto_a_pagar ELSE 0 END), 0) AS total_neto_dolares,
+                   COALESCE(SUM(CASE WHEN moneda = \'Dólares\' THEN avance_neto ELSE 0 END), 0) AS total_pagado_dolares
             FROM comprobante_flete_despacho
             GROUP BY id_despacho_mineral
         ) cf ON cf.id_despacho_mineral = d.id

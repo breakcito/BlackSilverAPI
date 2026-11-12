@@ -56,7 +56,10 @@ class VentaMineralComprobanteData
         'flete' => '
             c.id_transportista_mineral,
             c.toneladas_cobradas,
+            c.moneda,
+            c.tipo_cambio,
             c.precio_por_tonelada,
+            c.monto_detraccion_soles,
             t.razon_social AS transportista,
             NULL AS id_liquidacion_mineral,
             NULL AS codigo_liquidacion,
@@ -64,7 +67,10 @@ class VentaMineralComprobanteData
         'molienda' => '
             NULL AS id_transportista_mineral,
             NULL AS toneladas_cobradas,
+            NULL AS moneda,
+            NULL AS tipo_cambio,
             NULL AS precio_por_tonelada,
+            NULL AS monto_detraccion_soles,
             NULL AS transportista,
             NULL AS id_liquidacion_mineral,
             NULL AS codigo_liquidacion,
@@ -72,7 +78,10 @@ class VentaMineralComprobanteData
         'analisis' => '
             NULL AS id_transportista_mineral,
             NULL AS toneladas_cobradas,
+            NULL AS moneda,
+            NULL AS tipo_cambio,
             NULL AS precio_por_tonelada,
+            NULL AS monto_detraccion_soles,
             NULL AS transportista,
             NULL AS id_liquidacion_mineral,
             NULL AS codigo_liquidacion,
@@ -80,7 +89,10 @@ class VentaMineralComprobanteData
         'liquidacion' => '
             NULL AS id_transportista_mineral,
             NULL AS toneladas_cobradas,
+            NULL AS moneda,
+            NULL AS tipo_cambio,
             NULL AS precio_por_tonelada,
+            NULL AS monto_detraccion_soles,
             NULL AS transportista,
             c.id_liquidacion_mineral,
             li.codigo_liquidacion,
@@ -164,7 +176,10 @@ class VentaMineralComprobanteData
                 ? (int) $row->id_transportista_mineral
                 : null;
             $row->toneladas_cobradas = (float) $row->toneladas_cobradas;
+            $row->moneda = $row->moneda !== null ? (string) $row->moneda : null;
+            $row->tipo_cambio = (float) ($row->tipo_cambio ?? 0);
             $row->precio_por_tonelada = (float) $row->precio_por_tonelada;
+            $row->monto_detraccion_soles = (float) ($row->monto_detraccion_soles ?? 0);
         }
 
         if ($tipo === 'liquidacion') {
@@ -316,7 +331,10 @@ class VentaMineralComprobanteData
             return [
                 'id_transportista_mineral' => (int) $d['id_transportista_mineral'],
                 'toneladas_cobradas' => round((float) $d['toneladas_cobradas'], 6),
+                'moneda' => (string) $d['moneda'],
+                'tipo_cambio' => round((float) $d['tipo_cambio'], 6),
                 'precio_por_tonelada' => round((float) $d['precio_por_tonelada'], 6),
+                'monto_detraccion_soles' => round((float) $d['monto_detraccion_soles'], 6),
             ];
         }
 
@@ -433,8 +451,14 @@ class VentaMineralComprobanteData
             $avanceNeto = (float) ($comprobante->avance_neto ?? 0);
             $avanceDetraccion = (float) ($comprobante->avance_detraccion ?? 0);
 
+            // La detraccion SIEMPRE se cobra en soles: si el comprobante esta
+            // en dolares, el saldo se mide contra el monto en soles.
+            $montoDetraccionSoles = (float) (
+                $comprobante->monto_detraccion_soles ?? $comprobante->monto_detraccion
+            );
+
             $pendiente = $esDetraccion
-                ? round((float) $comprobante->monto_detraccion - $avanceDetraccion, 2)
+                ? round($montoDetraccionSoles - $avanceDetraccion, 2)
                 : round((float) $comprobante->neto_a_pagar - $avanceNeto, 2);
             $pendiente = max(0.0, $pendiente);
 
@@ -474,7 +498,7 @@ class VentaMineralComprobanteData
 
             $estado = EstadoComprobanteDespacho::resolver(
                 netoAPagar: (float) $comprobante->neto_a_pagar,
-                montoDetraccion: (float) $comprobante->monto_detraccion,
+                montoDetraccion: $montoDetraccionSoles,
                 netoPagado: $avanceNeto,
                 detraccionPagada: $avanceDetraccion,
             );

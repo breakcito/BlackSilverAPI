@@ -18,6 +18,8 @@ class ComprobanteFleteDespacho extends Model
         'fecha_emision',
         //
         'toneladas_cobradas',
+        'moneda', // enum: Soles / Dólares
+        'tipo_cambio', // 1 cuando la moneda es Soles
         'precio_por_tonelada',
         //
         'con_detraccion', // bool
@@ -27,6 +29,7 @@ class ComprobanteFleteDespacho extends Model
         'igv',
         'total',
         'monto_detraccion',
+        'monto_detraccion_soles',
         'neto_a_pagar',
         'avance_detraccion',
         'avance_neto',
@@ -38,6 +41,7 @@ class ComprobanteFleteDespacho extends Model
     protected $casts = [
         'con_detraccion' => 'boolean',
         'toneladas_cobradas' => 'decimal:6',
+        'tipo_cambio' => 'decimal:6',
         'precio_por_tonelada' => 'decimal:6',
         'porcentaje_detraccion' => 'decimal:6',
         'porcentaje_igv' => 'decimal:6',
@@ -45,6 +49,7 @@ class ComprobanteFleteDespacho extends Model
         'igv' => 'decimal:2',
         'total' => 'decimal:2',
         'monto_detraccion' => 'decimal:2',
+        'monto_detraccion_soles' => 'decimal:2',
         'neto_a_pagar' => 'decimal:2',
         'avance_detraccion' => 'decimal:2',
         'avance_neto' => 'decimal:2',

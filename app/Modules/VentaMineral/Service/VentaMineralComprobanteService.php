@@ -9,6 +9,7 @@ use App\Modules\VentaMineral\Data\VentaMineralGastoFleteData;
 use App\Shared\Enums\VentaMineral\AsumidoPorAnalisis;
 use App\Shared\Enums\VentaMineral\EstadoLiquidacionMineral;
 use App\Shared\Enums\VentaMineral\MedioPagoDespacho;
+use App\Shared\Enums\_Generic\Moneda;
 use App\Shared\Helpers\CalculosDespacho;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Support\Facades\DB;
@@ -337,6 +338,7 @@ class VentaMineralComprobanteService
         $porcentajeIgv = (float) ($payload['porcentaje_igv'] ?? CalculosDespacho::IGV_POR_DEFECTO);
         $extras = [];
         $subtotal = 0.0;
+        $tipoCambio = 1.0;
 
         if ($tipo === 'flete') {
             $idsFletes = array_map('intval', (array) ($payload['id_fletes'] ?? []));
@@ -360,9 +362,19 @@ class VentaMineralComprobanteService
             $precio = (float) ($payload['precio_por_tonelada'] ?? 0);
             $subtotal = CalculosDespacho::subtotal_flete($toneladas, $precio);
 
+            // La moneda del comprobante: en soles el tipo de cambio es 1 y
+            // en dolares es obligatorio (ya validado en validar_cabecera).
+            $moneda = Moneda::tryFrom((string) ($payload['moneda'] ?? Moneda::PEN->value))
+                ?? Moneda::PEN;
+            $tipoCambio = $moneda === Moneda::USD
+                ? (float) ($payload['tipo_cambio'] ?? 0)
+                : 1.0;
+
             $extras = [
                 'id_transportista_mineral' => (int) $payload['id_transportista_mineral'],
                 'toneladas_cobradas' => $toneladas,
+                'moneda' => $moneda->value,
+                'tipo_cambio' => $tipoCambio,
                 'precio_por_tonelada' => $precio,
             ];
         } elseif ($tipo === 'molienda') {
@@ -415,6 +427,15 @@ class VentaMineralComprobanteService
         }
 
         $importes = CalculosDespacho::calcular_importes($subtotal, $porcentajeIgv, $porcentajeDetraccion);
+
+        // La detraccion se cobra en soles: si el comprobante esta en dolares,
+        // se guarda tambien su equivalente en soles.
+        if ($tipo === 'flete') {
+            $extras['monto_detraccion_soles'] = CalculosDespacho::monto_detraccion_soles(
+                $importes['monto_detraccion'],
+                $tipoCambio
+            );
+        }
 
         return [
             'error' => null,
@@ -522,6 +543,15 @@ class VentaMineralComprobanteService
             if ((float) ($payload['precio_por_tonelada'] ?? 0) <= 0) {
                 return 'Debe indicar el precio por tonelada';
             }
+
+            $moneda = Moneda::tryFrom((string) ($payload['moneda'] ?? Moneda::PEN->value));
+            if ($moneda === null) {
+                return 'La moneda del comprobante no es valida';
+            }
+
+            if ($moneda === Moneda::USD && (float) ($payload['tipo_cambio'] ?? 0) <= 0) {
+                return 'Debe indicar el tipo de cambio del comprobante en dolares';
+            }
         }
 
         if ($tipo === 'molienda' && (float) ($payload['monto'] ?? 0) <= 0) {
@@ -627,10 +657,19 @@ class VentaMineralComprobanteService
     private static function extras_del_comprobante(string $tipo, object $comprobante): array
     {
         if ($tipo === 'flete') {
+            $moneda = (string) ($comprobante->moneda ?? Moneda::PEN->value);
+            $tipoCambio = (float) ($comprobante->tipo_cambio ?? 1);
+
             return [
                 'id_transportista_mineral' => (int) $comprobante->id_transportista_mineral,
                 'toneladas_cobradas' => (float) $comprobante->toneladas_cobradas,
+                'moneda' => $moneda,
+                'tipo_cambio' => $tipoCambio,
                 'precio_por_tonelada' => (float) $comprobante->precio_por_tonelada,
+                'monto_detraccion_soles' => CalculosDespacho::monto_detraccion_soles(
+                    (float) $comprobante->monto_detraccion,
+                    $tipoCambio
+                ),
             ];
         }
 

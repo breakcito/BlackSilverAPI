@@ -161,6 +161,8 @@ class VentaMineralComprobanteController extends Controller
             'porcentaje_igv'         => 'nullable|numeric|min:0|max:100',
             'id_transportista_mineral' => 'nullable|integer',
             'toneladas_cobradas'     => 'nullable|numeric|min:0',
+            'moneda'                 => 'nullable|string|max:10',
+            'tipo_cambio'            => 'nullable|numeric|min:0',
             'precio_por_tonelada'    => 'nullable|numeric|min:0',
             'monto'                  => 'nullable|numeric|min:0',
             'id_liquidacion_mineral' => 'nullable|integer',
@@ -202,6 +204,8 @@ class VentaMineralComprobanteController extends Controller
             'porcentaje_igv'         => 'nullable|numeric|min:0|max:100',
             'id_transportista_mineral' => 'nullable|integer',
             'toneladas_cobradas'     => 'nullable|numeric|min:0',
+            'moneda'                 => 'nullable|string|max:10',
+            'tipo_cambio'            => 'nullable|numeric|min:0',
             'precio_por_tonelada'    => 'nullable|numeric|min:0',
             'monto'                  => 'nullable|numeric|min:0',
             'id_liquidacion_mineral' => 'nullable|integer',
@@ -308,6 +312,14 @@ class VentaMineralComprobanteController extends Controller
 
         if ($request->has('toneladas_cobradas')) {
             $payload['toneladas_cobradas'] = (float) $request->input('toneladas_cobradas');
+        }
+
+        if ($request->has('moneda')) {
+            $payload['moneda'] = (string) $request->input('moneda');
+        }
+
+        if ($request->has('tipo_cambio')) {
+            $payload['tipo_cambio'] = (float) $request->input('tipo_cambio');
         }
 
         if ($request->has('precio_por_tonelada')) {

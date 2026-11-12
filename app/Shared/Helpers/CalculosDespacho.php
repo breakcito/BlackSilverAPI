@@ -112,6 +112,21 @@ class CalculosDespacho
     }
 
     /**
+     * Monto de la detraccion SOLES.
+     *
+     * La detraccion siempre se cobra en soles: si el comprobante esta en
+     * dolares, el monto se convierte con el tipo de cambio. Con la moneda en
+     * soles el tipo de cambio es 1 y ambos montos coinciden.
+     *
+     * Se redondea a ENTEROS, igual que la detraccion: el cobro no admite
+     * centavos.
+     */
+    public static function monto_detraccion_soles(float $montoDetraccion, float $tipoCambio): float
+    {
+        return (float) round($montoDetraccion * $tipoCambio);
+    }
+
+    /**
      * Cascada de importes de un comprobante de despacho.
      *
      * subtotal -> igv -> total -> detraccion (entera) -> neto a pagar.
