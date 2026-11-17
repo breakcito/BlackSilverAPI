@@ -8,15 +8,18 @@ use App\Shared\Responses\ApiResponse;
 class VentaCarbonReporteService
 {
     /**
-     * "Registro de Ventas": todas las cargas de carbon que ingresaron al
-     * almacen de destino en el anio indicado.
+     * "Registro de Ventas": las cargas de carbon que ingresaron al almacen de
+     * destino en el anio indicado.
+     *
+     * Si se informa `$mes`, el corte se limita a ese mes del anio.
      */
-    public static function get_control_ventas(int $anio): array
+    public static function get_control_ventas(int $anio, ?int $mes = null): array
     {
-        $cargas = VentaCarbonReporteData::get_cargas_control_ventas($anio);
+        $cargas = VentaCarbonReporteData::get_cargas_control_ventas($anio, $mes);
 
         return ApiResponse::success([
             'anio' => $anio,
+            'mes' => $mes,
             'cargas' => $cargas,
         ]);
     }

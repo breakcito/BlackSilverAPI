@@ -14,6 +14,62 @@ use Illuminate\Support\Facades\DB;
 class VentaMineralGastoFleteData
 {
     /**
+     * Proyeccion de los fletes de despacho.
+     *
+     * Es la UNICA forma de un flete: el id va como `id_flete_despacho` y
+     * trae el transportista y el empleado que lo registro. La usan tanto el
+     * listado del despacho como los fletes que cuelgan de un comprobante.
+     */
+    private const SELECT_FLETES = '
+        SELECT
+            f.id AS id_flete_despacho,
+            f.id_despacho_mineral,
+            f.id_transportista_mineral,
+            f.id_comprobante_flete_despacho,
+            f.id_empleado_registro,
+            f.placa,
+            f.licencia_conductor,
+            f.guia_remitente,
+            f.segunda_guia_remitente,
+            f.peso_guia,
+            f.codigo_ticket_balanza,
+            f.peso_bruto,
+            f.tara,
+            f.peso_neto,
+            f.fecha_hora_pesaje,
+            f.largo,
+            f.ancho,
+            f.alto,
+            f.evidencias,
+            f.created_at,
+            t.razon_social AS transportista,
+            t.ruc AS transportista_ruc,
+            CONCAT(e.nombre, " ", COALESCE(e.apellido, "")) AS empleado_registro
+        FROM flete_despacho f
+        LEFT JOIN transportista_mineral t ON t.id = f.id_transportista_mineral
+        LEFT JOIN empleado e ON e.id = f.id_empleado_registro
+    ';
+
+    /**
+     * Normaliza los fletes: ids en su tipo y evidencias decodificadas.
+     *
+     * @param array<int, object> $rows
+     * @return array<int, object>
+     */
+    private static function normalizar_fletes(array $rows): array
+    {
+        foreach ($rows as $row) {
+            $row->id_flete_despacho = (int) $row->id_flete_despacho;
+            $row->id_comprobante_flete_despacho = $row->id_comprobante_flete_despacho !== null
+                ? (int) $row->id_comprobante_flete_despacho
+                : null;
+            $row->evidencias = VentaMineralData::decode_json($row->evidencias ?? null);
+        }
+
+        return $rows;
+    }
+
+    /**
      * Gastos de un despacho.
      */
     public static function get_gastos(int $id_despacho_mineral): array
@@ -120,49 +176,12 @@ class VentaMineralGastoFleteData
      */
     public static function get_fletes(int $id_despacho_mineral): array
     {
-        $sql = '
-        SELECT
-            f.id AS id_flete_despacho,
-            f.id_despacho_mineral,
-            f.id_transportista_mineral,
-            f.id_comprobante_flete_despacho,
-            f.id_empleado_registro,
-            f.placa,
-            f.licencia_conductor,
-            f.guia_remitente,
-            f.segunda_guia_remitente,
-            f.peso_guia,
-            f.codigo_ticket_balanza,
-            f.peso_bruto,
-            f.tara,
-            f.peso_neto,
-            f.fecha_hora_pesaje,
-            f.largo,
-            f.ancho,
-            f.alto,
-            f.evidencias,
-            f.created_at,
-            t.razon_social AS transportista,
-            t.ruc AS transportista_ruc,
-            CONCAT(e.nombre, " ", COALESCE(e.apellido, "")) AS empleado_registro
-        FROM flete_despacho f
-        LEFT JOIN transportista_mineral t ON t.id = f.id_transportista_mineral
-        LEFT JOIN empleado e ON e.id = f.id_empleado_registro
-        WHERE f.id_despacho_mineral = :id_despacho_mineral
-        ORDER BY f.id ASC
-        ';
+        $rows = DB::select(
+            self::SELECT_FLETES . ' WHERE f.id_despacho_mineral = :id_despacho_mineral ORDER BY f.id ASC',
+            ['id_despacho_mineral' => $id_despacho_mineral]
+        );
 
-        $rows = DB::select($sql, ['id_despacho_mineral' => $id_despacho_mineral]);
-
-        foreach ($rows as $row) {
-            $row->id_flete_despacho = (int) $row->id_flete_despacho;
-            $row->id_comprobante_flete_despacho = $row->id_comprobante_flete_despacho !== null
-                ? (int) $row->id_comprobante_flete_despacho
-                : null;
-            $row->evidencias = VentaMineralData::decode_json($row->evidencias ?? null);
-        }
-
-        return $rows;
+        return self::normalizar_fletes($rows);
     }
 
     /**
@@ -330,6 +349,10 @@ class VentaMineralGastoFleteData
     /**
      * Fletes asociados a cada comprobante de flete.
      *
+     * La forma es la misma que devuelve `get_fletes`: el flete se expone con
+     * `id_flete_despacho` y no con el `id` crudo de la tabla. Asi el
+     * comprobante y el despacho comparten una unica forma de flete.
+     *
      * @param array<int, mixed> $ids_comprobantes
      * @return array<int, array<object>> Indexado por id de comprobante.
      */
@@ -339,14 +362,16 @@ class VentaMineralGastoFleteData
             return [];
         }
 
-        $rows = DB::table('flete_despacho')
-            ->whereIn('id_comprobante_flete_despacho', $ids_comprobantes)
-            ->orderBy('id', 'asc')
-            ->get();
+        $ids = array_map('intval', $ids_comprobantes);
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+
+        $rows = DB::select(
+            self::SELECT_FLETES . ' WHERE f.id_comprobante_flete_despacho IN (' . $placeholders . ') ORDER BY f.id ASC',
+            $ids
+        );
 
         $resultado = [];
-        foreach ($rows as $row) {
-            $row->id = (int) $row->id;
+        foreach (self::normalizar_fletes($rows) as $row) {
             $resultado[(int) $row->id_comprobante_flete_despacho][] = $row;
         }
 

@@ -52,6 +52,10 @@ class VentaCarbonReporteData
      * cargas que YA INGRESARON al almacen de destino, no las que siguen en
      * camino (esas todavia no tienen fecha de ingreso).
      *
+     * Si se informa `$mes`, el corte se estrecha al mismo periodo sobre la
+     * misma columna: el reporte lista las cargas que ingresaron en ese mes de
+     * ese anio.
+     *
      * Cada fila trae:
      *  - la carga con sus datos de ingreso, analisis e importes,
      *  - el cliente DESTINO (a donde llega el carbon) y su almacen,
@@ -61,7 +65,7 @@ class VentaCarbonReporteData
      *
      * @return array<int, object>
      */
-    public static function get_cargas_control_ventas(int $anio): array
+    public static function get_cargas_control_ventas(int $anio, ?int $mes = null): array
     {
         $cols = self::columnas_carga();
 
@@ -106,6 +110,17 @@ class VentaCarbonReporteData
                 LIMIT 1
             )'
             : 'LEFT JOIN pago_venta_carbon pg ON pg.id = NULL';
+
+        // El corte por periodo se hace sobre la fecha de INGRESO de la carga:
+        // es la fecha que dice que la venta se concreta. El mes es opcional
+        // para no romper el reporte anual completo.
+        $condicionesPeriodo = 'YEAR(cv.fecha_hora_ingreso) = :anio';
+        $params = ['anio' => $anio];
+
+        if ($mes !== null && $mes > 0) {
+            $condicionesPeriodo .= ' AND MONTH(cv.fecha_hora_ingreso) = :mes';
+            $params['mes'] = $mes;
+        }
 
         $sql = '
             SELECT
@@ -166,11 +181,11 @@ class VentaCarbonReporteData
             ' . $joinPago . '
             LEFT JOIN cuenta_bancaria_empresa cbe ON cbe.id = pg.id_cuenta_bancaria_empresa
             LEFT JOIN banco b ON b.id = cbe.id_banco
-            WHERE YEAR(cv.fecha_hora_ingreso) = :anio
+            WHERE ' . $condicionesPeriodo . '
             ORDER BY cv.fecha_hora_ingreso ASC, cv.id ASC
         ';
 
-        $filas = DB::select($sql, ['anio' => $anio]);
+        $filas = DB::select($sql, $params);
 
         foreach ($filas as $fila) {
             $fila->analisis_granulometria = self::decodificar_json(
