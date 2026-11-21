@@ -29,9 +29,15 @@ enum OrigenBalance: string
     case CompraCarbon = 'COMPRA_CARBON';
     case FleteCompraCarbon = 'FLETE_COMPRA_CARBON';
     case GastoProduccionCarbon = 'GASTO_PRODUCCION_CARBON';
+    case AnticipoProveedorCarbon = 'ANTICIPO_PROVEEDOR_CARBON';
+
+    // MINERAL - EGRESOS de la cadena de almacenes (reposiciones, entregas,
+    // transferencias): el costo del transporte hired a terceros o agencia.
+    case Transporte = 'TRANSPORTE';
 
     // CARBON - INGRESOS
     case VentaCarbon = 'VENTA_CARBON';
+    case AnticipoClienteCarbon = 'ANTICIPO_CLIENTE_CARBON';
 
     /**
      * Ambito al que pertenece el origen.
@@ -47,11 +53,14 @@ enum OrigenBalance: string
             self::MoliendaDespacho,
             self::AnalisisDespacho,
             self::AlquilerMaquinaria,
-            self::VentaMineral => AmbitoBalance::Mineral,
+            self::VentaMineral,
+            self::Transporte => AmbitoBalance::Mineral,
             self::CompraCarbon,
             self::FleteCompraCarbon,
             self::GastoProduccionCarbon,
-            self::VentaCarbon => AmbitoBalance::Carbon,
+            self::AnticipoProveedorCarbon,
+            self::VentaCarbon,
+            self::AnticipoClienteCarbon => AmbitoBalance::Carbon,
         };
     }
 
@@ -86,7 +95,10 @@ enum OrigenBalance: string
             self::CompraCarbon => 'Compra de carbon',
             self::FleteCompraCarbon => 'Flete de compra de carbon',
             self::GastoProduccionCarbon => 'Gastos de produccion de carbon',
+            self::AnticipoProveedorCarbon => 'Anticipos a proveedores de carbon',
+            self::Transporte => 'Gastos de transporte',
             self::VentaCarbon => 'Venta de carbon',
+            self::AnticipoClienteCarbon => 'Anticipos de clientes de carbon',
         };
     }
 

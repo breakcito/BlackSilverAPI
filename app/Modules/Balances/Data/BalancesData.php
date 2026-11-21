@@ -385,34 +385,89 @@ class BalancesData
         UNION ALL
 
         -- 10) CARBON / EGRESO - Compra de carbon
+        --     El monto es el valor INTEGRO de la mercancia (carga.total, con
+        --     su IGV) MENOS la parte que ya se adelanto con anticipo.
+        --
+        --     El anticipo se amortiza contra la liquidacion (comprobante o
+        --     pago), no contra la carga. Como un anticipo puede cubrir
+        --     VARIAS cargas, se reparte proporcionalmente al subtotal de
+        --     cada una. Asi "Compra de carbon" + "Anticipos a proveedores"
+        --     suma exactamente el valor de la mercancia: no se cuenta dos
+        --     veces el mismo peso.
         SELECT
-            CAST(CONCAT("COMPRA_CARBON-", ccc.id) AS CHAR(96))           AS id_origen,
+            CAST(CONCAT("COMPRA_CARBON-", t.id) AS CHAR(96))             AS id_origen,
             CAST("COMPRA_CARBON" AS CHAR(32))                            AS origen,
             CAST("CARBON" AS CHAR(16))                                   AS ambito,
             CAST("EGRESO" AS CHAR(16))                                   AS tipo,
-            DATE(ccc.fecha_hora_ingreso)                                 AS fecha,
+            DATE(t.fecha_hora_ingreso)                                   AS fecha,
             CAST(CONCAT("Compra de carbon - ", COALESCE(tcb.nombre, "carbon")) AS CHAR(512)) AS descripcion,
             CAST(cc.correlativo AS CHAR(255))                            AS referencia,
             CAST(CONCAT_WS(" | ",
                 CASE WHEN prv.razon_social IS NOT NULL THEN CONCAT("Proveedor: ", prv.razon_social) END,
-                CASE WHEN ccc.placa IS NOT NULL THEN CONCAT("Placa: ", ccc.placa) END,
-                CONCAT(FORMAT(ccc.cantidad, 2), " TN")
+                CASE WHEN t.placa IS NOT NULL THEN CONCAT("Placa: ", t.placa) END,
+                CONCAT(FORMAT(t.cantidad, 2), " TN"),
+                CASE WHEN t.anticipo_carga > 0
+                     THEN CONCAT("Cubierto con anticipo por ", FORMAT(t.anticipo_carga, 2)) END
             ) AS CHAR(512))                                              AS detalle,
-            ccc.id_almacen_empresa_llegada                               AS id_almacen,
+            t.id_almacen_empresa_llegada                                 AS id_almacen,
             CAST(NULL AS SIGNED)                                         AS id_cliente,
             cc.id_proveedor                                               AS id_proveedor,
-            ccc.id_empleado_registro                                     AS id_empleado,
+            t.id_empleado_registro                                       AS id_empleado,
             CAST("Soles" AS CHAR(16))                                     AS moneda,
-            COALESCE(ccc.total, 0)                                       AS monto,
+            ROUND(COALESCE(t.total, 0) - t.anticipo_carga, 2)             AS monto,
             CAST(1 AS DECIMAL(18,6))                                     AS tipo_cambio
-        FROM carga_compra_carbon ccc
+        FROM (
+            SELECT
+                ccc.id,
+                ccc.id_compra_carbon,
+                ccc.id_empleado_registro,
+                ccc.id_almacen_empresa_llegada,
+                ccc.id_tipo_carbon,
+                ccc.fecha_hora_ingreso,
+                ccc.placa,
+                ccc.cantidad,
+                ccc.total,
+                ccc.subtotal,
+                -- Parte del anticipo que corresponde a esta carga.
+                ROUND(
+                    COALESCE(ac.anticipo, 0) * COALESCE(ccc.subtotal / NULLIF(sc.suma_subtotal, 0), 0)
+                  + COALESCE(ap.anticipo, 0) * COALESCE(ccc.subtotal / NULLIF(sp.suma_subtotal, 0), 0)
+                , 2) AS anticipo_carga
+            FROM carga_compra_carbon ccc
+            LEFT JOIN (
+                SELECT c2.id_comprobante_compra_carbon AS id_ref, SUM(c2.subtotal) AS suma_subtotal
+                FROM carga_compra_carbon c2
+                WHERE c2.id_comprobante_compra_carbon IS NOT NULL
+                  AND (c2.estado IS NULL OR c2.estado <> "Anulado")
+                GROUP BY c2.id_comprobante_compra_carbon
+            ) sc ON sc.id_ref = ccc.id_comprobante_compra_carbon
+            LEFT JOIN (
+                SELECT c2.id_pago_compra_carbon AS id_ref, SUM(c2.subtotal) AS suma_subtotal
+                FROM carga_compra_carbon c2
+                WHERE c2.id_pago_compra_carbon IS NOT NULL
+                  AND (c2.estado IS NULL OR c2.estado <> "Anulado")
+                GROUP BY c2.id_pago_compra_carbon
+            ) sp ON sp.id_ref = ccc.id_pago_compra_carbon
+            LEFT JOIN (
+                SELECT id_comprobante_compra_carbon AS id_ref, SUM(monto_retirado) AS anticipo
+                FROM transaccion_anticipo_proveedor
+                WHERE id_comprobante_compra_carbon IS NOT NULL
+                GROUP BY id_comprobante_compra_carbon
+            ) ac ON ac.id_ref = ccc.id_comprobante_compra_carbon
+            LEFT JOIN (
+                SELECT id_pago_compra_carbon AS id_ref, SUM(monto_retirado) AS anticipo
+                FROM transaccion_anticipo_proveedor
+                WHERE id_pago_compra_carbon IS NOT NULL
+                GROUP BY id_pago_compra_carbon
+            ) ap ON ap.id_ref = ccc.id_pago_compra_carbon
+            WHERE ccc.estado IS NULL OR ccc.estado <> "Anulado"
+        ) t
         CROSS JOIN periodo p
-        LEFT JOIN compra_carbon cc ON cc.id = ccc.id_compra_carbon
+        LEFT JOIN compra_carbon cc ON cc.id = t.id_compra_carbon
         LEFT JOIN proveedor prv ON prv.id = cc.id_proveedor
-        LEFT JOIN tipo_carbon tcb ON tcb.id = ccc.id_tipo_carbon
-        WHERE ccc.fecha_hora_ingreso >= p.f_ini
-          AND ccc.fecha_hora_ingreso <  p.f_fin_excl
-          AND (ccc.estado IS NULL OR ccc.estado <> "Anulado")
+        LEFT JOIN tipo_carbon tcb ON tcb.id = t.id_tipo_carbon
+        WHERE t.fecha_hora_ingreso >= p.f_ini
+          AND t.fecha_hora_ingreso <  p.f_fin_excl
 
         UNION ALL
 
@@ -481,7 +536,229 @@ class BalancesData
 
         UNION ALL
 
-        -- 13) CARBON / INGRESO - Venta de carbon
+        -- 13) CARBON / EGRESO - Anticipos entregados a proveedores de carbon
+        --     El monto es `saldo_inicial`: el dinero que efectivamente salio
+        --     de la empresa. `saldo_actual` es lo que queda de ese anticipo
+        --     (se consume al pagar compras), no el flujo del periodo.
+        SELECT
+            CAST(CONCAT("ANTICIPO_PROVEEDOR_CARBON-", ap.id) AS CHAR(96)) AS id_origen,
+            CAST("ANTICIPO_PROVEEDOR_CARBON" AS CHAR(32))                AS origen,
+            CAST("CARBON" AS CHAR(16))                                   AS ambito,
+            CAST("EGRESO" AS CHAR(16))                                   AS tipo,
+            COALESCE(DATE(ap.fecha_hora_pago), DATE(ap.created_at))      AS fecha,
+            CAST(CONCAT("Anticipo a proveedor de carbon - ", COALESCE(prv.razon_social, "proveedor")) AS CHAR(512)) AS descripcion,
+            CAST(COALESCE(NULLIF(ap.numero_operacion, ""), NULLIF(ap.codigo_comprobante, "")) AS CHAR(255)) AS referencia,
+            CAST(CONCAT_WS(" | ",
+                CASE WHEN ap.medio_pago IS NOT NULL THEN CONCAT("Medio de pago: ", ap.medio_pago) END,
+                NULLIF(ap.observacion, ""),
+                CASE WHEN IFNULL(ap.pago_a_terceros, 0) = 1 THEN "Pago a terceros" END,
+                CASE WHEN tap.total_aplicado IS NOT NULL
+                     THEN CONCAT("Aplicado a compras por ", FORMAT(tap.total_aplicado, 2)) END
+            ) AS CHAR(512))                                              AS detalle,
+            CAST(NULL AS SIGNED)                                         AS id_almacen,
+            CAST(NULL AS SIGNED)                                         AS id_cliente,
+            ap.id_proveedor                                               AS id_proveedor,
+            ap.id_empleado_registro                                       AS id_empleado,
+            CAST(COALESCE(NULLIF(cbe.moneda, ""), "Soles") AS CHAR(16))   AS moneda,
+            COALESCE(ap.saldo_inicial, 0)                                 AS monto,
+            CAST(1 AS DECIMAL(18,6))                                     AS tipo_cambio
+        FROM anticipo_proveedor ap
+        CROSS JOIN periodo p
+        LEFT JOIN proveedor prv ON prv.id = ap.id_proveedor
+        LEFT JOIN cuenta_bancaria_empresa cbe ON cbe.id = ap.id_cuenta_bancaria_empresa
+        LEFT JOIN (
+            SELECT
+                t.id_anticipo_proveedor AS id_anticipo,
+                SUM(t.monto_retirado) AS total_aplicado
+            FROM transaccion_anticipo_proveedor t
+            GROUP BY t.id_anticipo_proveedor
+        ) tap ON tap.id_anticipo = ap.id
+        WHERE COALESCE(DATE(ap.fecha_hora_pago), DATE(ap.created_at)) >= p.f_ini
+          AND COALESCE(DATE(ap.fecha_hora_pago), DATE(ap.created_at)) <  p.f_fin_excl
+          AND IFNULL(ap.esta_anulado, 0) = 0
+          AND (ap.estado IS NULL OR ap.estado <> "Anulado")
+
+        UNION ALL
+
+        -- 14) CARBON / INGRESO - Anticipos recibidos de clientes de carbon
+        --     Mismo criterio que el anticipo a proveedores: `saldo_inicial`
+        --     es el dinero que entro a la empresa.
+        SELECT
+            CAST(CONCAT("ANTICIPO_CLIENTE_CARBON-", ac.id) AS CHAR(96))  AS id_origen,
+            CAST("ANTICIPO_CLIENTE_CARBON" AS CHAR(32))                 AS origen,
+            CAST("CARBON" AS CHAR(16))                                   AS ambito,
+            CAST("INGRESO" AS CHAR(16))                                  AS tipo,
+            COALESCE(DATE(ac.fecha_hora_pago), DATE(ac.created_at))      AS fecha,
+            CAST(CONCAT("Anticipo de cliente de carbon - ", COALESCE(cli.razon_social, "cliente")) AS CHAR(512)) AS descripcion,
+            CAST(COALESCE(NULLIF(ac.numero_operacion, ""), NULLIF(ac.codigo_comprobante, "")) AS CHAR(255)) AS referencia,
+            CAST(CONCAT_WS(" | ",
+                CASE WHEN ac.medio_pago IS NOT NULL THEN CONCAT("Medio de pago: ", ac.medio_pago) END,
+                NULLIF(ac.observacion, ""),
+                CASE WHEN tac.total_aplicado IS NOT NULL
+                     THEN CONCAT("Aplicado a ventas por ", FORMAT(tac.total_aplicado, 2)) END
+            ) AS CHAR(512))                                              AS detalle,
+            CAST(NULL AS SIGNED)                                         AS id_almacen,
+            ac.id_cliente                                                 AS id_cliente,
+            CAST(NULL AS SIGNED)                                         AS id_proveedor,
+            ac.id_empleado_registro                                       AS id_empleado,
+            CAST(COALESCE(NULLIF(cbe.moneda, ""), "Soles") AS CHAR(16))   AS moneda,
+            COALESCE(ac.saldo_inicial, 0)                                 AS monto,
+            CAST(1 AS DECIMAL(18,6))                                     AS tipo_cambio
+        FROM anticipo_cliente ac
+        CROSS JOIN periodo p
+        LEFT JOIN cliente cli ON cli.id = ac.id_cliente
+        LEFT JOIN cuenta_bancaria_empresa cbe ON cbe.id = ac.id_cuenta_bancaria_empresa
+        LEFT JOIN (
+            SELECT
+                t.id_anticipo_cliente AS id_anticipo,
+                SUM(t.monto_retirado) AS total_aplicado
+            FROM transaccion_anticipo_cliente t
+            GROUP BY t.id_anticipo_cliente
+        ) tac ON tac.id_anticipo = ac.id
+        WHERE COALESCE(DATE(ac.fecha_hora_pago), DATE(ac.created_at)) >= p.f_ini
+          AND COALESCE(DATE(ac.fecha_hora_pago), DATE(ac.created_at)) <  p.f_fin_excl
+          AND IFNULL(ac.esta_anulado, 0) = 0
+          AND (ac.estado IS NULL OR ac.estado <> "Anulado")
+
+        UNION ALL
+
+        -- 15) MINERAL / EGRESO - Gastos de transporte de la cadena de almacenes
+        --     Reposiciones, entregas de reabastecimiento, entregas de
+        --     prestamo y transferencias de orden de compra registran el costo
+        --     del transporte hired. Solo cuenta cuando el medio de entrega es
+        --     "Terceros" o "Agencia" (con medio "Propio" no hay gasto).
+        SELECT
+            CAST(CONCAT("TRANSPORTE-", t.origen_tabla, "-", t.id) AS CHAR(96)) AS id_origen,
+            CAST("TRANSPORTE" AS CHAR(32))                               AS origen,
+            CAST("MINERAL" AS CHAR(16))                                  AS ambito,
+            CAST("EGRESO" AS CHAR(16))                                   AS tipo,
+            t.fecha                                                      AS fecha,
+            CAST(CONCAT("Gasto de transporte - ", t.tipo_movimiento) AS CHAR(512)) AS descripcion,
+            CAST(t.correlativo AS CHAR(255))                             AS referencia,
+            CAST(CONCAT_WS(" | ",
+                CASE WHEN t.transportista IS NOT NULL THEN CONCAT("Transportista: ", t.transportista) END,
+                CASE WHEN t.guia IS NOT NULL THEN CONCAT("Guia: ", t.guia) END,
+                CASE WHEN t.factura IS NOT NULL THEN CONCAT("Factura: ", t.factura) END
+            ) AS CHAR(512))                                              AS detalle,
+            t.id_almacen                                                 AS id_almacen,
+            CAST(NULL AS SIGNED)                                         AS id_cliente,
+            t.id_proveedor_transporte                                    AS id_proveedor,
+            t.id_empleado                                                AS id_empleado,
+            CAST("Soles" AS CHAR(16))                                     AS moneda,
+            t.costo_envio                                                AS monto,
+            CAST(1 AS DECIMAL(18,6))                                     AS tipo_cambio
+        FROM (
+            SELECT
+                "prestamo_almacen_reposicion" AS origen_tabla,
+                r.id,
+                DATE(r.fecha_hora_reposicion) AS fecha,
+                r.correlativo,
+                r.costo_envio,
+                r.id_almacen_entrega AS id_almacen,
+                r.id_proveedor_transporte,
+                r.id_empleado_entrega AS id_empleado,
+                "Reposicion de almacen" AS tipo_movimiento,
+                COALESCE(prov_t.razon_social, age_t.razon_social) AS transportista,
+                CONCAT_WS("-", NULLIF(r.serie_guia_transportista, ""), NULLIF(r.numero_guia_transportista, "")) AS guia,
+                CONCAT_WS("-", NULLIF(r.serie_factura, ""), NULLIF(r.numero_factura, "")) AS factura
+            FROM prestamo_almacen_reposicion r
+            CROSS JOIN periodo p
+            LEFT JOIN proveedor prov_t ON prov_t.id = r.id_proveedor_transporte
+            LEFT JOIN agencia_transporte age_t ON age_t.id = r.id_agencia_transporte
+            WHERE r.medio_entrega IN ("Terceros", "Agencia")
+              AND COALESCE(r.costo_envio, 0) > 0
+              AND (r.estado IS NULL OR r.estado <> "Anulado")
+              AND r.fecha_hora_reposicion >= p.f_ini
+              AND r.fecha_hora_reposicion <  p.f_fin_excl
+
+            UNION ALL
+
+            SELECT
+                "solicitud_reabastecimiento_entrega",
+                r.id,
+                DATE(r.fecha_hora_entrega),
+                r.correlativo,
+                r.costo_envio,
+                r.id_almacen_entrega,
+                r.id_proveedor_transporte,
+                r.id_empleado_entrega,
+                "Entrega de reabastecimiento",
+                COALESCE(prov_t.razon_social, age_t.razon_social),
+                CONCAT_WS("-", NULLIF(r.serie_guia_transportista, ""), NULLIF(r.numero_guia_transportista, "")),
+                CONCAT_WS("-", NULLIF(r.serie_factura, ""), NULLIF(r.numero_factura, ""))
+            FROM solicitud_reabastecimiento_entrega r
+            CROSS JOIN periodo p
+            LEFT JOIN proveedor prov_t ON prov_t.id = r.id_proveedor_transporte
+            LEFT JOIN agencia_transporte age_t ON age_t.id = r.id_agencia_transporte
+            WHERE r.medio_entrega IN ("Terceros", "Agencia")
+              AND COALESCE(r.costo_envio, 0) > 0
+              AND (r.estado IS NULL OR r.estado <> "Anulado")
+              AND r.fecha_hora_entrega >= p.f_ini
+              AND r.fecha_hora_entrega <  p.f_fin_excl
+
+            UNION ALL
+
+            SELECT
+                "prestamo_almacen_entrega",
+                r.id,
+                DATE(r.fecha_hora_entrega),
+                r.correlativo,
+                r.costo_envio,
+                CAST(NULL AS SIGNED),
+                r.id_proveedor_transporte,
+                r.id_empleado_entrega,
+                "Entrega de prestamo de almacen",
+                COALESCE(prov_t.razon_social, age_t.razon_social),
+                CONCAT_WS("-", NULLIF(r.serie_guia_transportista, ""), NULLIF(r.numero_guia_transportista, "")),
+                CONCAT_WS("-", NULLIF(r.serie_factura, ""), NULLIF(r.numero_factura, ""))
+            FROM prestamo_almacen_entrega r
+            CROSS JOIN periodo p
+            LEFT JOIN proveedor prov_t ON prov_t.id = r.id_proveedor_transporte
+            LEFT JOIN agencia_transporte age_t ON age_t.id = r.id_agencia_transporte
+            WHERE r.medio_entrega IN ("Terceros", "Agencia")
+              AND COALESCE(r.costo_envio, 0) > 0
+              AND (r.estado IS NULL OR r.estado <> "Anulado")
+              AND r.fecha_hora_entrega >= p.f_ini
+              AND r.fecha_hora_entrega <  p.f_fin_excl
+
+            UNION ALL
+
+            SELECT
+                "orden_compra_transferencia",
+                r.id,
+                DATE(r.fecha_hora_transferencia),
+                r.correlativo,
+                r.costo_envio,
+                r.id_almacen_destino,
+                r.id_proveedor_transporte,
+                r.id_empleado_transferencia,
+                "Transferencia de orden de compra",
+                COALESCE(prov_t.razon_social, age_t.razon_social),
+                CONCAT_WS("-", NULLIF(r.serie_guia_transportista, ""), NULLIF(r.numero_guia_transportista, "")),
+                CONCAT_WS("-", NULLIF(r.serie_factura, ""), NULLIF(r.numero_factura, ""))
+            FROM orden_compra_transferencia r
+            CROSS JOIN periodo p
+            LEFT JOIN proveedor prov_t ON prov_t.id = r.id_proveedor_transporte
+            LEFT JOIN agencia_transporte age_t ON age_t.id = r.id_agencia_transporte
+            WHERE r.medio_entrega IN ("Terceros", "Agencia")
+              AND COALESCE(r.costo_envio, 0) > 0
+              AND (r.estado IS NULL OR r.estado <> "Anulado")
+              AND r.fecha_hora_transferencia >= p.f_ini
+              AND r.fecha_hora_transferencia <  p.f_fin_excl
+        ) t
+
+        UNION ALL
+
+        -- 16) CARBON / INGRESO - Venta de carbon
+        --     El monto es el valor INTEGRO de la venta (subtotal con su IGV
+        --     calculado sobre el subtotal completo) MENOS la parte cobrada
+        --     por adelantado con anticipo. Mismo criterio que la compra: la
+        --     linea del anticipo suma lo que se cobro por adelantado y, entre
+        --     las dos, dan el valor total de la venta sin contarlo dos veces.
+        --
+        --     Ojo: `importe_total` NO sirve aca, porque el comprobante
+        --     recalcula el IGV sobre la base ya reducida por los anticipos y
+        --     por eso queda con el IGV del anticipo sin facturar.
         SELECT
             CAST(CONCAT("VENTA_CARBON-", cvc.id) AS CHAR(96))            AS id_origen,
             CAST("VENTA_CARBON" AS CHAR(32))                             AS origen,
@@ -492,14 +769,20 @@ class BalancesData
             CAST(COALESCE(cvc.codigo_comprobante, lvc.codigo_orden_compra) AS CHAR(255)) AS referencia,
             CAST(CONCAT_WS(" | ",
                 CASE WHEN vc.correlativo IS NOT NULL THEN CONCAT("Venta: ", vc.correlativo) END,
-                CASE WHEN cli.razon_social IS NOT NULL THEN CONCAT("Cliente: ", cli.razon_social) END
+                CASE WHEN cli.razon_social IS NOT NULL THEN CONCAT("Cliente: ", cli.razon_social) END,
+                CASE WHEN COALESCE(cvc.monto_pagado_anticipos, 0) > 0
+                     THEN CONCAT("Cubierto con anticipo por ", FORMAT(cvc.monto_pagado_anticipos, 2)) END
             ) AS CHAR(512))                                              AS detalle,
             vc.id_almacen_empresa_salida                                 AS id_almacen,
             vc.id_cliente                                                 AS id_cliente,
             CAST(NULL AS SIGNED)                                         AS id_proveedor,
             cvc.id_empleado_registro                                     AS id_empleado,
             CAST("Soles" AS CHAR(16))                                     AS moneda,
-            COALESCE(cvc.importe_total, 0)                               AS monto,
+            ROUND(
+                COALESCE(cvc.subtotal, 0)
+                + ROUND(COALESCE(cvc.subtotal, 0) * COALESCE(vc.porcentaje_igv, 0) / 100, 2)
+                - COALESCE(cvc.monto_pagado_anticipos, 0)
+            , 2)                                                           AS monto,
             CAST(1 AS DECIMAL(18,6))                                     AS tipo_cambio
         FROM comprobante_venta_carbon cvc
         CROSS JOIN periodo p
