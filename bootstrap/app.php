@@ -61,6 +61,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require base_path('app/Modules/ProgramacionHorarios/ProgramacionHorariosEndpoints.php');
                 require base_path('app/Modules/Asistencia/AsistenciaEndpoints.php');
                 require base_path('app/Modules/System/SystemEndpoints.php');
+                require base_path('app/Modules/Dashboard/DashboardEndpoints.php');
             require base_path('app/Modules/TipoCarbon/TipoCarbonEndpoints.php');
                 require base_path('app/Modules/CompraCarbon/CompraCarbonEndpoints.php');
                 require base_path('app/Modules/KardexCarbon/KardexCarbonEndpoints.php');
