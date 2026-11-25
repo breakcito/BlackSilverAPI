@@ -126,6 +126,7 @@ class TamizajeCarbonData
         $sql = '
             SELECT
                 tz.id AS id_zarandeo_carbon,
+                tz.id_grupo_gastos,
                 tz.id_almacen,
                 alm.nombre AS almacen_nombre,
                 tz.id_empleado_registro,
@@ -155,12 +156,14 @@ class TamizajeCarbonData
                 (
                     SELECT COUNT(*)
                     FROM gasto_produccion_carbon g
-                    WHERE g.id_zarandeo_carbon = tz.id
+                    WHERE g.id_grupo_gastos = tz.id_grupo_gastos
+                      AND tz.id_grupo_gastos IS NOT NULL
                 ) AS gastos_cantidad,
                 (
                     SELECT COALESCE(SUM(g.total), 0)
                     FROM gasto_produccion_carbon g
-                    WHERE g.id_zarandeo_carbon = tz.id
+                    WHERE g.id_grupo_gastos = tz.id_grupo_gastos
+                      AND tz.id_grupo_gastos IS NOT NULL
                 ) AS gastos_total
             FROM zarandeo_carbon tz
             INNER JOIN almacen alm ON alm.id = tz.id_almacen
@@ -288,6 +291,7 @@ class TamizajeCarbonData
             WHERE c.id_zarandeo_carbon IS NULL
               AND c.estado != "Anulado"
               AND c.id_almacen_empresa_llegada IS NOT NULL
+              AND c.sera_zarandeado = 1
         ';
 
         $params = [];
@@ -323,6 +327,7 @@ class TamizajeCarbonData
                   AND c.id_almacen_empresa_llegada = :id_almacen
                   AND c.id_tipo_carbon = :id_tipo_carbon
                   AND ' . ($g->calidad === null ? 'c.calidad IS NULL' : 'c.calidad = :calidad') . '
+                  AND c.sera_zarandeado = 1
                 ORDER BY c.fecha_hora_ingreso ASC, c.id ASC
             ', array_filter([
                 'id_almacen' => (int) $g->id_almacen,
@@ -459,6 +464,157 @@ class TamizajeCarbonData
             }
 
             return $idTamizaje;
+        });
+    }
+
+    /**
+     * Actualiza un zarandeo existente, revirtiendo y reaplicando el stock.
+     *
+     * El zarandeo es una transformacion interna: no genera kardex, solo mueve
+     * stock entre el tipo zarandeado y sus variantes. Para editarlo se
+     * deshace ese movimiento y se vuelve a aplicar con los valores nuevos:
+     *
+     *   1. se devuelve al stock del tipo zarandeado lo que se habia extraido,
+     *      y se resta de cada variante lo que se le habia sumado;
+     *   2. se rehace el movimiento con las variantes nuevas;
+     *   3. se reasignan las cargas (si vinieron) y se actualiza la cabecera.
+     *
+     * @param array{
+     *   id_tipo_carbon: int,
+     *   calidad: string,
+     *   cantidad_zarandeada: float,
+     *   fecha_hora_zarandeo: string,
+     *   variantes: array<int, array{id_tipo_variante: int, porcentaje_extraccion: float, cantidad_extraida: float}>,
+     *   id_cargas?: array<int, int>,
+     *   id_empleado_editor: int,
+     *   nombre_empleado?: string|null
+     * } $d
+     */
+    public static function actualizar_zarandeo(int $id_zarandeo, array $d): void
+    {
+        DB::transaction(function () use ($id_zarandeo, $d) {
+            $zarandeo = DB::table('zarandeo_carbon')
+                ->where('id', $id_zarandeo)
+                ->lockForUpdate()
+                ->first();
+
+            if ($zarandeo === null) {
+                throw new \RuntimeException('El zarandeo indicado no existe');
+            }
+
+            $idAlmacen = (int) $zarandeo->id_almacen;
+            $tipoViejo = (int) $zarandeo->id_tipo_carbon;
+            $calidadVieja = $zarandeo->calidad !== null ? (string) $zarandeo->calidad : null;
+            $cantidadExtraidaVieja = (float) $zarandeo->cantidad_extraida;
+
+            $variantesViejas = DB::table('variante_zarandeo_carbon')
+                ->where('id_zarandeo_carbon', $id_zarandeo)
+                ->get();
+
+            // ── 1) Revertir el movimiento de stock anterior ────────────────
+            foreach ($variantesViejas as $v) {
+                self::ajustar_stock_almacen(
+                    $idAlmacen,
+                    (int) $v->id_tipo_variante,
+                    $calidadVieja,
+                    -round((float) $v->cantidad_extraida, 4)
+                );
+            }
+            self::ajustar_stock_almacen(
+                $idAlmacen,
+                $tipoViejo,
+                $calidadVieja,
+                $cantidadExtraidaVieja
+            );
+
+            // ── 2) Aplicar el movimiento nuevo ─────────────────────────────
+            $tipoNuevo = (int) $d['id_tipo_carbon'];
+            $calidadNueva = (string) $d['calidad'];
+            $variantes = $d['variantes'];
+
+            // Las variantes viejas ya invirtieron su efecto en el stock: se
+            // reemplazan por las nuevas.
+            DB::table('variante_zarandeo_carbon')
+                ->where('id_zarandeo_carbon', $id_zarandeo)
+                ->delete();
+
+            $cantidadExtraidaTotal = 0.0;
+            foreach ($variantes as $v) {
+                $cantidadExtraidaTotal += round((float) $v['cantidad_extraida'], 4);
+            }
+
+            $conPorcentaje = self::tienePorcentajeExtraccion();
+            $logEditor = [
+                'id_empleado' => (int) $d['id_empleado_editor'],
+                'nombre_empleado' => $d['nombre_empleado'] ?? null,
+                'motivo' => 'Edicion del zarandeo',
+                'update_at' => now()->toDateTimeString(),
+            ];
+
+            foreach ($variantes as $v) {
+                $idTipoVariante = (int) $v['id_tipo_variante'];
+                $cantVar = round((float) $v['cantidad_extraida'], 4);
+
+                $filaVariante = [
+                    'id_zarandeo_carbon' => $id_zarandeo,
+                    'id_tipo_variante' => $idTipoVariante,
+                    'cantidad_extraida' => $cantVar,
+                    'cambios_log' => json_encode($logEditor, JSON_UNESCAPED_UNICODE),
+                ];
+
+                if ($conPorcentaje) {
+                    $filaVariante['porcentaje_extraccion'] = round((float) ($v['porcentaje_extraccion'] ?? 0), 4);
+                }
+
+                VarianteZarandeoCarbon::insert($filaVariante);
+
+                self::ajustar_stock_almacen($idAlmacen, $idTipoVariante, $calidadNueva, $cantVar);
+            }
+
+            self::ajustar_stock_almacen($idAlmacen, $tipoNuevo, $calidadNueva, -$cantidadExtraidaTotal);
+
+            // ── 3) Reasignar las cargas (si vinieron) ──────────────────────
+            $cambianCargas = isset($d['id_cargas']) && is_array($d['id_cargas']);
+            if ($cambianCargas) {
+                $idCargas = array_values(array_unique(array_map('intval', $d['id_cargas'])));
+                $idCargas = array_values(array_filter($idCargas, fn ($id) => $id > 0));
+
+                // Se liberan las cargas del zarandeo: las que siguen siendo
+                // parte del grupo vuelven a tomarce con el WHERE de abajo.
+                DB::table('carga_compra_carbon')
+                    ->where('id_zarandeo_carbon', $id_zarandeo)
+                    ->update(['id_zarandeo_carbon' => null]);
+
+                if (!empty($idCargas)) {
+                    $afectadas = DB::table('carga_compra_carbon')
+                        ->whereIn('id', $idCargas)
+                        ->whereNull('id_zarandeo_carbon')
+                        ->update(['id_zarandeo_carbon' => $id_zarandeo]);
+
+                    if ($afectadas !== count($idCargas)) {
+                        throw new \RuntimeException(
+                            'Alguna de las cargas seleccionadas ya fue zarandeada por otra operación'
+                        );
+                    }
+                }
+            }
+
+            // ── 4) Actualizar la cabecera ───────────────────────────────────
+            $cabecera = [
+                'id_tipo_carbon' => $tipoNuevo,
+                'calidad' => $calidadNueva,
+                'cantidad_zarandeada' => (float) $d['cantidad_zarandeada'],
+                'cantidad_extraida' => $cantidadExtraidaTotal,
+                'fecha_hora_zarandeo' => (string) $d['fecha_hora_zarandeo'],
+            ];
+
+            if ($cambianCargas) {
+                $cabecera['es_rezarandeo'] = empty($d['id_cargas']) ? 1 : 0;
+            }
+
+            DB::table('zarandeo_carbon')
+                ->where('id', $id_zarandeo)
+                ->update($cabecera);
         });
     }
 

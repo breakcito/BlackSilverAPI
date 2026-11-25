@@ -24,6 +24,7 @@ class ZarandeoCarbon extends Model
         'id_empleado_registro', // quien registra este zarandeo
         'id_empleado_supervisor', // quien fue el supervisor de planta que reporto estos resultados - opcional
         'id_tipo_carbon', // el tipo de carbon zarandeado
+        'id_grupo_gastos',
         //
         'calidad', // que calidad fue zarandeada
         // en toneladas, cuanto se esta zarandeando. Si este zarandeo viene de un grupo de cargas 

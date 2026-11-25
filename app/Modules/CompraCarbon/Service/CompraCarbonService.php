@@ -595,12 +595,17 @@ class CompraCarbonService
                     'porcentaje_humedad',
                     'precio_unitario',
                     'costo_flete_por_tonelada',
+                    'sera_zarandeado',
                     'evidencias',
                 ];
                 foreach ($campos as $c) {
                     if (array_key_exists($c, $payload)) {
                         $update[$c] = $payload[$c];
                     }
+                }
+                // El indicador se guarda como 0/1 (columna tinyint).
+                if (array_key_exists('sera_zarandeado', $update)) {
+                    $update['sera_zarandeado'] = $update['sera_zarandeado'] ? 1 : 0;
                 }
                 // Montos derivados: se recalculan con las mismas formulas del
                 // registro para que la carga no quede con montos viejos.

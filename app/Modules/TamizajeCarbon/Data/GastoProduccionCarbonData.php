@@ -3,9 +3,16 @@
 namespace App\Modules\TamizajeCarbon\Data;
 
 use App\Models\GastoProduccionCarbon;
+use App\Shared\Enums\Carbon\TipoOperacionGrupoGastos;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * SQL de los gastos de produccion de carbon.
+ *
+ * Un gasto cuelga de un GRUPO de gastos (que reune varios zarandeos o varios
+ * blendings de una misma operacion), no de una operacion puntual.
+ */
 class GastoProduccionCarbonData
 {
     /**
@@ -31,6 +38,7 @@ class GastoProduccionCarbonData
         foreach ([
             'esta_pagado' => '0 AS esta_pagado',
             'fecha_pago' => 'NULL AS fecha_pago',
+            'medio_pago' => 'NULL AS medio_pago',
         ] as $columna => $alternativa) {
             $resueltas[$columna] = isset($existentes[$columna])
                 ? 'g.' . $columna
@@ -41,28 +49,20 @@ class GastoProduccionCarbonData
     }
 
     /**
-     * Lista los gastos de producción de un zarandeo o de un blending.
-     *
-     * Un gasto pertenece a UN destino: o a un zarandeo o a un blending. Por
-     * eso el filtro se arma con el destino recibido, nunca con un nombre de
-     * columna dinamico.
+     * Lista los gastos de produccion de un grupo.
      *
      * @param ?int $id_gasto Si se pasa, devuelve solo ese gasto (con la misma
      *   forma que el listado) en lugar de la lista completa.
      * @return array<object>|object|null
      */
-    public static function get_gastos(
-        ?int $id_zarandeo_carbon = null,
-        ?int $id_blending_carbon = null,
-        ?int $id_gasto = null
-    ) {
+    public static function get_gastos(?int $id_grupo_gastos = null, ?int $id_gasto = null)
+    {
         $cols = self::columnas_gasto();
 
         $sql = '
             SELECT
                 g.id AS id_gasto_produccion_carbon,
-                g.id_zarandeo_carbon,
-                g.id_blending_carbon,
+                g.id_grupo_gastos,
                 g.id_empleado_registro,
                 CONCAT(e.nombre, " ", e.apellido) AS empleado_registro,
                 g.id_proveedor,
@@ -79,6 +79,7 @@ class GastoProduccionCarbonData
                 g.total,
                 ' . $cols['esta_pagado'] . ',
                 ' . $cols['fecha_pago'] . ',
+                ' . $cols['medio_pago'] . ',
                 g.created_at
             FROM gasto_produccion_carbon g
             INNER JOIN empleado e ON e.id = g.id_empleado_registro
@@ -88,14 +89,9 @@ class GastoProduccionCarbonData
 
         $params = [];
 
-        if ($id_zarandeo_carbon !== null) {
-            $sql .= ' AND g.id_zarandeo_carbon = :id_zarandeo_carbon';
-            $params['id_zarandeo_carbon'] = $id_zarandeo_carbon;
-        }
-
-        if ($id_blending_carbon !== null) {
-            $sql .= ' AND g.id_blending_carbon = :id_blending_carbon';
-            $params['id_blending_carbon'] = $id_blending_carbon;
+        if ($id_grupo_gastos !== null) {
+            $sql .= ' AND g.id_grupo_gastos = :id_grupo_gastos';
+            $params['id_grupo_gastos'] = $id_grupo_gastos;
         }
 
         if ($id_gasto !== null) {
@@ -111,41 +107,16 @@ class GastoProduccionCarbonData
     }
 
     /**
-     * Obtiene un gasto de producción por su id, con la misma forma que el
+     * Obtiene un gasto de produccion por su id, con la misma forma que el
      * listado (para que el front lo inserte en su lista sin volver a listar).
      */
-    public static function get_gasto_by_id(
-        ?int $id_zarandeo_carbon,
-        ?int $id_blending_carbon,
-        int $id_gasto
-    ) {
-        return self::get_gastos($id_zarandeo_carbon, $id_blending_carbon, $id_gasto);
-    }
-
-    /**
-     * Verifica que el zarandeo exista.
-     */
-    public static function existe_zarandeo(int $id_zarandeo_carbon): bool
+    public static function get_gasto_by_id(int $id_gasto)
     {
-        return DB::table('zarandeo_carbon')
-            ->where('id', $id_zarandeo_carbon)
-            ->exists();
+        return self::get_gastos(id_gasto: $id_gasto);
     }
 
     /**
-     * Verifica que el blending exista.
-     */
-    public static function existe_blending(int $id_blending_carbon): bool
-    {
-        return DB::table('blending_carbon')
-            ->where('id', $id_blending_carbon)
-            ->exists();
-    }
-
-    /**
-     * Inserta un gasto de producción.
-     *
-     * El gasto apunta a un zarandeo O a un blending (solo uno de los dos).
+     * Inserta un gasto de produccion en un grupo.
      *
      * @param array<string, mixed> $d
      */
@@ -153,12 +124,7 @@ class GastoProduccionCarbonData
     {
         return GastoProduccionCarbon::insertGetId([
             'id_empleado_registro' => (int) $d['id_empleado_registro'],
-            'id_zarandeo_carbon' => isset($d['id_zarandeo_carbon']) && (int) $d['id_zarandeo_carbon'] > 0
-                ? (int) $d['id_zarandeo_carbon']
-                : null,
-            'id_blending_carbon' => isset($d['id_blending_carbon']) && (int) $d['id_blending_carbon'] > 0
-                ? (int) $d['id_blending_carbon']
-                : null,
+            'id_grupo_gastos' => (int) $d['id_grupo_gastos'],
             'id_proveedor' => isset($d['id_proveedor']) && (int) $d['id_proveedor'] > 0
                 ? (int) $d['id_proveedor']
                 : null,
@@ -191,41 +157,31 @@ class GastoProduccionCarbonData
      *
      * Ademas de los datos del gasto, trae lo que el reporte necesita y que
      * vive en otras tablas:
-     *  - la FECHA INICIO del destino (zarandeo o blending),
+     *  - la FECHA INICIO de la operacion agrupada (la del primer miembro),
      *  - el MES de esa fecha,
-     *  - el REGISTRO al que pertenece (correlativo del blending o el id del
-     *    zarandeo),
+     *  - el REGISTRO al que pertenece (los zarandeos o blendings del grupo),
      *  - el RUC y la razon social del PROVEEDOR.
      *
-     * El filtro puede ser por destino (un solo zarandeo o blending), por
-     * tipo (todos los blendings o todos los zarandeos) o por rango de
-     * fechas de la fecha inicio.
-     *
-     * @param ?string $tipo "blending" o "zarandeo": de que tipo se buscan
-     *   los gastos. Null = de los dos.
+     * @param ?string $tipo "blending" o "zarandeo". Null = de los dos.
      * @return array<object>
      */
     public static function get_gastos_exportar(
-        ?int $id_zarandeo_carbon = null,
-        ?int $id_blending_carbon = null,
+        ?int $id_grupo_gastos = null,
         ?string $fecha_inicio = null,
         ?string $fecha_fin = null,
-        ?string $tipo = null
+        ?string $tipo = null,
+        ?int $mes = null,
+        ?int $anio = null
     ) {
         $cols = self::columnas_gasto();
 
         $sql = '
             SELECT
                 g.id AS id_gasto_produccion_carbon,
-                CASE
-                    WHEN g.id_blending_carbon IS NOT NULL THEN "blending"
-                    ELSE "zarandeo"
-                END AS origen,
-                COALESCE(
-                    b.correlativo,
-                    CONCAT("Zarandeo #", COALESCE(tz.id, 0))
-                ) AS registro,
-                COALESCE(b.fecha_hora_blending, tz.fecha_hora_zarandeo) AS fecha_inicio,
+                g.id_grupo_gastos,
+                gg.tipo AS origen,
+                COALESCE(gm.registros, CONCAT("Grupo #", gg.id)) AS registro,
+                gm.fecha_inicio,
                 g.gasto,
                 g.otro_gasto,
                 g.descripcion,
@@ -238,51 +194,87 @@ class GastoProduccionCarbonData
                 g.precio_unitario,
                 g.total,
                 ' . $cols['esta_pagado'] . ',
-                ' . $cols['fecha_pago'] . '
+                ' . $cols['fecha_pago'] . ',
+                ' . $cols['medio_pago'] . '
             FROM gasto_produccion_carbon g
-            LEFT JOIN blending_carbon b ON b.id = g.id_blending_carbon
-            LEFT JOIN zarandeo_carbon tz ON tz.id = g.id_zarandeo_carbon
+            INNER JOIN grupo_gastos gg ON gg.id = g.id_grupo_gastos
             LEFT JOIN proveedor p ON p.id = g.id_proveedor
+            LEFT JOIN (
+                SELECT
+                    id_grupo_gastos,
+                    MIN(fecha) AS fecha_inicio,
+                    GROUP_CONCAT(etiqueta ORDER BY etiqueta SEPARATOR ", ") AS registros
+                FROM (
+                    SELECT
+                        id_grupo_gastos,
+                        fecha_hora_zarandeo AS fecha,
+                        CONCAT("Zarandeo #", id) AS etiqueta
+                    FROM zarandeo_carbon
+                    WHERE id_grupo_gastos IS NOT NULL
+                    UNION ALL
+                    SELECT
+                        id_grupo_gastos,
+                        fecha_hora_blending AS fecha,
+                        COALESCE(correlativo, CONCAT("Blending #", id)) AS etiqueta
+                    FROM blending_carbon
+                    WHERE id_grupo_gastos IS NOT NULL
+                ) u
+                GROUP BY id_grupo_gastos
+            ) gm ON gm.id_grupo_gastos = gg.id
             WHERE 1 = 1
         ';
 
         $params = [];
 
-        if ($id_zarandeo_carbon !== null) {
-            $sql .= ' AND g.id_zarandeo_carbon = :id_zarandeo_carbon';
-            $params['id_zarandeo_carbon'] = $id_zarandeo_carbon;
-        }
-
-        if ($id_blending_carbon !== null) {
-            $sql .= ' AND g.id_blending_carbon = :id_blending_carbon';
-            $params['id_blending_carbon'] = $id_blending_carbon;
+        if ($id_grupo_gastos !== null) {
+            $sql .= ' AND g.id_grupo_gastos = :id_grupo_gastos';
+            $params['id_grupo_gastos'] = $id_grupo_gastos;
         }
 
         // El export general de cada vista (zarandeo / blending) trae SOLO los
         // gastos de ese tipo.
-        if ($tipo === 'blending') {
-            $sql .= ' AND g.id_blending_carbon IS NOT NULL';
+        if ($tipo === TipoOperacionGrupoGastos::Blending->value) {
+            $sql .= ' AND gg.tipo = :tipo';
+            $params['tipo'] = $tipo;
+        } elseif ($tipo === TipoOperacionGrupoGastos::Zarandeo->value) {
+            $sql .= ' AND gg.tipo = :tipo';
+            $params['tipo'] = $tipo;
         }
 
-        if ($tipo === 'zarandeo') {
-            $sql .= ' AND g.id_zarandeo_carbon IS NOT NULL';
-        }
-
-        // El rango se aplica sobre la fecha inicio del destino (la que sale
-        // en la primera columna del reporte).
+        // El rango se aplica sobre la fecha inicio de la operacion agrupada.
         if ($fecha_inicio !== null) {
-            $sql .= ' AND DATE(COALESCE(b.fecha_hora_blending, tz.fecha_hora_zarandeo)) >= :fecha_inicio';
+            $sql .= ' AND DATE(gm.fecha_inicio) >= :fecha_inicio';
             $params['fecha_inicio'] = $fecha_inicio;
         }
 
         if ($fecha_fin !== null) {
-            $sql .= ' AND DATE(COALESCE(b.fecha_hora_blending, tz.fecha_hora_zarandeo)) <= :fecha_fin';
+            $sql .= ' AND DATE(gm.fecha_inicio) <= :fecha_fin';
             $params['fecha_fin'] = $fecha_fin;
         }
 
-        $sql .= ' ORDER BY fecha_inicio ASC, g.id ASC';
+        // Filtro por mes y ano de la operacion agrupada.
+        if ($mes !== null && $mes > 0 && $anio !== null && $anio > 0) {
+            $sql .= ' AND MONTH(gm.fecha_inicio) = :mes AND YEAR(gm.fecha_inicio) = :anio';
+            $params['mes'] = $mes;
+            $params['anio'] = $anio;
+        } elseif ($anio !== null && $anio > 0) {
+            $sql .= ' AND YEAR(gm.fecha_inicio) = :anio';
+            $params['anio'] = $anio;
+        }
+
+        $sql .= ' ORDER BY gm.fecha_inicio ASC, g.id ASC';
 
         return DB::select($sql, $params);
+    }
+
+    /**
+     * Verifica que el proveedor exista.
+     */
+    public static function existe_proveedor(int $id_proveedor): bool
+    {
+        return DB::table('proveedor')
+            ->where('id', $id_proveedor)
+            ->exists();
     }
 
     /**
@@ -298,10 +290,10 @@ class GastoProduccionCarbonData
     /**
      * Marca un gasto como pagado.
      *
-     * La fecha de pago puede ser retroactiva: se guarda tal como la digita
-     * el usuario.
+     * La fecha de pago puede ser retroactiva: se guarda tal como lo digita
+     * el usuario. El medio de pago es obligatorio.
      */
-    public static function actualizar_pago_gasto(int $id_gasto, string $fecha_pago): bool
+    public static function actualizar_pago_gasto(int $id_gasto, string $fecha_pago, string $medio_pago): bool
     {
         $columnas = self::columnas_gasto();
 
@@ -311,12 +303,18 @@ class GastoProduccionCarbonData
             return false;
         }
 
+        $datos = [
+            'esta_pagado' => 1,
+            'fecha_pago' => $fecha_pago,
+        ];
+
+        if ($columnas['medio_pago'] === 'g.medio_pago') {
+            $datos['medio_pago'] = $medio_pago;
+        }
+
         $filas = DB::table('gasto_produccion_carbon')
             ->where('id', $id_gasto)
-            ->update([
-                'esta_pagado' => 1,
-                'fecha_pago' => $fecha_pago,
-            ]);
+            ->update($datos);
 
         return $filas > 0;
     }

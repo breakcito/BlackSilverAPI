@@ -506,6 +506,8 @@ class BalancesData
         UNION ALL
 
         -- 12) CARBON / EGRESO - Gastos de produccion de carbon (zarandeo / blending)
+        --     El gasto cuelga de un GRUPO de gastos (que reune varios zarandeos
+        --     o varios blendings): el almacen y la referencia se toman del grupo.
         SELECT
             CAST(CONCAT("GASTO_PRODUCCION_CARBON-", gpc.id) AS CHAR(96)) AS id_origen,
             CAST("GASTO_PRODUCCION_CARBON" AS CHAR(32))                  AS origen,
@@ -513,13 +515,13 @@ class BalancesData
             CAST("EGRESO" AS CHAR(16))                                   AS tipo,
             DATE(gpc.fecha)                                              AS fecha,
             CAST(CONCAT("Gasto de produccion de carbon - ", COALESCE(gpc.gasto, "Otros")) AS CHAR(512)) AS descripcion,
-            CAST(COALESCE(bl.correlativo, CONCAT("ZR-", gpc.id_zarandeo_carbon)) AS CHAR(255)) AS referencia,
+            CAST(COALESCE(gm.registros, CONCAT("Grupo #", gpc.id_grupo_gastos)) AS CHAR(255)) AS referencia,
             CAST(CONCAT_WS(" | ",
                 NULLIF(gpc.otro_gasto, ""),
                 NULLIF(gpc.descripcion, ""),
                 CASE WHEN prv.razon_social IS NOT NULL THEN CONCAT("Proveedor: ", prv.razon_social) END
             ) AS CHAR(512))                                              AS detalle,
-            COALESCE(z.id_almacen, bl.id_almacen)                        AS id_almacen,
+            COALESCE(gm.id_almacen, 0)                                   AS id_almacen,
             CAST(NULL AS SIGNED)                                         AS id_cliente,
             gpc.id_proveedor                                              AS id_proveedor,
             gpc.id_empleado_registro                                     AS id_empleado,
@@ -528,8 +530,29 @@ class BalancesData
             CAST(1 AS DECIMAL(18,6))                                     AS tipo_cambio
         FROM gasto_produccion_carbon gpc
         CROSS JOIN periodo p
-        LEFT JOIN zarandeo_carbon z ON z.id = gpc.id_zarandeo_carbon
-        LEFT JOIN blending_carbon bl ON bl.id = gpc.id_blending_carbon
+        INNER JOIN grupo_gastos gg ON gg.id = gpc.id_grupo_gastos
+        LEFT JOIN (
+            SELECT
+                id_grupo_gastos,
+                MIN(id_almacen) AS id_almacen,
+                GROUP_CONCAT(etiqueta ORDER BY etiqueta SEPARATOR ", ") AS registros
+            FROM (
+                SELECT
+                    id_grupo_gastos,
+                    id_almacen,
+                    CONCAT("Zarandeo #", id) AS etiqueta
+                FROM zarandeo_carbon
+                WHERE id_grupo_gastos IS NOT NULL
+                UNION ALL
+                SELECT
+                    id_grupo_gastos,
+                    id_almacen,
+                    COALESCE(correlativo, CONCAT("Blending #", id)) AS etiqueta
+                FROM blending_carbon
+                WHERE id_grupo_gastos IS NOT NULL
+            ) u
+            GROUP BY id_grupo_gastos
+        ) gm ON gm.id_grupo_gastos = gpc.id_grupo_gastos
         LEFT JOIN proveedor prv ON prv.id = gpc.id_proveedor
         WHERE gpc.fecha >= p.f_ini
           AND gpc.fecha <  p.f_fin_excl

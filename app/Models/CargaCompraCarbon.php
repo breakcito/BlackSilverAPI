@@ -41,6 +41,7 @@ class CargaCompraCarbon extends Model
         'placa', // del vehiculo en el que llego
         'fecha_hora_ingreso', // fecha y hora en la que ingreso el vehiculo al almacen de llegada
         'codigo_ticket_balanza', // el codigo emitido al pesar el carro
+        'sera_zarandeado',
         // guias que trajo el vehiculo
         'guia_remitente',
         'guia_transportista', // opcional

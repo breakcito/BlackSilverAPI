@@ -97,10 +97,10 @@ class CompraCarbonData
                     WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
                 ) AS total_real_neto,
                 (
-                    SELECT COALESCE(SUM(c.flete_neto_a_pagar), 0)
+                    SELECT COALESCE(SUM(c.flete_total), 0)
                     FROM carga_compra_carbon c
                     WHERE c.id_compra_carbon = cc.id AND c.estado <> "Anulado"
-                ) AS total_real_flete_neto
+                ) AS total_real_flete_total
             FROM compra_carbon cc
             INNER JOIN empresa e ON e.id = cc.id_empresa
             INNER JOIN proveedor p ON p.id = cc.id_proveedor
@@ -317,6 +317,7 @@ class CompraCarbonData
                 c.guia_transportista,
                 c.pagar_flete,
                 c.codigo_ticket_balanza,
+                c.sera_zarandeado,
                 c.cantidad,
                 c.porcentaje_ceniza,
                 c.calidad,
@@ -756,6 +757,11 @@ class CompraCarbonData
                     : null;
 
                 $pagarFlete = !empty($c['pagar_flete']);
+                // Por defecto la carga se zarandea: el usuario puede marcar
+                // que no, y esa carga no se ofrece en el modulo de produccion.
+                $seraZarandeado = !array_key_exists('sera_zarandeado', $c) || $c['sera_zarandeado'] === null
+                    ? true
+                    : (bool) $c['sera_zarandeado'];
                 $cantidad = (float) $c['cantidad'];
                 $precioUnitario = (float) $c['precio_unitario'];
                 $costoFlete = $pagarFlete ? (float) ($c['costo_flete_por_tonelada'] ?? 0) : 0.0;
@@ -808,6 +814,7 @@ class CompraCarbonData
                     'guia_transportista' => isset($c['guia_transportista']) && $c['guia_transportista'] !== '' ? (string) $c['guia_transportista'] : null,
                     'pagar_flete' => $pagarFlete ? 1 : 0,
                     'codigo_ticket_balanza' => (string) ($c['codigo_ticket_balanza'] ?? ''),
+                    'sera_zarandeado' => $seraZarandeado ? 1 : 0,
                     'cantidad' => $cantidad,
                     'porcentaje_ceniza' => $porcentajeCeniza,
                     'porcentaje_humedad' => (float) ($c['porcentaje_humedad'] ?? 0),
@@ -1401,6 +1408,7 @@ class CompraCarbonData
                 c.porcentaje_ceniza,
                 c.calidad,
                 c.pagar_flete,
+                c.sera_zarandeado,
                 c.costo_flete_por_tonelada
             FROM carga_compra_carbon c
             WHERE c.id = :id
@@ -1441,6 +1449,10 @@ class CompraCarbonData
             'porcentaje_humedad',
             'precio_unitario',
             'costo_flete_por_tonelada',
+            // Indica si la carga entrara al flujo de zarandeo. No afecta al
+            // stock: solo decide si la carga se ofrece en el modulo de
+            // produccion para ser zarandeada.
+            'sera_zarandeado',
             // Montos derivados: los recalcula el caller con las mismas formulas
             // que usa el registro (insert_cargas).
             'calidad',

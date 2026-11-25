@@ -624,19 +624,17 @@ class AuxController extends Controller
         $validator = Validator::make($request->all(), [
             'tipo_entidad' => 'required|string|in:Natural,Jurídica',
             'razon_social' => 'required|string|max:255',
-            // Para personas juridicas: RUC obligatorio (11 digitos, prefijo 20).
-            // Para personas naturales: DNI obligatorio (8 digitos).
-            // El frontend envia el valor al campo que corresponda segun el
-            // tipo_entidad; el Service valida segun la regla del tipo.
-            'ruc' => 'nullable|string|size:11',
-            'dni' => 'nullable|string|size:8',
+            // El transportista SIEMPRE se identifica con RUC (11 digitos), tanto
+            // persona juridica (prefijo 20) como natural (prefijo 10). El DNI
+            // queda obsoleto para este catalogo: no se pide ni se guarda.
+            'ruc' => 'required|string|size:11',
             'telefono' => 'nullable|string|max:64',
         ], [
             'tipo_entidad.required' => 'Tipo de entidad requerido',
             'tipo_entidad.in' => 'Tipo de entidad debe ser Natural o Juridica',
             'razon_social.required' => 'Razon social o nombre requerido',
+            'ruc.required' => 'El RUC es requerido',
             'ruc.size' => 'El RUC debe tener 11 dígitos',
-            'dni.size' => 'El DNI debe tener 8 dígitos',
         ]);
 
         if ($validator->fails()) {
@@ -646,8 +644,8 @@ class AuxController extends Controller
         return response()->json(TransportistasService::crear_transportista(
             tipo_entidad: $request->input('tipo_entidad'),
             razon_social: $request->input('razon_social'),
-            ruc: $request->input('ruc') ?: null,
-            dni: $request->input('dni') ?: null,
+            ruc: $request->input('ruc'),
+            dni: null,
             telefono: $request->input('telefono') ?: null,
         ));
     }

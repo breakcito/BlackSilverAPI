@@ -3,6 +3,7 @@
 namespace App\Modules\TamizajeCarbon\Controller;
 
 use App\Modules\TamizajeCarbon\Service\GastoProduccionCarbonService;
+use App\Modules\TamizajeCarbon\Service\GrupoGastosService;
 use App\Modules\TamizajeCarbon\Service\TamizajeCarbonService;
 use App\Shared\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -196,27 +197,116 @@ class TamizajeCarbonController
     }
 
     /**
-     * Lista los gastos de producción de un zarandeo.
+     * Edita un zarandeo: revierte el movimiento de stock anterior y vuelve a
+     * aplicarlo con los valores nuevos.
      */
-    public function get_gastos_zarandeo(int $id_zarandeo_carbon): JsonResponse
+    public function actualizar_tamizaje(Request $request, int $id_zarandeo_carbon): JsonResponse
     {
+        $authUser = $request->attributes->get('auth_user');
+        $idEmpleado = (int) ($authUser->id_empleado ?? 0);
+        if ($idEmpleado <= 0) {
+            return response()->json(ApiResponse::error('No se pudo identificar al empleado'), 422);
+        }
+        $nombreEmpleado = trim(($authUser->nombre ?? '') . ' ' . ($authUser->apellido ?? ''));
+
+        $variantesRaw = $request->input('variantes');
+        if (is_string($variantesRaw)) {
+            $decoded = json_decode($variantesRaw, true);
+            if (is_array($decoded)) {
+                $request->merge(['variantes' => $decoded]);
+            }
+        }
+
+        $validator = Validator::make($request->all(), [
+            'id_tipo_carbon' => 'nullable|integer|min:1',
+            'calidad' => 'nullable|string|max:32',
+            'cantidad_zarandeada' => 'nullable|numeric|min:0',
+            'fecha_hora_zarandeo' => 'nullable|string|max:30',
+            'variantes' => 'required|array|min:1',
+            'variantes.*.id_tipo_variante' => 'required|integer|min:1',
+            'variantes.*.porcentaje_extraccion' => 'required|numeric|min:0|max:100',
+        ], [
+            'variantes.required' => 'Debe registrar al menos una variante extraída',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
+        }
+
         return response()->json(
-            GastoProduccionCarbonService::get_gastos_zarandeo($id_zarandeo_carbon)
+            TamizajeCarbonService::actualizar_tamizaje(
+                $id_zarandeo_carbon,
+                $request->all(),
+                $idEmpleado,
+                $nombreEmpleado !== '' ? $nombreEmpleado : null,
+            )
         );
     }
 
     /**
-     * Lista los gastos de producción de un blending.
+     * Lista los gastos de producción de un grupo.
      */
-    public function get_gastos_blending(int $id_blending_carbon): JsonResponse
+    public function get_gastos_grupo(int $id_grupo_gastos): JsonResponse
     {
         return response()->json(
-            GastoProduccionCarbonService::get_gastos_blending($id_blending_carbon)
+            GastoProduccionCarbonService::get_gastos_grupo($id_grupo_gastos)
         );
     }
 
     /**
-     * Registra un gasto de producción asociado a un zarandeo o a un blending.
+     * Grupos de gastos de un tipo de operacion con sus totales.
+     */
+    public function get_grupos_gastos(Request $request): JsonResponse
+    {
+        $tipo = (string) $request->query('tipo', 'zarandeo');
+        if (!in_array($tipo, ['zarandeo', 'blending'], true)) {
+            return response()->json(ApiResponse::error('El tipo debe ser zarandeo o blending'), 422);
+        }
+
+        return response()->json(GrupoGastosService::get_grupos($tipo));
+    }
+
+    /**
+     * Crea un grupo de gastos y le asigna las operaciones indicadas.
+     */
+    public function crear_grupo_gastos(Request $request): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+        $idEmpleado = (int) ($authUser->id_empleado ?? 0);
+        if ($idEmpleado <= 0) {
+            return response()->json(ApiResponse::error('No se pudo identificar al empleado'), 422);
+        }
+
+        $idsRaw = $request->input('ids_miembros');
+        if (is_string($idsRaw)) {
+            $idsRaw = json_decode($idsRaw, true);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'tipo' => 'required|in:zarandeo,blending',
+            'ids_miembros' => 'required|array|min:1',
+            'ids_miembros.*' => 'integer|min:1',
+        ], [
+            'tipo.required' => 'Indique si el grupo es de zarandeo o de blending',
+            'ids_miembros.required' => 'Seleccione al menos una operacion para agrupar',
+            'ids_miembros.min' => 'Seleccione al menos una operacion para agrupar',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(ApiResponse::error($validator->errors()->first()), 422);
+        }
+
+        return response()->json(
+            GrupoGastosService::crear_grupo(
+                tipo: (string) $request->input('tipo'),
+                ids_miembros: is_array($idsRaw) ? $idsRaw : [],
+                id_empleado: $idEmpleado,
+            )
+        );
+    }
+
+    /**
+     * Registra un gasto de producción en un grupo.
      */
     public function registrar_gasto(Request $request): JsonResponse
     {        $authUser = $request->attributes->get('auth_user');
@@ -226,6 +316,7 @@ class TamizajeCarbonController
         }
 
         $validator = Validator::make($request->all(), [
+            'id_grupo_gastos' => 'nullable|integer|min:1',
             'id_zarandeo_carbon' => 'nullable|integer|min:1',
             'id_blending_carbon' => 'nullable|integer|min:1',
             'gasto' => 'required|string|max:32',
@@ -236,11 +327,13 @@ class TamizajeCarbonController
             'numero_reporte' => 'nullable|string|max:64',
             'hora_inicio' => 'nullable|date_format:H:i',
             'hora_fin' => 'nullable|date_format:H:i',
-            'cantidad' => 'nullable|numeric|min:0',
+            'cantidad' => 'required|numeric|min:0.01',
             'precio_unitario' => 'required|numeric|min:0',
         ], [
             'gasto.required' => 'El tipo de gasto es obligatorio',
             'fecha.required' => 'La fecha del gasto es obligatoria',
+            'cantidad.required' => 'La cantidad del gasto es obligatoria',
+            'cantidad.min' => 'La cantidad debe ser mayor a cero',
             'precio_unitario.required' => 'El precio unitario es obligatorio',
         ]);
 
@@ -254,25 +347,13 @@ class TamizajeCarbonController
     }
 
     /**
-     * Gastos de producción de un zarandeo, listos para exportar.
+     * Gastos de producción de un grupo, listos para exportar.
      */
-    public function get_gastos_exportar_zarandeo(int $id_zarandeo_carbon): JsonResponse
+    public function get_gastos_exportar_grupo(int $id_grupo_gastos): JsonResponse
     {
         return response()->json(
             GastoProduccionCarbonService::get_gastos_exportar(
-                id_zarandeo_carbon: $id_zarandeo_carbon
-            )
-        );
-    }
-
-    /**
-     * Gastos de producción de un blending, listos para exportar.
-     */
-    public function get_gastos_exportar_blending(int $id_blending_carbon): JsonResponse
-    {
-        return response()->json(
-            GastoProduccionCarbonService::get_gastos_exportar(
-                id_blending_carbon: $id_blending_carbon
+                id_grupo_gastos: $id_grupo_gastos
             )
         );
     }
@@ -280,9 +361,9 @@ class TamizajeCarbonController
     /**
      * Gastos de producción de un rango de fechas, listos para exportar.
      *
-     * El rango se aplica sobre la fecha inicio del destino (zarandeo o
-     * blending). El parametro `tipo` acota a una sola vista: "blending"
-     * o "zarandeo" (sin el, trae de los dos).
+     * El rango se aplica sobre la fecha inicio de la operacion agrupada. El
+     * parametro `tipo` acota a una sola vista: "blending" o "zarandeo" (sin
+     * el, trae de los dos).
      */
     public function get_gastos_exportar_rango(Request $request): JsonResponse
     {
@@ -317,8 +398,11 @@ class TamizajeCarbonController
     {
         $validator = Validator::make($request->all(), [
             'fecha_pago' => 'required|date',
+            'medio_pago' => 'required|in:Efectivo,Transferencia,Yape',
         ], [
             'fecha_pago.required' => 'La fecha de pago es obligatoria',
+            'medio_pago.required' => 'El medio de pago es obligatorio',
+            'medio_pago.in' => 'El medio de pago debe ser Efectivo, Transferencia o Yape',
         ]);
 
         if ($validator->fails()) {
@@ -328,7 +412,8 @@ class TamizajeCarbonController
         return response()->json(
             GastoProduccionCarbonService::confirmar_pago_gasto(
                 $id_gasto,
-                (string) $request->input('fecha_pago')
+                (string) $request->input('fecha_pago'),
+                (string) $request->input('medio_pago')
             )
         );
     }

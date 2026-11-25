@@ -21,6 +21,7 @@ class BlendingCarbon extends Model
         'id_almacen',  // autoelegir el primer almacen de carbon
         'id_empleado_registro', // quien hizo el registro
         'id_empleado_supervisor', // supervisor del blending
+        'id_grupo_gastos',
         'id_tipo_carbon', // el tipo de carbon de este blending
         //
         'correlativo', // LT-<numero correlativo sin reseteo y sin 0>

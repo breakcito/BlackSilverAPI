@@ -64,6 +64,7 @@ class BlendingCarbonData
         $sql = '
             SELECT
                 b.id AS id_blending_carbon,
+                b.id_grupo_gastos,
                 b.correlativo,
                 b.numero_correlativo,
                 b.id_almacen,
@@ -85,12 +86,14 @@ class BlendingCarbonData
                 (
                     SELECT COUNT(*)
                     FROM gasto_produccion_carbon g
-                    WHERE g.id_blending_carbon = b.id
+                    WHERE g.id_grupo_gastos = b.id_grupo_gastos
+                      AND b.id_grupo_gastos IS NOT NULL
                 ) AS gastos_cantidad,
                 (
                     SELECT COALESCE(SUM(g.total), 0)
                     FROM gasto_produccion_carbon g
-                    WHERE g.id_blending_carbon = b.id
+                    WHERE g.id_grupo_gastos = b.id_grupo_gastos
+                      AND b.id_grupo_gastos IS NOT NULL
                 ) AS gastos_total
             FROM blending_carbon b
             LEFT JOIN almacen alm ON alm.id = b.id_almacen

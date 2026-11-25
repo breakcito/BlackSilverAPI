@@ -102,6 +102,7 @@ class CompraCarbonController
             'cargas.*.id_lugar_extraccion' => 'nullable|integer|min:1',
             'cargas.*.porcentaje_ceniza' => 'nullable|numeric|min:0|max:100',
             'cargas.*.porcentaje_humedad' => 'nullable|numeric|min:0|max:100',
+            'cargas.*.sera_zarandeado' => 'nullable|boolean',
         ], [
             'cargas.*.id_tipo_carbon.required' => 'El tipo de carbón es obligatorio en cada carga',
             'cargas.*.cantidad.required' => 'La cantidad de toneladas es obligatoria en cada carga',
@@ -203,6 +204,7 @@ class CompraCarbonController
             'porcentaje_humedad' => 'nullable|numeric|min:0|max:100',
             'precio_unitario' => 'nullable|numeric|min:0',
             'costo_flete_por_tonelada' => 'nullable|numeric|min:0',
+            'sera_zarandeado' => 'nullable|boolean',
             'evidencias' => 'nullable|array',
             'evidencias.*' => 'file',
         ], [

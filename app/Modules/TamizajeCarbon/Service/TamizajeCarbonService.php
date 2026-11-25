@@ -139,6 +139,125 @@ class TamizajeCarbonService
     }
 
     /**
+     * Actualiza un zarandeo existente.
+     *
+     * Revierte el movimiento de stock del zarandeo y vuelve a aplicarlo con
+     * los valores nuevos (ver `TamizajeCarbonData::actualizar_zarandeo`).
+     *
+     * @param array<string, mixed> $payload
+     */
+    public static function actualizar_tamizaje(
+        int $id_zarandeo,
+        array $payload,
+        int $id_empleado,
+        ?string $nombre_empleado = null
+    ): array {
+        $zarandeo = TamizajeCarbonData::get_tamizaje_by_id($id_zarandeo);
+        if ($zarandeo === null) {
+            return ApiResponse::error('El zarandeo indicado no existe');
+        }
+
+        $calidad = isset($payload['calidad'])
+            ? trim((string) $payload['calidad'])
+            : (string) $zarandeo->calidad;
+        if ($calidad === '' || TipoCalidadCarbon::tryFrom($calidad) === null) {
+            return ApiResponse::error('La calidad indicada no es válida');
+        }
+
+        $variantes = $payload['variantes'] ?? [];
+        if (empty($variantes) || !is_array($variantes)) {
+            return ApiResponse::error('Debe ingresar al menos una variante extraída');
+        }
+
+        $idTipoCarbon = (int) ($payload['id_tipo_carbon'] ?? $zarandeo->id_tipo_carbon);
+
+        $cantidadZarandeada = isset($payload['cantidad_zarandeada']) && (float) $payload['cantidad_zarandeada'] > 0
+            ? (float) $payload['cantidad_zarandeada']
+            : (float) $zarandeo->cantidad_zarandeada;
+
+        if ($cantidadZarandeada <= 0) {
+            return ApiResponse::error('La cantidad a zarandear debe ser mayor a cero');
+        }
+
+        // Las variantes tienen que ser tipos de carbon validos.
+        $idsTiposValidos = DB::table('tipo_carbon')
+            ->whereIn('id', array_map(
+                fn ($v) => (int) ($v['id_tipo_variante'] ?? 0),
+                $variantes
+            ))
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $variantesCalculo = [];
+        $cantidadExtraidaTotal = 0.0;
+        $sumaPorcentajes = 0.0;
+        $idsVariantes = [];
+
+        foreach ($variantes as $v) {
+            $idTipoVariante = (int) ($v['id_tipo_variante'] ?? 0);
+            if ($idTipoVariante <= 0) {
+                continue;
+            }
+            if (!in_array($idTipoVariante, $idsTiposValidos, true)) {
+                return ApiResponse::error('Alguna de las variantes indicadas no es un tipo de carbón válido');
+            }
+            if (isset($idsVariantes[$idTipoVariante])) {
+                return ApiResponse::error('No se puede registrar dos veces la misma variante');
+            }
+            $idsVariantes[$idTipoVariante] = true;
+
+            $porcentaje = (float) ($v['porcentaje_extraccion'] ?? 0);
+            $sumaPorcentajes += $porcentaje;
+
+            $cantidadExtraida = round($cantidadZarandeada * $porcentaje / 100, 4);
+            $cantidadExtraidaTotal += $cantidadExtraida;
+
+            $variantesCalculo[] = [
+                'id_tipo_variante' => $idTipoVariante,
+                'porcentaje_extraccion' => $porcentaje,
+                'cantidad_extraida' => $cantidadExtraida,
+            ];
+        }
+
+        if (empty($variantesCalculo)) {
+            return ApiResponse::error('Debe ingresar al menos una variante extraída');
+        }
+
+        if (round($sumaPorcentajes, 4) > 100.0001) {
+            return ApiResponse::error(
+                'La suma de los porcentajes de extracción no puede superar el 100% (actual: '
+                . rtrim(rtrim(number_format($sumaPorcentajes, 2), '0'), '.') . '%)'
+            );
+        }
+
+        if ($cantidadExtraidaTotal <= 0) {
+            return ApiResponse::error('El total extraído debe ser mayor a cero');
+        }
+
+        try {
+            TamizajeCarbonData::actualizar_zarandeo($id_zarandeo, [
+                'id_tipo_carbon' => $idTipoCarbon,
+                'calidad' => $calidad,
+                'cantidad_zarandeada' => $cantidadZarandeada,
+                'fecha_hora_zarandeo' => (string) ($payload['fecha_hora_zarandeo'] ?? $zarandeo->fecha_hora_zarandeo),
+                'variantes' => $variantesCalculo,
+                'id_empleado_editor' => $id_empleado,
+                'nombre_empleado' => $nombre_empleado,
+            ]);
+        } catch (\Throwable $e) {
+            return ApiResponse::error($e->getMessage());
+        }
+
+        $actualizado = TamizajeCarbonData::get_tamizaje_by_id($id_zarandeo);
+
+        return ApiResponse::success(
+            $actualizado ?? ['id_zarandeo_carbon' => $id_zarandeo],
+            'Zarandeo actualizado y stock recalculado'
+        );
+    }
+
+    /**
      * Registra un nuevo zarandeo de carbón.
      * @param array<string, mixed> $payload
      * @param array<int, UploadedFile> $archivos
@@ -191,6 +310,11 @@ class TamizajeCarbonService
                 if ($carga->id_zarandeo_carbon !== null) {
                     return ApiResponse::error('Alguna de las cargas seleccionadas ya fue zarandeada');
                 }
+                if ((int) $carga->sera_zarandeado !== 1) {
+                    return ApiResponse::error(
+                        'Alguna de las cargas seleccionadas esta marcada como "no se zarandea" en su orden de compra'
+                    );
+                }
                 if ((int) $carga->id_almacen_empresa_llegada !== $idAlmacen) {
                     return ApiResponse::error('Las cargas seleccionadas pertenecen a distintos almacenes');
                 }
@@ -226,10 +350,25 @@ class TamizajeCarbonService
         $sumaPorcentajes = 0.0;
         $idsVariantes = [];
 
+        // Los tipos de variante se validan contra el catalogo: el zarandeo
+        // puede declarar cualquier tipo de carbon como variante, pero el id
+        // debe existir.
+        $idsTiposValidos = DB::table('tipo_carbon')
+            ->whereIn('id', array_map(
+                fn ($v) => (int) ($v['id_tipo_variante'] ?? 0),
+                is_array($variantes) ? $variantes : []
+            ))
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
         foreach ($variantes as $v) {
             $idTipoVariante = (int) ($v['id_tipo_variante'] ?? 0);
             if ($idTipoVariante <= 0) {
                 continue;
+            }
+            if (!in_array($idTipoVariante, $idsTiposValidos, true)) {
+                return ApiResponse::error('Alguna de las variantes indicadas no es un tipo de carbón válido');
             }
             if (isset($idsVariantes[$idTipoVariante])) {
                 return ApiResponse::error('No se puede registrar dos veces la misma variante');
