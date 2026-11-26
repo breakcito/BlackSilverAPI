@@ -31,12 +31,14 @@ class MantenimientoData
      * Activos con umbral de mantenimiento evaluated.
      *
      * Devuelve TODOS los activos evaluables (tambien los que estan en "OK")
-     * para que el resumen pueda contar umbrales obsoletos, que son un riesgo
-     * invisible: el contador se ajusto a mano y el umbral nunca se reprogramo.
+     * para que el resumen pueda contar umbrales desalineados, que son un
+     * riesgo invisible.
      *
-     * @param int|null $id_almacen Limita el resultado a un almacen.
+     * Cada activo trae TODAS sus dimensiones de control (horometro,
+     * odometro, vueltas): una misma maquinaria puede llevar dos y el usuario
+     * tiene que ver el estado de cada una, no solo la mas urgente.
      */
-    public static function get_alertas_mantenimiento(?int $id_almacen = null): array
+    public static function get_alertas_mantenimiento(): array
     {
         $sql = '
         SELECT
@@ -46,6 +48,8 @@ class MantenimientoData
             af.estado AS estado_activo,
             af.id_almacen,
             a.nombre AS almacen,
+            af.id_mina,
+            mi.nombre AS mina,
             p.nombre AS producto,
             af.total_horas,
             af.proxima_advertencia_horas,
@@ -63,6 +67,7 @@ class MantenimientoData
         INNER JOIN producto p ON p.id = af.id_producto
         INNER JOIN categoria cat ON cat.id = p.id_categoria
         LEFT JOIN almacen a ON a.id = af.id_almacen
+        LEFT JOIN mina mi ON mi.id = af.id_mina
         WHERE af.estado <> "Dado de Baja"
           AND af.estado <> "Eliminado"
           AND (
@@ -78,11 +83,6 @@ class MantenimientoData
         ';
 
         $params = [];
-
-        if ($id_almacen !== null) {
-            $sql .= ' AND af.id_almacen = :id_almacen';
-            $params['id_almacen'] = $id_almacen;
-        }
 
         $rows = DB::select($sql, $params);
 
@@ -124,10 +124,18 @@ class MantenimientoData
                 continue;
             }
 
-            // Un activo puede controlar mas de una dimension: se reporta la
-            // mas urgente. El porcentaje restante es comparable entre
-            // dimensiones, a diferencia del valor absoluto.
-            usort($dimensiones, fn (array $a, array $b) => $a['porcentaje_restante'] <=> $b['porcentaje_restante']);
+            // La dimension que dispara es la de peor nivel; a igual nivel, la
+            // que tenga menos porcentaje restante.
+            usort($dimensiones, function (array $a, array $b) {
+                $prioridad = self::prioridad_nivel($a['nivel']) <=> self::prioridad_nivel($b['nivel']);
+
+                if ($prioridad !== 0) {
+                    return $prioridad;
+                }
+
+                return $a['porcentaje_restante'] <=> $b['porcentaje_restante'];
+            });
+
             $principal = $dimensiones[0];
 
             $evaluados[] = [
@@ -138,18 +146,31 @@ class MantenimientoData
                 'estado_activo' => (string) $row->estado_activo,
                 'id_almacen' => $row->id_almacen !== null ? (int) $row->id_almacen : null,
                 'almacen' => $row->almacen !== null ? (string) $row->almacen : null,
+                'id_mina' => $row->id_mina !== null ? (int) $row->id_mina : null,
+                'mina' => $row->mina !== null ? (string) $row->mina : null,
+                // Todas las dimensiones, en el orden en que se evaluaron.
+                'dimensiones' => $dimensiones,
+                // La dimension que dispara y el peor nivel de la maquina.
                 'dimension' => $principal['dimension'],
-                'total' => $principal['total'],
-                'umbral' => $principal['umbral'],
-                'intervalo' => $principal['intervalo'],
-                'restantes' => $principal['restantes'],
-                'porcentaje_restante' => $principal['porcentaje_restante'],
                 'nivel' => $principal['nivel'],
-                'umbral_obsoleto' => $principal['umbral_obsoleto'],
+                'porcentaje_restante' => $principal['porcentaje_restante'],
             ];
         }
 
         return $evaluados;
+    }
+
+    /**
+     * Prioridad de un nivel de alerta: mientras menor, mas urgente.
+     */
+    private static function prioridad_nivel(string $nivel): int
+    {
+        return match ($nivel) {
+            'Vencido' => 0,
+            'Crítico' => 1,
+            'Próximo' => 2,
+            default => 3,
+        };
     }
 
     /**
@@ -236,8 +257,28 @@ class MantenimientoData
     /**
      * Evalua una dimension de control (horas, kilometros o vueltas).
      *
+     * `proxima_advertencia_X` es la lectura en la que toca el proximo
+     * servicio: el modulo de Activos Fijos la calcula como
+     * `total_actual + intervalo` cuando se configura el intervalo y la
+     * reprograma igual al registrar un mantenimiento. Lo que queda es
+     * `umbral - total`, es decir, las unidades que faltan para el servicio.
+     *
+     * El dashboard usa EXACTAMENTE el mismo umbral que el modulo de Activos
+     * Fijos: si los dos recursos se contradicen, es peor que no tener
+     * dashboard.
+     *
+     * Criterio de alerta:
+     * - HOROMETRO: critico a 50 horas o menos de distancia, que es lo que
+     *   pidio el cliente para poder programar el mantenimiento con tiempo.
+     * - Las otras dimensiones (kilometros, vueltas) no tienen un umbral
+     *   absoluto pactado, asi que se miden por porcentaje del intervalo.
+     *
      * Devuelve null cuando el activo no tiene umbral o intervalo configurado
      * en esa dimension: sin intervalo no hay forma de saber cuando tocar.
+     *
+     * @param mixed $total     Contador acumulado del activo.
+     * @param mixed $umbral    Lectura en la que toca el servicio.
+     * @param mixed $intervalo Cada quantas unidades toca el servicio.
      */
     private static function evaluar_dimension(
         mixed $total,
@@ -275,14 +316,11 @@ class MantenimientoData
         return [
             'dimension' => $dimension,
             'total' => round($total, 2),
-            'umbral' => round($umbral, 2),
-            'intervalo' => round($intervalo, 2),
+            // Lectura en la que toca el servicio.
+            'servicio' => round($umbral, 2),
             'restantes' => round($restantes, 2),
             'porcentaje_restante' => round($porcentaje, 1),
             'nivel' => $nivel,
-            // El umbral quedo obsoleto si el contador ya supera el intervalo
-            // completo: el mantenimiento no reprogramo la advertencia.
-            'umbral_obsoleto' => ($total + $intervalo) < $umbral,
         ];
     }
 

@@ -20,10 +20,8 @@ class StockCriticoData
 {
     /**
      * Productos por debajo de su stock minimo, ordenados por faltante.
-     *
-     * @param int|null $id_almacen Limita el resultado a un almacen.
      */
-    public static function get_stock_critico(?int $id_almacen = null): array
+    public static function get_stock_critico(): array
     {
         $sql = '
         SELECT
@@ -67,11 +65,6 @@ class StockCriticoData
         ';
 
         $params = [];
-
-        if ($id_almacen !== null) {
-            $sql .= ' AND lp.id_almacen = :id_almacen';
-            $params['id_almacen'] = $id_almacen;
-        }
 
         // La agregacion va en una tabla derivada: MySQL con
         // only_full_group_by no admite ordenar por una expresion que mezcla

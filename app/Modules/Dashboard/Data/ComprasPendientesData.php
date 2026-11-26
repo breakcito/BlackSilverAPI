@@ -24,9 +24,11 @@ class ComprasPendientesData
     /**
      * Ordenes de compra sin recepcion completa.
      *
-     * @param int|null $id_almacen Limita a las OC que recepcionan en ese almacen.
+     * El periodo acota las ordenes por la fecha en que se formalizaron: lo
+     * que el usuario quiere ver son las compras de ese mes que aun no
+     * llegaron.
      */
-    public static function get_ocs_pendientes(?int $id_almacen = null): array
+    public static function get_ocs_pendientes(string $fecha_inicio, string $fecha_fin): array
     {
         $sql = '
         SELECT
@@ -44,37 +46,21 @@ class ComprasPendientesData
                 SELECT COUNT(*)
                 FROM orden_compra_detalle d
                 WHERE d.id_orden_compra = oc.id
-            ) AS items_total,
-            (
-                SELECT COUNT(*)
-                FROM orden_compra_detalle d
-                WHERE d.id_orden_compra = oc.id
-                  AND d.estado <> :estado_recepcion_completa
-            ) AS items_pendientes
+            ) AS items_total
         FROM orden_compra oc
         LEFT JOIN proveedor prv ON prv.id = oc.id_proveedor
         WHERE oc.estado IN (:estado_generada, :estado_en_recepcion)
+          AND oc.fecha_hora_orden >= :fecha_inicio
+          AND oc.fecha_hora_orden < :fecha_fin_excl
+        ORDER BY oc.fecha_hora_orden ASC
         ';
 
         $params = [
             'estado_generada' => EstadoOrdenCompra::Generada->value,
             'estado_en_recepcion' => EstadoOrdenCompra::EnRecepcion->value,
-            'estado_recepcion_completa' => EstadoOrdenCompraDetalle::RecepcionCompleta->value,
+            'fecha_inicio' => $fecha_inicio,
+            'fecha_fin_excl' => date('Y-m-d', strtotime($fecha_fin . ' +1 day')),
         ];
-
-        if ($id_almacen !== null) {
-            $sql .= '
-              AND EXISTS (
-                SELECT 1
-                FROM orden_compra_detalle d
-                WHERE d.id_orden_compra = oc.id
-                  AND d.id_almacen_recepcionista = :id_almacen
-              )
-            ';
-            $params['id_almacen'] = $id_almacen;
-        }
-
-        $sql .= ' ORDER BY oc.fecha_hora_orden ASC';
 
         $rows = DB::select($sql, $params);
 
@@ -87,9 +73,11 @@ class ComprasPendientesData
      * Se listan TODOS los items de la orden (no solo los pendientes) para que
      * el frente pueda mostrar el avance real de cada linea.
      *
-     * @param int|null $id_almacen Limita a los items que recepcionan en ese almacen.
+     * Cada item trae lo recibido y lo que falta: una orden puede estar a
+     * medio camino (recepcion parcial) y el pendiente no es lo pedido, es lo
+     * pedido menos lo recibido.
      */
-    public static function get_items_pendientes(?int $id_almacen = null): array
+    public static function get_items_pendientes(string $fecha_inicio, string $fecha_fin): array
     {
         $sql = '
         SELECT
@@ -105,29 +93,39 @@ class ComprasPendientesData
             d.estado,
             d.id_almacen_recepcionista,
             a.nombre AS almacen,
-            um.abreviatura AS unidad
+            um.abreviatura AS unidad,
+            COALESCE(rd.cantidad_recibida, 0) AS cantidad_recibida_base,
+            GREATEST(
+                d.cantidad_requerida_base - COALESCE(rd.cantidad_recibida, 0),
+                0
+            ) AS cantidad_pendiente_base
         FROM orden_compra_detalle d
         INNER JOIN producto p ON p.id = d.id_producto
         LEFT JOIN almacen a ON a.id = d.id_almacen_recepcionista
         LEFT JOIN unidad_medida um ON um.id = d.id_unidad_medida
+        LEFT JOIN (
+            SELECT
+                id_orden_compra_detalle,
+                SUM(cantidad_recepcionada_base) AS cantidad_recibida
+            FROM orden_compra_recepcion_detalle
+            GROUP BY id_orden_compra_detalle
+        ) rd ON rd.id_orden_compra_detalle = d.id
         WHERE d.id_orden_compra IN (
             SELECT oc.id
             FROM orden_compra oc
             WHERE oc.estado IN (:estado_generada, :estado_en_recepcion)
+              AND oc.fecha_hora_orden >= :fecha_inicio
+              AND oc.fecha_hora_orden < :fecha_fin_excl
         )
+        ORDER BY d.id_orden_compra ASC, d.id ASC
         ';
 
         $params = [
             'estado_generada' => EstadoOrdenCompra::Generada->value,
             'estado_en_recepcion' => EstadoOrdenCompra::EnRecepcion->value,
+            'fecha_inicio' => $fecha_inicio,
+            'fecha_fin_excl' => date('Y-m-d', strtotime($fecha_fin . ' +1 day')),
         ];
-
-        if ($id_almacen !== null) {
-            $sql .= ' AND d.id_almacen_recepcionista = :id_almacen';
-            $params['id_almacen'] = $id_almacen;
-        }
-
-        $sql .= ' ORDER BY d.id_orden_compra ASC, d.id ASC';
 
         $rows = DB::select($sql, $params);
 
@@ -137,64 +135,47 @@ class ComprasPendientesData
     /**
      * Transferencias en transito y recepciones con incidencia.
      *
-     * Van en una sola consulta porque comparten el mismo contexto de
-     * almacen: contra una base de datos remota cada consulta de mas se
-     * paga en tiempo de espera.
+     * Van en una sola consulta porque comparten el mismo contexto: contra
+     * una base de datos remota cada consulta de mas se paga en tiempo de
+     * espera.
      */
-    public static function get_senales_transito(?int $id_almacen = null): array
+    public static function get_senales_transito(string $fecha_inicio, string $fecha_fin): array
     {
         $sql = '
+        WITH periodo AS (
+            SELECT
+                CAST(:fecha_inicio AS DATE) AS f_ini,
+                DATE_ADD(CAST(:fecha_fin AS DATE), INTERVAL 1 DAY) AS f_fin_excl
+        )
         SELECT
             (
                 SELECT COUNT(*)
                 FROM orden_compra_transferencia t
                 WHERE t.estado = :estado_en_despacho
+                  AND t.fecha_hora_transferencia >= p.f_ini
+                  AND t.fecha_hora_transferencia < p.f_fin_excl
             ) AS transferencias_en_transito,
             (
                 SELECT COUNT(*)
                 FROM orden_compra_recepcion r
                 WHERE r.con_incidencia = 1
+                  AND r.fecha_hora_recepcion >= p.f_ini
+                  AND r.fecha_hora_recepcion < p.f_fin_excl
             ) AS recepciones_con_incidencia
+        FROM periodo p
         ';
 
-        $params = ['estado_en_despacho' => EstadoOCTransferencia::EnDespacho->value];
+        $params = [
+            'estado_en_despacho' => EstadoOCTransferencia::EnDespacho->value,
+            'fecha_inicio' => $fecha_inicio,
+            'fecha_fin' => $fecha_fin,
+        ];
 
         $row = DB::selectOne($sql, $params);
 
-        $transferencias = (int) ($row->transferencias_en_transito ?? 0);
-        $recepciones = (int) ($row->recepciones_con_incidencia ?? 0);
-
-        if ($id_almacen !== null) {
-            $row = DB::selectOne(
-                '
-                SELECT
-                    (
-                        SELECT COUNT(*)
-                        FROM orden_compra_transferencia t
-                        WHERE t.estado = :estado_en_despacho
-                          AND t.id_almacen_destino = :id_almacen
-                    ) AS transferencias_en_transito,
-                    (
-                        SELECT COUNT(*)
-                        FROM orden_compra_recepcion r
-                        WHERE r.con_incidencia = 1
-                          AND r.id_almacen_recepcionista = :id_almacen_2
-                    ) AS recepciones_con_incidencia
-                ',
-                [
-                    'estado_en_despacho' => EstadoOCTransferencia::EnDespacho->value,
-                    'id_almacen' => $id_almacen,
-                    'id_almacen_2' => $id_almacen,
-                ]
-            );
-
-            $transferencias = (int) ($row->transferencias_en_transito ?? 0);
-            $recepciones = (int) ($row->recepciones_con_incidencia ?? 0);
-        }
-
         return [
-            'transferencias_en_transito' => $transferencias,
-            'recepciones_con_incidencia' => $recepciones,
+            'transferencias_en_transito' => (int) ($row->transferencias_en_transito ?? 0),
+            'recepciones_con_incidencia' => (int) ($row->recepciones_con_incidencia ?? 0),
         ];
     }
 
@@ -219,7 +200,8 @@ class ComprasPendientesData
             'estado' => (string) $row->estado,
             'dias_antiguedad' => (int) $row->dias_antiguedad,
             'items_total' => (int) $row->items_total,
-            'items_pendientes' => (int) $row->items_pendientes,
+            'items_pendientes' => 0,
+            'cantidad_pendiente_base' => 0.0,
             'pago_vencido' => $vencimiento !== null && $vencimiento < date('Y-m-d'),
         ];
     }
@@ -237,6 +219,10 @@ class ComprasPendientesData
             'es_auditable' => (bool) $row->es_auditable,
             'cantidad_requerida' => (float) $row->cantidad_requerida,
             'cantidad_requerida_base' => (float) $row->cantidad_requerida_base,
+            // Lo ya recibido en las recepciones de esta orden.
+            'cantidad_recibida_base' => (float) $row->cantidad_recibida_base,
+            // Lo que falta por recibir: lo pedido menos lo recibido.
+            'cantidad_pendiente_base' => (float) $row->cantidad_pendiente_base,
             'contenido_por_presentacion' => (float) $row->contenido_por_presentacion,
             'precio_unitario_base' => round((float) $row->precio_unitario_base, 2),
             'estado' => (string) $row->estado,

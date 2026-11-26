@@ -38,98 +38,65 @@ class DashboardService
     /**
      * Genera todos los indicadores del dashboard.
      *
-     * @param string      $fecha_inicio              Fecha inicial del periodo (Y-m-d).
-     * @param string      $fecha_fin                 Fecha final del periodo (Y-m-d).
-     * @param int|null    $id_almacen                Limita los indicadores a un almacen.
-     * @param string|null $fecha_inicio_comparativo  Inicio del periodo de comparacion.
-     * @param string|null $fecha_fin_comparativo    Fin del periodo de comparacion.
+     * @param array<string, array{inicio: string, fin: string}> $periodos
+     *        Periodo de cada indicador de flujo: `balance`, `cobros` y
+     *        `costo`. Los indicadores de estado no llevan periodo.
      */
-    public static function get_indicadores(
-        string $fecha_inicio,
-        string $fecha_fin,
-        ?int $id_almacen = null,
-        ?string $fecha_inicio_comparativo = null,
-        ?string $fecha_fin_comparativo = null
-    ) {
+    public static function get_indicadores(array $periodos = []): array
+    {
         try {
-            $inicio = Carbon::parse($fecha_inicio)->startOfDay();
-            $fin = Carbon::parse($fecha_fin)->startOfDay();
-
-            if ($fin->lt($inicio)) {
-                return ApiResponse::error('La fecha final del periodo no puede ser anterior a la fecha inicial.');
-            }
-
-            // Sin comparacion explicita se compara contra el periodo
-            // inmediatamente anterior y de la misma duracion.
-            if (!$fecha_inicio_comparativo || !$fecha_fin_comparativo) {
-                $dias = $inicio->diffInDays($fin) + 1;
-                $comparativo_inicio = $inicio->copy()->subDays($dias);
-                $comparativo_fin = $inicio->copy()->subDay();
-            } else {
-                $comparativo_inicio = Carbon::parse($fecha_inicio_comparativo)->startOfDay();
-                $comparativo_fin = Carbon::parse($fecha_fin_comparativo)->startOfDay();
-            }
+            $periodo_balance = self::periodo($periodos, 'balance');
+            $periodo_cobros = self::periodo($periodos, 'cobros');
+            $periodo_costo = self::periodo($periodos, 'costo');
+            $periodo_compras = self::periodo($periodos, 'compras');
 
             // Cada bloque se aísla: si un indicador falla, el resto del
             // dashboard sigue funcionando y el bloque roto lo dice.
+            //
+            // El alcance por almacen NO se resuelve en el servidor: cada
+            // indicador tiene su propio filtro y el usuario puede cambiarlo
+            // sin volver a pedir los datos.
             $stock_critico = self::bloque(
-                fn () => self::armar_stock_critico($id_almacen),
+                fn () => self::armar_stock_critico(),
                 ['items' => [], 'resumen' => ['total_items' => 0, 'criticos' => 0, 'sin_stock' => 0, 'almacenes' => []]]
             );
 
             $mantenimiento = self::bloque(
-                fn () => self::armar_mantenimiento($id_almacen),
-                ['items' => [], 'resumen' => ['vencidos' => 0, 'criticos' => 0, 'proximos' => 0, 'umbrales_obsoletos' => 0, 'evaluados' => 0]]
+                fn () => self::armar_mantenimiento(),
+                ['items' => [], 'resumen' => ['vencidos' => 0, 'criticos' => 0, 'proximos' => 0, 'evaluados' => 0]]
             );
 
             $balance = self::bloque(
-                fn () => self::armar_balance($inicio, $fin, $comparativo_inicio, $comparativo_fin),
+                fn () => self::armar_balance($periodo_balance),
                 ['monedas' => [], 'origenes' => [], 'ambitos' => []]
             );
 
             $compras = self::bloque(
-                fn () => self::armar_compras($id_almacen),
+                fn () => self::armar_compras($periodo_compras),
                 ['ocs' => [], 'items' => [], 'resumen' => ['total_ocs' => 0, 'items_pendientes' => 0, 'por_moneda' => [], 'antiguedad_max_dias' => 0, 'transferencias_en_transito' => 0, 'recepciones_con_incidencia' => 0]]
             );
 
             $cobros = self::bloque(
-                fn () => self::armar_cobros($inicio, $fin),
-                ['items' => [], 'anticipos' => [], 'resumen' => ['total_comprobantes' => 0, 'por_moneda' => [], 'por_cliente' => []]]
+                fn () => self::armar_cobros($periodo_cobros),
+                ['items' => [], 'anticipos' => [], 'resumen' => ['total_comprobantes' => 0, 'por_moneda' => [], 'por_cliente' => [], 'saldo_anticipos' => 0]]
             );
 
             $pendientes = self::bloque(
-                fn () => self::armar_pendientes($id_almacen),
+                fn () => self::armar_pendientes(),
                 ['etapas' => [], 'vencidos' => [], 'resumen' => ['total' => 0, 'vencidos' => 0, 'por_tipo' => []]]
             );
 
             $costo_mantenimiento = self::bloque(
-                fn () => self::armar_costo_mantenimiento($inicio, $fin),
+                fn () => self::armar_costo_mantenimiento($periodo_costo),
                 ['mantenimientos' => [], 'por_activo' => [], 'resumen' => ['cantidad' => 0, 'costo_mano_obra' => 0, 'costo_otros_gastos' => 0, 'costo_insumos' => 0, 'costo_total' => 0, 'costo_promedio' => 0]]
             );
 
             $payload = [
-                'periodo' => [
-                    'fecha_inicio' => $inicio->toDateString(),
-                    'fecha_fin' => $fin->toDateString(),
-                    'dias' => $inicio->diffInDays($fin) + 1,
-                ],
-                'comparativo' => [
-                    'fecha_inicio' => $comparativo_inicio->toDateString(),
-                    'fecha_fin' => $comparativo_fin->toDateString(),
-                    'dias' => $comparativo_inicio->diffInDays($comparativo_fin) + 1,
-                ],
-                'filtros' => [
-                    'id_almacen' => $id_almacen,
-                ],
-                'alertas' => [
-                    'total' => self::total_alertas($stock_critico, $mantenimiento, $compras, $cobros, $pendientes),
-                    'por_bloque' => [
-                        'stock_critico' => (int) $stock_critico['resumen']['total_items'],
-                        'mantenimiento' => (int) $mantenimiento['resumen']['vencidos'] + (int) $mantenimiento['resumen']['criticos'],
-                        'compras_pendientes' => (int) $compras['resumen']['total_ocs'],
-                        'cobros_pendientes' => (int) $cobros['resumen']['total_comprobantes'],
-                        'pendientes_atencion' => (int) $pendientes['resumen']['total'],
-                    ],
+                'periodos' => [
+                    'balance' => self::periodo_publico($periodo_balance),
+                    'cobros' => self::periodo_publico($periodo_cobros),
+                    'costo' => self::periodo_publico($periodo_costo),
+                    'compras' => self::periodo_publico($periodo_compras),
                 ],
                 'stock_critico' => $stock_critico,
                 'mantenimiento_alertas' => $mantenimiento,
@@ -164,11 +131,59 @@ class DashboardService
     }
 
     /**
+     * Normaliza el periodo de un indicador de flujo.
+     *
+     * Cada indicador de flujo tiene su propio periodo: el balance puede
+     * mirar un mes y los cobros otro. El comparativo es el periodo
+     * inmediatamente anterior y de la misma duracion.
+     *
+     * @param array<string, array{inicio: string, fin: string}> $periodos
+     * @return array{inicio: Carbon, fin: Carbon, comparativo_inicio: Carbon, comparativo_fin: Carbon}
+     */
+    private static function periodo(array $periodos, string $clave): array
+    {
+        $hoy = Carbon::now();
+
+        $inicio = Carbon::parse(
+            $periodos[$clave]['inicio'] ?? $hoy->copy()->startOfMonth()->toDateString()
+        )->startOfDay();
+
+        $fin = Carbon::parse(
+            $periodos[$clave]['fin'] ?? $inicio->copy()->endOfMonth()->toDateString()
+        )->startOfDay();
+
+        $dias = $inicio->diffInDays($fin) + 1;
+
+        return [
+            'inicio' => $inicio,
+            'fin' => $fin,
+            'comparativo_inicio' => $inicio->copy()->subDays($dias),
+            'comparativo_fin' => $inicio->copy()->subDay(),
+        ];
+    }
+
+    /**
+     * Periodo de un indicador de flujo en el formato que consume el front.
+     *
+     * @param array{inicio: Carbon, fin: Carbon, comparativo_inicio: Carbon, comparativo_fin: Carbon} $periodo
+     */
+    private static function periodo_publico(array $periodo): array
+    {
+        return [
+            'fecha_inicio' => $periodo['inicio']->toDateString(),
+            'fecha_fin' => $periodo['fin']->toDateString(),
+            'dias' => $periodo['inicio']->diffInDays($periodo['fin']) + 1,
+            'comparativo_inicio' => $periodo['comparativo_inicio']->toDateString(),
+            'comparativo_fin' => $periodo['comparativo_fin']->toDateString(),
+        ];
+    }
+
+    /**
      * Indicador 1: stock critico por almacen.
      */
-    private static function armar_stock_critico(?int $id_almacen): array
+    private static function armar_stock_critico(): array
     {
-        $items = StockCriticoData::get_stock_critico($id_almacen);
+        $items = StockCriticoData::get_stock_critico();
 
         $por_almacen = [];
         $criticos = 0;
@@ -212,21 +227,16 @@ class DashboardService
     /**
      * Indicador 2: alertas de mantenimiento proximo y vencido.
      */
-    private static function armar_mantenimiento(?int $id_almacen): array
+    private static function armar_mantenimiento(): array
     {
-        $evaluados = MantenimientoData::get_alertas_mantenimiento($id_almacen);
+        $evaluados = MantenimientoData::get_alertas_mantenimiento();
 
         $items = [];
         $vencidos = 0;
         $criticos = 0;
         $proximos = 0;
-        $obsoletos = 0;
 
         foreach ($evaluados as $activo) {
-            if ($activo['umbral_obsoleto']) {
-                $obsoletos++;
-            }
-
             if ($activo['nivel'] === 'OK') {
                 continue;
             }
@@ -260,7 +270,7 @@ class DashboardService
                 'vencidos' => $vencidos,
                 'criticos' => $criticos,
                 'proximos' => $proximos,
-                'umbrales_obsoletos' => $obsoletos,
+                
                 'evaluados' => count($evaluados),
             ],
         ];
@@ -269,12 +279,13 @@ class DashboardService
     /**
      * Indicador 3: balance del periodo (ingresos, egresos y resultado).
      */
-    private static function armar_balance(
-        Carbon $inicio,
-        Carbon $fin,
-        Carbon $comparativo_inicio,
-        Carbon $comparativo_fin
-    ): array {
+    private static function armar_balance(array $periodo): array
+    {
+        $inicio = $periodo['inicio'];
+        $fin = $periodo['fin'];
+        $comparativo_inicio = $periodo['comparativo_inicio'];
+        $comparativo_fin = $periodo['comparativo_fin'];
+
         // Los dos periodos se piden en UNA consulta y se separan por fecha:
         // contra una base de datos remota cada consulta de mas se paga en
         // tiempo de espera, y el rango completo es un solo viaje.
@@ -329,8 +340,10 @@ class DashboardService
             ];
         }
 
-        $origenes = $resumen_actual['origenes'];
-        usort($origenes, fn (array $a, array $b) => $b['monto'] <=> $a['monto']);
+        $origenes = self::origenes_con_comparativo(
+            $resumen_actual['origenes'],
+            $resumen_comparativo['origenes']
+        );
 
         $ambitos = [];
         foreach ($resumen_actual['ambitos'] as $ambito) {
@@ -343,6 +356,63 @@ class DashboardService
             'origenes' => $origenes,
             'ambitos' => $ambitos,
         ];
+    }
+
+    /**
+     * Cruza los origenes del periodo actual con los del comparativo.
+     *
+     * Cada origen lleva su monto anterior y su variacion, para que se pueda
+     * leer de un vistazo si el movimiento crecio o cayo, igual que en el
+     * modulo de Balances.
+     *
+     * @param array<int, array<string, mixed>> $actual
+     * @param array<int, array<string, mixed>> $comparativo
+     */
+    private static function origenes_con_comparativo(array $actual, array $comparativo): array
+    {
+        $anteriores = [];
+
+        foreach ($comparativo as $origen) {
+            $clave = self::clave_origen($origen);
+            $anteriores[$clave] = (float) $origen['monto'];
+        }
+
+        $resultado = [];
+
+        foreach ($actual as $origen) {
+            $clave = self::clave_origen($origen);
+            $anterior = $anteriores[$clave] ?? 0.0;
+            $monto = (float) $origen['monto'];
+
+            $resultado[] = [
+                'origen' => $origen['origen'],
+                'ambito' => $origen['ambito'],
+                'tipo' => $origen['tipo'],
+                'moneda' => $origen['moneda'],
+                'monto' => round($monto, 2),
+                'anterior' => round($anterior, 2),
+                'variacion' => $anterior > 0
+                    ? round((($monto - $anterior) / abs($anterior)) * 100, 1)
+                    : null,
+            ];
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * Clave de un origen del balance.
+     *
+     * @param array<string, mixed> $origen
+     */
+    private static function clave_origen(array $origen): string
+    {
+        return implode('|', [
+            $origen['origen'],
+            $origen['ambito'],
+            $origen['tipo'],
+            $origen['moneda'],
+        ]);
     }
 
     /**
@@ -414,18 +484,27 @@ class DashboardService
     /**
      * Indicador 4: compras pendientes de recepcion.
      */
-    private static function armar_compras(?int $id_almacen): array
+    private static function armar_compras(array $periodo): array
     {
-        $ocs = ComprasPendientesData::get_ocs_pendientes($id_almacen);
-        $items = ComprasPendientesData::get_items_pendientes($id_almacen);
-        $senales = ComprasPendientesData::get_senales_transito($id_almacen);
+        $ocs = ComprasPendientesData::get_ocs_pendientes(
+            $periodo['inicio']->toDateString(),
+            $periodo['fin']->toDateString()
+        );
+        $items = ComprasPendientesData::get_items_pendientes(
+            $periodo['inicio']->toDateString(),
+            $periodo['fin']->toDateString()
+        );
+        $senales = ComprasPendientesData::get_senales_transito(
+            $periodo['inicio']->toDateString(),
+            $periodo['fin']->toDateString()
+        );
 
         $por_moneda = [];
-        $items_pendientes = 0;
+        $total_items_pendientes = 0;
+        $total_cantidad_pendiente = 0.0;
         $antiguedad_max = 0;
 
         foreach ($ocs as $oc) {
-            $items_pendientes += $oc['items_pendientes'];
             $antiguedad_max = max($antiguedad_max, $oc['dias_antiguedad']);
 
             $moneda = $oc['moneda'];
@@ -446,8 +525,27 @@ class DashboardService
             $items_por_oc[$item['id_orden_compra']][] = $item;
         }
 
+        // Lo que falta por recibir de cada orden: lo pedido menos lo ya
+        // recibido. Una orden a medio camino NO esta pendiente de verdad.
         foreach ($ocs as $indice => $oc) {
-            $ocs[$indice]['items'] = $items_por_oc[$oc['id_orden_compra']] ?? [];
+            $items_oc = $items_por_oc[$oc['id_orden_compra']] ?? [];
+
+            $pendiente = 0.0;
+            $items_pendientes = 0;
+
+            foreach ($items_oc as $item) {
+                if ($item['cantidad_pendiente_base'] > 0) {
+                    $pendiente += $item['cantidad_pendiente_base'];
+                    $items_pendientes++;
+                }
+            }
+
+            $ocs[$indice]['items'] = $items_oc;
+            $ocs[$indice]['items_pendientes'] = $items_pendientes;
+            $ocs[$indice]['cantidad_pendiente_base'] = round($pendiente, 2);
+
+            $total_items_pendientes += $items_pendientes;
+            $total_cantidad_pendiente += $pendiente;
         }
 
         return [
@@ -455,7 +553,8 @@ class DashboardService
             'items' => $items,
             'resumen' => [
                 'total_ocs' => count($ocs),
-                'items_pendientes' => $items_pendientes,
+                'items_pendientes' => $total_items_pendientes,
+                'cantidad_pendiente_base' => round($total_cantidad_pendiente, 2),
                 'por_moneda' => array_values($por_moneda),
                 'antiguedad_max_dias' => $antiguedad_max,
                 'transferencias_en_transito' => (int) $senales['transferencias_en_transito'],
@@ -467,11 +566,11 @@ class DashboardService
     /**
      * Indicador 5: cobros pendientes (cartera por cobrar).
      */
-    private static function armar_cobros(Carbon $inicio, Carbon $fin): array
+    private static function armar_cobros(array $periodo): array
     {
         $items = CobrosPendientesData::get_comprobantes_pendientes(
-            $inicio->toDateString(),
-            $fin->toDateString()
+            $periodo['inicio']->toDateString(),
+            $periodo['fin']->toDateString()
         );
 
         $anticipos = CobrosPendientesData::get_anticipos_con_saldo();
@@ -525,10 +624,10 @@ class DashboardService
     /**
      * Indicador 8: pendientes de atencion (embudo logistico).
      */
-    private static function armar_pendientes(?int $id_almacen): array
+    private static function armar_pendientes(): array
     {
-        $etapas = PendientesAtencionData::get_conteo_por_etapa($id_almacen);
-        $vencidos = PendientesAtencionData::get_vencidos($id_almacen);
+        $etapas = PendientesAtencionData::get_conteo_por_etapa();
+        $vencidos = PendientesAtencionData::get_vencidos();
 
         $total = 0;
         $por_tipo = [];
@@ -557,11 +656,11 @@ class DashboardService
     /**
      * Indicador 9: costo de mantenimiento del periodo y su composicion.
      */
-    private static function armar_costo_mantenimiento(Carbon $inicio, Carbon $fin): array
+    private static function armar_costo_mantenimiento(array $periodo): array
     {
         $mantenimientos = MantenimientoData::get_costo_mantenimiento(
-            $inicio->toDateString(),
-            $fin->toDateString()
+            $periodo['inicio']->toDateString(),
+            $periodo['fin']->toDateString()
         );
 
         $costo_mano_obra = 0.0;
@@ -611,23 +710,5 @@ class DashboardService
                 'costo_promedio' => $cantidad > 0 ? round($costo_total / $cantidad, 2) : 0.0,
             ],
         ];
-    }
-
-    /**
-     * Total de alertas abiertas en el dashboard.
-     */
-    private static function total_alertas(
-        array $stock_critico,
-        array $mantenimiento,
-        array $compras,
-        array $cobros,
-        array $pendientes
-    ): int {
-        return (int) $stock_critico['resumen']['total_items']
-            + (int) $mantenimiento['resumen']['vencidos']
-            + (int) $mantenimiento['resumen']['criticos']
-            + (int) $compras['resumen']['total_ocs']
-            + (int) $cobros['resumen']['total_comprobantes']
-            + (int) $pendientes['resumen']['total'];
     }
 }

@@ -17,13 +17,17 @@ use Illuminate\Support\Facades\DB;
  *
  * Los estados terminales se excluyen del conteo: un item rechazado, cerrado o
  * completado ya no espera a nadie.
+ *
+ * El conteo trae el almacen de cada etapa porque el dashboard filtra por
+ * almacen en el navegador: el filtro tiene que poder recortar el embudo, no
+ * solo la lista de vencidos.
  */
 class PendientesAtencionData
 {
     /**
-     * Conteo de items por tipo de documento y etapa.
+     * Conteo de items por tipo de documento, etapa y almacen.
      */
-    public static function get_conteo_por_etapa(?int $id_almacen = null): array
+    public static function get_conteo_por_etapa(): array
     {
         $requerimiento_en_flujo = self::sql_lista([
             EstadoRequerimiento::Generado->value,
@@ -43,47 +47,36 @@ class PendientesAtencionData
         ]);
 
         $sql = "
-        SELECT 'REQUERIMIENTO' AS tipo, d.estado AS etapa, COUNT(*) AS cantidad
+        SELECT 'REQUERIMIENTO' AS tipo, d.estado AS etapa,
+               r.id_almacen_destino AS id_almacen, a.nombre AS almacen,
+               COUNT(*) AS cantidad
         FROM requerimiento_almacen_detalle d
         INNER JOIN requerimiento_almacen r ON r.id = d.id_requerimiento_almacen
+        LEFT JOIN almacen a ON a.id = r.id_almacen_destino
         WHERE r.estado IN ($requerimiento_en_flujo)
           AND d.estado NOT IN ($terminales)
-        ";
-
-        $params = [];
-
-        if ($id_almacen !== null) {
-            // Un parametro con nombre distinto por rama: el driver usa
-            // prepares nativas y un marcador repetido es un parametro
-            // invalido.
-            $sql .= ' AND r.id_almacen_destino = :id_almacen_requerimiento';
-            $params['id_almacen_requerimiento'] = $id_almacen;
-        }
-
-        $sql .= "
-        GROUP BY d.estado
+        GROUP BY d.estado, r.id_almacen_destino, a.nombre
 
         UNION ALL
 
-        SELECT 'SOLICITUD' AS tipo, d.estado AS etapa, COUNT(*) AS cantidad
+        SELECT 'SOLICITUD' AS tipo, d.estado AS etapa,
+               s.id_almacen_solicitante AS id_almacen, a.nombre AS almacen,
+               COUNT(*) AS cantidad
         FROM solicitud_reabastecimiento_detalle d
         INNER JOIN solicitud_reabastecimiento s ON s.id = d.id_solicitud_reabastecimiento
+        LEFT JOIN almacen a ON a.id = s.id_almacen_solicitante
         WHERE s.estado IN ($solicitud_en_flujo)
           AND d.estado NOT IN ($terminales)
+        GROUP BY d.estado, s.id_almacen_solicitante, a.nombre
         ";
 
-        if ($id_almacen !== null) {
-            $sql .= ' AND s.id_almacen_solicitante = :id_almacen_solicitud';
-            $params['id_almacen_solicitud'] = $id_almacen;
-        }
-
-        $sql .= ' GROUP BY d.estado';
-
-        $rows = DB::select($sql, $params);
+        $rows = DB::select($sql);
 
         return array_map(fn (object $row) => [
             'tipo' => (string) $row->tipo,
             'etapa' => (string) $row->etapa,
+            'id_almacen' => $row->id_almacen !== null ? (int) $row->id_almacen : null,
+            'almacen' => $row->almacen !== null ? (string) $row->almacen : null,
             'cantidad' => (int) $row->cantidad,
         ], $rows);
     }
@@ -91,7 +84,7 @@ class PendientesAtencionData
     /**
      * Items cuyo plazo de entrega ya se paso y siguen sin despacho.
      */
-    public static function get_vencidos(?int $id_almacen = null, int $limite = 50): array
+    public static function get_vencidos(int $limite = 100): array
     {
         $requerimiento_en_flujo = self::sql_lista([
             EstadoRequerimiento::Generado->value,
@@ -123,16 +116,7 @@ class PendientesAtencionData
           AND d.estado NOT IN ($terminales)
           AND r.fecha_entrega_requerida IS NOT NULL
           AND DATE(r.fecha_entrega_requerida) < CURRENT_DATE
-        ";
 
-        $params = [];
-
-        if ($id_almacen !== null) {
-            $sql .= ' AND r.id_almacen_destino = :id_almacen_requerimiento';
-            $params['id_almacen_requerimiento'] = $id_almacen;
-        }
-
-        $sql .= "
         UNION ALL
 
         SELECT 'SOLICITUD' AS tipo, s.correlativo, s.fecha_entrega_requerida,
@@ -147,16 +131,11 @@ class PendientesAtencionData
           AND d.estado NOT IN ($terminales)
           AND s.fecha_entrega_requerida IS NOT NULL
           AND DATE(s.fecha_entrega_requerida) < CURRENT_DATE
-        ";
 
-        if ($id_almacen !== null) {
-            $sql .= ' AND s.id_almacen_solicitante = :id_almacen_solicitud';
-            $params['id_almacen_solicitud'] = $id_almacen;
-        }
+        ORDER BY fecha_entrega_requerida ASC
+        LIMIT " . (int) $limite;
 
-        $sql .= ' ORDER BY fecha_entrega_requerida ASC LIMIT ' . (int) $limite;
-
-        $rows = DB::select($sql, $params);
+        $rows = DB::select($sql);
 
         return array_map(fn (object $row) => [
             'tipo' => (string) $row->tipo,
